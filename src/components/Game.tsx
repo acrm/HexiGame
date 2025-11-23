@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import './Game.css';
 import {
   DefaultParams,
   Params,
@@ -339,21 +340,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   }
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#370152ff', color: '#fff', fontFamily: 'sans-serif' }}>
-      <div
-        style={{
-          width: '33.33vw',
-          minWidth: 260,
-          maxWidth: 480,
-          padding: '18px 20px',
-          boxSizing: 'border-box',
-          background: '#27013bff',
-          borderRight: '1px solid #202030',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
-      >
+    <div className="game-root">
+      <div className="game-panel">
         <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ position: 'relative', width: 90, height: 90 }}>
             {mergedParams.ColorPalette.map((color, index) => {
@@ -425,7 +413,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           </div>
         </div>
       </div>
-      <div ref={canvasContainerRef} style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div ref={canvasContainerRef} className="game-field">
         <canvas ref={canvasRef} style={{ display: 'block' }} />
         <div
           style={{
