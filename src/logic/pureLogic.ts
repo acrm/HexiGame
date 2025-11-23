@@ -153,12 +153,24 @@ export function hoveredCell(state: GameState): Cell | undefined {
 }
 
 // ---------- Core Tick ----------
-export function tick(state: GameState, params: Params): GameState {
-  let next = { ...state };
-  next.tick = state.tick + 1;
+export function tick(state: GameState, params: Params, rng?: RNG): GameState {
+  let next: GameState = { ...state, tick: state.tick + 1 };
 
   if (next.captureCooldownTicksRemaining > 0) {
     next = { ...next, captureCooldownTicksRemaining: next.captureCooldownTicksRemaining - 1 };
+  }
+
+  // Auto-complete capture exactly once when full charge duration is reached
+  if (
+    rng &&
+    next.captureChargeStartTick !== null &&
+    (next.tick - next.captureChargeStartTick) >= params.CaptureHoldDurationTicks
+  ) {
+    // Debug: auto-complete capture
+    console.log(
+      `[tick] auto-complete capture at tick=${next.tick}, started=${next.captureChargeStartTick}, held=${next.tick - next.captureChargeStartTick}`,
+    );
+    next = endCaptureCharge(next, params, rng);
   }
 
   if (next.flash && (next.tick - next.flash.startedTick) >= params.CaptureFlashDurationTicks) {
@@ -230,7 +242,9 @@ export function beginCaptureCharge(state: GameState): GameState {
   if (state.capturedCell !== null) return state; // dropping is handled elsewhere
   if (state.captureCooldownTicksRemaining > 0) return state;
   if (state.captureChargeStartTick !== null) return state; // already charging
-  return { ...state, captureChargeStartTick: state.tick };
+  const next = { ...state, captureChargeStartTick: state.tick };
+  console.log(`[capture] begin at tick=${state.tick}`);
+  return next;
 }
 
 // End charge (Space up). If held long enough, attempt capture on hovered cell.
@@ -240,6 +254,7 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
   let next: GameState = { ...state, captureChargeStartTick: null };
 
   if (heldTicks < params.CaptureHoldDurationTicks) {
+    console.log(`[capture] end too early at tick=${state.tick}, held=${heldTicks}`);
     return next; // not enough charge
   }
 
@@ -253,6 +268,7 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
 
   const cell = hoveredCell(next);
   if (!cell || cell.colorIndex === null) {
+    console.log(`[capture] no cell to capture at tick=${next.tick}`);
     return next; // nothing to capture
   }
 
@@ -260,6 +276,7 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
   const roll = rng() * 100; // [0,100)
   if (roll < chance) {
     // success
+    console.log(`[capture] SUCCESS at tick=${next.tick}, held=${heldTicks}, roll=${roll.toFixed(2)}, chance=${chance}`);
     next = {
       ...next,
       capturedCell: { q: cell.q, r: cell.r },
@@ -267,6 +284,7 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
     };
   } else {
     // failure
+    console.log(`[capture] FAIL at tick=${next.tick}, held=${heldTicks}, roll=${roll.toFixed(2)}, chance=${chance}`);
     next = {
       ...next,
       captureCooldownTicksRemaining: params.CaptureFailureCooldownTicks,
@@ -303,7 +321,7 @@ export function isCarryFlickerOn(state: GameState, params: Params): boolean {
 // ---------- Default Parameters (mirroring the doc) ----------
 export const DefaultParams: Params = {
   GridRadius: 15,
-  InitialColorProbability: 0.30,
+  InitialColorProbability: 0.20,
   ColorPalette: [
     "#FF8000","#CC6600","#996600","#666600","#660099","#9933FF","#CC66FF","#FF99FF"
   ],
@@ -319,13 +337,3 @@ export const DefaultParams: Params = {
   CarryingMoveRequiresEmpty: true,
   GameTickRate: 12,
 };
-
-// ---------- Example usage (pure) ----------
-// const rng = mulberry32(1234);
-// let params = { ...DefaultParams };
-// let state = createInitialState(params, rng);
-// state = beginCaptureCharge(state);
-// // ... advance some ticks
-// for (let i = 0; i < 6; i++) state = tick(state, params);
-// state = endCaptureCharge(state, params, rng);
-// state = attemptMoveByDirectionIndex(state, params, 0);
