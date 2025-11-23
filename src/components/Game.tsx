@@ -407,6 +407,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <div>Hold Space to charge capture</div>
             <div>Release Space to try capture</div>
             <div>Press Space while carrying to drop</div>
+            <div>On touch: use arrows and Capture button</div>
             <div style={{ marginTop: 6, opacity: 0.8 }}>
               Goal: collect cells matching your color before the timer ends.
             </div>
@@ -427,6 +428,80 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         >
           FPS: {fps}
         </div>
+      </div>
+      <div className="game-footer-controls">
+        <div className="touch-dpad">
+          <button
+            type="button"
+            className="touch-btn touch-up"
+            onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, -1))}
+          >
+            ▲
+          </button>
+          <div className="touch-middle-row">
+            <button
+              type="button"
+              className="touch-btn touch-left"
+              onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, -1, 0))}
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              className="touch-btn touch-right"
+              onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, 1, 0))}
+            >
+              ▶
+            </button>
+          </div>
+          <button
+            type="button"
+            className="touch-btn touch-down"
+            onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, 1))}
+          >
+            ▼
+          </button>
+        </div>
+        <button
+          type="button"
+          className="touch-btn touch-capture"
+          onMouseDown={() => {
+            setGameState(prev => {
+              if (prev.capturedCell) return dropCarried(prev);
+              return beginCaptureCharge(prev);
+            });
+          }}
+          onMouseUp={() => {
+            setGameState(prev => {
+              if (prev.captureChargeStartTick === null) return prev;
+              const heldTicks = prev.tick - prev.captureChargeStartTick;
+              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+                return { ...prev, captureChargeStartTick: null };
+              }
+              return { ...prev, captureChargeStartTick: null };
+            });
+          }}
+          onTouchStart={e => {
+            e.preventDefault();
+            setGameState(prev => {
+              if (prev.capturedCell) return dropCarried(prev);
+              return beginCaptureCharge(prev);
+            });
+          }}
+          onTouchEnd={e => {
+            e.preventDefault();
+            setGameState(prev => {
+              if (prev.captureChargeStartTick === null) return prev;
+              const heldTicks = prev.tick - prev.captureChargeStartTick;
+              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+                return { ...prev, captureChargeStartTick: null };
+              }
+              return { ...prev, captureChargeStartTick: null };
+            });
+          }}
+        >
+          Capture
+        </button>
       </div>
     </div>
   );

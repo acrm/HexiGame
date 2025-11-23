@@ -29,6 +29,45 @@
   justify-content: center;
 }
 
+.game-touch-controls,
+.game-footer-controls {
+  background-color: #27013bff;
+  display: none;
+}
+
+.touch-dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.touch-middle-row {
+  display: flex;
+  gap: 8px;
+}
+
+.touch-btn {
+  background: #3e0a60;
+  border: 1px solid #5a2188;
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 14px;
+}
+
+.touch-btn:active {
+  background: #5a2188;
+}
+
+.touch-capture {
+  margin-left: auto;
+  padding: 8px 14px;
+}
+
 @media (max-width: 900px) {
   .game-root {
     flex-direction: column;
@@ -38,7 +77,6 @@
     width: 100%;
     min-width: 0;
     max-width: none;
-    max-height: 40vh;
     padding: 12px 16px;
     border-right: none;
     border-bottom: 1px solid #202030;
@@ -47,5 +85,14 @@
 
   .game-field {
     min-height: 0;
+    flex: 1;
+  }
+
+  .game-footer-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px 10px;
+    border-top: 1px solid #202030;
   }
 }
