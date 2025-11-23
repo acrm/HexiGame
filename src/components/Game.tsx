@@ -20,6 +20,8 @@ import {
 const HEX_SIZE = 10; // pixels
 const FLASH_SUCCESS_COLOR = '#00BFFF';
 const FLASH_FAILURE_COLOR = '#FF4444';
+const GRID_STROKE_COLOR = '#444';
+const GRID_STROKE_WIDTH = 1; // minimal visible outline
 
 // Helper: axial -> pixel (pointy-top)
 function hexToPixel(q: number, r: number) {
@@ -153,14 +155,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       // Draw grid
       for (const cell of gameState.grid.values()) {
         const pos = hexToPixel(cell.q, cell.r);
-        let fill = cell.colorIndex !== null ? mergedParams.ColorPalette[cell.colorIndex] : '#000';
+        let fill = cell.colorIndex !== null ? mergedParams.ColorPalette[cell.colorIndex] : '#000000';
         // Flicker for carried cell anchor
         if (gameState.capturedCell && cell.q === gameState.capturedCell.q && cell.r === gameState.capturedCell.r) {
           if (isCarryFlickerOn(gameState, mergedParams)) {
             fill = mergedParams.ColorPalette[cell.colorIndex ?? mergedParams.PlayerBaseColorIndex];
           }
         }
-        drawHex(ctx, centerX + pos.x, centerY + pos.y, HEX_SIZE, fill, '#555');
+        drawHex(ctx, centerX + pos.x, centerY + pos.y, HEX_SIZE, fill, GRID_STROKE_COLOR, GRID_STROKE_WIDTH);
       }
 
       // Flash overlay border
@@ -221,14 +223,23 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', background: '#111', color: '#fff', fontFamily: 'sans-serif' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
-      <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', padding: '10px 15px', borderRadius: 8, fontSize: 14, lineHeight: 1.5, textAlign: 'right', minWidth: 200 }}>
+      <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', padding: '10px 15px', borderRadius: 8, fontSize: 14, lineHeight: 1.5, textAlign: 'right', minWidth: 240 }}>
         <div>Player Color <span style={{ display: 'inline-block', width: 14, height: 14, background: mergedParams.ColorPalette[mergedParams.PlayerBaseColorIndex], border: '1px solid #fff', verticalAlign: 'middle', marginLeft: 6 }} /></div>
         <div>Cursor <span style={{ display: 'inline-block', width: 14, height: 14, background: flashColor || hoverColor, border: '1px solid #fff', verticalAlign: 'middle', marginLeft: 6 }} /></div>
         <div>Captured: {gameState.capturedCell ? 1 : 0}</div>
         <div>Mode: {mode}{chance !== null && mode === 'Free' ? ` (Chance: ${chance}%)` : ''}</div>
         <div>Time Left: {gameState.remainingSeconds}s</div>
         <div>FPS: {fps}</div>
-        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>Hold Space ≥ {mergedParams.CaptureHoldDurationTicks} ticks to attempt capture. Press Space while carrying to drop.</div>
+        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85, textAlign: 'left' }}>
+          <div><strong>Controls</strong></div>
+          <div>Move: Arrow keys or WASD</div>
+          <div>Hold Space to charge capture</div>
+          <div>Release Space to try capture</div>
+          <div>Press Space while carrying to drop</div>
+        </div>
+        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, textAlign: 'left' }}>
+          Goal: collect cells matching your color before the timer ends.
+        </div>
       </div>
     </div>
   );
