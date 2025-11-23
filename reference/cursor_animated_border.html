@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color Cell Prototype with Animated Cursor</title>
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: #111; font-family: sans-serif; color: #fff; }
+    canvas { display: block; }
+    #hud { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 10px 15px; border-radius: 8px; font-size: 14px; line-height: 1.6; text-align: right; }
+    #playerColor, #cursorColor { width: 14px; height: 14px; display: inline-block; vertical-align: middle; border: 1px solid #fff; margin-left: 5px; }
+  #fps { font-weight: bold; display: inline-block; width: 30px; }
+</style>
+</head>
+<body>
+<div id="hud">
+  Player <span id="playerColor"></span><br>
+  Cursor <span id="cursorColor"></span><br>
+  Captured: <span id="capturedCount">0</span><br>
+  Mode: <span id="captureMode">Free</span><br>
+  Time left: <span id="timer">300</span>s<br>
+  FPS: <span id="fps">0</span>
+</div>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const HEX_SIZE = 10;
+const COLORS = ["#FF8000", "#CC6600", "#996600", "#666600", "#660099", "#9933FF", "#CC66FF", "#FF99FF"];
+const PLAYER_COLOR = COLORS[0];
+const grid = [];
+let cursorQ = 0, cursorR = 0;
+let frameCount = 0;
+let remainingTime = 300;
+let capturedCell = null;
+let captureHoldStart = null;
+let captureCooldown = 0;
+let captureFlashColor = null;
+let captureFlashStart = null;
+
+const capturedCountEl = document.getElementById("capturedCount");
+const timerEl = document.getElementById("timer");
+const cursorColorEl = document.getElementById("cursorColor");
+const fpsEl = document.getElementById("fps");
+const captureModeEl = document.getElementById("captureMode");
+document.getElementById("playerColor").style.backgroundColor = PLAYER_COLOR;
+
+function hexToPixel(q, r) {
+  const x = HEX_SIZE * 3/2 * q;
+  const y = HEX_SIZE * Math.sqrt(3) * (r + q / 2);
+  return { x, y };
+}
+
+function drawHex(x, y, size, color, isCursor = false) {
+  const angle_deg = 60, points = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.PI / 180 * (angle_deg * i);
+    const px = x + size * Math.cos(angle);
+    const py = y + size * Math.sin(angle);
+    points.push([px, py]);
+  }
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < 6; i++) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = isCursor ? "#444" : "#555";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function generateGrid(radius) {
+  for (let q = -radius; q <= radius; q++) {
+    for (let r = -radius; r <= radius; r++) {
+      const s = -q - r;
+      if (Math.abs(s) <= radius) {
+        const colorChance = Math.random();
+        const color = colorChance < 0.3 ? COLORS[Math.floor(Math.random() * COLORS.length)] : null;
+        const cell = { q, r, color };
+        grid.push(cell);
+      }
+    }
+  }
+}
+
+function findCell(q, r) {
+  return grid.find(cell => cell.q === q && cell.r === r);
+}
+
+function tryToggleCapture(cell) {
+  if (!cell || !cell.color || capturedCell || captureCooldown > 0) return;
+  const cdiff = Math.abs(COLORS.indexOf(cell.color) - COLORS.indexOf(PLAYER_COLOR));
+  const chance = Math.max(0, 100 - cdiff * 20);
+  const roll = Math.random() * 100;
+  if (roll <= chance) {
+    capturedCell = cell;
+    capturedCountEl.textContent = 1;
+    captureModeEl.textContent = "Carrying";
+    captureFlashColor = "#00BFFF";
+    captureFlashStart = frameCount;
+  } else {
+    captureFlashColor = "#FF4444";
+    captureFlashStart = frameCount;
+    captureCooldown = 30;
+  }
+}
+
+function update(dq, dr) {
+  const nq = cursorQ + dq;
+  const nr = cursorR + dr;
+  const target = findCell(nq, nr);
+  if (!target) return;
+  if (capturedCell) {
+    if (target.color) return;
+    target.color = capturedCell.color;
+    capturedCell.color = null;
+    capturedCell = target;
+  }
+  cursorQ = nq;
+  cursorR = nr;
+}
+
+function drawGrid(cursorQ, cursorR) {
+  grid.forEach(cell => {
+    const pos = hexToPixel(cell.q, cell.r);
+    const sx = canvas.width / 2 + pos.x;
+    const sy = canvas.height / 2 + pos.y;
+    const isCursor = cell.q === cursorQ && cell.r === cursorR;
+    let fill = cell.color || "#000";
+    if (cell === capturedCell && frameCount % 30 < 15) fill = cell.color || "#FFF";
+    drawHex(sx, sy, HEX_SIZE, fill, isCursor);
+  });
+
+  if (captureFlashColor && (spaceHeld || (captureFlashStart !== null && frameCount - captureFlashStart < 10))) {
+    const hovered = findCell(cursorQ, cursorR);
+    if (hovered) {
+      const pos = hexToPixel(cursorQ, cursorR);
+      const x = canvas.width / 2 + pos.x;
+      const y = canvas.height / 2 + pos.y;
+      const angle_deg = 60;
+      const points = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.PI / 180 * (angle_deg * i);
+        const px = x + HEX_SIZE * Math.cos(angle);
+        const py = y + HEX_SIZE * Math.sin(angle);
+        points.push([px, py]);
+      }
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < 6; i++) ctx.lineTo(points[i][0], points[i][1]);
+      ctx.closePath();
+      ctx.strokeStyle = captureFlashColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  }
+}
+
+function drawCursorFocus(q, r, edge) {
+  const pos = hexToPixel(q, r);
+  const x = canvas.width / 2 + pos.x;
+  const y = canvas.height / 2 + pos.y;
+  const angle_deg = 60, points = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.PI / 180 * (angle_deg * i);
+    const px = x + HEX_SIZE * Math.cos(angle);
+    const py = y + HEX_SIZE * Math.sin(angle);
+    points.push([px, py]);
+  }
+  if (!points[edge] || !points[(edge + 1) % 6]) return;
+  const p1 = points[edge];
+  const p2 = points[(edge + 1) % 6];
+  const insetFactor = 1.0;
+  const midX = x;
+  const midY = y;
+  const insetP1 = [midX + (p1[0] - midX) * insetFactor, midY + (p1[1] - midY) * insetFactor];
+  const insetP2 = [midX + (p2[0] - midX) * insetFactor, midY + (p2[1] - midY) * insetFactor];
+  ctx.beginPath();
+  ctx.moveTo(insetP1[0], insetP1[1]);
+  ctx.lineTo(insetP2[0], insetP2[1]);
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+let lastFrameTime = performance.now(), frameCounter = 0, fps = 0;
+function gameLoop() {
+  if (captureCooldown > 0) captureCooldown--;
+  if (captureFlashColor && captureFlashStart !== null && frameCount - captureFlashStart >= 10 && !spaceHeld) {
+    captureFlashColor = null;
+    captureFlashStart = null;
+  }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const hovered = findCell(cursorQ, cursorR);
+  const edge = Math.floor(((frameCount / fps) * 60 / 30) % 6);
+  cursorColorEl.style.backgroundColor = captureFlashColor || (hovered?.color || "#000");
+  if (!capturedCell && hovered && hovered.color) {
+    const cdiff = Math.abs(COLORS.indexOf(hovered.color) - COLORS.indexOf(PLAYER_COLOR));
+    const chance = Math.max(0, 100 - cdiff * 20);
+    captureModeEl.textContent = `Free (Chance: ${chance}%)`;
+  } else if (!capturedCell) {
+    captureModeEl.textContent = "Free";
+  }
+  drawGrid(cursorQ, cursorR);
+  const activeEdges = [];
+  if (spaceHeld && captureHoldStart !== null && !captureFlashColor && (frameCount - captureHoldStart < 30)) {
+    const startEdge = Math.floor(((captureHoldStart / fps) * 60 / 30) % 6);
+    const currentEdge = Math.floor(((frameCount / fps) * 60 / 30) % 6);
+    const count = (currentEdge - startEdge + 6) % 6 + 1;
+    for (let i = 0; i < count; i++) activeEdges.push((startEdge + i) % 6);
+  } else if (!captureFlashColor) {
+    activeEdges.push(Math.floor(((frameCount / fps) * 60 / 30) % 6));
+  }
+  activeEdges.forEach(e => drawCursorFocus(cursorQ, cursorR, e));
+  frameCount++;
+  frameCounter++;
+  const now = performance.now();
+  if (now - lastFrameTime >= 1000) {
+    fps = frameCounter;
+    fpsEl.textContent = fps;
+    frameCounter = 0;
+    lastFrameTime = now;
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+let spaceHeld = false;
+window.addEventListener("keydown", e => {
+  const dirs = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0], w:[0,-1], s:[0,1], a:[-1,0], d:[1,0] };
+  if (dirs[e.key]) update(...dirs[e.key]);
+  if (e.code === "Space") {
+    if (!spaceHeld) {
+      if (capturedCell) {
+        capturedCell = null;
+        capturedCountEl.textContent = 0;
+        captureModeEl.textContent = "Free";
+      } else if (!captureCooldown) {
+        captureHoldStart = frameCount;
+      }
+    }
+    spaceHeld = true;
+  }
+});
+window.addEventListener("keyup", e => {
+  if (e.code === "Space") {
+    if (spaceHeld) {
+      if (captureHoldStart !== null && frameCount - captureHoldStart >= 30) {
+        const cell = findCell(cursorQ, cursorR);
+        tryToggleCapture(cell);
+      }
+      spaceHeld = false;
+      captureHoldStart = null;
+    }
+  }
+});
+
+setInterval(() => { if (remainingTime > 0) { remainingTime--; timerEl.textContent = remainingTime; } }, 1000);
+
+generateGrid(15);
+gameLoop();
+</script>
+</body>
+</html>
