@@ -20,7 +20,7 @@ import {
 const HEX_SIZE = 10; // pixels
 const FLASH_SUCCESS_COLOR = '#00BFFF';
 const FLASH_FAILURE_COLOR = '#FF4444';
-const GRID_STROKE_COLOR = '#444';
+const GRID_STROKE_COLOR = '#460068ff';
 const GRID_STROKE_WIDTH = 1; // minimal visible outline
 
 // Helper: axial -> pixel (pointy-top)
@@ -126,6 +126,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         setGameState(prev => attemptMoveByDelta(prev, mergedParams, delta[0], delta[1]));
       }
     }
+
     function handleKeyUp(e: KeyboardEvent) {
       if (e.code === 'Space') {
         if (!spaceIsDownRef.current) {
@@ -174,15 +175,27 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       const availableWidth = container.clientWidth;
       const availableHeight = container.clientHeight;
 
-      // Compute logical grid bounds in hex space
-      // Width in hex-space: from q=-R..R projected to x, same for height (r)
-      const logicalHalfWidth = HEX_SIZE * 1.5 * mergedParams.GridRadius;
-      const logicalHalfHeight = HEX_SIZE * Math.sqrt(3) * (mergedParams.GridRadius + mergedParams.GridRadius / 2);
+      // Compute tight logical bounds of the actual hex disk in pixel space
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const cell of gameState.grid.values()) {
+        const pos = hexToPixel(cell.q, cell.r);
+        const x = pos.x;
+        const y = pos.y;
+        const halfW = HEX_SIZE * 1.0; // approximate radius horizontally
+        const halfH = HEX_SIZE * Math.sqrt(3) * 0.5; // approximate radius vertically
+        minX = Math.min(minX, x - halfW);
+        maxX = Math.max(maxX, x + halfW);
+        minY = Math.min(minY, y - halfH);
+        maxY = Math.max(maxY, y + halfH);
+      }
 
-      const logicalWidth = logicalHalfWidth * 2;
-      const logicalHeight = logicalHalfHeight * 2;
+      const logicalWidth = maxX - minX;
+      const logicalHeight = maxY - minY;
 
-      const scale = 0.9 * Math.min(availableWidth / logicalWidth, availableHeight / logicalHeight);
+      const scale = 0.8 * Math.min(availableWidth / logicalWidth, availableHeight / logicalHeight);
 
       const pixelWidth = logicalWidth * scale;
       const pixelHeight = logicalHeight * scale;
@@ -192,15 +205,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
+      const centerX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
+      const centerY = canvas.height / 2 - ((minY + maxY) / 2) * scale;
 
       // Draw grid (scaled)
       for (const cell of gameState.grid.values()) {
         const pos = hexToPixel(cell.q, cell.r);
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
-        let fill = cell.colorIndex !== null ? mergedParams.ColorPalette[cell.colorIndex] : '#000000';
+        let fill = cell.colorIndex !== null ? mergedParams.ColorPalette[cell.colorIndex] : 'transparent';
         // Flicker for carried cell anchor
         if (gameState.capturedCell && cell.q === gameState.capturedCell.q && cell.r === gameState.capturedCell.r) {
           if (isCarryFlickerOn(gameState, mergedParams)) {
@@ -303,76 +316,129 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Derived HUD data
   const mode = deriveMode(gameState);
-  const chance = previewCaptureChanceAtCursor(gameState, mergedParams);
+  let chance = previewCaptureChanceAtCursor(gameState, mergedParams);
   const hoverColorIndex = hoveredCell(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
   const flashColor = gameState.flash ? (gameState.flash.type === 'success' ? FLASH_SUCCESS_COLOR : FLASH_FAILURE_COLOR) : null;
 
+  // Remap chance so that color opposite on the palette circle has 0%,
+  // and intermediate colors in both directions have non-zero chance.
+  if (hoverColorIndex !== null) {
+    const paletteLen = mergedParams.ColorPalette.length;
+    const baseIndex = mergedParams.PlayerBaseColorIndex;
+    const delta = (hoverColorIndex - baseIndex + paletteLen) % paletteLen;
+    const distCircular = Math.min(delta, paletteLen - delta);
+    const maxDist = Math.floor(paletteLen / 2);
+    if (distCircular === maxDist) {
+      chance = 0;
+    } else if (distCircular > 0) {
+      const raw = ((maxDist - distCircular) / maxDist) * 100;
+      const mapped = Math.max(10, Math.round(raw));
+      chance = mapped;
+    }
+  }
+
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#111', color: '#fff', fontFamily: 'sans-serif' }}>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#370152ff', color: '#fff', fontFamily: 'sans-serif' }}>
       <div
         style={{
           width: '33.33vw',
           minWidth: 260,
           maxWidth: 480,
-          padding: '16px 18px',
+          padding: '18px 20px',
           boxSizing: 'border-box',
-          background: 'linear-gradient(135deg, #151515, #1f1f1f)',
-          borderRight: '1px solid #222',
+          background: '#27013bff',
+          borderRight: '1px solid #202030',
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: 10,
         }}
       >
-        <div>Player Color <span style={{ display: 'inline-block', width: 14, height: 14, background: mergedParams.ColorPalette[mergedParams.PlayerBaseColorIndex], border: '1px solid #fff', verticalAlign: 'middle', marginLeft: 6 }} /></div>
-        <div>Cursor <span style={{ display: 'inline-block', width: 14, height: 14, background: flashColor || hoverColor, border: '1px solid #fff', verticalAlign: 'middle', marginLeft: 6 }} /></div>
-        <div style={{ marginTop: 8, marginBottom: 4 }}>
-          <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 4 }}>Palette</div>
-          <div style={{ position: 'relative', width: 72, height: 72, marginLeft: 'auto' }}>
+        <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ position: 'relative', width: 90, height: 90 }}>
             {mergedParams.ColorPalette.map((color, index) => {
               const total = mergedParams.ColorPalette.length;
               const angle = (index / total) * Math.PI * 2;
-              const radius = 26;
-              const center = 36;
+              const radius = 30;
+              const center = 45;
               const x = center + radius * Math.cos(angle);
               const y = center + radius * Math.sin(angle);
               const isPlayerBase = index === mergedParams.PlayerBaseColorIndex;
+              const isHover = index === hoverColorIndex;
               return (
-                <span
+                <svg
                   key={color + index}
+                  width={18}
+                  height={18}
+                  viewBox="-1 -1 2 2"
                   style={{
                     position: 'absolute',
-                    left: x - 6,
-                    top: y - 6,
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    background: color,
-                    border: isPlayerBase ? '2px solid #fff' : '1px solid #000',
-                    boxShadow: isPlayerBase ? '0 0 6px rgba(255,255,255,0.9)' : '0 0 3px rgba(0,0,0,0.7)',
+                    left: x - 9,
+                    top: y - 9,
                   }}
-                />
+                >
+                  <polygon
+                    points={Array.from({ length: 6 }, (_, i) => {
+                      const ang = (Math.PI / 180) * (60 * i + 30); // vertical (pointy-top)
+                      const r = 0.9;
+                      const px = r * Math.cos(ang);
+                      const py = r * Math.sin(ang);
+                      return `${px},${py}`;
+                    }).join(' ')}
+                    fill={color}
+                    stroke={isHover ? '#FFFFFF' : isPlayerBase ? '#BBBBBB' : '#000000'}
+                    strokeWidth={isHover ? 0.24 : isPlayerBase ? 0.18 : 0.12}
+                  />
+                </svg>
               );
             })}
+            <div
+              style={{
+                position: 'absolute',
+                left: 45 - 16,
+                top: 45 - 16,
+                width: 32,
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                background: 'transparent',
+              }}
+            >
+              {gameState.capturedCell
+                ? 'Kept'
+                : chance !== null && hoverColorIndex !== null
+                  ? `${chance}%`
+                  : ''}
+            </div>
           </div>
-        </div>
-        <div>Captured: {gameState.capturedCell ? 1 : 0}</div>
-        <div>Mode: {mode}{chance !== null && mode === 'Free' ? ` (Chance: ${chance}%)` : ''}</div>
-        <div>Time Left: {gameState.remainingSeconds}s</div>
-        <div>FPS: {fps}</div>
-        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85, textAlign: 'left' }}>
-          <div><strong>Controls</strong></div>
-          <div>Move: Arrow keys or WASD</div>
-          <div>Hold Space to charge capture</div>
-          <div>Release Space to try capture</div>
-          <div>Press Space while carrying to drop</div>
-        </div>
-        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, textAlign: 'left' }}>
-          Goal: collect cells matching your color before the timer ends.
+          <div style={{ fontSize: 12, opacity: 0.85, textAlign: 'left', paddingTop: 4 }}>
+            <div><strong>Controls</strong></div>
+            <div>Move: Arrow keys or WASD</div>
+            <div>Hold Space to charge capture</div>
+            <div>Release Space to try capture</div>
+            <div>Press Space while carrying to drop</div>
+            <div style={{ marginTop: 6, opacity: 0.8 }}>
+              Goal: collect cells matching your color before the timer ends.
+            </div>
+          </div>
         </div>
       </div>
       <div ref={canvasContainerRef} style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <canvas ref={canvasRef} style={{ display: 'block' }} />
+        <div
+          style={{
+            position: 'absolute',
+            right: 8,
+            bottom: 6,
+            fontSize: 11,
+            opacity: 0.8,
+            pointerEvents: 'none',
+          }}
+        >
+          FPS: {fps}
+        </div>
       </div>
     </div>
   );
