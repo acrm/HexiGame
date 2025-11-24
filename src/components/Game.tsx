@@ -52,7 +52,7 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, size: numb
 }
 
 // Visual rotating edge highlight index (0..5)
-function computeEdgeIndex(timeMs: number, rotationPeriodMs = 1000) {
+function computeEdgeIndex(timeMs: number, rotationPeriodMs = 500) {
   const phase = (timeMs % rotationPeriodMs) / rotationPeriodMs; // 0..1
   return Math.floor(phase * 6) % 6;
 }
@@ -262,29 +262,29 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             scaledX,
             scaledY,
             HEX_SIZE * scale,
-            hover.colorIndex !== null ? mergedParams.ColorPalette[hover.colorIndex] : '#000',
+            'transparent',
             FLASH_SUCCESS_COLOR,
             3 * scale,
           );
         } else if (isInCooldown) {
-          // Failed capture: red ring during cooldown
+          // Failed capture: red ring during cooldown (transparent inside)
           drawHex(
             ctx,
             scaledX,
             scaledY,
             HEX_SIZE * scale,
-            hover.colorIndex !== null ? mergedParams.ColorPalette[hover.colorIndex] : '#000000',
+            'transparent',
             FLASH_FAILURE_COLOR,
             3 * scale,
           );
         }
 
-        // Rotating edge cursor (disabled only during cooldown or flash)
-        if (!isInCooldown && !gameState.flash) {
+        // Rotating edge cursor
+        if (!gameState.flash) {
           const now = performance.now();
           const baseEdge = computeEdgeIndex(now);
           const edges: number[] = [];
-          if (gameState.captureChargeStartTick !== null) {
+          if (gameState.captureChargeStartTick !== null && !isInCooldown) {
             // Expand edges count proportional to charge progress
             const heldTicks = gameState.tick - gameState.captureChargeStartTick;
             const fraction = Math.min(1, heldTicks / mergedParams.CaptureHoldDurationTicks);
@@ -293,7 +293,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           } else {
             edges.push(baseEdge);
           }
-          edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF'));
+          const edgeColor = isInCooldown ? FLASH_FAILURE_COLOR : '#FFFFFF';
+          edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
         }
       }
 
@@ -408,7 +409,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <div><strong>Controls</strong></div>
             <div>Move: Arrow keys or WASD</div>
             <div>Hold Space to charge capture</div>
-            <div>Release Space to try capture</div>
             <div>Press Space while carrying to drop</div>
             <div>On touch: use arrows and Capture button</div>
             <div style={{ marginTop: 6 }}>

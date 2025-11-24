@@ -425,15 +425,15 @@ export function isCarryFlickerOn(state: GameState, params: Params): boolean {
 
 // ---------- Default Parameters (mirroring the doc) ----------
 export const DefaultParams: Params = {
-  GridRadius: 15,
-  InitialColorProbability: 0.20,
+  GridRadius: 5,
+  InitialColorProbability: 0.30,
   ColorPalette: [
     "#FF8000","#CC6600","#996600","#666600","#660099","#9933FF","#CC66FF","#FF99FF"
   ],
   PlayerBaseColorIndex: 0,
   TimerInitialSeconds: 300,
   CaptureHoldDurationTicks: 6,
-  CaptureFailureCooldownTicks: 6,
+  CaptureFailureCooldownTicks: 24,
   CaptureFlashDurationTicks: 2,
   ChanceBasePercent: 100,
   ChancePenaltyPerPaletteDistance: 20,
