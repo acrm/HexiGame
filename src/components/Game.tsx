@@ -22,6 +22,7 @@ import {
 const HEX_SIZE = 10; // pixels
 const FLASH_SUCCESS_COLOR = '#00BFFF';
 const FLASH_FAILURE_COLOR = '#FF4444';
+const FLASH_FAILURE_EDGE_DARK = '#AA0000';
 const GRID_STROKE_COLOR = '#460068ff';
 const GRID_STROKE_WIDTH = 1; // minimal visible outline
 
@@ -293,7 +294,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           } else {
             edges.push(baseEdge);
           }
-          const edgeColor = isInCooldown ? FLASH_FAILURE_COLOR : '#FFFFFF';
+          const edgeColor = isInCooldown ? FLASH_FAILURE_EDGE_DARK : '#FFFFFF';
           edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
         }
       }
