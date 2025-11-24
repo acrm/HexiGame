@@ -23,7 +23,7 @@ const HEX_SIZE = 10; // pixels
 const FLASH_SUCCESS_COLOR = '#00BFFF';
 const FLASH_FAILURE_COLOR = '#FF4444';
 const FLASH_FAILURE_EDGE_DARK = '#AA0000';
-const GRID_STROKE_COLOR = '#460068ff';
+const GRID_STROKE_COLOR = '#635572ff'; //'#460068ff';
 const GRID_STROKE_WIDTH = 1; // minimal visible outline
 
 // Helper: axial -> pixel (pointy-top)
@@ -47,9 +47,11 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, size: numb
   ctx.closePath();
   ctx.fillStyle = fill;
   ctx.fill();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = lineWidth;
-  ctx.stroke();
+  if (lineWidth > 0) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+  }
 }
 
 // Visual rotating edge highlight index (0..5)
@@ -211,7 +213,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       const centerX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
       const centerY = canvas.height / 2 - ((minY + maxY) / 2) * scale;
 
-      // Draw grid (scaled)
+      // Draw hex fills (no outline)
       for (const cell of gameState.grid.values()) {
         const pos = hexToPixel(cell.q, cell.r);
         const scaledX = centerX + pos.x * scale;
@@ -223,7 +225,50 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             fill = mergedParams.ColorPalette[cell.colorIndex ?? mergedParams.PlayerBaseColorIndex];
           }
         }
-        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, GRID_STROKE_COLOR, GRID_STROKE_WIDTH * scale);
+        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, GRID_STROKE_COLOR, 0);
+      }
+
+      // Draw grid corner dots only where all adjacent hexes are empty
+      ctx.fillStyle = GRID_STROKE_COLOR;
+      const dotRadius = 1.2 * scale;
+      const seenVertices = new Set<string>();
+      const emptyCells = Array.from(gameState.grid.values()).filter(c => c.colorIndex === null);
+      for (const cell of emptyCells) {
+        const pos = hexToPixel(cell.q, cell.r);
+        const baseX = centerX + pos.x * scale;
+        const baseY = centerY + pos.y * scale;
+        const angleDeg = 60;
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 180 * (angleDeg * i);
+          const vx = baseX + HEX_SIZE * scale * Math.cos(angle);
+          const vy = baseY + HEX_SIZE * scale * Math.sin(angle);
+          const key = `${Math.round(vx)}:${Math.round(vy)}`;
+          if (seenVertices.has(key)) continue;
+
+          // Check all adjacent hex centers that share this vertex; if any is colored, skip the dot
+          let allEmpty = true;
+          for (const other of gameState.grid.values()) {
+            const otherPos = hexToPixel(other.q, other.r);
+            const ox = centerX + otherPos.x * scale;
+            const oy = centerY + otherPos.y * scale;
+            const dx = ox - vx;
+            const dy = oy - vy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            // Vertex belongs to hexes whose center is roughly HEX_SIZE * scale away
+            if (Math.abs(dist - HEX_SIZE * scale) < (HEX_SIZE * scale * 0.15)) {
+              if (other.colorIndex !== null) {
+                allEmpty = false;
+                break;
+              }
+            }
+          }
+          if (!allEmpty) continue;
+
+          seenVertices.add(key);
+          ctx.beginPath();
+          ctx.arc(vx, vy, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       // Flash overlay border
