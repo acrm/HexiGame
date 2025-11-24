@@ -15,6 +15,7 @@ import {
   previewCaptureChanceAtCursor,
   hoveredCell,
   isCarryFlickerOn,
+  computeScore,
 } from '../logic/pureLogic';
 
 // --- Rendering-only constants (not part of pure logic) ---
@@ -322,6 +323,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
   const flashColor = gameState.flash ? (gameState.flash.type === 'success' ? FLASH_SUCCESS_COLOR : FLASH_FAILURE_COLOR) : null;
 
+  const scores = computeScore(gameState, mergedParams);
+
   // Remap chance so that color opposite on the palette circle has 0%,
   // and intermediate colors in both directions have non-zero chance.
   if (hoverColorIndex !== null) {
@@ -408,6 +411,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <div>Release Space to try capture</div>
             <div>Press Space while carrying to drop</div>
             <div>On touch: use arrows and Capture button</div>
+            <div style={{ marginTop: 6 }}>
+              <strong>Score</strong>
+              <div>Player: {scores.playerScore.toFixed(3)}</div>
+              <div>Antagonist: {scores.antagonistScore.toFixed(3)}</div>
+              <div>Total: {scores.totalScore.toFixed(3)}</div>
+            </div>
             <div style={{ marginTop: 6, opacity: 0.8 }}>
               Goal: collect cells matching your color before the timer ends.
             </div>
