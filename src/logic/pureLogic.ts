@@ -37,12 +37,14 @@ export interface Params {
 export interface GameState {
   tick: number; // increases by 1 each logic step
   remainingSeconds: number;
-  cursor: Axial; // current hovered hex
+  cursor: Axial; // visual target hex (where protagonist is looking)
+  protagonist: Axial; // protagonist position
   capturedCell: Axial | null; // anchor cell currently being carried, if any
   captureCooldownTicksRemaining: number;
   captureChargeStartTick: number | null;
   flash: FlashState | null;
   grid: Grid;
+  facingDirIndex: number; // 0..5, protagonist facing direction
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -59,13 +61,15 @@ export function mulberry32(seed: number): RNG {
 }
 
 // ---------- Helpers ----------
+// Direction indices follow this convention:
+// 0: strictly "up" (0, -1), then clockwise around.
 export const axialDirections: Readonly<Axial[]> = [
-  { q: +1, r: 0 },
-  { q: +1, r: -1 },
-  { q: 0, r: -1 },
-  { q: -1, r: 0 },
-  { q: -1, r: +1 },
-  { q: 0, r: +1 },
+  { q: 0, r: -1 },  // 0 - up
+  { q: +1, r: -1 }, // 1 - up-right
+  { q: +1, r: 0 },  // 2 - down-right
+  { q: 0, r: +1 },  // 3 - down
+  { q: -1, r: +1 }, // 4 - down-left
+  { q: -1, r: 0 },  // 5 - up-left
 ] as const;
 
 export function addAxial(a: Axial, b: Axial): Axial {
@@ -125,16 +129,25 @@ export function generateGrid(params: Params, rng: RNG): Grid {
 
 export function createInitialState(params: Params, rng: RNG): GameState {
   const grid = generateGrid(params, rng);
+  const start: Axial = { q: 0, r: 0 };
   return {
     tick: 0,
     remainingSeconds: params.TimerInitialSeconds,
-    cursor: { q: 0, r: 0 },
+    cursor: { ...start },
+    protagonist: { ...start },
     capturedCell: null,
     captureCooldownTicksRemaining: 0,
     captureChargeStartTick: null,
     flash: null,
+    facingDirIndex: 0,
     grid,
   };
+}
+
+// ---------- Facing / Orientation ----------
+export function rotateFacing(state: GameState, deltaSteps: number): GameState {
+  const dir = ((state.facingDirIndex + deltaSteps) % 6 + 6) % 6;
+  return { ...state, facingDirIndex: dir };
 }
 
 // ---------- Chance & Selectors ----------
@@ -170,6 +183,43 @@ export function computeCaptureChancePercent(params: Params, colorIndex: number):
 
 export function hoveredCell(state: GameState): Cell | undefined {
   return getCell(state.grid, state.cursor);
+}
+
+// Visual follower logic for protagonist: follows cursor with one-step lag.
+// If cursor is adjacent to protagonist, protagonist stays.
+// If cursor leaves adjacency, protagonist moves into previous cursor position
+// if that position was adjacent; otherwise it also stays.
+export function evolveProtagonistFollower(
+  protagonist: Axial,
+  cursor: Axial,
+  lastCursor: Axial | null,
+): { protagonist: Axial; nextLastCursor: Axial | null } {
+  // If cursor did not change, nothing to do
+  if (lastCursor && lastCursor.q === cursor.q && lastCursor.r === cursor.r) {
+    return { protagonist, nextLastCursor: lastCursor };
+  }
+
+  const nextLastCursor: Axial = { q: cursor.q, r: cursor.r };
+
+  // 1) Movement: protagonist moves only when cursor is no longer adjacent
+  const isAdjacent = axialDirections.some(
+    d => protagonist.q + d.q === cursor.q && protagonist.r + d.r === cursor.r,
+  );
+
+  if (!isAdjacent && !(protagonist.q === cursor.q && protagonist.r === cursor.r)) {
+    // Move protagonist into the previous cursor position, if it was adjacent
+    if (
+      lastCursor &&
+      axialDirections.some(
+        d => protagonist.q + d.q === lastCursor.q && protagonist.r + d.r === lastCursor.r,
+      )
+    ) {
+      return { protagonist: { q: lastCursor.q, r: lastCursor.r }, nextLastCursor };
+    }
+  }
+
+  // Otherwise stay in place
+  return { protagonist, nextLastCursor };
 }
 
 
@@ -245,17 +295,21 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
 
 // ---------- Movement ----------
 export function attemptMoveByDirectionIndex(state: GameState, params: Params, dirIndex: number): GameState {
-  const dir = axialDirections[((dirIndex % 6) + 6) % 6];
+  const normIndex = ((dirIndex % 6) + 6) % 6;
+  const dir = axialDirections[normIndex];
   const target = addAxial(state.cursor, dir);
-  return attemptMoveTo(state, params, target);
+  return attemptMoveTo({ ...state, facingDirIndex: normIndex }, params, target);
 }
 
 export function attemptMoveByDelta(state: GameState, params: Params, dq: number, dr: number): GameState {
   const target = { q: state.cursor.q + dq, r: state.cursor.r + dr };
   // Enforce adjacency: must match one of the six axial directions
-  const isNeighbor = axialDirections.some(d => (state.cursor.q + d.q === target.q) && (state.cursor.r + d.r === target.r));
-  if (!isNeighbor) return state;
-  return attemptMoveTo(state, params, target);
+  const matchedIndex = axialDirections.findIndex(
+    d => state.cursor.q + d.q === target.q && state.cursor.r + d.r === target.r,
+  );
+  if (matchedIndex === -1) return state;
+  const nextState: GameState = { ...state, facingDirIndex: matchedIndex };
+  return attemptMoveTo(nextState, params, target);
 }
 
 export function attemptMoveTo(state: GameState, params: Params, target: Axial): GameState {
@@ -291,7 +345,7 @@ export function attemptMoveTo(state: GameState, params: Params, target: Axial): 
     };
   }
 
-  // not carrying: free move if cell exists
+  // not carrying: move cursor only; protagonist follows cursor visually in UI
   return { ...state, cursor: { ...target } };
 }
 

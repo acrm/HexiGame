@@ -16,6 +16,7 @@ import {
   hoveredCell,
   isCarryFlickerOn,
   computeAdjacentSameColorCounts,
+  evolveProtagonistFollower,
 } from '../logic/pureLogic';
 
 // --- Rendering-only constants (not part of pure logic) ---
@@ -78,6 +79,17 @@ function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, cente
   ctx.stroke();
 }
 
+// Axial directions (must match logic order in pureLogic).
+// 0 - up, then clockwise.
+const AXIAL_DIRECTIONS: Readonly<{ q: number; r: number }[]> = [
+  { q: 0, r: -1 },  // up
+  { q: +1, r: -1 }, // up-right
+  { q: +1, r: 0 },  // down-right
+  { q: 0, r: +1 },  // down
+  { q: -1, r: +1 }, // down-left
+  { q: -1, r: 0 },  // up-left
+] as const;
+
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
   const mergedParams: Params = { ...DefaultParams, ...(params || {}) };
@@ -88,6 +100,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [fps, setFps] = useState(0);
   const frameCounterRef = useRef({ last: performance.now(), frames: 0 });
   const spaceIsDownRef = useRef(false);
+  const [protagonistPos, setProtagonistPos] = useState<{ q: number; r: number } | null>(null);
+  const lastCursorRef = useRef<{ q: number; r: number } | null>(null);
 
   // Tick loop (12 ticks/sec)
   useEffect(() => {
@@ -120,6 +134,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       };
       const delta = moves[e.key as keyof typeof moves];
       if (delta) {
+        const [dq, dr] = delta;
         setGameState(prev => attemptMoveByDelta(prev, mergedParams, delta[0], delta[1]));
       }
     }
@@ -282,8 +297,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           );
         }
       }
+
+      // Visual cursor is exactly the logical cursor (no jumps, always neighbor moves)
+      const protagonistCell = protagonistPos ?? gameState.protagonist;
+      const faceDir = AXIAL_DIRECTIONS[gameState.facingDirIndex];
+      const hover = hoveredCell(gameState) ?? null;
+
       // Cursor visuals: rings + rotating segment depending on state
-      const hover = hoveredCell(gameState);
       if (hover) {
         const pos = hexToPixel(hover.q, hover.r);
         const scaledX = centerX + pos.x * scale;
@@ -334,6 +354,73 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           const edgeColor = isInCooldown ? FLASH_FAILURE_EDGE_DARK : '#FFFFFF';
           edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
         }
+
+        // Protagonist: flower of 7 small hexes centered on protagonist cell
+        const turtleCenterQ = protagonistCell.q;
+        const turtleCenterR = protagonistCell.r;
+
+        const turtlePos = hexToPixel(turtleCenterQ, turtleCenterR);
+        const turtleX = centerX + turtlePos.x * scale;
+        const turtleY = centerY + turtlePos.y * scale;
+
+        // Small hexes: centers arranged like tight packing, but body hexes are smaller (1/9 of parent)
+        const parentRadius = HEX_SIZE * scale;
+        const centerRadius = parentRadius / 3; // geometric layout radius for centers
+
+        // Centers of 7 small hexes: one in the middle, six around at distance 2 * centerRadius.
+        // We keep a -30° offset so the small hexes pack correctly
+        // around the parent, matching the reference image.
+        const smallCenters: { x: number; y: number }[] = [];
+        smallCenters.push({ x: turtleX, y: turtleY });
+        for (let i = 0; i < 6; i++) {
+          const ang = (Math.PI / 180) * (60 * i - 30);
+          const ringRadius = centerRadius * 2.05;
+          const cx = turtleX + ringRadius * Math.cos(ang);
+          const cy = turtleY + ringRadius * Math.sin(ang);
+          smallCenters.push({ x: cx, y: cy });
+        }
+
+        // Choose one outer small hex whose center is closest in angle
+        // to the actual vector from protagonist to cursor.
+        let headIndex = 1;
+        if (!(protagonistCell.q === hover.q && protagonistCell.r === hover.r)) {
+          const hoverPos = hexToPixel(hover.q, hover.r);
+          const hx = centerX + hoverPos.x * scale;
+          const hy = centerY + hoverPos.y * scale;
+          const vx = hx - turtleX;
+          const vy = hy - turtleY;
+          const targetAngle = Math.atan2(vy, vx);
+
+          let bestDiff = Number.POSITIVE_INFINITY;
+          for (let i = 0; i < 6; i++) {
+            const c = smallCenters[i + 1]; // 1..6 are petals
+            const px = c.x - turtleX;
+            const py = c.y - turtleY;
+            const petalAngle = Math.atan2(py, px);
+            const diff = Math.abs(Math.atan2(Math.sin(targetAngle - petalAngle), Math.cos(targetAngle - petalAngle)));
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              headIndex = i + 1;
+            }
+          }
+        }
+
+        // Draw all 7 small hexes as a flower (fill only, no stroke)
+        for (let i = 0; i < smallCenters.length; i++) {
+          const c = smallCenters[i];
+          const isHead = i === headIndex;
+          const fill = isHead ? '#FFFFFF' : '#DDDDDD';
+          const radius = isHead ? centerRadius : parentRadius / 9;
+          drawHex(ctx, c.x, c.y, radius, fill, 'transparent', 0);
+        }
+
+        // Draw a darker central shell over the middle small hex, rotated by 30 degrees
+        const shellRadius = parentRadius / Math.sqrt(3);
+        ctx.save();
+        ctx.translate(turtleX, turtleY);
+        ctx.rotate((30 * Math.PI) / 180);
+        drawHex(ctx, 0, 0, shellRadius, '#BBBBBB', 'transparent', 0);
+        ctx.restore();
       }
 
       // FPS calc
@@ -353,7 +440,25 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       mounted = false;
       cancelAnimationFrame(raf);
     };
-  }, [gameState, mergedParams]);
+  }, [gameState, mergedParams, protagonistPos]);
+
+  // Smoothly move protagonist one step toward cursor when cursor changes (delegated to pure logic)
+  useEffect(() => {
+    const current = protagonistPos ?? gameState.protagonist;
+    const cursor = gameState.cursor;
+    const lastCursor = lastCursorRef.current;
+
+    const { protagonist: nextProtagonist, nextLastCursor } = evolveProtagonistFollower(
+      current,
+      cursor,
+      lastCursor,
+    );
+
+    lastCursorRef.current = nextLastCursor;
+    if (nextProtagonist.q !== current.q || nextProtagonist.r !== current.r) {
+      setProtagonistPos({ q: nextProtagonist.q, r: nextProtagonist.r });
+    }
+  }, [gameState.cursor, gameState.protagonist, protagonistPos]);
 
   // Derived HUD data
   const chance = previewCaptureChanceAtCursor(gameState, mergedParams);
@@ -467,7 +572,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <button
             type="button"
             className="touch-btn touch-up"
-            onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, -1))}
+            onClick={() => {
+              setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, -1));
+            }}
           >
             ▲
           </button>
@@ -475,14 +582,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <button
               type="button"
               className="touch-btn touch-left"
-              onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, -1, 0))}
+              onClick={() => {
+                setGameState(prev => attemptMoveByDelta(prev, mergedParams, -1, 0));
+              }}
             >
               ◀
             </button>
             <button
               type="button"
               className="touch-btn touch-right"
-              onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, 1, 0))}
+              onClick={() => {
+                setGameState(prev => attemptMoveByDelta(prev, mergedParams, 1, 0));
+              }}
             >
               ▶
             </button>
@@ -490,7 +601,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <button
             type="button"
             className="touch-btn touch-down"
-            onClick={() => setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, 1))}
+            onClick={() => {
+              setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, 1));
+            }}
           >
             ▼
           </button>
