@@ -12,12 +12,12 @@ Frame-based constants from the original prototype are converted to tick-based va
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `GridRadius` | 15 | Axial hex disk radius (all cells with |q|,|r|,|s| ≤ radius). |
-| `InitialColorProbability` | 0.30 | Probability a cell starts with a color. |
+| `InitialColorProbability` | 0.20 | Probability a cell starts with a color. |
 | `ColorPalette` | 8 colors: [ #FF8000, #CC6600, #996600, #666600, #660099, #9933FF, #CC66FF, #FF99FF] | Ordered list defining palette indices. |
 | `PlayerBaseColorIndex` | 0 | Index in `ColorPalette` used as the player's reference color. |
 | `TimerInitialSeconds` | 300 | Starting session duration (informational only). |
 | `CaptureHoldDurationTicks` | 6 | Minimum continuous Space hold to attempt capture (≈0.5s). |
-| `CaptureFailureCooldownTicks` | 6 | Cooldown after failed capture attempt (≈0.5s). |
+| `CaptureFailureCooldownTicks` | 36 | Cooldown after failed capture attempt (≈3s). |
 | `CaptureFlashDurationTicks` | 2 | Duration of success/failure flash feedback (≈0.1667s). |
 | `ChanceBasePercent` | 100 | Base percent before penalties. |
 | `ChancePenaltyPerPaletteDistance` | 20 | Percent deducted per palette index distance. |
@@ -87,16 +87,22 @@ function attemptMove(directionVector):
 
 ### 2.5 Capture Attempt Lifecycle
 ```
-// On Space key down when Free and not cooling down:
-if CapturedCell == null and CaptureCooldownTicksRemaining == 0 and hoveredCell.colorIndex != null:
+// On Space key down when free (not carrying) and not cooling down:
+if CapturedCell == null and CaptureCooldownTicksRemaining == 0:
     CaptureChargeStartTick = currentTick
 
 // On Space key up:
+// - if the button was held for less than the threshold, the charge is cancelled
+// - if the threshold has already been reached, capture will auto-complete inside tick()
 if CaptureChargeStartTick != null:
     heldTicks = currentTick - CaptureChargeStartTick
-    if heldTicks >= CaptureHoldDurationTicks:
-        attemptCapture(hoveredCell)
-    CaptureChargeStartTick = null
+    if heldTicks < CaptureHoldDurationTicks:
+        // too early — cancel the charge
+        CaptureChargeStartTick = null
+    else:
+        // long enough — tick() will finish the capture,
+        // here we only clear the charging flag
+        CaptureChargeStartTick = null
 
 function attemptCapture(cell):
   if cell == null or cell.colorIndex == null or CapturedCell != null or CaptureCooldownTicksRemaining > 0: return

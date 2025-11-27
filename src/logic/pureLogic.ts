@@ -45,12 +45,6 @@ export interface GameState {
   grid: Grid;
 }
 
-export interface ScoreBreakdown {
-  playerScore: number;
-  antagonistScore: number;
-  totalScore: number; // from player's perspective
-}
-
 export type RNG = () => number; // returns float in [0,1)
 
 // Optional: a simple seeded RNG (Mulberry32)
@@ -158,104 +152,6 @@ export function hoveredCell(state: GameState): Cell | undefined {
   return getCell(state.grid, state.cursor);
 }
 
-// ---------- Scoring (cluster compactness + color wheel affinity) ----------
-export function computeScore(state: GameState, params: Params): ScoreBreakdown {
-  const paletteSize = params.ColorPalette.length;
-  if (paletteSize === 0) {
-    return { playerScore: 0, antagonistScore: 0, totalScore: 0 };
-  }
-
-  const playerHue = params.PlayerBaseColorIndex % paletteSize;
-  const antagonistHue = (playerHue + paletteSize / 2) % paletteSize;
-
-  // Collect cells by color index
-  const byColor = new Map<number, Cell[]>();
-  let totalColored = 0;
-  for (const cell of state.grid.values()) {
-    if (cell.colorIndex === null) continue;
-    totalColored++;
-    const idx = ((cell.colorIndex % paletteSize) + paletteSize) % paletteSize;
-    let list = byColor.get(idx);
-    if (!list) {
-      list = [];
-      byColor.set(idx, list);
-    }
-    list.push(cell);
-  }
-
-  if (totalColored === 0 || byColor.size === 0) {
-    return { playerScore: 0, antagonistScore: 0, totalScore: 0 };
-  }
-
-  type PerColor = { m: number; w: number; alpha: number };
-  const perColor = new Map<number, PerColor>();
-
-  // Step 1: compactness m_c for each color
-  for (const [color, cells] of byColor.entries()) {
-    const N_c = cells.length;
-    let m_c = 0;
-    if (N_c > 1) {
-      // BFS to find connected components among cells of this color
-      const cellSet = new Set<string>();
-      const posByKey = new Map<string, Cell>();
-      for (const c of cells) {
-        const k = keyOf(c.q, c.r);
-        cellSet.add(k);
-        posByKey.set(k, c);
-      }
-      const visited = new Set<string>();
-      let largest = 0;
-      for (const k of cellSet) {
-        if (visited.has(k)) continue;
-        let size = 0;
-        const queue: string[] = [k];
-        visited.add(k);
-        while (queue.length > 0) {
-          const curKey = queue.shift()!;
-          size++;
-          const cell = posByKey.get(curKey)!;
-          for (const d of axialDirections) {
-            const nq = cell.q + d.q;
-            const nr = cell.r + d.r;
-            const nk = keyOf(nq, nr);
-            if (!cellSet.has(nk) || visited.has(nk)) continue;
-            visited.add(nk);
-            queue.push(nk);
-          }
-        }
-        if (size > largest) largest = size;
-      }
-      m_c = (largest - 1) / (N_c - 1);
-    }
-    const w_c = N_c / totalColored;
-
-    // hue affinity alpha_c
-    const d = Math.min(Math.abs(color - playerHue), paletteSize - Math.abs(color - playerHue));
-    const maxD = paletteSize / 2;
-    const x = maxD === 0 ? 0 : d / maxD; // normalized 0..1
-    const alpha_c = 1 - 2 * x; // player=+1, antagonist=-1
-
-    perColor.set(color, { m: m_c, w: w_c, alpha: alpha_c });
-  }
-
-  let totalScore = 0;
-  let playerScore = 0;
-  let antagonistScore = 0;
-
-  for (const [color, v] of perColor.entries()) {
-    const S_c = v.alpha * v.m * v.w;
-    totalScore += S_c;
-
-    if (color === playerHue) {
-      playerScore += S_c;
-    }
-    if (color === antagonistHue) {
-      antagonistScore += S_c;
-    }
-  }
-
-  return { playerScore, antagonistScore, totalScore };
-}
 
 // ---------- Simple adjacency metric per color ----------
 // For each color index i, returns how many cells of that color

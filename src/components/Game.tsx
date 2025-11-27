@@ -78,14 +78,6 @@ function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, cente
   ctx.stroke();
 }
 
-// Game modes text (derived)
-function deriveMode(state: GameState): string {
-  if (state.capturedCell) return 'Carrying';
-  if (state.captureChargeStartTick !== null) return 'Charging';
-  if (state.captureCooldownTicksRemaining > 0) return 'Cooldown';
-  return 'Free';
-}
-
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
   const mergedParams: Params = { ...DefaultParams, ...(params || {}) };
@@ -364,11 +356,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   }, [gameState, mergedParams]);
 
   // Derived HUD data
-  const mode = deriveMode(gameState);
   let chance = previewCaptureChanceAtCursor(gameState, mergedParams);
   const hoverColorIndex = hoveredCell(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
-  const flashColor = gameState.flash ? (gameState.flash.type === 'success' ? FLASH_SUCCESS_COLOR : FLASH_FAILURE_COLOR) : null;
 
   const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
 
