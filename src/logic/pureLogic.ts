@@ -138,14 +138,34 @@ export function createInitialState(params: Params, rng: RNG): GameState {
 }
 
 // ---------- Chance & Selectors ----------
-export function paletteDistance(colorIndex: number, playerBaseIndex: number): number {
-  return Math.abs(colorIndex - playerBaseIndex);
+export function paletteDistance(colorIndex: number, playerBaseIndex: number, paletteLength: number): number {
+  if (paletteLength <= 0) return 0;
+  const delta = ((colorIndex - playerBaseIndex) % paletteLength + paletteLength) % paletteLength;
+  return Math.min(delta, paletteLength - delta);
 }
 
 export function computeCaptureChancePercent(params: Params, colorIndex: number): number {
-  const dist = paletteDistance(colorIndex, params.PlayerBaseColorIndex);
-  const chance = params.ChanceBasePercent - params.ChancePenaltyPerPaletteDistance * dist;
-  return Math.max(0, Math.min(100, Math.floor(chance)));
+  const paletteLen = params.ColorPalette.length;
+  if (paletteLen <= 0) return 0;
+
+  const dist = paletteDistance(colorIndex, params.PlayerBaseColorIndex, paletteLen);
+  const maxDist = Math.floor(paletteLen / 2);
+
+  if (maxDist === 0) {
+    return params.ChanceBasePercent;
+  }
+
+  if (dist === maxDist) {
+    return 0;
+  }
+
+  if (dist === 0) {
+    return params.ChanceBasePercent;
+  }
+
+  const raw = ((maxDist - dist) / maxDist) * params.ChanceBasePercent;
+  const mapped = Math.max(10, Math.round(raw));
+  return Math.max(0, Math.min(100, mapped));
 }
 
 export function hoveredCell(state: GameState): Cell | undefined {

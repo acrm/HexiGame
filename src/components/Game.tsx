@@ -356,28 +356,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   }, [gameState, mergedParams]);
 
   // Derived HUD data
-  let chance = previewCaptureChanceAtCursor(gameState, mergedParams);
+  const chance = previewCaptureChanceAtCursor(gameState, mergedParams);
   const hoverColorIndex = hoveredCell(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
 
   const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
-
-  // Remap chance so that color opposite on the palette circle has 0%,
-  // and intermediate colors in both directions have non-zero chance.
-  if (hoverColorIndex !== null) {
-    const paletteLen = mergedParams.ColorPalette.length;
-    const baseIndex = mergedParams.PlayerBaseColorIndex;
-    const delta = (hoverColorIndex - baseIndex + paletteLen) % paletteLen;
-    const distCircular = Math.min(delta, paletteLen - delta);
-    const maxDist = Math.floor(paletteLen / 2);
-    if (distCircular === maxDist) {
-      chance = 0;
-    } else if (distCircular > 0) {
-      const raw = ((maxDist - distCircular) / maxDist) * 100;
-      const mapped = Math.max(10, Math.round(raw));
-      chance = mapped;
-    }
-  }
 
   return (
     <div className="game-root">
