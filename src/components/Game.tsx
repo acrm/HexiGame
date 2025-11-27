@@ -15,7 +15,7 @@ import {
   previewCaptureChanceAtCursor,
   hoveredCell,
   isCarryFlickerOn,
-  computeScore,
+  computeAdjacentSameColorCounts,
 } from '../logic/pureLogic';
 
 // --- Rendering-only constants (not part of pure logic) ---
@@ -370,7 +370,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
   const flashColor = gameState.flash ? (gameState.flash.type === 'success' ? FLASH_SUCCESS_COLOR : FLASH_FAILURE_COLOR) : null;
 
-  const scores = computeScore(gameState, mergedParams);
+  const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
 
   // Remap chance so that color opposite on the palette circle has 0%,
   // and intermediate colors in both directions have non-zero chance.
@@ -392,13 +392,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   return (
     <div className="game-root">
       <div className="game-panel">
-        <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ position: 'relative', width: 90, height: 90 }}>
+        <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{ position: 'relative', width: 140, height: 140 }}>
             {mergedParams.ColorPalette.map((color, index) => {
               const total = mergedParams.ColorPalette.length;
               const angle = (index / total) * Math.PI * 2;
-              const radius = 30;
-              const center = 45;
+              const radius = 48;
+              const center = 70;
               const x = center + radius * Math.cos(angle);
               const y = center + radius * Math.sin(angle);
               const isPlayerBase = index === mergedParams.PlayerBaseColorIndex;
@@ -406,8 +406,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               return (
                 <svg
                   key={color + index}
-                  width={18}
-                  height={18}
+                  width={26}
+                  height={26}
                   viewBox="-1 -1 2 2"
                   style={{
                     position: 'absolute',
@@ -427,20 +427,31 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                     stroke={isHover ? '#FFFFFF' : isPlayerBase ? '#BBBBBB' : '#000000'}
                     strokeWidth={isHover ? 0.24 : isPlayerBase ? 0.18 : 0.12}
                   />
+                  <text
+                    x={0}
+                    y={0.08}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize="0.8"
+                    fill="#000"
+                    stroke="none"
+                  >
+                    {adjacentCountByColor[index] > 0 ? adjacentCountByColor[index] : ''}
+                  </text>
                 </svg>
               );
             })}
             <div
               style={{
                 position: 'absolute',
-                left: 45 - 16,
-                top: 45 - 16,
-                width: 32,
-                height: 32,
+                left: 70 - 20,
+                top: 70 - 20,
+                width: 40,
+                height: 40,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 11,
+                fontSize: 12,
                 background: 'transparent',
               }}
             >
@@ -451,18 +462,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                   : ''}
             </div>
           </div>
-          <div style={{ fontSize: 12, opacity: 0.85, textAlign: 'left', paddingTop: 4 }}>
+          <div style={{ fontSize: 12, opacity: 0.85, textAlign: 'left', paddingTop: 4, width: '100%' }}>
             <div><strong>Controls</strong></div>
             <div>Move: Arrow keys or WASD</div>
             <div>Hold Space to charge capture</div>
             <div>Press Space while carrying to drop</div>
             <div>On touch: use arrows and Capture button</div>
-            <div style={{ marginTop: 6 }}>
-              <strong>Score</strong>
-              <div>Player: {scores.playerScore.toFixed(3)}</div>
-              <div>Antagonist: {scores.antagonistScore.toFixed(3)}</div>
-              <div>Total: {scores.totalScore.toFixed(3)}</div>
-            </div>
             <div style={{ marginTop: 6, opacity: 0.8 }}>
               Goal: collect cells matching your color before the timer ends.
             </div>

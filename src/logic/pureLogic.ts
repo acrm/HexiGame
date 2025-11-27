@@ -257,6 +257,44 @@ export function computeScore(state: GameState, params: Params): ScoreBreakdown {
   return { playerScore, antagonistScore, totalScore };
 }
 
+// ---------- Simple adjacency metric per color ----------
+// For each color index i, returns how many cells of that color
+// have at least one neighbor of the same color.
+export function computeAdjacentSameColorCounts(state: GameState, params: Params): number[] {
+  const paletteLen = params.ColorPalette.length;
+  const result: number[] = new Array(paletteLen).fill(0);
+  if (paletteLen === 0) return result;
+
+  const neighborDirs: Axial[] = [
+    { q: 1, r: 0 },
+    { q: 1, r: -1 },
+    { q: 0, r: -1 },
+    { q: -1, r: 0 },
+    { q: -1, r: 1 },
+    { q: 0, r: 1 },
+  ];
+
+  for (const cell of state.grid.values()) {
+    if (cell.colorIndex === null) continue;
+    const colorIndex = ((cell.colorIndex % paletteLen) + paletteLen) % paletteLen;
+    let hasSameNeighbor = false;
+    for (const d of neighborDirs) {
+      const nq = cell.q + d.q;
+      const nr = cell.r + d.r;
+      const neighbor = state.grid.get(keyOf(nq, nr));
+      if (neighbor && neighbor.colorIndex === colorIndex) {
+        hasSameNeighbor = true;
+        break;
+      }
+    }
+    if (hasSameNeighbor) {
+      result[colorIndex] += 1;
+    }
+  }
+
+  return result;
+}
+
 // ---------- Core Tick ----------
 export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   let next: GameState = { ...state, tick: state.tick + 1 };
