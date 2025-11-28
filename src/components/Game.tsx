@@ -102,6 +102,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const spaceIsDownRef = useRef(false);
   const [protagonistPos, setProtagonistPos] = useState<{ q: number; r: number } | null>(null);
   const lastCursorRef = useRef<{ q: number; r: number } | null>(null);
+  const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
+
+  // virtual joystick state
+  const joystickTouchIdRef = useRef<number | null>(null);
+  const joystickCenterRef = useRef<{ x: number; y: number } | null>(null);
+  const joystickVectorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastJoystickMoveTickRef = useRef(0);
 
   // Tick loop (12 ticks/sec)
   useEffect(() => {
@@ -207,10 +214,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       const logicalWidth = maxX - minX;
       const logicalHeight = maxY - minY;
 
-      const scale = 0.8 * Math.min(availableWidth / logicalWidth, availableHeight / logicalHeight);
+      const scale = Math.min(availableWidth / logicalWidth, availableHeight / logicalHeight);
 
-      const pixelWidth = logicalWidth * scale;
-      const pixelHeight = logicalHeight * scale;
+      const pixelWidth = availableWidth;
+      const pixelHeight = availableHeight;
 
       canvas.width = Math.max(1, Math.floor(pixelWidth));
       canvas.height = Math.max(1, Math.floor(pixelHeight));
@@ -423,6 +430,59 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         ctx.restore();
       }
 
+      // --- On-screen mobile controls (joystick + capture) ---
+      const isMobileLayout = window.innerWidth <= 900;
+      if (isMobileLayout) {
+        const margin = 64;
+        const baseY = canvas.height - margin;
+
+        // left joystick (bottom-left corner)
+        const joyCenterX = margin;
+        const joyCenterY = baseY;
+        const outerRadius = 40;
+        const innerRadius = 18;
+
+        ctx.save();
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#3e0a60';
+        ctx.beginPath();
+        ctx.arc(joyCenterX, joyCenterY, outerRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        const knob = joystickVectorRef.current;
+        const maxOffset = outerRadius - innerRadius - 4;
+        const len = Math.sqrt(knob.x * knob.x + knob.y * knob.y) || 1;
+        const kx = joyCenterX + (knob.x / len) * Math.min(len, maxOffset);
+        const ky = joyCenterY + (knob.y / len) * Math.min(len, maxOffset);
+
+        ctx.fillStyle = '#b36bff';
+        ctx.beginPath();
+        ctx.arc(kx, ky, innerRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // hex capture button on the right
+        const capCenterX = canvas.width - margin;
+        const capCenterY = baseY;
+        const capRadius = 30;
+
+        drawHex(
+          ctx,
+          capCenterX,
+          capCenterY,
+          capRadius,
+          '#3e0a60',
+          '#b36bff',
+          3,
+        );
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('CAP', capCenterX, capCenterY + 1);
+      }
+
       // FPS calc
       const frameData = frameCounterRef.current;
       frameData.frames++;
@@ -432,6 +492,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         frameData.frames = 0;
         frameData.last = now;
       }
+
+      // draw FPS label over canvas at bottom center
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.85;
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`FPS: ${fps}`, canvas.width / 2, canvas.height - 4);
+      ctx.restore();
 
       requestAnimationFrame(render);
     }
@@ -466,6 +536,135 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
 
   const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
+
+  const isMobileLayout = typeof window !== 'undefined' && window.innerWidth <= 900;
+
+  // touch handling for virtual joystick and capture button
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    function handleTouchStart(ev: TouchEvent) {
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas) return;
+      const rect = currentCanvas.getBoundingClientRect();
+      for (let i = 0; i < ev.changedTouches.length; i++) {
+        const t = ev.changedTouches[i];
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+
+        const margin = 52;
+        const baseY = currentCanvas.height - margin;
+        const joyCenterX = margin;
+        const joyCenterY = baseY;
+        const capCenterX = currentCanvas.width - margin;
+        const capCenterY = baseY;
+        const joyOuterRadius = 40;
+        const capRadius = 30;
+
+        const dJoy = Math.hypot(x - joyCenterX, y - joyCenterY);
+        if (dJoy <= joyOuterRadius && joystickTouchIdRef.current === null) {
+          joystickTouchIdRef.current = t.identifier;
+          joystickCenterRef.current = { x: joyCenterX, y: joyCenterY };
+          joystickVectorRef.current = { x: 0, y: 0 };
+          ev.preventDefault();
+          continue;
+        }
+
+        const dCap = Math.hypot(x - capCenterX, y - capCenterY);
+        if (dCap <= capRadius) {
+          ev.preventDefault();
+          setGameState(prev => {
+            if (prev.capturedCell) return dropCarried(prev);
+            return beginCaptureCharge(prev);
+          });
+        }
+      }
+    }
+
+    function handleTouchMove(ev: TouchEvent) {
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas || joystickTouchIdRef.current === null) return;
+      const rect = currentCanvas.getBoundingClientRect();
+      for (let i = 0; i < ev.changedTouches.length; i++) {
+        const t = ev.changedTouches[i];
+        if (t.identifier !== joystickTouchIdRef.current) continue;
+        const center = joystickCenterRef.current;
+        if (!center) return;
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+        const vx = x - center.x;
+        const vy = y - center.y;
+        joystickVectorRef.current = { x: vx, y: vy };
+
+        const nowTick = gameState.tick;
+        if (nowTick !== lastJoystickMoveTickRef.current) {
+          lastJoystickMoveTickRef.current = nowTick;
+          const angle = Math.atan2(vy, vx);
+          const dirs: [number, number][] = [
+            [0, -1],
+            [1, -1],
+            [1, 0],
+            [0, 1],
+            [-1, 1],
+            [-1, 0],
+          ];
+          const sector = Math.round(((angle + Math.PI) / (2 * Math.PI)) * 6) % 6;
+          const [dq, dr] = dirs[sector];
+          setGameState(prev => attemptMoveByDelta(prev, mergedParams, dq, dr));
+        }
+        ev.preventDefault();
+      }
+    }
+
+    function handleTouchEnd(ev: TouchEvent) {
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas) return;
+      const rect = currentCanvas.getBoundingClientRect();
+      for (let i = 0; i < ev.changedTouches.length; i++) {
+        const t = ev.changedTouches[i];
+        if (t.identifier === joystickTouchIdRef.current) {
+          joystickTouchIdRef.current = null;
+          joystickCenterRef.current = null;
+          joystickVectorRef.current = { x: 0, y: 0 };
+          ev.preventDefault();
+          continue;
+        }
+
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+        const margin = 52;
+        const baseY = currentCanvas.height - margin;
+        const capCenterX = currentCanvas.width - margin;
+        const capCenterY = baseY;
+        const capRadius = 30;
+        const dCap = Math.hypot(x - capCenterX, y - capCenterY);
+        if (dCap <= capRadius) {
+          ev.preventDefault();
+          setGameState(prev => {
+            if (prev.captureChargeStartTick === null) return prev;
+            const heldTicks = prev.tick - prev.captureChargeStartTick;
+            if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+              return { ...prev, captureChargeStartTick: null };
+            }
+            return { ...prev, captureChargeStartTick: null };
+          });
+        }
+      }
+    }
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart as any);
+      canvas.removeEventListener('touchmove', handleTouchMove as any);
+      canvas.removeEventListener('touchend', handleTouchEnd as any);
+      canvas.removeEventListener('touchcancel', handleTouchEnd as any);
+    };
+  }, [gameState.tick, mergedParams]);
 
   return (
     <div className="game-root">
@@ -541,114 +740,46 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             </div>
           </div>
           <div style={{ fontSize: 12, opacity: 0.85, textAlign: 'left', paddingTop: 4, width: '100%' }}>
-            <div><strong>Controls</strong></div>
-            <div>Move: Arrow keys or WASD</div>
-            <div>Hold Space to charge capture</div>
-            <div>Press Space while carrying to drop</div>
-            <div>On touch: use arrows and Capture button</div>
-            <div style={{ marginTop: 6, opacity: 0.8 }}>
-              Goal: collect cells matching your color before the timer ends.
-            </div>
+            {isMobileLayout && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div><strong>Controls</strong></div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileInfoOpen(v => !v)}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    border: '1px solid #ffffff88',
+                    background: 'transparent',
+                    color: '#fff',
+                    fontSize: 12,
+                    padding: 0,
+                  }}
+                >
+                  i
+                </button>
+              </div>
+            )}
+            {(!isMobileLayout || isMobileInfoOpen) && (
+              <>
+                {!isMobileLayout && <div><strong>Controls</strong></div>}
+                <div>Move: Arrow keys or WASD</div>
+                <div>Hold Space to charge capture</div>
+                <div>Press Space while carrying to drop</div>
+                <div>On touch: use screen joystick and Capture button</div>
+                <div style={{ marginTop: 6, opacity: 0.8 }}>
+                  Goal: collect cells matching your color before the timer ends.
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
       <div ref={canvasContainerRef} className="game-field">
         <canvas ref={canvasRef} style={{ display: 'block' }} />
-        <div
-          style={{
-            position: 'absolute',
-            right: 8,
-            bottom: 6,
-            fontSize: 11,
-            opacity: 0.8,
-            pointerEvents: 'none',
-          }}
-        >
-          FPS: {fps}
-        </div>
       </div>
-      <div className="game-footer-controls">
-        <div className="touch-dpad">
-          <button
-            type="button"
-            className="touch-btn touch-up"
-            onClick={() => {
-              setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, -1));
-            }}
-          >
-            ▲
-          </button>
-          <div className="touch-middle-row">
-            <button
-              type="button"
-              className="touch-btn touch-left"
-              onClick={() => {
-                setGameState(prev => attemptMoveByDelta(prev, mergedParams, -1, 0));
-              }}
-            >
-              ◀
-            </button>
-            <button
-              type="button"
-              className="touch-btn touch-right"
-              onClick={() => {
-                setGameState(prev => attemptMoveByDelta(prev, mergedParams, 1, 0));
-              }}
-            >
-              ▶
-            </button>
-          </div>
-          <button
-            type="button"
-            className="touch-btn touch-down"
-            onClick={() => {
-              setGameState(prev => attemptMoveByDelta(prev, mergedParams, 0, 1));
-            }}
-          >
-            ▼
-          </button>
-        </div>
-        <button
-          type="button"
-          className="touch-btn touch-capture"
-          onMouseDown={() => {
-            setGameState(prev => {
-              if (prev.capturedCell) return dropCarried(prev);
-              return beginCaptureCharge(prev);
-            });
-          }}
-          onMouseUp={() => {
-            setGameState(prev => {
-              if (prev.captureChargeStartTick === null) return prev;
-              const heldTicks = prev.tick - prev.captureChargeStartTick;
-              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-                return { ...prev, captureChargeStartTick: null };
-              }
-              return { ...prev, captureChargeStartTick: null };
-            });
-          }}
-          onTouchStart={e => {
-            e.preventDefault();
-            setGameState(prev => {
-              if (prev.capturedCell) return dropCarried(prev);
-              return beginCaptureCharge(prev);
-            });
-          }}
-          onTouchEnd={e => {
-            e.preventDefault();
-            setGameState(prev => {
-              if (prev.captureChargeStartTick === null) return prev;
-              const heldTicks = prev.tick - prev.captureChargeStartTick;
-              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-                return { ...prev, captureChargeStartTick: null };
-              }
-              return { ...prev, captureChargeStartTick: null };
-            });
-          }}
-        >
-          Capture
-        </button>
-      </div>
+      <div className="game-footer-controls" />
     </div>
   );
 };
