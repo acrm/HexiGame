@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import Game from './components/Game';
 
@@ -16,4 +16,18 @@ if (version) {
 	}
 }
 
-createRoot(document.getElementById('root')!).render(<Game />);
+function Root() {
+	useEffect(() => {
+		const applyVh = () => {
+			const vh = window.innerHeight * 0.01;
+			document.documentElement.style.setProperty('--vh', `${vh}px`);
+		};
+		applyVh();
+		window.addEventListener('resize', applyVh);
+		return () => window.removeEventListener('resize', applyVh);
+	}, []);
+
+	return <Game />;
+}
+
+createRoot(document.getElementById('root')!).render(<Root />);

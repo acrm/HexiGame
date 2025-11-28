@@ -1,8 +1,14 @@
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
 .game-root {
   display: flex;
   flex-direction: row;
   width: 100vw;
   height: 100vh;
+  max-height: 100vh;
   background: #370152ff;
   color: #fff;
   font-family: sans-serif;
@@ -71,6 +77,9 @@
 @media (max-width: 900px) {
   .game-root {
     flex-direction: column;
+    height: calc(var(--vh, 1vh) * 100);
+    max-height: calc(var(--vh, 1vh) * 100);
+    overflow: hidden;
   }
 
   .game-panel {

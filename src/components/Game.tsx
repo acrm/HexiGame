@@ -102,6 +102,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const spaceIsDownRef = useRef(false);
   const [protagonistPos, setProtagonistPos] = useState<{ q: number; r: number } | null>(null);
   const lastCursorRef = useRef<{ q: number; r: number } | null>(null);
+  const lastCursorMoveTickRef = useRef<number>(0);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
 
   // virtual joystick state
@@ -376,7 +377,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
         // Centers of 7 small hexes: one in the middle, six around at distance 2 * centerRadius.
         // We keep a -30° offset so the small hexes pack correctly
-        // around the parent, matching the reference image.
+        // around the parent.
         const smallCenters: { x: number; y: number }[] = [];
         smallCenters.push({ x: turtleX, y: turtleY });
         for (let i = 0; i < 6; i++) {
@@ -412,8 +413,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           }
         }
 
-        // Draw all 7 small hexes as a flower (fill only, no stroke)
+        // Opposite index to head (tail) among petals 1..6
+        const tailIndex = ((headIndex - 1 + 3) % 6) + 1;
+
+        // Draw all 7 small hexes as a flower (fill only, no stroke),
+        // but skip the tail hex on the opposite side from the head.
         for (let i = 0; i < smallCenters.length; i++) {
+          if (i === tailIndex) continue;
           const c = smallCenters[i];
           const isHead = i === headIndex;
           const fill = isHead ? '#FFFFFF' : '#DDDDDD';
@@ -526,9 +532,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
     lastCursorRef.current = nextLastCursor;
     if (nextProtagonist.q !== current.q || nextProtagonist.r !== current.r) {
-      setProtagonistPos({ q: nextProtagonist.q, r: nextProtagonist.r });
+      const lastTick = lastCursorMoveTickRef.current;
+      if (gameState.tick - lastTick >= 6) {
+        lastCursorMoveTickRef.current = gameState.tick;
+        setProtagonistPos({ q: nextProtagonist.q, r: nextProtagonist.r });
+      }
     }
-  }, [gameState.cursor, gameState.protagonist, protagonistPos]);
+  }, [gameState.cursor, gameState.protagonist, protagonistPos, gameState.tick]);
 
   // Derived HUD data
   const chance = previewCaptureChanceAtCursor(gameState, mergedParams);
@@ -598,7 +608,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         joystickVectorRef.current = { x: vx, y: vy };
 
         const nowTick = gameState.tick;
-        if (nowTick !== lastJoystickMoveTickRef.current) {
+        if (nowTick - lastJoystickMoveTickRef.current >= 6) {
           lastJoystickMoveTickRef.current = nowTick;
           const angle = Math.atan2(vy, vx);
           const dirs: [number, number][] = [
