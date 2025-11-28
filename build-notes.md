@@ -19,3 +19,11 @@
 - 25w48-0.11 — Disable dev restart from version bump script
 
 - 25w48-0.12 — Throttle cursor and joystick movement to once per 6 ticks
+
+- 25w48-0.13 — Align on-screen joystick movement with hex grid directions
+
+- 25w48-0.14 — Restore turtle follower movement to previous behavior
+
+- 25w48-0.15 — Limit turtle follower to one move per 6 ticks while keeping joystick-aligned cursor movement
+
+- 25w48-0.16 — Align joystick-driven cursor steps to on-screen directions

@@ -518,7 +518,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     };
   }, [gameState, mergedParams, protagonistPos]);
 
-  // Smoothly move protagonist one step toward cursor when cursor changes (delegated to pure logic)
+  // Smoothly move protagonist one step toward cursor when cursor changes (delegated to pure logic),
+  // but no more than once every 6 ticks.
   useEffect(() => {
     const current = protagonistPos ?? gameState.protagonist;
     const cursor = gameState.cursor;
@@ -610,8 +611,28 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         const nowTick = gameState.tick;
         if (nowTick - lastJoystickMoveTickRef.current >= 6) {
           lastJoystickMoveTickRef.current = nowTick;
+
+          // Map joystick vector so screen directions match cursor movement.
+          // angle=0 along +X (right), grows clockwise because y increases downward.
           const angle = Math.atan2(vy, vx);
-          const dirs: [number, number][] = [
+          const norm = (angle + 2 * Math.PI) % (2 * Math.PI);
+          const sector = Math.floor((norm / (2 * Math.PI)) * 6); // 0..5
+
+          // Sector mapping (clockwise around):
+          // 0: right, 1: down-right, 2: down, 3: left, 4: up-left, 5: up.
+          const approxDirs: [number, number][] = [
+            [1, 0],   // right
+            [1, 1],   // down-right (approximate)
+            [0, 1],   // down
+            [-1, 0],  // left
+            [-1, -1], // up-left (approximate)
+            [0, -1],  // up
+          ];
+
+          const [dqApprox, drApprox] = approxDirs[sector];
+
+          // Snap approximate (dq, dr) to the nearest true axial direction.
+          const trueDirs: [number, number][] = [
             [0, -1],
             [1, -1],
             [1, 0],
@@ -619,8 +640,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             [-1, 1],
             [-1, 0],
           ];
-          const sector = Math.round(((angle + Math.PI) / (2 * Math.PI)) * 6) % 6;
-          const [dq, dr] = dirs[sector];
+          let best: [number, number] = trueDirs[0];
+          let bestDist = Number.POSITIVE_INFINITY;
+          for (const [aq, ar] of trueDirs) {
+            const dq = aq - dqApprox;
+            const dr = ar - drApprox;
+            const dist = dq * dq + dr * dr;
+            if (dist < bestDist) {
+              bestDist = dist;
+              best = [aq, ar];
+            }
+          }
+
+          const [dq, dr] = best;
           setGameState(prev => attemptMoveByDelta(prev, mergedParams, dq, dr));
         }
         ev.preventDefault();
