@@ -1,11 +1,13 @@
 {
   "name": "hexigame",
-  "version": "0.2.0",
+  "version": "25w48-0.6",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "bump:build": "node scripts/update-version.js",
+    "bump:minor": "node scripts/update-version.js --minor",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
