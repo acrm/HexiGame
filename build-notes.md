@@ -27,3 +27,7 @@
 - 25w48-0.15 — Limit turtle follower to one move per 6 ticks while keeping joystick-aligned cursor movement
 
 - 25w48-0.16 — Align joystick-driven cursor steps to on-screen directions
+
+- 25w48-0.17 — Fix follower: preserve previous cursor when throttled; move into it when non-adjacent
+
+- 25w48-0.18 — Remove follower throttling; throttle cursor moves only; add language policy to AI instructions

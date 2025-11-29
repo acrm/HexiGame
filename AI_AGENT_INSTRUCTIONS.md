@@ -2,6 +2,11 @@
 
 This repository uses a weekly snapshot versioning scheme inspired by Minecraft.
 
+## Communication Language Policy
+
+- In chat: write only in Russian.
+- In files: write only in English.
+
 - **Version format**: `<weekCode>-<minor>.<build>`
   - `weekCode`: calendar week code, e.g. `25w48`.
   - `minor`: minor snapshot number within the week, starting from `0`.

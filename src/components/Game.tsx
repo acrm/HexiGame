@@ -102,7 +102,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const spaceIsDownRef = useRef(false);
   const [protagonistPos, setProtagonistPos] = useState<{ q: number; r: number } | null>(null);
   const lastCursorRef = useRef<{ q: number; r: number } | null>(null);
-  const lastCursorMoveTickRef = useRef<number>(0);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
 
   // virtual joystick state
@@ -518,8 +517,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     };
   }, [gameState, mergedParams, protagonistPos]);
 
-  // Smoothly move protagonist one step toward cursor when cursor changes (delegated to pure logic),
-  // but no more than once every 6 ticks.
+  // Smoothly move protagonist one step toward cursor when cursor changes (delegated to pure logic).
   useEffect(() => {
     const current = protagonistPos ?? gameState.protagonist;
     const cursor = gameState.cursor;
@@ -531,14 +529,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       lastCursor,
     );
 
-    lastCursorRef.current = nextLastCursor;
+    // Apply follower step immediately when needed; throttling stays on cursor moves only.
     if (nextProtagonist.q !== current.q || nextProtagonist.r !== current.r) {
-      const lastTick = lastCursorMoveTickRef.current;
-      if (gameState.tick - lastTick >= 6) {
-        lastCursorMoveTickRef.current = gameState.tick;
-        setProtagonistPos({ q: nextProtagonist.q, r: nextProtagonist.r });
-      }
+      setProtagonistPos({ q: nextProtagonist.q, r: nextProtagonist.r });
     }
+    lastCursorRef.current = nextLastCursor;
   }, [gameState.cursor, gameState.protagonist, protagonistPos, gameState.tick]);
 
   // Derived HUD data
