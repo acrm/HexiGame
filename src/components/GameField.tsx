@@ -85,6 +85,7 @@ interface GameFieldProps {
   onRelease: () => void;
   onEat: () => void;
   onMove: (dq: number, dr: number) => void;
+  onSetCursor: (q: number, r: number) => void;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -104,10 +105,42 @@ export const GameField: React.FC<GameFieldProps> = ({
   onRelease,
   onEat,
   onMove,
+  onSetCursor,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const frameCounterRef = useRef({ last: performance.now(), frames: 0 });
+  // Track active ACT (action mode) touch so release outside button still ends action mode
+  const actTouchIdRef = useRef<number | null>(null);
+  // Geometry refs for click/tap mapping
+  const scaleRef = useRef<number>(1);
+  const centerXRef = useRef<number>(0);
+  const centerYRef = useRef<number>(0);
+
+  function pixelToAxial(px: number, py: number): { q: number; r: number } {
+    const scale = scaleRef.current;
+    const cx = centerXRef.current;
+    const cy = centerYRef.current;
+    const x = (px - cx) / scale;
+    const y = (py - cy) / scale;
+    const qFloat = x / (1.5 * HEX_SIZE);
+    const rFloat = (y / (Math.sqrt(3) * HEX_SIZE)) - qFloat / 2;
+    let q = qFloat;
+    let r = rFloat;
+    let s = -q - r;
+    const rq = Math.round(q);
+    const rr = Math.round(r);
+    const rs = Math.round(s);
+    const qDiff = Math.abs(rq - q);
+    const rDiff = Math.abs(rr - r);
+    const sDiff = Math.abs(rs - s);
+    if (qDiff > rDiff && qDiff > sDiff) {
+      q = -rr - rs;
+    } else if (rDiff > sDiff) {
+      r = -rq - rs;
+    }
+    return { q: Math.round(q), r: Math.round(r) };
+  }
 
   // Touch handling for mobile controls
   useEffect(() => {
@@ -148,12 +181,14 @@ export const GameField: React.FC<GameFieldProps> = ({
           continue;
         }
 
-        const showCap = !isInventory && !gameState.capturedCell;
-        const showRel = !isInventory && !!gameState.capturedCell;
+        const showAct = !isInventory; // ACT always available in world
+        let consumed = false;
         const dCap = Math.hypot(x - capCenterX, y - capCenterY);
-        if (dCap <= capRadius && (showCap || showRel)) {
+        if (dCap <= capRadius && showAct) {
           ev.preventDefault();
-          if (showRel) onRelease(); else onCapture();
+          actTouchIdRef.current = t.identifier;
+          onCapture();
+          consumed = true;
         }
 
         if (!isInventory && gameState.capturedCell) {
@@ -161,6 +196,7 @@ export const GameField: React.FC<GameFieldProps> = ({
           if (dEat <= eatRadius) {
             ev.preventDefault();
             onEat();
+            consumed = true;
           }
         }
 
@@ -169,6 +205,12 @@ export const GameField: React.FC<GameFieldProps> = ({
         if (dInv <= invRadius) {
           ev.preventDefault();
           onToggleInventory();
+          consumed = true;
+        }
+
+        if (!consumed) {
+          const axial = pixelToAxial(x, y);
+            onSetCursor(axial.q, axial.r);
         }
       }
     }
@@ -228,12 +270,22 @@ export const GameField: React.FC<GameFieldProps> = ({
         const invCenterX = margin + inward;
         const invCenterY = baseY - 64;
         const invRadius = 24;
-        const showCap = !isInventory && !gameState.capturedCell;
-        const showRel = !isInventory && !!gameState.capturedCell;
-        const dCap = Math.hypot(x - capCenterX, y - capCenterY);
-        if (dCap <= capRadius && (showCap || showRel)) {
+        // Release action mode if ACT touch ends (regardless of where it ends)
+        if (t.identifier === actTouchIdRef.current) {
+          actTouchIdRef.current = null;
           ev.preventDefault();
-          if (showRel) onRelease(); else onCapture();
+          onRelease();
+        } else {
+          // Legacy tap detection (fallback) - if user taps ACT without moving finger
+          const showAct = !isInventory;
+          const dCap = Math.hypot(x - capCenterX, y - capCenterY);
+          if (dCap <= capRadius && showAct) {
+            ev.preventDefault();
+            onCapture();
+          } else {
+            const axial = pixelToAxial(x, y);
+            onSetCursor(axial.q, axial.r);
+          }
         }
 
         if (!isInventory && gameState.capturedCell) {
@@ -319,6 +371,9 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       const centerX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
       const centerY = canvas.height / 2 - ((minY + maxY) / 2) * scale;
+      scaleRef.current = scale;
+      centerXRef.current = centerX;
+      centerYRef.current = centerY;
 
       // Draw world or inventory as full hex grids
       const activeGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
@@ -445,8 +500,9 @@ export const GameField: React.FC<GameFieldProps> = ({
         if (!isInventory) {
           const carrying = !!gameState.capturedCell;
           const releasing = (gameState as any).isReleasing;
-          const pivotQ = carrying && !releasing ? gameState.capturedCell!.q : protagonistCell.q;
-          const pivotR = carrying && !releasing ? gameState.capturedCell!.r : protagonistCell.r;
+          // Always pivot around protagonist; captured hex is rendered separately with outline.
+          const pivotQ = protagonistCell.q;
+          const pivotR = protagonistCell.r;
           const pivotPos = hexToPixel(pivotQ, pivotR);
           const pivotX = centerX + pivotPos.x * scale;
           const pivotY = centerY + pivotPos.y * scale;
@@ -671,6 +727,22 @@ export const GameField: React.FC<GameFieldProps> = ({
       cancelAnimationFrame(raf);
     };
   }, [gameState, params, fps, joystickVector, joystickToAxial, setFps, isInventory]);
+
+  // Desktop mouse click focusing
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    function handleMouseDown(ev: MouseEvent) {
+      if (ev.button !== 0) return;
+      const rect = canvas!.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const axial = pixelToAxial(x, y);
+      onSetCursor(axial.q, axial.r);
+    }
+    canvas.addEventListener('mousedown', handleMouseDown);
+    return () => canvas.removeEventListener('mousedown', handleMouseDown);
+  }, [onSetCursor]);
 
   return (
     <div ref={canvasContainerRef} className="game-field">

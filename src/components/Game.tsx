@@ -9,9 +9,7 @@ import {
   createInitialState,
   tick as logicTick,
   attemptMoveByDeltaOnActive,
-  beginCaptureCharge,
-  dropCarried,
-  beginRelease,
+  attemptMoveTo,
   eatCapturedToInventory,
   previewCaptureChanceAtCursor,
   hoveredCellActive,
@@ -95,12 +93,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       }
       if (e.code === 'Space') {
         if (spaceIsDownRef.current) {
-          // Ignore auto-repeat while key is held
-          return;
+          return; // already down
         }
-        spaceIsDownRef.current = true;
-        // Enter action mode (do not directly start capture/release)
-        setGameState(prev => ({ ...prev, isActionMode: true }));
+        // Gate action mode by cooldown
+        setGameState(prev => {
+          if (prev.captureCooldownTicksRemaining > 0) {
+            return prev; // ignore during cooldown
+          }
+          spaceIsDownRef.current = true;
+          return { ...prev, isActionMode: true };
+        });
         return;
       }
       if (e.key === 'e' || e.key === 'E') {
@@ -127,14 +129,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }
         spaceIsDownRef.current = false;
         setGameState(prev => {
-          if (prev.captureChargeStartTick !== null) {
-            const heldTicks = prev.tick - prev.captureChargeStartTick;
-            if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-              return { ...prev, captureChargeStartTick: null, isActionMode: false };
+          // Abort release movement when action ends
+            const baseReset = { ...prev, isActionMode: false, isReleasing: prev.isReleasing ? false : prev.isReleasing };
+            if (prev.captureChargeStartTick !== null) {
+              const heldTicks = prev.tick - prev.captureChargeStartTick;
+              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+                return { ...baseReset, captureChargeStartTick: null };
+              }
+              return baseReset;
             }
-            return { ...prev, isActionMode: false };
-          }
-          return { ...prev, isActionMode: false };
+            return baseReset;
         });
       }
     }
@@ -218,20 +222,24 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
         }}
         onCapture={() => {
-          // Mobile press -> enter action mode
-          setGameState(prev => ({ ...prev, isActionMode: true }));
+          // Mobile press -> enter action mode (respect cooldown)
+          setGameState(prev => {
+            if (prev.captureCooldownTicksRemaining > 0) return prev;
+            return { ...prev, isActionMode: true };
+          });
         }}
         onRelease={() => {
-          // Mobile release -> exit action mode, cancel incomplete charge
+          // Mobile release -> exit action mode, cancel incomplete charge and stop release movement
           setGameState(prev => {
+            const baseReset = { ...prev, isActionMode: false, isReleasing: prev.isReleasing ? false : prev.isReleasing };
             if (prev.captureChargeStartTick !== null) {
               const heldTicks = prev.tick - prev.captureChargeStartTick;
               if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-                return { ...prev, captureChargeStartTick: null, isActionMode: false };
+                return { ...baseReset, captureChargeStartTick: null };
               }
-              return { ...prev, isActionMode: false };
+              return baseReset;
             }
-            return { ...prev, isActionMode: false };
+            return baseReset;
           });
         }}
         onEat={() => {
@@ -239,6 +247,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }}
         onMove={(dq, dr) => {
           setGameState(prev => attemptMoveByDeltaOnActive(prev, mergedParams, dq, dr));
+        }}
+        onSetCursor={(q, r) => {
+          setGameState(prev => attemptMoveTo(prev, mergedParams, { q, r }));
         }}
       />
       <div className="game-footer-controls" />

@@ -377,7 +377,8 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   }
 
   // During release phase: move turtle + carried hex toward cursor at carry speed
-  if (next.isReleasing && next.activeField === 'world' && next.capturedCell) {
+  // Requires action mode to stay active; releasing Space aborts further movement.
+  if (next.isReleasing && next.isActionMode && next.activeField === 'world' && next.capturedCell) {
     const movePeriod = 4; // 1 cell per 4 ticks when carrying
     if (next.tick % movePeriod === 0) {
       const pq = next.protagonist.q, pr = next.protagonist.r;
@@ -419,7 +420,8 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
         }
         // Drop when head cell reaches cursor
         if (headCell.q === cq && headCell.r === cr) {
-          next = { ...next, isReleasing: false, capturedCell: null };
+          // Release completes: clear capture and start cooldown
+          next = { ...next, isReleasing: false, capturedCell: null, captureCooldownTicksRemaining: Math.max(next.captureCooldownTicksRemaining, 6) };
         }
       }
     }
@@ -441,6 +443,19 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
 
   if (next.tick % params.GameTickRate === 0 && next.remainingSeconds > 0) {
     next = { ...next, remainingSeconds: next.remainingSeconds - 1 };
+  }
+
+  // Invariant enforcement: protagonist must never occupy the same cell as capturedCell
+  if (next.capturedCell && next.protagonist.q === next.capturedCell.q && next.protagonist.r === next.capturedCell.r) {
+    for (const dir of axialDirections) {
+      const candidate = { q: next.capturedCell.q + dir.q, r: next.capturedCell.r + dir.r };
+      if (!axialInDisk(params.GridRadius, candidate.q, candidate.r)) continue;
+      // Ensure candidate is a real cell on grid
+      if (!getCell(next.grid, candidate)) continue;
+      // Move protagonist here and keep facing consistent
+      next = { ...next, protagonist: candidate };
+      break;
+    }
   }
 
   return next;
@@ -620,7 +635,7 @@ export function endCaptureChargeOnActive(state: GameState, params: Params, rng: 
 // Drop carried color (Space press while carrying). Pure: just clears carrying anchor.
 export function dropCarried(state: GameState): GameState {
   if (state.capturedCell === null) return state;
-  return { ...state, capturedCell: null };
+  return { ...state, capturedCell: null, captureCooldownTicksRemaining: Math.max(state.captureCooldownTicksRemaining, 6) };
 }
 
 // Begin releasing: turtle will move with carried hex toward cursor and drop on arrival

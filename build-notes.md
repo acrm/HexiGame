@@ -81,3 +81,11 @@
 - 25w48-0.41 — Introduce Action Mode: Space/ACT holds action; turtle advances toward cursor stopping adjacent; adjacency triggers capture charge (hex present) or release initiation (carrying over empty cursor); world cursor shows rotating opposite edge pair during action mode; mobile button renamed CAP→ACT.
 
 - 25w48-0.41 — enhance turtle movement mechanics, and refine palette cluster arrangement
+
+- 25w48-0.44 — Fix action mode reset on Space release; gate release movement by action mode; ensure capture/release start only when adjacent
+
+- 25w48-0.45 — Mobile ACT button now holds action mode and always resets on touch release (even outside); adjacency gating preserved
+
+- 25w48-0.46 — Enforce protagonist/captured adjacency; add desktop click & mobile tap cursor focus
+
+- 25w48-0.47 — Turtle render pivots on protagonist; add 6-tick post-release/drop cooldown gating action mode
