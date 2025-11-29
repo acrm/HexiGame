@@ -110,6 +110,44 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const joystickVectorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastJoystickMoveTickRef = useRef(0);
 
+  // Convert joystick vector to nearest axial hex direction; null if in dead zone
+  function joystickToAxial(vx: number, vy: number): [number, number] | null {
+    const len = Math.hypot(vx, vy);
+    if (len < 6) return null; // dead zone to avoid jitter
+    const angle = Math.atan2(vy, vx); // 0: right, clockwise
+    const norm = (angle + 2 * Math.PI) % (2 * Math.PI);
+    const sector = Math.floor((norm / (2 * Math.PI)) * 6); // 0..5
+    const approxDirs: [number, number][] = [
+      [1, 0],   // 0: right
+      [0, 1],   // 1: down-right (actually down in screen coords)
+      [-1, 1],  // 2: down-left
+      [-1, 0],  // 3: left
+      [0, -1],  // 4: up-left (actually up in screen coords)
+      [1, -1],  // 5: up-right
+    ];
+    const [dqApprox, drApprox] = approxDirs[sector];
+    const trueDirs: [number, number][] = [
+      [0, -1],
+      [1, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 1],
+      [-1, 0],
+    ];
+    let best: [number, number] = trueDirs[0];
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (const [aq, ar] of trueDirs) {
+      const dq = aq - dqApprox;
+      const dr = ar - drApprox;
+      const dist = dq * dq + dr * dr;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = [aq, ar];
+      }
+    }
+    return best;
+  }
+
   // Tick loop (12 ticks/sec)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -466,6 +504,41 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         ctx.fill();
         ctx.restore();
 
+        // Direction arrow to the right of the joystick (intended move)
+        const dir = joystickToAxial(knob.x, knob.y);
+        const arrowCenterX = joyCenterX + outerRadius + 48;
+        const arrowCenterY = joyCenterY;
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        if (dir) {
+          const px = hexToPixel(dir[0], dir[1]);
+          const ang = Math.atan2(px.y, px.x);
+          const arrowLen = 36;
+          const arrowWidth = 8;
+          ctx.translate(arrowCenterX, arrowCenterY);
+          ctx.rotate(ang);
+          ctx.strokeStyle = '#b36bff';
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(arrowLen, 0);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(arrowLen, 0);
+          ctx.lineTo(arrowLen - arrowWidth, -arrowWidth * 0.7);
+          ctx.lineTo(arrowLen - arrowWidth, arrowWidth * 0.7);
+          ctx.closePath();
+          ctx.fillStyle = '#b36bff';
+          ctx.fill();
+        } else {
+          ctx.fillStyle = '#6f51a6';
+          ctx.beginPath();
+          ctx.arc(arrowCenterX, arrowCenterY, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
         // hex capture button on the right
         const capCenterX = canvas.width - margin;
         const capCenterY = baseY;
@@ -606,49 +679,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         const nowTick = gameState.tick;
         if (nowTick - lastJoystickMoveTickRef.current >= 6) {
           lastJoystickMoveTickRef.current = nowTick;
-
-          // Map joystick vector so screen directions match cursor movement.
-          // angle=0 along +X (right), grows clockwise because y increases downward.
-          const angle = Math.atan2(vy, vx);
-          const norm = (angle + 2 * Math.PI) % (2 * Math.PI);
-          const sector = Math.floor((norm / (2 * Math.PI)) * 6); // 0..5
-
-          // Sector mapping (clockwise around):
-          // 0: right, 1: down-right, 2: down, 3: left, 4: up-left, 5: up.
-          const approxDirs: [number, number][] = [
-            [1, 0],   // right
-            [1, 1],   // down-right (approximate)
-            [0, 1],   // down
-            [-1, 0],  // left
-            [-1, -1], // up-left (approximate)
-            [0, -1],  // up
-          ];
-
-          const [dqApprox, drApprox] = approxDirs[sector];
-
-          // Snap approximate (dq, dr) to the nearest true axial direction.
-          const trueDirs: [number, number][] = [
-            [0, -1],
-            [1, -1],
-            [1, 0],
-            [0, 1],
-            [-1, 1],
-            [-1, 0],
-          ];
-          let best: [number, number] = trueDirs[0];
-          let bestDist = Number.POSITIVE_INFINITY;
-          for (const [aq, ar] of trueDirs) {
-            const dq = aq - dqApprox;
-            const dr = ar - drApprox;
-            const dist = dq * dq + dr * dr;
-            if (dist < bestDist) {
-              bestDist = dist;
-              best = [aq, ar];
-            }
+          const dir = joystickToAxial(vx, vy);
+          if (dir) {
+            const [dq, dr] = dir;
+            setGameState(prev => attemptMoveByDelta(prev, mergedParams, dq, dr));
           }
-
-          const [dq, dr] = best;
-          setGameState(prev => attemptMoveByDelta(prev, mergedParams, dq, dr));
         }
         ev.preventDefault();
       }
@@ -703,116 +738,192 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     };
   }, [gameState.tick, mergedParams]);
 
+  const paletteLen = mergedParams.ColorPalette.length;
+  const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
+  const intermediateColors = mergedParams.ColorPalette.filter((_, i) => i !== mergedParams.PlayerBaseColorIndex && i !== antagonistIndex);
+  const rowSize = Math.ceil(intermediateColors.length / 2);
+  const row1 = intermediateColors.slice(0, rowSize);
+  const row2 = intermediateColors.slice(rowSize);
+
   return (
     <div className="game-root">
       <div className="game-panel">
-        <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-          <div style={{ position: 'relative', width: 140, height: 140 }}>
-            {mergedParams.ColorPalette.map((color, index) => {
-              const total = mergedParams.ColorPalette.length;
-              const angle = (index / total) * Math.PI * 2;
-              const radius = 48;
-              const center = 70;
-              const x = center + radius * Math.cos(angle);
-              const y = center + radius * Math.sin(angle);
-              const isPlayerBase = index === mergedParams.PlayerBaseColorIndex;
-              const isHover = index === hoverColorIndex;
-              return (
-                <svg
-                  key={color + index}
-                  width={26}
-                  height={26}
-                  viewBox="-1 -1 2 2"
-                  style={{
-                    position: 'absolute',
-                    left: x - 9,
-                    top: y - 9,
-                  }}
-                >
-                  <polygon
-                    points={Array.from({ length: 6 }, (_, i) => {
-                      const ang = (Math.PI / 180) * (60 * i + 30); // vertical (pointy-top)
-                      const r = 0.9;
-                      const px = r * Math.cos(ang);
-                      const py = r * Math.sin(ang);
-                      return `${px},${py}`;
-                    }).join(' ')}
-                    fill={color}
-                    stroke={isHover ? '#FFFFFF' : isPlayerBase ? '#BBBBBB' : '#000000'}
-                    strokeWidth={isHover ? 0.24 : isPlayerBase ? 0.18 : 0.12}
-                  />
-                  <text
-                    x={0}
-                    y={0.08}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fontSize="0.8"
-                    fill="#000"
-                    stroke="none"
-                  >
-                    {adjacentCountByColor[index] > 0 ? adjacentCountByColor[index] : ''}
-                  </text>
-                </svg>
-              );
-            })}
-            <div
-              style={{
-                position: 'absolute',
-                left: 70 - 20,
-                top: 70 - 20,
-                width: 40,
-                height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 12,
-                background: 'transparent',
-              }}
-            >
-              {gameState.capturedCell
-                ? 'Kept'
-                : chance !== null && hoverColorIndex !== null
-                  ? `${chance}%`
-                  : ''}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 8px', justifyContent: 'space-between' }}>
+          {/* Antagonist color on the left */}
+          <svg width={28} height={28} viewBox="-1 -1 2 2">
+            <polygon
+              points={Array.from({ length: 6 }, (_, i) => {
+                const ang = (Math.PI / 180) * (60 * i); // flat-top
+                const r = 0.9;
+                const px = r * Math.cos(ang);
+                const py = r * Math.sin(ang);
+                return `${px},${py}`;
+              }).join(' ')}
+              fill={mergedParams.ColorPalette[antagonistIndex]}
+              stroke="#BBBBBB"
+              strokeWidth={0.14}
+            />
+            <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
+              {adjacentCountByColor[antagonistIndex] > 0 ? adjacentCountByColor[antagonistIndex] : ''}
+            </text>
+          </svg>
+          {/* Two rows of intermediate colors */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {row1.map((color) => {
+                const index = mergedParams.ColorPalette.indexOf(color);
+                const isHover = index === hoverColorIndex;
+                return (
+                  <svg key={color + index} width={22} height={22} viewBox="-1 -1 2 2">
+                    <polygon
+                      points={Array.from({ length: 6 }, (_, i) => {
+                        const ang = (Math.PI / 180) * (60 * i); // flat-top
+                        const r = 0.9;
+                        const px = r * Math.cos(ang);
+                        const py = r * Math.sin(ang);
+                        return `${px},${py}`;
+                      }).join(' ')}
+                      fill={color}
+                      stroke={isHover ? '#FFFFFF' : '#000000'}
+                      strokeWidth={isHover ? 0.22 : 0.12}
+                    />
+                    <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
+                      {adjacentCountByColor[index] > 0 ? adjacentCountByColor[index] : ''}
+                    </text>
+                  </svg>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {row2.map((color) => {
+                const index = mergedParams.ColorPalette.indexOf(color);
+                const isHover = index === hoverColorIndex;
+                return (
+                  <svg key={color + index} width={22} height={22} viewBox="-1 -1 2 2">
+                    <polygon
+                      points={Array.from({ length: 6 }, (_, i) => {
+                        const ang = (Math.PI / 180) * (60 * i); // flat-top
+                        const r = 0.9;
+                        const px = r * Math.cos(ang);
+                        const py = r * Math.sin(ang);
+                        return `${px},${py}`;
+                      }).join(' ')}
+                      fill={color}
+                      stroke={isHover ? '#FFFFFF' : '#000000'}
+                      strokeWidth={isHover ? 0.22 : 0.12}
+                    />
+                    <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
+                      {adjacentCountByColor[index] > 0 ? adjacentCountByColor[index] : ''}
+                    </text>
+                  </svg>
+                );
+              })}
             </div>
           </div>
-          <div style={{ fontSize: 12, opacity: 0.85, textAlign: 'left', paddingTop: 4, width: '100%' }}>
-            {isMobileLayout && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div><strong>Controls</strong></div>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileInfoOpen(v => !v)}
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    border: '1px solid #ffffff88',
-                    background: 'transparent',
-                    color: '#fff',
-                    fontSize: 12,
-                    padding: 0,
-                  }}
-                >
-                  i
-                </button>
-              </div>
-            )}
-            {(!isMobileLayout || isMobileInfoOpen) && (
-              <>
-                {!isMobileLayout && <div><strong>Controls</strong></div>}
-                <div>Move: Arrow keys or WASD</div>
-                <div>Hold Space to charge capture</div>
-                <div>Press Space while carrying to drop</div>
-                <div>On touch: use screen joystick and Capture button</div>
-                <div style={{ marginTop: 6, opacity: 0.8 }}>
-                  Goal: collect cells matching your color before the timer ends.
-                </div>
-              </>
-            )}
+          {/* Protagonist color on the right */}
+          <svg width={28} height={28} viewBox="-1 -1 2 2">
+            <polygon
+              points={Array.from({ length: 6 }, (_, i) => {
+                const ang = (Math.PI / 180) * (60 * i); // flat-top
+                const r = 0.9;
+                const px = r * Math.cos(ang);
+                const py = r * Math.sin(ang);
+                return `${px},${py}`;
+              }).join(' ')}
+              fill={mergedParams.ColorPalette[mergedParams.PlayerBaseColorIndex]}
+              stroke="#BBBBBB"
+              strokeWidth={0.14}
+            />
+            <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
+              {adjacentCountByColor[mergedParams.PlayerBaseColorIndex] > 0 ? adjacentCountByColor[mergedParams.PlayerBaseColorIndex] : ''}
+            </text>
+          </svg>
+          {/* Capture probability to the right of the palette */}
+          <div style={{ fontSize: 14, fontWeight: 'bold', minWidth: 42, textAlign: 'center' }}>
+            {gameState.capturedCell
+              ? 'Kept'
+              : chance !== null && hoverColorIndex !== null
+                ? `${chance}%`
+                : ''}
           </div>
+          {/* Info button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileInfoOpen(v => !v)}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              border: '1px solid #ffffff88',
+              background: 'transparent',
+              color: '#fff',
+              fontSize: 13,
+              padding: 0,
+              cursor: 'pointer',
+            }}
+          >
+            i
+          </button>
         </div>
       </div>
+      {/* Info popup overlay */}
+      {isMobileInfoOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 20,
+          }}
+          onClick={() => setIsMobileInfoOpen(false)}
+        >
+          <div
+            style={{
+              background: '#2a0845',
+              border: '2px solid #b36bff',
+              borderRadius: 8,
+              padding: 20,
+              maxWidth: 400,
+              color: '#fff',
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ marginBottom: 12, fontSize: 16, fontWeight: 'bold' }}>Controls</div>
+            <div>Move: Arrow keys or WASD</div>
+            <div>Hold Space to charge capture</div>
+            <div>Press Space while carrying to drop</div>
+            <div>On touch: use screen joystick and Capture button</div>
+            <div style={{ marginTop: 12, opacity: 0.9 }}>
+              Goal: collect cells matching your color before the timer ends.
+            </div>
+            <button
+              onClick={() => setIsMobileInfoOpen(false)}
+              style={{
+                marginTop: 16,
+                padding: '8px 16px',
+                background: '#b36bff',
+                border: 'none',
+                borderRadius: 4,
+                color: '#fff',
+                fontSize: 14,
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       <div ref={canvasContainerRef} className="game-field">
         <canvas ref={canvasRef} style={{ display: 'block' }} />
       </div>

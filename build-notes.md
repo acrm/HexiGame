@@ -31,3 +31,7 @@
 - 25w48-0.17 — Fix follower: preserve previous cursor when throttled; move into it when non-adjacent
 
 - 25w48-0.18 — Remove follower throttling; throttle cursor moves only; add language policy to AI instructions
+
+- 25w48-0.19 — Mobile: draw joystick direction arrow; reuse shared mapping for cursor step
+
+- 25w48-0.20 — Fix joystick diagonals; redesign top panel: flat-top hexes, two rows, antagonist left, protagonist right, capture % right of palette, info popup overlay
