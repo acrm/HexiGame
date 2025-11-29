@@ -12,6 +12,7 @@ import {
   beginCaptureCharge,
   endCaptureCharge,
   dropCarried,
+  eatCaptured,
   previewCaptureChanceAtCursor,
   hoveredCell,
   isCarryFlickerOn,
@@ -116,14 +117,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     if (len < 6) return null; // dead zone to avoid jitter
     const angle = Math.atan2(vy, vx); // 0: right, clockwise
     const norm = (angle + 2 * Math.PI) % (2 * Math.PI);
-    const sector = Math.floor((norm / (2 * Math.PI)) * 6); // 0..5
-    const approxDirs: [number, number][] = [
-      [1, 0],   // 0: right
-      [0, 1],   // 1: down-right (actually down in screen coords)
-      [-1, 1],  // 2: down-left
-      [-1, 0],  // 3: left
-      [0, -1],  // 4: up-left (actually up in screen coords)
-      [1, -1],  // 5: up-right
+    // Use nearest sector (round) to avoid boundary misclassification,
+    // screen coordinates: +Y is down.
+    const sector = Math.round((norm / (2 * Math.PI)) * 6) % 6; // 0..5
+      const approxDirs: [number, number][] = [
+        [1, 0],   // 0: right
+        [1, 1],   // 1: down-right (approximate)
+        [0, 1],   // 2: down
+        [-1, 0],  // 3: left
+        [-1, -1], // 4: up-left (approximate)
+        [0, -1],  // 5: up
     ];
     const [dqApprox, drApprox] = approxDirs[sector];
     const trueDirs: [number, number][] = [
@@ -169,6 +172,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           if (prev.capturedCell) return dropCarried(prev);
           return beginCaptureCharge(prev);
         });
+        return;
+      }
+      if (e.key === 'e' || e.key === 'E') {
+        setGameState(prev => eatCaptured(prev, mergedParams));
         return;
       }
       const moves: Record<string, [number, number]> = {
@@ -400,7 +407,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
         }
 
-        // Protagonist: flower of 7 small hexes centered on protagonist cell
+        // Protagonist: flower of 6 small hexes (no central) centered on protagonist cell
         const turtleCenterQ = protagonistCell.q;
         const turtleCenterR = protagonistCell.r;
 
@@ -416,7 +423,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         // We keep a -30° offset so the small hexes pack correctly
         // around the parent.
         const smallCenters: { x: number; y: number }[] = [];
-        smallCenters.push({ x: turtleX, y: turtleY });
         for (let i = 0; i < 6; i++) {
           const ang = (Math.PI / 180) * (60 * i - 30);
           const ringRadius = centerRadius * 2.05;
@@ -427,7 +433,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
         // Choose one outer small hex whose center is closest in angle
         // to the actual vector from protagonist to cursor.
-        let headIndex = 1;
+        let headIndex = 0;
         if (!(protagonistCell.q === hover.q && protagonistCell.r === hover.r)) {
           const hoverPos = hexToPixel(hover.q, hover.r);
           const hx = centerX + hoverPos.x * scale;
@@ -438,38 +444,38 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
           let bestDiff = Number.POSITIVE_INFINITY;
           for (let i = 0; i < 6; i++) {
-            const c = smallCenters[i + 1]; // 1..6 are petals
+            const c = smallCenters[i]; // 0..5 are petals
             const px = c.x - turtleX;
             const py = c.y - turtleY;
             const petalAngle = Math.atan2(py, px);
             const diff = Math.abs(Math.atan2(Math.sin(targetAngle - petalAngle), Math.cos(targetAngle - petalAngle)));
             if (diff < bestDiff) {
               bestDiff = diff;
-              headIndex = i + 1;
+              headIndex = i;
             }
           }
         }
 
         // Opposite index to head (tail) among petals 1..6
-        const tailIndex = ((headIndex - 1 + 3) % 6) + 1;
+        const tailIndex = (headIndex + 3) % 6;
 
-        // Draw all 7 small hexes as a flower (fill only, no stroke),
-        // but skip the tail hex on the opposite side from the head.
+        // Draw with protagonist color shades and thin white outline
+        const baseColor = mergedParams.ColorPalette[mergedParams.PlayerBaseColorIndex] || '#FFFFFF';
         for (let i = 0; i < smallCenters.length; i++) {
           if (i === tailIndex) continue;
           const c = smallCenters[i];
           const isHead = i === headIndex;
-          const fill = isHead ? '#FFFFFF' : '#DDDDDD';
           const radius = isHead ? centerRadius : parentRadius / 9;
-          drawHex(ctx, c.x, c.y, radius, fill, 'transparent', 0);
+          const fill = isHead ? baseColor : 'rgba(255,255,255,0.6)';
+          drawHex(ctx, c.x, c.y, radius, fill, '#FFFFFF', 0.8 * scale);
         }
 
-        // Draw a darker central shell over the middle small hex, rotated by 30 degrees
+        // Draw opaque shell in protagonist base color, rotated by 30 degrees
         const shellRadius = parentRadius / Math.sqrt(3);
         ctx.save();
         ctx.translate(turtleX, turtleY);
         ctx.rotate((30 * Math.PI) / 180);
-        drawHex(ctx, 0, 0, shellRadius, '#BBBBBB', 'transparent', 0);
+        drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', 0.8 * scale);
         ctx.restore();
       }
 
@@ -477,17 +483,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       const isMobileLayout = window.innerWidth <= 900;
       if (isMobileLayout) {
         const margin = 64;
+        const inward = canvas.width * 0.10;
         const baseY = canvas.height - margin;
 
-        // left joystick (bottom-left corner)
-        const joyCenterX = margin;
+        // left joystick (bottom-left, moved inward)
+        const joyCenterX = margin + inward;
         const joyCenterY = baseY;
         const outerRadius = 40;
         const innerRadius = 18;
 
         ctx.save();
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = '#3e0a60';
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
         ctx.beginPath();
         ctx.arc(joyCenterX, joyCenterY, outerRadius, 0, Math.PI * 2);
         ctx.fill();
@@ -498,7 +505,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         const kx = joyCenterX + (knob.x / len) * Math.min(len, maxOffset);
         const ky = joyCenterY + (knob.y / len) * Math.min(len, maxOffset);
 
-        ctx.fillStyle = '#b36bff';
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
         ctx.beginPath();
         ctx.arc(kx, ky, innerRadius, 0, Math.PI * 2);
         ctx.fill();
@@ -509,15 +516,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         const arrowCenterX = joyCenterX + outerRadius + 48;
         const arrowCenterY = joyCenterY;
         ctx.save();
-        ctx.globalAlpha = 0.9;
-        if (dir) {
+        ctx.globalAlpha = 1.0;
+        const debugArrow = true; //import.meta.env.VITE_DEBUG_ARROW === 'true';
+        if (debugArrow && dir) {
           const px = hexToPixel(dir[0], dir[1]);
           const ang = Math.atan2(px.y, px.x);
           const arrowLen = 36;
           const arrowWidth = 8;
           ctx.translate(arrowCenterX, arrowCenterY);
           ctx.rotate(ang);
-          ctx.strokeStyle = '#b36bff';
+          ctx.strokeStyle = '#ff00ff';
           ctx.lineWidth = 4;
           ctx.lineCap = 'round';
           ctx.beginPath();
@@ -529,10 +537,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           ctx.lineTo(arrowLen - arrowWidth, -arrowWidth * 0.7);
           ctx.lineTo(arrowLen - arrowWidth, arrowWidth * 0.7);
           ctx.closePath();
-          ctx.fillStyle = '#b36bff';
+          ctx.fillStyle = '#ff00ff';
           ctx.fill();
-        } else {
-          ctx.fillStyle = '#6f51a6';
+        } else if (debugArrow) {
+          ctx.fillStyle = '#ff00ff';
           ctx.beginPath();
           ctx.arc(arrowCenterX, arrowCenterY, 6, 0, Math.PI * 2);
           ctx.fill();
@@ -540,7 +548,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         ctx.restore();
 
         // hex capture button on the right
-        const capCenterX = canvas.width - margin;
+        const capCenterX = canvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
 
@@ -549,16 +557,38 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           capCenterX,
           capCenterY,
           capRadius,
-          '#3e0a60',
-          '#b36bff',
+          gameState.capturedCell ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.18)',
+          gameState.capturedCell ? 'transparent' : 'rgba(255,255,255,0.85)',
           3,
         );
 
-        ctx.fillStyle = '#ffffff';
+        // In capture mode (white fill), use black text; otherwise white text.
+        ctx.fillStyle = gameState.capturedCell ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)';
         ctx.font = '15px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('CAP', capCenterX, capCenterY + 1);
+        ctx.fillText(gameState.capturedCell ? 'REL' : 'CAP', capCenterX, capCenterY + 1);
+
+        // EAT button above capture (only when carrying)
+        if (gameState.capturedCell) {
+          const eatCenterX = capCenterX;
+          const eatCenterY = capCenterY - 64;
+          const eatRadius = 24;
+          drawHex(
+            ctx,
+            eatCenterX,
+            eatCenterY,
+            eatRadius,
+            'rgba(255,255,255,0.95)',
+            'transparent',
+            2,
+          );
+          ctx.fillStyle = 'rgba(0,0,0,0.85)';
+          ctx.font = '12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('EAT', eatCenterX, eatCenterY + 0);
+        }
       }
 
       // FPS calc
@@ -615,6 +645,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
 
   const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
+  const eatenCounts: Record<string, number> = gameState.paletteCounts || {};
 
   const isMobileLayout = typeof window !== 'undefined' && window.innerWidth <= 900;
 
@@ -632,14 +663,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         const x = t.clientX - rect.left;
         const y = t.clientY - rect.top;
 
-        const margin = 52;
+        const margin = 64;
+        const inward = currentCanvas.width * 0.10;
         const baseY = currentCanvas.height - margin;
-        const joyCenterX = margin;
+        const joyCenterX = margin + inward;
         const joyCenterY = baseY;
-        const capCenterX = currentCanvas.width - margin;
+        const capCenterX = currentCanvas.width - margin - inward;
         const capCenterY = baseY;
         const joyOuterRadius = 40;
         const capRadius = 30;
+        const eatCenterX = currentCanvas.width - margin;
+        const eatCenterY = baseY - 64;
+        const eatRadius = 24;
 
         const dJoy = Math.hypot(x - joyCenterX, y - joyCenterY);
         if (dJoy <= joyOuterRadius && joystickTouchIdRef.current === null) {
@@ -657,6 +692,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             if (prev.capturedCell) return dropCarried(prev);
             return beginCaptureCharge(prev);
           });
+        }
+
+        if (gameState.capturedCell) {
+          const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
+          if (dEat <= eatRadius) {
+            ev.preventDefault();
+            setGameState(prev => eatCaptured(prev, mergedParams));
+          }
         }
       }
     }
@@ -705,11 +748,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
         const x = t.clientX - rect.left;
         const y = t.clientY - rect.top;
-        const margin = 52;
+        const margin = 64;
+        const inward = currentCanvas.width * 0.10;
         const baseY = currentCanvas.height - margin;
-        const capCenterX = currentCanvas.width - margin;
+        const capCenterX = currentCanvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
+        const eatCenterX = currentCanvas.width - margin;
+        const eatCenterY = baseY - 64;
+        const eatRadius = 24;
         const dCap = Math.hypot(x - capCenterX, y - capCenterY);
         if (dCap <= capRadius) {
           ev.preventDefault();
@@ -721,6 +768,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             }
             return { ...prev, captureChargeStartTick: null };
           });
+        }
+
+        if (gameState.capturedCell) {
+          const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
+          if (dEat <= eatRadius) {
+            ev.preventDefault();
+            setGameState(prev => eatCaptured(prev, mergedParams));
+          }
         }
       }
     }
@@ -740,188 +795,158 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
-  const intermediateColors = mergedParams.ColorPalette.filter((_, i) => i !== mergedParams.PlayerBaseColorIndex && i !== antagonistIndex);
-  const rowSize = Math.ceil(intermediateColors.length / 2);
-  const row1 = intermediateColors.slice(0, rowSize);
-  const row2 = intermediateColors.slice(rowSize);
+  const uniformHexSize = 32; // px, larger across panel
+  // Diamond cluster of 8 hexes (flat-top), center empty gap
+  // Positions relative to center: two lines of 3 and singles left/right
+  const clusterPositions = [
+    { x: 0, y: 0 }, // center gap
+    // Top line of 3
+    { x: -uniformHexSize * 0.50, y: -uniformHexSize * 0.87 },
+    { x: 0,                     y: -uniformHexSize * 0.87 },
+    { x: +uniformHexSize * 0.50, y: -uniformHexSize * 0.87 },
+    // Bottom line of 3
+    { x: -uniformHexSize * 0.50, y: +uniformHexSize * 0.87 },
+    { x: 0,                     y: +uniformHexSize * 0.87 },
+    { x: +uniformHexSize * 0.50, y: +uniformHexSize * 0.87 },
+    // Singles left/right
+    { x: -uniformHexSize * 1.00, y: 0 },
+    { x: +uniformHexSize * 1.00, y: 0 },
+  ];
+  // Order colors to fill 8 ring positions: left -> top row (3) -> right -> bottom row (3)
+  const middleColors = mergedParams.ColorPalette.map((_, i) => i)
+    .filter(i => i !== mergedParams.PlayerBaseColorIndex && i !== antagonistIndex);
+  const ringOrder = [
+    antagonistIndex,
+    ...(middleColors.slice(0, 3)),
+    mergedParams.PlayerBaseColorIndex,
+    ...(middleColors.slice(3, 6)),
+  ];
 
   return (
     <div className="game-root">
       <div className="game-panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 8px', justifyContent: 'space-between' }}>
-          {/* Antagonist color on the left */}
-          <svg width={28} height={28} viewBox="-1 -1 2 2">
-            <polygon
-              points={Array.from({ length: 6 }, (_, i) => {
-                const ang = (Math.PI / 180) * (60 * i); // flat-top
-                const r = 0.9;
-                const px = r * Math.cos(ang);
-                const py = r * Math.sin(ang);
-                return `${px},${py}`;
-              }).join(' ')}
-              fill={mergedParams.ColorPalette[antagonistIndex]}
-              stroke="#BBBBBB"
-              strokeWidth={0.14}
-            />
-            <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
-              {adjacentCountByColor[antagonistIndex] > 0 ? adjacentCountByColor[antagonistIndex] : ''}
-            </text>
-          </svg>
-          {/* Two rows of intermediate colors */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {row1.map((color) => {
-                const index = mergedParams.ColorPalette.indexOf(color);
-                const isHover = index === hoverColorIndex;
-                return (
-                  <svg key={color + index} width={22} height={22} viewBox="-1 -1 2 2">
-                    <polygon
-                      points={Array.from({ length: 6 }, (_, i) => {
-                        const ang = (Math.PI / 180) * (60 * i); // flat-top
-                        const r = 0.9;
-                        const px = r * Math.cos(ang);
-                        const py = r * Math.sin(ang);
-                        return `${px},${py}`;
-                      }).join(' ')}
-                      fill={color}
-                      stroke={isHover ? '#FFFFFF' : '#000000'}
-                      strokeWidth={isHover ? 0.22 : 0.12}
-                    />
-                    <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
-                      {adjacentCountByColor[index] > 0 ? adjacentCountByColor[index] : ''}
-                    </text>
-                  </svg>
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {row2.map((color) => {
-                const index = mergedParams.ColorPalette.indexOf(color);
-                const isHover = index === hoverColorIndex;
-                return (
-                  <svg key={color + index} width={22} height={22} viewBox="-1 -1 2 2">
-                    <polygon
-                      points={Array.from({ length: 6 }, (_, i) => {
-                        const ang = (Math.PI / 180) * (60 * i); // flat-top
-                        const r = 0.9;
-                        const px = r * Math.cos(ang);
-                        const py = r * Math.sin(ang);
-                        return `${px},${py}`;
-                      }).join(' ')}
-                      fill={color}
-                      stroke={isHover ? '#FFFFFF' : '#000000'}
-                      strokeWidth={isHover ? 0.22 : 0.12}
-                    />
-                    <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
-                      {adjacentCountByColor[index] > 0 ? adjacentCountByColor[index] : ''}
-                    </text>
-                  </svg>
-                );
-              })}
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', justifyContent: 'space-between' }}>
+          {/* Palette cluster with center showing chance/state */}
+          <div style={{ position: 'relative', width: '100%', height: 160 }}>
+            {/* ring hexes */}
+            {clusterPositions.slice(1).map((pos, i) => {
+              const colorIdx = ringOrder[i % ringOrder.length];
+              const color = mergedParams.ColorPalette[colorIdx];
+              const cnt = eatenCounts[color] || 0;
+              const isHover = colorIdx === hoverColorIndex;
+              return (
+                <svg
+                  key={color + i}
+                  width={uniformHexSize}
+                  height={uniformHexSize}
+                  viewBox="-1 -1 2 2"
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: `translate(${pos.x - uniformHexSize / 2}px, ${pos.y - uniformHexSize / 2}px)`,
+                  }}
+                >
+                  <polygon
+                    points={Array.from({ length: 6 }, (_, k) => {
+                      const ang = (Math.PI / 180) * (60 * k); // flat-top
+                      const r = 0.98;
+                      const px = r * Math.cos(ang);
+                      const py = r * Math.sin(ang);
+                      return `${px},${py}`;
+                    }).join(' ')}
+                    fill={color}
+                    stroke={isHover ? '#FFFFFF' : '#BBBBBB'}
+                    strokeWidth={0.12}
+                  />
+                  {cnt > 0 ? (
+                    <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.9" fill="#FFFFFF">{cnt}</text>
+                  ) : null}
+                </svg>
+              );
+            })}
+            {/* center hex with chance/state */}
+            <svg
+              width={uniformHexSize}
+              height={uniformHexSize}
+              viewBox="-1 -1 2 2"
+              style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(${-uniformHexSize / 2}px, ${-uniformHexSize / 2}px)` }}
+            >
+              <polygon
+                points={Array.from({ length: 6 }, (_, k) => {
+                  const ang = (Math.PI / 180) * (60 * k);
+                  const r = 0.98;
+                  const px = r * Math.cos(ang);
+                  const py = r * Math.sin(ang);
+                  return `${px},${py}`;
+                }).join(' ')}
+                fill={'#2a0845'}
+                stroke={'#b36bff'}
+                strokeWidth={0.12}
+              />
+              <text x={0} y={-0.35} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#FFFFFF">
+                {gameState.capturedCell ? 'Kept' : 'Chance'}
+              </text>
+              <text x={0} y={0.3} textAnchor="middle" dominantBaseline="middle" fontSize="0.9" fill="#FFFFFF">
+                {gameState.capturedCell ? '' : (chance !== null && hoverColorIndex !== null ? `${chance}%` : '')}
+              </text>
+            </svg>
           </div>
-          {/* Protagonist color on the right */}
-          <svg width={28} height={28} viewBox="-1 -1 2 2">
-            <polygon
-              points={Array.from({ length: 6 }, (_, i) => {
-                const ang = (Math.PI / 180) * (60 * i); // flat-top
-                const r = 0.9;
-                const px = r * Math.cos(ang);
-                const py = r * Math.sin(ang);
-                return `${px},${py}`;
-              }).join(' ')}
-              fill={mergedParams.ColorPalette[mergedParams.PlayerBaseColorIndex]}
-              stroke="#BBBBBB"
-              strokeWidth={0.14}
-            />
-            <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#000">
-              {adjacentCountByColor[mergedParams.PlayerBaseColorIndex] > 0 ? adjacentCountByColor[mergedParams.PlayerBaseColorIndex] : ''}
-            </text>
-          </svg>
-          {/* Capture probability to the right of the palette */}
-          <div style={{ fontSize: 14, fontWeight: 'bold', minWidth: 42, textAlign: 'center' }}>
-            {gameState.capturedCell
-              ? 'Kept'
-              : chance !== null && hoverColorIndex !== null
-                ? `${chance}%`
-                : ''}
-          </div>
-          {/* Info button */}
-          <button
-            type="button"
-            onClick={() => setIsMobileInfoOpen(v => !v)}
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              border: '1px solid #ffffff88',
-              background: 'transparent',
-              color: '#fff',
-              fontSize: 13,
-              padding: 0,
-              cursor: 'pointer',
-            }}
-          >
-            i
-          </button>
+          {/* Info button (mobile only) */}
+            {isMobileLayout && (
+              <button
+                type="button"
+                onClick={() => setIsMobileInfoOpen(v => !v)}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  border: '1px solid #ffffff88',
+                  background: isMobileInfoOpen ? '#ffffff22' : 'transparent',
+                  color: '#fff',
+                  fontSize: 13,
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                i
+              </button>
+            )}
         </div>
       </div>
-      {/* Info popup overlay */}
-      {isMobileInfoOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: 20,
-          }}
-          onClick={() => setIsMobileInfoOpen(false)}
-        >
-          <div
-            style={{
-              background: '#2a0845',
-              border: '2px solid #b36bff',
-              borderRadius: 8,
-              padding: 20,
-              maxWidth: 400,
-              color: '#fff',
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ marginBottom: 12, fontSize: 16, fontWeight: 'bold' }}>Controls</div>
-            <div>Move: Arrow keys or WASD</div>
-            <div>Hold Space to charge capture</div>
-            <div>Press Space while carrying to drop</div>
-            <div>On touch: use screen joystick and Capture button</div>
-            <div style={{ marginTop: 12, opacity: 0.9 }}>
-              Goal: collect cells matching your color before the timer ends.
+      {/* Info: desktop shows inline; mobile shows light overlay and a panel under the button */}
+      {isMobileLayout ? (
+        isMobileInfoOpen && (
+          <>
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 900 }} onClick={() => setIsMobileInfoOpen(false)} />
+            <div style={{ position: 'absolute', right: 8, top: 40, zIndex: 1001 }}>
+              <div
+                style={{
+                  background: '#2a0845',
+                  border: '2px solid #b36bff',
+                  borderRadius: 8,
+                  padding: 12,
+                  width: 260,
+                  color: '#fff',
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                }}
+              >
+                <div style={{ marginBottom: 8, fontSize: 15, fontWeight: 'bold' }}>Mobile Controls</div>
+                <div>Move: on-screen joystick</div>
+                <div>Capture: hold CAP; drop: REL</div>
+                <div>Eat: tap EAT</div>
+              </div>
             </div>
-            <button
-              onClick={() => setIsMobileInfoOpen(false)}
-              style={{
-                marginTop: 16,
-                padding: '8px 16px',
-                background: '#b36bff',
-                border: 'none',
-                borderRadius: 4,
-                color: '#fff',
-                fontSize: 14,
-                cursor: 'pointer',
-                width: '100%',
-              }}
-            >
-              Close
-            </button>
-          </div>
+          </>
+        )
+      ) : (
+        <div style={{ position: 'absolute', right: 8, top: 56, padding: '6px 10px', color: '#fff', opacity: 0.9, fontSize: 13, lineHeight: 1.6, border: '1px solid #b36bff', borderRadius: 6, background: 'rgba(42,8,69,0.9)' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: 6 }}>Desktop Controls</div>
+          <div>Move: Arrows or WASD</div>
+          <div>Capture: hold Space; drop: Space</div>
+          <div>Eat: press E</div>
         </div>
       )}
       <div ref={canvasContainerRef} className="game-field">

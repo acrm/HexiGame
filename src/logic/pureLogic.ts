@@ -45,6 +45,7 @@ export interface GameState {
   flash: FlashState | null;
   grid: Grid;
   facingDirIndex: number; // 0..5, protagonist facing direction
+  paletteCounts?: Record<string, number>; // eaten counters by color hex value
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -411,6 +412,23 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
 export function dropCarried(state: GameState): GameState {
   if (state.capturedCell === null) return state;
   return { ...state, capturedCell: null };
+}
+
+// Consume the currently carried cell: remove its color from grid and increment palette counter.
+export function eatCaptured(state: GameState, params: Params): GameState {
+  if (state.capturedCell === null) return state;
+  const anchor = state.capturedCell;
+  const key = keyOf(anchor.q, anchor.r);
+  const cell = state.grid.get(key);
+  if (!cell || cell.colorIndex === null) {
+    // Inconsistent carry; just clear capture
+    return { ...state, capturedCell: null };
+  }
+  const color = params.ColorPalette[cell.colorIndex] || `#${cell.colorIndex}`;
+  const nextGrid = updateCells(state.grid, [{ ...cell, colorIndex: null }]);
+  const nextCounts: Record<string, number> = { ...(state.paletteCounts || {}) };
+  nextCounts[color] = (nextCounts[color] || 0) + 1;
+  return { ...state, grid: nextGrid, capturedCell: null, paletteCounts: nextCounts };
 }
 
 // Preview capture chance at the current cursor (or null if not applicable)

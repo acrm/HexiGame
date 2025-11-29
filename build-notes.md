@@ -35,3 +35,9 @@
 - 25w48-0.19 — Mobile: draw joystick direction arrow; reuse shared mapping for cursor step
 
 - 25w48-0.20 — Fix joystick diagonals; redesign top panel: flat-top hexes, two rows, antagonist left, protagonist right, capture % right of palette, info popup overlay
+
+- 25w48-0.21 — Add EAT action; make debug arrow configurable
+
+- 25w48-0.22 — Palette cluster with center chance; platform-specific controls; fix joystick sector and CAP text
+
+- 25w48-0.23 — Diamond 8-hex palette cluster; mobile EAT only when carrying; position desktop/mobile info blocks; fix joystick sectors
