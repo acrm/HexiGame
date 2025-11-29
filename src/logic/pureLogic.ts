@@ -44,6 +44,8 @@ export interface GameState {
   captureChargeStartTick: number | null;
   flash: FlashState | null;
   grid: Grid;
+  inventoryGrid: Grid;
+  activeField?: 'world' | 'inventory';
   facingDirIndex: number; // 0..5, protagonist facing direction
   paletteCounts?: Record<string, number>; // eaten counters by color hex value
 }
@@ -130,6 +132,15 @@ export function generateGrid(params: Params, rng: RNG): Grid {
 
 export function createInitialState(params: Params, rng: RNG): GameState {
   const grid = generateGrid(params, rng);
+  // Inventory grid: same shape, all empty
+  const inv: Grid = new Map();
+  const radius = params.GridRadius;
+  for (let q = -radius; q <= radius; q++) {
+    for (let r = -radius; r <= radius; r++) {
+      if (!axialInDisk(radius, q, r)) continue;
+      inv.set(keyOf(q, r), { q, r, colorIndex: null });
+    }
+  }
   const start: Axial = { q: 0, r: 0 };
   return {
     tick: 0,
@@ -140,6 +151,8 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     captureCooldownTicksRemaining: 0,
     captureChargeStartTick: null,
     flash: null,
+    inventoryGrid: inv,
+    activeField: 'world',
     facingDirIndex: 0,
     grid,
   };
@@ -184,6 +197,14 @@ export function computeCaptureChancePercent(params: Params, colorIndex: number):
 
 export function hoveredCell(state: GameState): Cell | undefined {
   return getCell(state.grid, state.cursor);
+}
+
+export function hoveredCellInventory(state: GameState): Cell | undefined {
+  return getCell(state.inventoryGrid, state.cursor);
+}
+
+export function hoveredCellActive(state: GameState): Cell | undefined {
+  return state.activeField === 'inventory' ? hoveredCellInventory(state) : hoveredCell(state);
 }
 
 // Visual follower logic for protagonist: follows cursor with one-step lag.
@@ -276,11 +297,8 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next.captureChargeStartTick !== null &&
     (next.tick - next.captureChargeStartTick) >= params.CaptureHoldDurationTicks
   ) {
-    // Debug: auto-complete capture
-    console.log(
-      `[tick] auto-complete capture at tick=${next.tick}, started=${next.captureChargeStartTick}, held=${next.tick - next.captureChargeStartTick}`,
-    );
-    next = endCaptureCharge(next, params, rng);
+    // Auto-complete capture on active field
+    next = endCaptureChargeOnActive(next, params, rng);
   }
 
   if (next.flash && (next.tick - next.flash.startedTick) >= params.CaptureFlashDurationTicks) {
@@ -311,6 +329,16 @@ export function attemptMoveByDelta(state: GameState, params: Params, dq: number,
   if (matchedIndex === -1) return state;
   const nextState: GameState = { ...state, facingDirIndex: matchedIndex };
   return attemptMoveTo(nextState, params, target);
+}
+
+export function attemptMoveByDeltaOnActive(state: GameState, params: Params, dq: number, dr: number): GameState {
+  const target = { q: state.cursor.q + dq, r: state.cursor.r + dr };
+  const matchedIndex = axialDirections.findIndex(
+    d => state.cursor.q + d.q === target.q && state.cursor.r + d.r === target.r,
+  );
+  if (matchedIndex === -1) return state;
+  const nextState: GameState = { ...state, facingDirIndex: matchedIndex };
+  return attemptMoveToOnActive(nextState, params, target);
 }
 
 export function attemptMoveTo(state: GameState, params: Params, target: Axial): GameState {
@@ -350,6 +378,34 @@ export function attemptMoveTo(state: GameState, params: Params, target: Axial): 
   return { ...state, cursor: { ...target } };
 }
 
+export function attemptMoveToOnActive(state: GameState, params: Params, target: Axial): GameState {
+  if (!axialInDisk(params.GridRadius, target.q, target.r)) return state;
+  const usingInventory = state.activeField === 'inventory';
+  const grid = usingInventory ? state.inventoryGrid : state.grid;
+  const targetCell = getCell(grid, target);
+  if (!targetCell) return state;
+
+  if (state.capturedCell) {
+    if (params.CarryingMoveRequiresEmpty && targetCell.colorIndex !== null) {
+      return state;
+    }
+    const fromKey = keyOfAxial(state.capturedCell);
+    const fromCell = grid.get(fromKey);
+    if (!fromCell || fromCell.colorIndex === null) {
+      return { ...state, capturedCell: null, cursor: target };
+    }
+    const movedColor = fromCell.colorIndex;
+    const nextGrid = updateCells(grid, [
+      { ...fromCell, colorIndex: null },
+      { ...targetCell, colorIndex: movedColor },
+    ]);
+    return usingInventory
+      ? { ...state, inventoryGrid: nextGrid, capturedCell: { ...target }, cursor: { ...target } }
+      : { ...state, grid: nextGrid, capturedCell: { ...target }, cursor: { ...target } };
+  }
+  return { ...state, cursor: { ...target } };
+}
+
 // ---------- Capture Flow ----------
 // Begin charge (Space down). Does not require hovered cell to be colored.
 export function beginCaptureCharge(state: GameState): GameState {
@@ -380,7 +436,8 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
     return next; // cooldown blocks attempt
   }
 
-  const cell = hoveredCell(next);
+  const usingInventory = next.activeField === 'inventory';
+  const cell = usingInventory ? hoveredCellInventory(next) : hoveredCell(next);
   if (!cell || cell.colorIndex === null) {
     console.log(`[capture] no cell to capture at tick=${next.tick}`);
     return next; // nothing to capture
@@ -408,6 +465,10 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
   return next;
 }
 
+export function endCaptureChargeOnActive(state: GameState, params: Params, rng: RNG): GameState {
+  return endCaptureCharge(state, params, rng);
+}
+
 // Drop carried color (Space press while carrying). Pure: just clears carrying anchor.
 export function dropCarried(state: GameState): GameState {
   if (state.capturedCell === null) return state;
@@ -429,6 +490,37 @@ export function eatCaptured(state: GameState, params: Params): GameState {
   const nextCounts: Record<string, number> = { ...(state.paletteCounts || {}) };
   nextCounts[color] = (nextCounts[color] || 0) + 1;
   return { ...state, grid: nextGrid, capturedCell: null, paletteCounts: nextCounts };
+}
+
+// Eat in world and store in a random empty inventory cell
+export function eatCapturedToInventory(state: GameState, params: Params, rng: RNG): GameState {
+  if (state.capturedCell === null) return state;
+  const anchor = state.capturedCell;
+  const key = keyOf(anchor.q, anchor.r);
+  const cell = state.grid.get(key);
+  if (!cell || cell.colorIndex === null) {
+    return { ...state, capturedCell: null };
+  }
+  const colorIndex = cell.colorIndex;
+  const color = params.ColorPalette[colorIndex] || `#${colorIndex}`;
+  const worldGrid = updateCells(state.grid, [{ ...cell, colorIndex: null }]);
+  // Collect empty inventory cells
+  const empties: Cell[] = [];
+  for (const c of state.inventoryGrid.values()) {
+    if (c.colorIndex === null) empties.push(c);
+  }
+  if (empties.length > 0) {
+    const idx = Math.floor(rng() * empties.length);
+    const target = empties[idx];
+    const nextInv = updateCells(state.inventoryGrid, [{ ...target, colorIndex }]);
+    const nextCounts: Record<string, number> = { ...(state.paletteCounts || {}) };
+    nextCounts[color] = (nextCounts[color] || 0) + 1;
+    return { ...state, grid: worldGrid, inventoryGrid: nextInv, capturedCell: null, paletteCounts: nextCounts };
+  }
+  // No space in inventory: just drop count
+  const nextCounts: Record<string, number> = { ...(state.paletteCounts || {}) };
+  nextCounts[color] = (nextCounts[color] || 0) + 1;
+  return { ...state, grid: worldGrid, capturedCell: null, paletteCounts: nextCounts };
 }
 
 // Preview capture chance at the current cursor (or null if not applicable)
@@ -459,7 +551,7 @@ export const DefaultParams: Params = {
   PlayerBaseColorIndex: 0,
   TimerInitialSeconds: 300,
   CaptureHoldDurationTicks: 6,
-  CaptureFailureCooldownTicks: 24,
+  CaptureFailureCooldownTicks: 12,
   CaptureFlashDurationTicks: 2,
   ChanceBasePercent: 100,
   ChancePenaltyPerPaletteDistance: 20,

@@ -19,10 +19,12 @@ const ControlsMobile: React.FC<{ onClose: () => void; topOffset?: number }> = ({
           }}
         >
           <div style={{ marginBottom: 8, fontSize: 15, fontWeight: 'bold' }}>Controls</div>
-          <div>Joystick = move cursor between hexs</div>
-          <div>CAP = hold to capture a hex under cursor</div>
+          <div>Joystick = move cursor</div>
+          <div>CAP = hold to capture hex under cursor</div>
           <div>REL = drop carried hex</div>
-          <div>EAT = consume carried hex</div>
+          <div>EAT = eat carried hex (stores in inventory)</div>
+          <div>INV/WRL = toggle World ↔ Inventory</div>
+          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6 }}>In Inventory: cursor & capture/move work on inventory grid</div>
         </div>
       </div>
     </>

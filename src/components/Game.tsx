@@ -8,12 +8,12 @@ import {
   mulberry32,
   createInitialState,
   tick as logicTick,
-  attemptMoveByDelta,
+  attemptMoveByDeltaOnActive,
   beginCaptureCharge,
   dropCarried,
-  eatCaptured,
+  eatCapturedToInventory,
   previewCaptureChanceAtCursor,
-  hoveredCell,
+  hoveredCellActive,
   computeAdjacentSameColorCounts,
   evolveProtagonistFollower,
 } from '../logic/pureLogic';
@@ -32,6 +32,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [protagonistPos, setProtagonistPos] = useState<{ q: number; r: number } | null>(null);
   const lastCursorRef = useRef<{ q: number; r: number } | null>(null);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
+  const [isInventory, setIsInventory] = useState(false);
 
   // virtual joystick state
   const joystickTouchIdRef = useRef<number | null>(null);
@@ -88,6 +89,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Keyboard input handlers
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        setIsInventory(v => !v);
+        setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
+        return;
+      }
       if (e.code === 'Space') {
         if (spaceIsDownRef.current) {
           // Ignore auto-repeat while key is held
@@ -101,7 +108,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         return;
       }
       if (e.key === 'e' || e.key === 'E') {
-        setGameState(prev => eatCaptured(prev, mergedParams));
+        setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
         return;
       }
       const moves: Record<string, [number, number]> = {
@@ -113,7 +120,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       const delta = moves[e.key as keyof typeof moves];
       if (delta) {
         const [dq, dr] = delta;
-        setGameState(prev => attemptMoveByDelta(prev, mergedParams, delta[0], delta[1]));
+        setGameState(prev => attemptMoveByDeltaOnActive(prev, mergedParams, dq, dr));
       }
     }
 
@@ -166,7 +173,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Derived HUD data
   const chance = previewCaptureChanceAtCursor(gameState, mergedParams);
-  const hoverColorIndex = hoveredCell(gameState)?.colorIndex ?? null;
+  const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
 
   const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
@@ -231,6 +238,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         joystickCenterRef={joystickCenterRef}
         joystickVectorRef={joystickVectorRef}
         lastJoystickMoveTickRef={lastJoystickMoveTickRef}
+        isInventory={isInventory}
+        onToggleInventory={() => {
+          setIsInventory(v => !v);
+          setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
+        }}
         onCapture={() => {
           setGameState(prev => {
             if (prev.capturedCell) return dropCarried(prev);
@@ -248,10 +260,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           });
         }}
         onEat={() => {
-          setGameState(prev => eatCaptured(prev, mergedParams));
+          setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
         }}
         onMove={(dq, dr) => {
-          setGameState(prev => attemptMoveByDelta(prev, mergedParams, dq, dr));
+          setGameState(prev => attemptMoveByDeltaOnActive(prev, mergedParams, dq, dr));
         }}
       />
       <div className="game-footer-controls" />

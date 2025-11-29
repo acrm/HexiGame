@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Params, GameState, hoveredCell, isCarryFlickerOn } from '../logic/pureLogic';
+import { Params, GameState, hoveredCell, hoveredCellInventory, isCarryFlickerOn } from '../logic/pureLogic';
 
 const HEX_SIZE = 10; // pixels
 const FLASH_SUCCESS_COLOR = '#00BFFF';
@@ -80,6 +80,8 @@ interface GameFieldProps {
   joystickCenterRef: React.MutableRefObject<{ x: number; y: number } | null>;
   joystickVectorRef: React.MutableRefObject<{ x: number; y: number }>;
   lastJoystickMoveTickRef: React.MutableRefObject<number>;
+  isInventory: boolean;
+  onToggleInventory: () => void;
   onCapture: () => void;
   onRelease: () => void;
   onEat: () => void;
@@ -98,6 +100,8 @@ export const GameField: React.FC<GameFieldProps> = ({
   joystickCenterRef,
   joystickVectorRef,
   lastJoystickMoveTickRef,
+  isInventory,
+  onToggleInventory,
   onCapture,
   onRelease,
   onEat,
@@ -133,6 +137,9 @@ export const GameField: React.FC<GameFieldProps> = ({
         const eatCenterX = currentCanvas.width - margin - inward;
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
+        const invCenterX = joyCenterX;
+        const invCenterY = joyCenterY - 64;
+        const invRadius = 24;
 
         const dJoy = Math.hypot(x - joyCenterX, y - joyCenterY);
         if (dJoy <= joyOuterRadius && joystickTouchIdRef.current === null) {
@@ -143,18 +150,28 @@ export const GameField: React.FC<GameFieldProps> = ({
           continue;
         }
 
+        const hoverCell = hoveredCell(gameState);
+        const showCap = !isInventory && !gameState.capturedCell && hoverCell && hoverCell.colorIndex !== null;
+        const showRel = !isInventory && !!gameState.capturedCell;
         const dCap = Math.hypot(x - capCenterX, y - capCenterY);
-        if (dCap <= capRadius) {
+        if (dCap <= capRadius && (showCap || showRel)) {
           ev.preventDefault();
-          onCapture();
+          if (showRel) onRelease(); else onCapture();
         }
 
-        if (gameState.capturedCell) {
+        if (!isInventory && gameState.capturedCell) {
           const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
           if (dEat <= eatRadius) {
             ev.preventDefault();
             onEat();
           }
+        }
+
+        // Inventory toggle tap
+        const dInv = Math.hypot(x - invCenterX, y - invCenterY);
+        if (dInv <= invRadius) {
+          ev.preventDefault();
+          onToggleInventory();
         }
       }
     }
@@ -211,18 +228,31 @@ export const GameField: React.FC<GameFieldProps> = ({
         const eatCenterX = currentCanvas.width - margin - inward;
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
+        const invCenterX = margin + inward;
+        const invCenterY = baseY - 64;
+        const invRadius = 24;
+        const hoverCell = hoveredCell(gameState);
+        const showCap = !isInventory && !gameState.capturedCell && hoverCell && hoverCell.colorIndex !== null;
+        const showRel = !isInventory && !!gameState.capturedCell;
         const dCap = Math.hypot(x - capCenterX, y - capCenterY);
-        if (dCap <= capRadius) {
+        if (dCap <= capRadius && (showCap || showRel)) {
           ev.preventDefault();
-          onRelease();
+          if (showRel) onRelease(); else onCapture();
         }
 
-        if (gameState.capturedCell) {
+        if (!isInventory && gameState.capturedCell) {
           const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
           if (dEat <= eatRadius) {
             ev.preventDefault();
             onEat();
           }
+        }
+
+        // Inventory toggle tap
+        const dInv = Math.hypot(x - invCenterX, y - invCenterY);
+        if (dInv <= invRadius) {
+          ev.preventDefault();
+          onToggleInventory();
         }
       }
     }
@@ -288,12 +318,20 @@ export const GameField: React.FC<GameFieldProps> = ({
       canvas.height = Math.max(1, Math.floor(pixelHeight));
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (isInventory) {
+        // Inventory background as protagonist color
+        ctx.fillStyle = params.ColorPalette[params.PlayerBaseColorIndex] || '#000';
+        ctx.globalAlpha = 0.15;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1.0;
+      }
 
       const centerX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
       const centerY = canvas.height / 2 - ((minY + maxY) / 2) * scale;
 
-      // Draw hex fills
-      for (const cell of gameState.grid.values()) {
+      // Draw world or inventory as full hex grids
+      const activeGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
+      for (const cell of activeGrid.values()) {
         const pos = hexToPixel(cell.q, cell.r);
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
@@ -310,7 +348,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       ctx.fillStyle = GRID_STROKE_COLOR;
       const dotRadius = 1.2 * scale;
       const seenVertices = new Set<string>();
-      const emptyCells = Array.from(gameState.grid.values()).filter(c => c.colorIndex === null);
+      const emptyCells = Array.from(activeGrid.values()).filter(c => c.colorIndex === null);
       for (const cell of emptyCells) {
         const pos = hexToPixel(cell.q, cell.r);
         const baseX = centerX + pos.x * scale;
@@ -324,7 +362,7 @@ export const GameField: React.FC<GameFieldProps> = ({
           if (seenVertices.has(key)) continue;
 
           let allEmpty = true;
-          for (const other of gameState.grid.values()) {
+          for (const other of activeGrid.values()) {
             const otherPos = hexToPixel(other.q, other.r);
             const ox = centerX + otherPos.x * scale;
             const oy = centerY + otherPos.y * scale;
@@ -349,7 +387,7 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       // Flash overlay border
       if (gameState.flash) {
-        const hover = hoveredCell(gameState);
+        const hover = isInventory ? hoveredCellInventory(gameState) : hoveredCell(gameState);
         if (hover) {
           const pos = hexToPixel(hover.q, hover.r);
           const scaledX = centerX + pos.x * scale;
@@ -369,7 +407,7 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       // Cursor visuals
       const protagonistCell = protagonistPos ?? gameState.protagonist;
-      const hover = hoveredCell(gameState) ?? null;
+      const hover = (isInventory ? hoveredCellInventory(gameState) : hoveredCell(gameState)) ?? null;
 
       if (hover) {
         const pos = hexToPixel(hover.q, hover.r);
@@ -402,7 +440,8 @@ export const GameField: React.FC<GameFieldProps> = ({
           edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
         }
 
-        // Protagonist flower
+        // Protagonist flower (skip in inventory)
+        if (!isInventory) {
         const turtleCenterQ = protagonistCell.q;
         const turtleCenterR = protagonistCell.r;
 
@@ -455,6 +494,27 @@ export const GameField: React.FC<GameFieldProps> = ({
           const radius = isHead ? centerRadius : parentRadius / 9;
           const fill = isHead ? baseColor : 'rgba(255,255,255,0.6)';
           drawHex(ctx, c.x, c.y, radius, fill, '#FFFFFF', 0.8 * scale);
+          if (isHead) {
+            // Eyes: placed on line perpendicular to head direction
+            const hx = c.x - turtleX;
+            const hy = c.y - turtleY;
+            const len = Math.hypot(hx, hy) || 1;
+            // Head direction unit vector
+            const ux = hx / len;
+            const uy = hy / len;
+            // Perpendicular unit vector
+            const px = -uy;
+            const py = ux;
+            const eyeOffset = radius * 0.35;
+            const eyeSize = radius * 0.12;
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(c.x + px * eyeOffset, c.y + py * eyeOffset, eyeSize, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(c.x - px * eyeOffset, c.y - py * eyeOffset, eyeSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
 
         const shellRadius = parentRadius / Math.sqrt(3);
@@ -463,6 +523,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         ctx.rotate((30 * Math.PI) / 180);
         drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', 0.8 * scale);
         ctx.restore();
+        }
       }
 
       // Mobile controls
@@ -533,29 +594,32 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
         ctx.restore();
 
-        // CAP/REL button
+        // CAP/REL button (hidden CAP if hovered empty)
         const capCenterX = canvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
-
-        drawHex(
-          ctx,
-          capCenterX,
-          capCenterY,
-          capRadius,
-          gameState.capturedCell ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.18)',
-          gameState.capturedCell ? 'transparent' : 'rgba(255,255,255,0.85)',
-          3,
-        );
-
-        ctx.fillStyle = gameState.capturedCell ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)';
-        ctx.font = '15px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(gameState.capturedCell ? 'REL' : 'CAP', capCenterX, capCenterY + 1);
+        const hoverCell = isInventory ? hoveredCellInventory(gameState) : hoveredCell(gameState);
+        const showCap = !isInventory && !gameState.capturedCell && hoverCell && hoverCell.colorIndex !== null;
+        const showRel = !isInventory && !!gameState.capturedCell;
+        if (showCap || showRel) {
+          drawHex(
+            ctx,
+            capCenterX,
+            capCenterY,
+            capRadius,
+            'rgba(255,255,255,0.95)',
+            'transparent',
+            3,
+          );
+          ctx.fillStyle = 'rgba(0,0,0,0.85)';
+          ctx.font = '15px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(showRel ? 'REL' : 'CAP', capCenterX, capCenterY + 1);
+        }
 
         // EAT button
-        if (gameState.capturedCell) {
+        if (!isInventory && gameState.capturedCell) {
           const eatCenterX = capCenterX;
           const eatCenterY = capCenterY - 64;
           const eatRadius = 24;
@@ -566,6 +630,17 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.textBaseline = 'middle';
           ctx.fillText('EAT', eatCenterX, eatCenterY + 0);
         }
+
+        // Inventory toggle button above joystick
+        const invCenterX = joyCenterX;
+        const invCenterY = joyCenterY - 64;
+        const invRadius = 24;
+        drawHex(ctx, invCenterX, invCenterY, invRadius, 'rgba(255,255,255,0.95)', 'transparent', 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(isInventory ? 'WRL' : 'INV', invCenterX, invCenterY + 0);
       }
 
       // FPS

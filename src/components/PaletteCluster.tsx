@@ -36,15 +36,23 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
     { x: -uniformHexSize * 1.74, y: 0 },
     { x: +uniformHexSize * 1.74, y: 0 },
   ];
-  // Order colors to fill 8 ring positions: left -> top row (3) -> right -> bottom row (3)
-  const middleColors = colorPalette
+  // Diamond cluster fills 8 ring positions clockwise from leftmost:
+  // positions: left, top-left, top-center, top-right, right, bottom-right, bottom-center, bottom-left
+  // Antagonist at far left (index 0 in clusterPositions.slice(1)), protagonist at far right (index 4),
+  // intermediates in palette hue circle order
+  const middleIndices = colorPalette
     .map((_, i) => i)
     .filter(i => i !== playerBaseColorIndex && i !== antagonistIndex);
+  // Build ring order: left=antagonist, intermediates clockwise, right=protagonist
   const ringOrder = [
-    antagonistIndex,
-    ...middleColors.slice(0, 3),
-    playerBaseColorIndex,
-    ...middleColors.slice(3, 6),
+    antagonistIndex,           // 0: left
+    middleIndices[0] ?? 0,     // 1: top-left
+    middleIndices[1] ?? 0,     // 2: top-center
+    middleIndices[2] ?? 0,     // 3: top-right
+    playerBaseColorIndex,      // 4: right
+    middleIndices[3] ?? 0,     // 5: bottom-right
+    middleIndices[4] ?? 0,     // 6: bottom-center
+    middleIndices[5] ?? 0,     // 7: bottom-left
   ];
 
   return (

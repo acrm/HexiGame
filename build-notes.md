@@ -49,3 +49,15 @@
 - 25w48-0.26 — Fix EAT touch coordinates, joystick direction mapping, extract PaletteCluster component
 
 - 25w48-0.27 — Extract GameField component with canvas rendering and mobile controls touch handling
+
+- 25w48-0.28 — Update version to 25w48-0.27 and implement GameField component with touch controls and rendering logic
+
+- 25w48-0.29 — Fix turtle eyes perpendicular to head direction
+
+- 25w48-0.30 — Add INV/WRL toggle button and touch handling
+
+- 25w48-0.31 — Implement inventoryGrid in GameState with random placement on eat and active-field movement/capture
+
+- 25w48-0.32 — Fix palette ring order: antagonist left, protagonist right, intermediates by hue
+
+- 25w48-0.33 — Render inventoryGrid as full hex field, update controls text for inventory mode interactions
