@@ -41,3 +41,7 @@
 - 25w48-0.22 — Palette cluster with center chance; platform-specific controls; fix joystick sector and CAP text
 
 - 25w48-0.23 — Diamond 8-hex palette cluster; mobile EAT only when carrying; position desktop/mobile info blocks; fix joystick sectors
+
+- 25w48-0.24 — Controls blocks: split desktop/mobile; reorder text 'control: action'; mobile popup offset
+
+- 25w48-0.25 — Extract ControlsDesktop/ControlsMobile components; place desktop inline and mobile popup below 'i'

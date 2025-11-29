@@ -19,6 +19,8 @@ import {
   computeAdjacentSameColorCounts,
   evolveProtagonistFollower,
 } from '../logic/pureLogic';
+import ControlsDesktop from './ControlsInfoDesktop';
+import ControlsMobile from './ControlsInfoMobile';
 
 // --- Rendering-only constants (not part of pure logic) ---
 const HEX_SIZE = 10; // pixels
@@ -795,22 +797,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
-  const uniformHexSize = 32; // px, larger across panel
+  const uniformHexSize = 40; // px, larger across panel
   // Diamond cluster of 8 hexes (flat-top), center empty gap
   // Positions relative to center: two lines of 3 and singles left/right
   const clusterPositions = [
     { x: 0, y: 0 }, // center gap
     // Top line of 3
-    { x: -uniformHexSize * 0.50, y: -uniformHexSize * 0.87 },
-    { x: 0,                     y: -uniformHexSize * 0.87 },
-    { x: +uniformHexSize * 0.50, y: -uniformHexSize * 0.87 },
+    { x: -uniformHexSize * 0.87, y: -uniformHexSize * 0.5 },
+    { x: 0,                     y: -uniformHexSize * 1 },
+    { x: +uniformHexSize * 0.87, y: -uniformHexSize * 0.5 },
     // Bottom line of 3
-    { x: -uniformHexSize * 0.50, y: +uniformHexSize * 0.87 },
-    { x: 0,                     y: +uniformHexSize * 0.87 },
-    { x: +uniformHexSize * 0.50, y: +uniformHexSize * 0.87 },
+    { x: -uniformHexSize * 0.87, y: +uniformHexSize * 0.5 },
+    { x: 0,                     y: +uniformHexSize * 1 },
+    { x: +uniformHexSize * 0.87, y: +uniformHexSize * 0.5 },
     // Singles left/right
-    { x: -uniformHexSize * 1.00, y: 0 },
-    { x: +uniformHexSize * 1.00, y: 0 },
+    { x: -uniformHexSize * 1.74, y: 0 },
+    { x: +uniformHexSize * 1.74, y: 0 },
   ];
   // Order colors to fill 8 ring positions: left -> top row (3) -> right -> bottom row (3)
   const middleColors = mergedParams.ColorPalette.map((_, i) => i)
@@ -827,7 +829,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       <div className="game-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', justifyContent: 'space-between' }}>
           {/* Palette cluster with center showing chance/state */}
-          <div style={{ position: 'relative', width: '100%', height: 160 }}>
+          <div style={{ position: 'relative', width: '100%', height: 120 }}>
             {/* ring hexes */}
             {clusterPositions.slice(1).map((pos, i) => {
               const colorIdx = ringOrder[i % ringOrder.length];
@@ -872,23 +874,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               viewBox="-1 -1 2 2"
               style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(${-uniformHexSize / 2}px, ${-uniformHexSize / 2}px)` }}
             >
-              <polygon
-                points={Array.from({ length: 6 }, (_, k) => {
-                  const ang = (Math.PI / 180) * (60 * k);
-                  const r = 0.98;
-                  const px = r * Math.cos(ang);
-                  const py = r * Math.sin(ang);
-                  return `${px},${py}`;
-                }).join(' ')}
-                fill={'#2a0845'}
-                stroke={'#b36bff'}
-                strokeWidth={0.12}
-              />
-              <text x={0} y={-0.35} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#FFFFFF">
-                {gameState.capturedCell ? 'Kept' : 'Chance'}
-              </text>
-              <text x={0} y={0.3} textAnchor="middle" dominantBaseline="middle" fontSize="0.9" fill="#FFFFFF">
-                {gameState.capturedCell ? '' : (chance !== null && hoverColorIndex !== null ? `${chance}%` : '')}
+              <text x={0} y={0} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#FFFFFF">
+                {gameState.capturedCell ? 'Kept' : (chance !== null && hoverColorIndex !== null ? `${chance}%` : '')}
               </text>
             </svg>
           </div>
@@ -913,41 +900,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               </button>
             )}
         </div>
+        {!isMobileLayout && <ControlsDesktop />}
       </div>
-      {/* Info: desktop shows inline; mobile shows light overlay and a panel under the button */}
-      {isMobileLayout ? (
-        isMobileInfoOpen && (
-          <>
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 900 }} onClick={() => setIsMobileInfoOpen(false)} />
-            <div style={{ position: 'absolute', right: 8, top: 40, zIndex: 1001 }}>
-              <div
-                style={{
-                  background: '#2a0845',
-                  border: '2px solid #b36bff',
-                  borderRadius: 8,
-                  padding: 12,
-                  width: 260,
-                  color: '#fff',
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                }}
-              >
-                <div style={{ marginBottom: 8, fontSize: 15, fontWeight: 'bold' }}>Mobile Controls</div>
-                <div>Move: on-screen joystick</div>
-                <div>Capture: hold CAP; drop: REL</div>
-                <div>Eat: tap EAT</div>
-              </div>
-            </div>
-          </>
-        )
-      ) : (
-        <div style={{ position: 'absolute', right: 8, top: 56, padding: '6px 10px', color: '#fff', opacity: 0.9, fontSize: 13, lineHeight: 1.6, border: '1px solid #b36bff', borderRadius: 6, background: 'rgba(42,8,69,0.9)' }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 6 }}>Desktop Controls</div>
-          <div>Move: Arrows or WASD</div>
-          <div>Capture: hold Space; drop: Space</div>
-          <div>Eat: press E</div>
-        </div>
+      {/* Controls blocks inserted separately for desktop and mobile */}
+
+      {isMobileLayout && isMobileInfoOpen && (
+        <ControlsMobile onClose={() => setIsMobileInfoOpen(false)} topOffset={80} />
       )}
       <div ref={canvasContainerRef} className="game-field">
         <canvas ref={canvasRef} style={{ display: 'block' }} />
