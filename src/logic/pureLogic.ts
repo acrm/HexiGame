@@ -48,6 +48,7 @@ export interface GameState {
   activeField?: 'world' | 'inventory';
   facingDirIndex: number; // 0..5, protagonist facing direction
   paletteCounts?: Record<string, number>; // eaten counters by color hex value
+  isReleasing?: boolean; // true when turtle moves to cursor to release
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -155,6 +156,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     activeField: 'world',
     facingDirIndex: 0,
     grid,
+    isReleasing: false,
   };
 }
 
@@ -291,13 +293,88 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = { ...next, captureCooldownTicksRemaining: next.captureCooldownTicksRemaining - 1 };
   }
 
-  // Auto-complete capture exactly once when full charge duration is reached
+  // Move protagonist toward cursor during capture charge (world mode only)
+  if (next.captureChargeStartTick !== null && next.activeField === 'world') {
+    const { q: pq, r: pr } = next.protagonist;
+    const { q: cq, r: cr } = next.cursor;
+    // Target is adjacent cell to cursor, not cursor itself
+    const isAdjacent = axialDirections.some(d => pq + d.q === cq && pr + d.r === cr);
+    if (!isAdjacent) {
+      // Move at 1 cell per 2 ticks during charge
+      const movePeriod = 2;
+      const heldTicks = next.tick - next.captureChargeStartTick;
+      if (heldTicks % movePeriod === 0) {
+        // Find adjacent cell closest to cursor
+        let bestDir: Axial | null = null;
+        let bestDist = Infinity;
+        for (const dir of axialDirections) {
+          const nq = pq + dir.q;
+          const nr = pr + dir.r;
+          const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestDir = dir;
+          }
+        }
+        if (bestDir) {
+          next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r } };
+        }
+      }
+    }
+  }
+
+  // During release phase: move turtle + carried hex toward cursor at carry speed
+  if (next.isReleasing && next.activeField === 'world' && next.capturedCell) {
+    const movePeriod = 4; // 1 cell per 4 ticks when carrying
+    if (next.tick % movePeriod === 0) {
+      const pq = next.protagonist.q, pr = next.protagonist.r;
+      const cq = next.cursor.q, cr = next.cursor.r;
+      // Choose movement direction for turtle (toward cursor)
+      let bestDir: Axial | null = null;
+      let bestDist = Infinity;
+      for (const dir of axialDirections) {
+        const nq = pq + dir.q;
+        const nr = pr + dir.r;
+        // Distance from next position to cursor (using axial metric approximation)
+        const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
+        if (dist < bestDist) { bestDist = dist; bestDir = dir; }
+      }
+      if (bestDir) {
+        // Move turtle one step
+        const newProtagonist = { q: pq + bestDir.q, r: pr + bestDir.r };
+        next = { ...next, protagonist: newProtagonist, facingDirIndex: axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r) };
+        // Head cell = position of the carried hex (in front of turtle head)
+        const headDir = axialDirections[next.facingDirIndex];
+        const headCell = { q: newProtagonist.q + headDir.q, r: newProtagonist.r + headDir.r };
+        const currentCaptured = next.capturedCell;
+        const fromKey = currentCaptured ? keyOfAxial(currentCaptured) : null;
+        const fromCell = fromKey ? next.grid.get(fromKey) : null;
+        const toCell = getCell(next.grid, headCell);
+        if (fromCell && fromCell.colorIndex !== null && toCell && (!params.CarryingMoveRequiresEmpty || toCell.colorIndex === null || (currentCaptured && keyOfAxial(currentCaptured) === keyOfAxial(headCell)))) {
+          if (fromKey && keyOfAxial(headCell) !== fromKey) {
+            const movedColor = fromCell.colorIndex;
+            const nextGrid = updateCells(next.grid, [
+              { ...fromCell, colorIndex: null },
+              { ...toCell, colorIndex: movedColor },
+            ]);
+            next = { ...next, grid: nextGrid, capturedCell: headCell };
+          }
+        }
+        // Drop when head cell reaches cursor
+        if (headCell.q === cq && headCell.r === cr) {
+          next = { ...next, isReleasing: false, capturedCell: null };
+        }
+      }
+    }
+  }
+
+  // Auto-complete capture when full charge duration is reached
+  const chargeDuration = next.activeField === 'inventory' ? 1 : params.CaptureHoldDurationTicks;
   if (
     rng &&
     next.captureChargeStartTick !== null &&
-    (next.tick - next.captureChargeStartTick) >= params.CaptureHoldDurationTicks
+    (next.tick - next.captureChargeStartTick) >= chargeDuration
   ) {
-    // Auto-complete capture on active field
     next = endCaptureChargeOnActive(next, params, rng);
   }
 
@@ -332,6 +409,14 @@ export function attemptMoveByDelta(state: GameState, params: Params, dq: number,
 }
 
 export function attemptMoveByDeltaOnActive(state: GameState, params: Params, dq: number, dr: number): GameState {
+  // In world mode with captured cell, throttle movement to 1 cell per 4 ticks
+  if (state.activeField === 'world' && state.capturedCell) {
+    const movePeriod = 4;
+    const lastMove = (state as any).lastCarryMoveTick ?? 0;
+    if (state.tick - lastMove < movePeriod) {
+      return state; // too soon, ignore move
+    }
+  }
   const target = { q: state.cursor.q + dq, r: state.cursor.r + dr };
   const matchedIndex = axialDirections.findIndex(
     d => state.cursor.q + d.q === target.q && state.cursor.r + d.r === target.r,
@@ -345,36 +430,7 @@ export function attemptMoveTo(state: GameState, params: Params, target: Axial): 
   if (!axialInDisk(params.GridRadius, target.q, target.r)) return state;
   const targetCell = getCell(state.grid, target);
   if (!targetCell) return state; // outside generated grid
-
-  if (state.capturedCell) {
-    // carrying: must move only into empty cells if required
-    if (params.CarryingMoveRequiresEmpty && targetCell.colorIndex !== null) {
-      return state; // blocked
-    }
-
-    const fromKey = keyOfAxial(state.capturedCell);
-    const fromCell = state.grid.get(fromKey);
-    if (!fromCell || fromCell.colorIndex === null) {
-      // Inconsistent state; treat as not carrying
-      return { ...state, capturedCell: null, cursor: target };
-    }
-
-    // Transport color: move color to target, clear previous
-    const movedColor = fromCell.colorIndex;
-    const nextGrid = updateCells(state.grid, [
-      { ...fromCell, colorIndex: null },
-      { ...targetCell, colorIndex: movedColor },
-    ]);
-
-    return {
-      ...state,
-      grid: nextGrid,
-      capturedCell: { ...target },
-      cursor: { ...target },
-    };
-  }
-
-  // not carrying: move cursor only; protagonist follows cursor visually in UI
+  // Always move the cursor only (the carried hex is moved by the turtle, not by the cursor)
   return { ...state, cursor: { ...target } };
 }
 
@@ -384,25 +440,7 @@ export function attemptMoveToOnActive(state: GameState, params: Params, target: 
   const grid = usingInventory ? state.inventoryGrid : state.grid;
   const targetCell = getCell(grid, target);
   if (!targetCell) return state;
-
-  if (state.capturedCell) {
-    if (params.CarryingMoveRequiresEmpty && targetCell.colorIndex !== null) {
-      return state;
-    }
-    const fromKey = keyOfAxial(state.capturedCell);
-    const fromCell = grid.get(fromKey);
-    if (!fromCell || fromCell.colorIndex === null) {
-      return { ...state, capturedCell: null, cursor: target };
-    }
-    const movedColor = fromCell.colorIndex;
-    const nextGrid = updateCells(grid, [
-      { ...fromCell, colorIndex: null },
-      { ...targetCell, colorIndex: movedColor },
-    ]);
-    return usingInventory
-      ? { ...state, inventoryGrid: nextGrid, capturedCell: { ...target }, cursor: { ...target } }
-      : { ...state, grid: nextGrid, capturedCell: { ...target }, cursor: { ...target } };
-  }
+  // Cursor always moves empty; moving the carried hex happens in release tick
   return { ...state, cursor: { ...target } };
 }
 
@@ -419,32 +457,56 @@ export function beginCaptureCharge(state: GameState): GameState {
 
 // End charge (Space up). If held long enough, attempt capture on hovered cell.
 export function endCaptureCharge(state: GameState, params: Params, rng: RNG): GameState {
-  if (state.captureChargeStartTick === null) return state; // no active charge
+  if (state.captureChargeStartTick === null) return state;
   const heldTicks = state.tick - state.captureChargeStartTick;
   let next: GameState = { ...state, captureChargeStartTick: null };
 
-  if (heldTicks < params.CaptureHoldDurationTicks) {
-    console.log(`[capture] end too early at tick=${state.tick}, held=${heldTicks}`);
-    return next; // not enough charge
+  const inInventory = state.activeField === 'inventory';
+  const chargeDuration = inInventory ? 1 : params.CaptureHoldDurationTicks;
+  if (!inInventory && heldTicks < chargeDuration) {
+    console.log(`[capture] end too early at tick=${next.tick}, held=${heldTicks}`);
+    return next;
   }
 
   if (next.capturedCell !== null) {
-    return next; // already carrying (shouldn't happen if begin blocked correctly)
+    return next;
   }
 
   if (next.captureCooldownTicksRemaining > 0) {
-    return next; // cooldown blocks attempt
+    return next;
+  }
+
+  // In world mode, check if protagonist reached adjacent cell to cursor
+  if (!inInventory) {
+    const { q: pq, r: pr } = next.protagonist;
+    const { q: cq, r: cr } = next.cursor;
+    const isAdjacent = axialDirections.some(d => pq + d.q === cq && pr + d.r === cr);
+    if (!isAdjacent) {
+      console.log(`[capture] FAIL: turtle didn't reach cursor adjacency at tick=${next.tick}`);
+      next = {
+        ...next,
+        captureCooldownTicksRemaining: params.CaptureFailureCooldownTicks,
+        flash: { type: "failure", startedTick: next.tick },
+      };
+      return next;
+    }
   }
 
   const usingInventory = next.activeField === 'inventory';
   const cell = usingInventory ? hoveredCellInventory(next) : hoveredCell(next);
-  if (!cell || cell.colorIndex === null) {
-    console.log(`[capture] no cell to capture at tick=${next.tick}`);
-    return next; // nothing to capture
+  if (!cell) {
+    console.log(`[capture] no cell at cursor at tick=${next.tick}`);
+    return next;
   }
 
-  const chance = computeCaptureChancePercent(params, cell.colorIndex);
-  const roll = rng() * 100; // [0,100)
+  // Allow capture on empty cells (turtle just walks to cursor)
+  if (cell.colorIndex === null) {
+    console.log(`[capture] empty cell at tick=${next.tick}, turtle reached`);
+    return next;
+  }
+
+  const chance = usingInventory ? 100 : computeCaptureChancePercent(params, cell.colorIndex);
+  const roll = usingInventory ? 0 : rng() * 100; // [0,100)
   if (roll < chance) {
     // success
     console.log(`[capture] SUCCESS at tick=${next.tick}, held=${heldTicks}, roll=${roll.toFixed(2)}, chance=${chance}`);
@@ -473,6 +535,13 @@ export function endCaptureChargeOnActive(state: GameState, params: Params, rng: 
 export function dropCarried(state: GameState): GameState {
   if (state.capturedCell === null) return state;
   return { ...state, capturedCell: null };
+}
+
+// Begin releasing: turtle will move with carried hex toward cursor and drop on arrival
+export function beginRelease(state: GameState): GameState {
+  if (state.activeField !== 'world') return state;
+  if (state.capturedCell === null) return state;
+  return { ...state, isReleasing: true };
 }
 
 // Consume the currently carried cell: remove its color from grid and increment palette counter.

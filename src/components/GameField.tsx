@@ -71,7 +71,6 @@ const AXIAL_DIRECTIONS: Readonly<{ q: number; r: number }[]> = [
 interface GameFieldProps {
   gameState: GameState;
   params: Params;
-  protagonistPos: { q: number; r: number } | null;
   fps: number;
   setFps: (fps: number) => void;
   joystickVector: { x: number; y: number };
@@ -91,7 +90,6 @@ interface GameFieldProps {
 export const GameField: React.FC<GameFieldProps> = ({
   gameState,
   params,
-  protagonistPos,
   fps,
   setFps,
   joystickVector,
@@ -150,8 +148,7 @@ export const GameField: React.FC<GameFieldProps> = ({
           continue;
         }
 
-        const hoverCell = hoveredCell(gameState);
-        const showCap = !isInventory && !gameState.capturedCell && hoverCell && hoverCell.colorIndex !== null;
+        const showCap = !isInventory && !gameState.capturedCell;
         const showRel = !isInventory && !!gameState.capturedCell;
         const dCap = Math.hypot(x - capCenterX, y - capCenterY);
         if (dCap <= capRadius && (showCap || showRel)) {
@@ -231,8 +228,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         const invCenterX = margin + inward;
         const invCenterY = baseY - 64;
         const invRadius = 24;
-        const hoverCell = hoveredCell(gameState);
-        const showCap = !isInventory && !gameState.capturedCell && hoverCell && hoverCell.colorIndex !== null;
+        const showCap = !isInventory && !gameState.capturedCell;
         const showRel = !isInventory && !!gameState.capturedCell;
         const dCap = Math.hypot(x - capCenterX, y - capCenterY);
         if (dCap <= capRadius && (showCap || showRel)) {
@@ -248,12 +244,7 @@ export const GameField: React.FC<GameFieldProps> = ({
           }
         }
 
-        // Inventory toggle tap
-        const dInv = Math.hypot(x - invCenterX, y - invCenterY);
-        if (dInv <= invRadius) {
-          ev.preventDefault();
-          onToggleInventory();
-        }
+        // Inventory toggle handled on touchstart (press), not on release
       }
     }
 
@@ -336,12 +327,10 @@ export const GameField: React.FC<GameFieldProps> = ({
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
         let fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
-        if (gameState.capturedCell && cell.q === gameState.capturedCell.q && cell.r === gameState.capturedCell.r) {
-          if (isCarryFlickerOn(gameState, params)) {
-            fill = params.ColorPalette[cell.colorIndex ?? params.PlayerBaseColorIndex];
-          }
-        }
-        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, GRID_STROKE_COLOR, 0);
+        const isCapturedHere = !isInventory && !!gameState.capturedCell && cell.q === gameState.capturedCell.q && cell.r === gameState.capturedCell.r;
+        const strokeColor = isCapturedHere ? '#FFFFFF' : 'transparent';
+        const strokeWidth = isCapturedHere ? 2 * scale : 0;
+        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, strokeColor, strokeWidth);
       }
 
       // Draw grid corner dots
@@ -385,28 +374,10 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
       }
 
-      // Flash overlay border
-      if (gameState.flash) {
-        const hover = isInventory ? hoveredCellInventory(gameState) : hoveredCell(gameState);
-        if (hover) {
-          const pos = hexToPixel(hover.q, hover.r);
-          const scaledX = centerX + pos.x * scale;
-          const scaledY = centerY + pos.y * scale;
-          const flashColor = gameState.flash.type === 'success' ? FLASH_SUCCESS_COLOR : FLASH_FAILURE_COLOR;
-          drawHex(
-            ctx,
-            scaledX,
-            scaledY,
-            HEX_SIZE * scale,
-            hover.colorIndex !== null ? params.ColorPalette[hover.colorIndex] : '#000',
-            flashColor,
-            3 * scale,
-          );
-        }
-      }
+      // Skip flash overlay rendering; success is indicated by white outline on captured hex.
 
       // Cursor visuals
-      const protagonistCell = protagonistPos ?? gameState.protagonist;
+      const protagonistCell = gameState.protagonist;
       const hover = (isInventory ? hoveredCellInventory(gameState) : hoveredCell(gameState)) ?? null;
 
       if (hover) {
@@ -414,22 +385,17 @@ export const GameField: React.FC<GameFieldProps> = ({
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
 
-        const isCarrying = !!gameState.capturedCell;
         const isInCooldown = gameState.captureCooldownTicksRemaining > 0;
+        const isCharging = gameState.captureChargeStartTick !== null;
+        const releasing = !isInventory && (gameState as any).isReleasing;
 
-        if (isCarrying) {
-          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, 'transparent', FLASH_SUCCESS_COLOR, 3 * scale);
-        } else if (isInCooldown) {
-          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, 'transparent', FLASH_FAILURE_COLOR, 3 * scale);
-        }
-
-        // Rotating edge cursor
-        if (!gameState.flash) {
+        if (isInventory) {
+          // Inventory: keep previous rotating edges behavior
           const now = performance.now();
           const baseEdge = computeEdgeIndex(now);
           const edges: number[] = [];
-          if (gameState.captureChargeStartTick !== null && !isInCooldown) {
-            const heldTicks = gameState.tick - gameState.captureChargeStartTick;
+          if (isCharging && !isInCooldown) {
+            const heldTicks = gameState.tick - (gameState.captureChargeStartTick || 0);
             const fraction = Math.min(1, heldTicks / params.CaptureHoldDurationTicks);
             const edgeCount = Math.max(1, Math.ceil(fraction * 6));
             for (let i = 0; i < edgeCount; i++) edges.push((baseEdge + i) % 6);
@@ -438,6 +404,44 @@ export const GameField: React.FC<GameFieldProps> = ({
           }
           const edgeColor = isInCooldown ? FLASH_FAILURE_EDGE_DARK : '#FFFFFF';
           edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
+        } else {
+          // World: new cursor modes
+          if (isInCooldown) {
+            // Cooldown: rotate red segment
+            const now = performance.now();
+            const e = computeEdgeIndex(now);
+            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, FLASH_FAILURE_EDGE_DARK);
+          } else if (releasing) {
+            // Releasing: rotate edges like empty capture
+            const now = performance.now();
+            const e = computeEdgeIndex(now);
+            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
+          } else if (isCharging) {
+            // Charging: fill edges sequentially
+            const now = performance.now();
+            const baseEdge = computeEdgeIndex(now);
+            const heldTicks = gameState.tick - (gameState.captureChargeStartTick || 0);
+            const fraction = Math.min(1, heldTicks / params.CaptureHoldDurationTicks);
+            const edgeCount = Math.max(1, Math.ceil(fraction * 6));
+            for (let i = 0; i < edgeCount; i++) {
+              const e = (baseEdge + i) % 6;
+              drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
+            }
+          } else {
+            // Default: highlight vertices (one per tick)
+            const angleDeg = 60;
+            const pts: [number, number][] = [];
+            for (let i = 0; i < 6; i++) {
+              const angle = (Math.PI / 180) * (angleDeg * i);
+              pts.push([scaledX + HEX_SIZE * scale * Math.cos(angle), scaledY + HEX_SIZE * scale * Math.sin(angle)]);
+            }
+            const v = (gameState.tick % 6);
+            const [vx, vy] = pts[v];
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(vx, vy, 1.8 * scale, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
 
         // Protagonist flower (skip in inventory)
@@ -449,26 +453,45 @@ export const GameField: React.FC<GameFieldProps> = ({
         const turtleX = centerX + turtlePos.x * scale;
         const turtleY = centerY + turtlePos.y * scale;
 
-        const parentRadius = HEX_SIZE * scale;
+        const parentRadius = isInventory ? HEX_SIZE * scale / 3 : HEX_SIZE * scale;
         const centerRadius = parentRadius / 3;
 
-        const smallCenters: { x: number; y: number }[] = [];
-        for (let i = 0; i < 6; i++) {
-          const ang = (Math.PI / 180) * (60 * i - 30);
-          const ringRadius = centerRadius * 2.05;
-          const cx = turtleX + ringRadius * Math.cos(ang);
-          const cy = turtleY + ringRadius * Math.sin(ang);
-          smallCenters.push({ x: cx, y: cy });
-        }
-
-        let headIndex = 0;
-        if (!(protagonistCell.q === hover.q && protagonistCell.r === hover.r)) {
+        // In inventory: position turtle head pressed to cursor edge
+        // In world: turtle stays at protagonist position, just rotates to face cursor
+        let turtleOffsetX = turtleX;
+        let turtleOffsetY = turtleY;
+        let cursorAngle = 0;
+        if (isInventory) {
           const hoverPos = hexToPixel(hover.q, hover.r);
           const hx = centerX + hoverPos.x * scale;
           const hy = centerY + hoverPos.y * scale;
           const vx = hx - turtleX;
           const vy = hy - turtleY;
-          const targetAngle = Math.atan2(vy, vx);
+          cursorAngle = Math.atan2(vy, vx);
+          const offsetDist = HEX_SIZE * scale * 0.55;
+          turtleOffsetX = turtleX + Math.cos(cursorAngle) * offsetDist;
+          turtleOffsetY = turtleY + Math.sin(cursorAngle) * offsetDist;
+        } else {
+          const hoverPos = hexToPixel(hover.q, hover.r);
+          const hx = centerX + hoverPos.x * scale;
+          const hy = centerY + hoverPos.y * scale;
+          const vx = hx - turtleX;
+          const vy = hy - turtleY;
+          cursorAngle = Math.atan2(vy, vx);
+        }
+
+        const smallCenters: { x: number; y: number }[] = [];
+        for (let i = 0; i < 6; i++) {
+          const ang = (Math.PI / 180) * (60 * i - 30);
+          const ringRadius = centerRadius * 2.05;
+          const cx = turtleOffsetX + ringRadius * Math.cos(ang);
+          const cy = turtleOffsetY + ringRadius * Math.sin(ang);
+          smallCenters.push({ x: cx, y: cy });
+        }
+
+        let headIndex = 0;
+        if (!(protagonistCell.q === hover.q && protagonistCell.r === hover.r)) {
+          const targetAngle = cursorAngle;
 
           let bestDiff = Number.POSITIVE_INFINITY;
           for (let i = 0; i < 6; i++) {
@@ -493,7 +516,8 @@ export const GameField: React.FC<GameFieldProps> = ({
           const isHead = i === headIndex;
           const radius = isHead ? centerRadius : parentRadius / 9;
           const fill = isHead ? baseColor : 'rgba(255,255,255,0.6)';
-          drawHex(ctx, c.x, c.y, radius, fill, '#FFFFFF', 0.8 * scale);
+          const strokeWidth = isInventory ? 0.3 * scale : 0.8 * scale;
+          drawHex(ctx, c.x, c.y, radius, fill, '#FFFFFF', strokeWidth);
           if (isHead) {
             // Eyes: placed on line perpendicular to head direction
             const hx = c.x - turtleX;
@@ -518,11 +542,14 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
 
         const shellRadius = parentRadius / Math.sqrt(3);
+        const shellStroke = isInventory ? 0.3 * scale : 0.8 * scale;
         ctx.save();
-        ctx.translate(turtleX, turtleY);
+        ctx.translate(turtleOffsetX, turtleOffsetY);
         ctx.rotate((30 * Math.PI) / 180);
-        drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', 0.8 * scale);
+        drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', shellStroke);
         ctx.restore();
+
+        // No separate overlay for carried hex; it stays in grid with white outline
         }
       }
 
@@ -594,12 +621,11 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
         ctx.restore();
 
-        // CAP/REL button (hidden CAP if hovered empty)
+        // CAP/REL button (show CAP always, REL when carrying)
         const capCenterX = canvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
-        const hoverCell = isInventory ? hoveredCellInventory(gameState) : hoveredCell(gameState);
-        const showCap = !isInventory && !gameState.capturedCell && hoverCell && hoverCell.colorIndex !== null;
+        const showCap = !isInventory && !gameState.capturedCell;
         const showRel = !isInventory && !!gameState.capturedCell;
         if (showCap || showRel) {
           drawHex(
@@ -669,7 +695,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       mounted = false;
       cancelAnimationFrame(raf);
     };
-  }, [gameState, params, protagonistPos, fps, joystickVector, joystickToAxial, setFps]);
+  }, [gameState, params, fps, joystickVector, joystickToAxial, setFps, isInventory]);
 
   return (
     <div ref={canvasContainerRef} className="game-field">

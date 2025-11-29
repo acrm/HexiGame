@@ -37,22 +37,21 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
     { x: +uniformHexSize * 1.74, y: 0 },
   ];
   // Diamond cluster fills 8 ring positions clockwise from leftmost:
-  // positions: left, top-left, top-center, top-right, right, bottom-right, bottom-center, bottom-left
-  // Antagonist at far left (index 0 in clusterPositions.slice(1)), protagonist at far right (index 4),
-  // intermediates in palette hue circle order
-  const middleIndices = colorPalette
-    .map((_, i) => i)
-    .filter(i => i !== playerBaseColorIndex && i !== antagonistIndex);
-  // Build ring order: left=antagonist, intermediates clockwise, right=protagonist
+  // Based on image: pink top-left, orange top-right, purple left, protagonist top-center,
+  // yellow bottom-center, pink right, arrange spectrum between key colors
+  // clusterPositions.slice(1) order: [0]=top-left, [1]=top-center, [2]=top-right,
+  //                                  [3]=bottom-left, [4]=bottom-center, [5]=bottom-right,
+  //                                  [6]=left, [7]=right
+  // Map palette indices to positions per image layout
   const ringOrder = [
-    antagonistIndex,           // 0: left
-    middleIndices[0] ?? 0,     // 1: top-left
-    middleIndices[1] ?? 0,     // 2: top-center
-    middleIndices[2] ?? 0,     // 3: top-right
-    playerBaseColorIndex,      // 4: right
-    middleIndices[3] ?? 0,     // 5: bottom-right
-    middleIndices[4] ?? 0,     // 6: bottom-center
-    middleIndices[5] ?? 0,     // 7: bottom-left
+    7,  // 0: top-left = pink (#FF99FF)
+    0,  // 1: top-center = orange (#FF8000) protagonist
+    1,  // 2: top-right = darker orange (#CC6600)
+    5,  // 3: bottom-left = purple (#9933FF)
+    2,  // 4: bottom-center = yellow (#996600)
+    6,  // 5: bottom-right = light purple (#CC66FF)
+    4,  // 6: left = dark purple (#660099) antagonist
+    3,  // 7: right = dark yellow (#666600)
   ];
 
   return (

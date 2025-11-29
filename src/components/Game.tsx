@@ -11,11 +11,11 @@ import {
   attemptMoveByDeltaOnActive,
   beginCaptureCharge,
   dropCarried,
+  beginRelease,
   eatCapturedToInventory,
   previewCaptureChanceAtCursor,
   hoveredCellActive,
   computeAdjacentSameColorCounts,
-  evolveProtagonistFollower,
 } from '../logic/pureLogic';
 import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
@@ -29,8 +29,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [gameState, setGameState] = useState<GameState>(() => createInitialState(mergedParams, rngRef.current));
   const [fps, setFps] = useState(0);
   const spaceIsDownRef = useRef(false);
-  const [protagonistPos, setProtagonistPos] = useState<{ q: number; r: number } | null>(null);
-  const lastCursorRef = useRef<{ q: number; r: number } | null>(null);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
 
@@ -152,25 +150,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     };
   }, [mergedParams]);
 
-  // Smoothly move protagonist one step toward cursor when cursor changes (delegated to pure logic).
-  useEffect(() => {
-    const current = protagonistPos ?? gameState.protagonist;
-    const cursor = gameState.cursor;
-    const lastCursor = lastCursorRef.current;
-
-    const { protagonist: nextProtagonist, nextLastCursor } = evolveProtagonistFollower(
-      current,
-      cursor,
-      lastCursor,
-    );
-
-    // Apply follower step immediately when needed; throttling stays on cursor moves only.
-    if (nextProtagonist.q !== current.q || nextProtagonist.r !== current.r) {
-      setProtagonistPos({ q: nextProtagonist.q, r: nextProtagonist.r });
-    }
-    lastCursorRef.current = nextLastCursor;
-  }, [gameState.cursor, gameState.protagonist, protagonistPos, gameState.tick]);
-
   // Derived HUD data
   const chance = previewCaptureChanceAtCursor(gameState, mergedParams);
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
@@ -229,7 +208,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       <GameField
         gameState={gameState}
         params={mergedParams}
-        protagonistPos={protagonistPos}
         fps={fps}
         setFps={setFps}
         joystickVector={joystickVectorRef.current}
@@ -251,12 +229,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }}
         onRelease={() => {
           setGameState(prev => {
-            if (prev.captureChargeStartTick === null) return prev;
-            const heldTicks = prev.tick - prev.captureChargeStartTick;
-            if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+            if (prev.capturedCell) {
+              return beginRelease(prev);
+            }
+            // If not carrying, treat as release of charge: cancel charge without capture
+            if (prev.captureChargeStartTick !== null) {
               return { ...prev, captureChargeStartTick: null };
             }
-            return { ...prev, captureChargeStartTick: null };
+            return prev;
           });
         }}
         onEat={() => {
