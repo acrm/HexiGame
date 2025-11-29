@@ -1,0 +1,606 @@
+import React, { useEffect, useRef } from 'react';
+import { Params, GameState, hoveredCell, isCarryFlickerOn } from '../logic/pureLogic';
+
+const HEX_SIZE = 10; // pixels
+const FLASH_SUCCESS_COLOR = '#00BFFF';
+const FLASH_FAILURE_COLOR = '#FF4444';
+const FLASH_FAILURE_EDGE_DARK = '#AA0000';
+const GRID_STROKE_COLOR = '#635572ff';
+
+// Helper: axial -> pixel (pointy-top)
+function hexToPixel(q: number, r: number) {
+  const x = HEX_SIZE * 1.5 * q;
+  const y = HEX_SIZE * Math.sqrt(3) * (r + q / 2);
+  return { x, y };
+}
+
+// Draw single hex
+function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, fill: string, stroke: string, lineWidth = 2) {
+  const angleDeg = 60;
+  const pts: [number, number][] = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (angleDeg * i);
+    pts.push([x + size * Math.cos(angle), y + size * Math.sin(angle)]);
+  }
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < 6; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (lineWidth > 0) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+  }
+}
+
+// Visual rotating edge highlight index (0..5)
+function computeEdgeIndex(timeMs: number, rotationPeriodMs = 500) {
+  const phase = (timeMs % rotationPeriodMs) / rotationPeriodMs;
+  return Math.floor(phase * 6) % 6;
+}
+
+function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, edge: number, size: number, color: string) {
+  const angleDeg = 60;
+  const pts: [number, number][] = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (angleDeg * i);
+    pts.push([centerX + size * Math.cos(angle), centerY + size * Math.sin(angle)]);
+  }
+  const p1 = pts[edge];
+  const p2 = pts[(edge + 1) % 6];
+  if (!p1 || !p2) return;
+  ctx.beginPath();
+  ctx.moveTo(p1[0], p1[1]);
+  ctx.lineTo(p2[0], p2[1]);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+const AXIAL_DIRECTIONS: Readonly<{ q: number; r: number }[]> = [
+  { q: 0, r: -1 },
+  { q: +1, r: -1 },
+  { q: +1, r: 0 },
+  { q: 0, r: +1 },
+  { q: -1, r: +1 },
+  { q: -1, r: 0 },
+] as const;
+
+interface GameFieldProps {
+  gameState: GameState;
+  params: Params;
+  protagonistPos: { q: number; r: number } | null;
+  fps: number;
+  setFps: (fps: number) => void;
+  joystickVector: { x: number; y: number };
+  joystickToAxial: (vx: number, vy: number) => [number, number] | null;
+  joystickTouchIdRef: React.MutableRefObject<number | null>;
+  joystickCenterRef: React.MutableRefObject<{ x: number; y: number } | null>;
+  joystickVectorRef: React.MutableRefObject<{ x: number; y: number }>;
+  lastJoystickMoveTickRef: React.MutableRefObject<number>;
+  onCapture: () => void;
+  onRelease: () => void;
+  onEat: () => void;
+  onMove: (dq: number, dr: number) => void;
+}
+
+export const GameField: React.FC<GameFieldProps> = ({
+  gameState,
+  params,
+  protagonistPos,
+  fps,
+  setFps,
+  joystickVector,
+  joystickToAxial,
+  joystickTouchIdRef,
+  joystickCenterRef,
+  joystickVectorRef,
+  lastJoystickMoveTickRef,
+  onCapture,
+  onRelease,
+  onEat,
+  onMove,
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+  const frameCounterRef = useRef({ last: performance.now(), frames: 0 });
+
+  // Touch handling for mobile controls
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    function handleTouchStart(ev: TouchEvent) {
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas) return;
+      const rect = currentCanvas.getBoundingClientRect();
+      for (let i = 0; i < ev.changedTouches.length; i++) {
+        const t = ev.changedTouches[i];
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+
+        const margin = 64;
+        const inward = currentCanvas.width * 0.10;
+        const baseY = currentCanvas.height - margin;
+        const joyCenterX = margin + inward;
+        const joyCenterY = baseY;
+        const capCenterX = currentCanvas.width - margin - inward;
+        const capCenterY = baseY;
+        const joyOuterRadius = 40;
+        const capRadius = 30;
+        const eatCenterX = currentCanvas.width - margin - inward;
+        const eatCenterY = baseY - 64;
+        const eatRadius = 24;
+
+        const dJoy = Math.hypot(x - joyCenterX, y - joyCenterY);
+        if (dJoy <= joyOuterRadius && joystickTouchIdRef.current === null) {
+          joystickTouchIdRef.current = t.identifier;
+          joystickCenterRef.current = { x: joyCenterX, y: joyCenterY };
+          joystickVectorRef.current = { x: 0, y: 0 };
+          ev.preventDefault();
+          continue;
+        }
+
+        const dCap = Math.hypot(x - capCenterX, y - capCenterY);
+        if (dCap <= capRadius) {
+          ev.preventDefault();
+          onCapture();
+        }
+
+        if (gameState.capturedCell) {
+          const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
+          if (dEat <= eatRadius) {
+            ev.preventDefault();
+            onEat();
+          }
+        }
+      }
+    }
+
+    function handleTouchMove(ev: TouchEvent) {
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas || joystickTouchIdRef.current === null) return;
+      const rect = currentCanvas.getBoundingClientRect();
+      for (let i = 0; i < ev.changedTouches.length; i++) {
+        const t = ev.changedTouches[i];
+        if (t.identifier !== joystickTouchIdRef.current) continue;
+        const center = joystickCenterRef.current;
+        if (!center) return;
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+        const vx = x - center.x;
+        const vy = y - center.y;
+        joystickVectorRef.current = { x: vx, y: vy };
+
+        const nowTick = gameState.tick;
+        if (nowTick - lastJoystickMoveTickRef.current >= 6) {
+          lastJoystickMoveTickRef.current = nowTick;
+          const dir = joystickToAxial(vx, vy);
+          if (dir) {
+            onMove(dir[0], dir[1]);
+          }
+        }
+        ev.preventDefault();
+      }
+    }
+
+    function handleTouchEnd(ev: TouchEvent) {
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas) return;
+      const rect = currentCanvas.getBoundingClientRect();
+      for (let i = 0; i < ev.changedTouches.length; i++) {
+        const t = ev.changedTouches[i];
+        if (t.identifier === joystickTouchIdRef.current) {
+          joystickTouchIdRef.current = null;
+          joystickCenterRef.current = null;
+          joystickVectorRef.current = { x: 0, y: 0 };
+          ev.preventDefault();
+          continue;
+        }
+
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+        const margin = 64;
+        const inward = currentCanvas.width * 0.10;
+        const baseY = currentCanvas.height - margin;
+        const capCenterX = currentCanvas.width - margin - inward;
+        const capCenterY = baseY;
+        const capRadius = 30;
+        const eatCenterX = currentCanvas.width - margin - inward;
+        const eatCenterY = baseY - 64;
+        const eatRadius = 24;
+        const dCap = Math.hypot(x - capCenterX, y - capCenterY);
+        if (dCap <= capRadius) {
+          ev.preventDefault();
+          onRelease();
+        }
+
+        if (gameState.capturedCell) {
+          const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
+          if (dEat <= eatRadius) {
+            ev.preventDefault();
+            onEat();
+          }
+        }
+      }
+    }
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart as any);
+      canvas.removeEventListener('touchmove', handleTouchMove as any);
+      canvas.removeEventListener('touchend', handleTouchEnd as any);
+      canvas.removeEventListener('touchcancel', handleTouchEnd as any);
+    };
+  }, [gameState.tick, gameState.capturedCell, joystickToAxial, onCapture, onRelease, onEat, onMove, joystickTouchIdRef, joystickCenterRef, joystickVectorRef, lastJoystickMoveTickRef]);
+
+  useEffect(() => {
+    let mounted = true;
+    function render() {
+      if (!mounted) return;
+      const canvas = canvasRef.current;
+      const container = canvasContainerRef.current;
+      if (!canvas || !container) {
+        requestAnimationFrame(render);
+        return;
+      }
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        requestAnimationFrame(render);
+        return;
+      }
+
+      const availableWidth = container.clientWidth;
+      const availableHeight = container.clientHeight;
+
+      // Compute tight logical bounds
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const cell of gameState.grid.values()) {
+        const pos = hexToPixel(cell.q, cell.r);
+        const x = pos.x;
+        const y = pos.y;
+        const halfW = HEX_SIZE * 1.0;
+        const halfH = HEX_SIZE * Math.sqrt(3) * 0.5;
+        minX = Math.min(minX, x - halfW);
+        maxX = Math.max(maxX, x + halfW);
+        minY = Math.min(minY, y - halfH);
+        maxY = Math.max(maxY, y + halfH);
+      }
+
+      const logicalWidth = maxX - minX;
+      const logicalHeight = maxY - minY;
+
+      const scale = Math.min(availableWidth / logicalWidth, availableHeight / logicalHeight);
+
+      const pixelWidth = availableWidth;
+      const pixelHeight = availableHeight;
+
+      canvas.width = Math.max(1, Math.floor(pixelWidth));
+      canvas.height = Math.max(1, Math.floor(pixelHeight));
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const centerX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
+      const centerY = canvas.height / 2 - ((minY + maxY) / 2) * scale;
+
+      // Draw hex fills
+      for (const cell of gameState.grid.values()) {
+        const pos = hexToPixel(cell.q, cell.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        let fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
+        if (gameState.capturedCell && cell.q === gameState.capturedCell.q && cell.r === gameState.capturedCell.r) {
+          if (isCarryFlickerOn(gameState, params)) {
+            fill = params.ColorPalette[cell.colorIndex ?? params.PlayerBaseColorIndex];
+          }
+        }
+        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, GRID_STROKE_COLOR, 0);
+      }
+
+      // Draw grid corner dots
+      ctx.fillStyle = GRID_STROKE_COLOR;
+      const dotRadius = 1.2 * scale;
+      const seenVertices = new Set<string>();
+      const emptyCells = Array.from(gameState.grid.values()).filter(c => c.colorIndex === null);
+      for (const cell of emptyCells) {
+        const pos = hexToPixel(cell.q, cell.r);
+        const baseX = centerX + pos.x * scale;
+        const baseY = centerY + pos.y * scale;
+        const angleDeg = 60;
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 180) * (angleDeg * i);
+          const vx = baseX + HEX_SIZE * scale * Math.cos(angle);
+          const vy = baseY + HEX_SIZE * scale * Math.sin(angle);
+          const key = `${Math.round(vx)}:${Math.round(vy)}`;
+          if (seenVertices.has(key)) continue;
+
+          let allEmpty = true;
+          for (const other of gameState.grid.values()) {
+            const otherPos = hexToPixel(other.q, other.r);
+            const ox = centerX + otherPos.x * scale;
+            const oy = centerY + otherPos.y * scale;
+            const dx = ox - vx;
+            const dy = oy - vy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (Math.abs(dist - HEX_SIZE * scale) < HEX_SIZE * scale * 0.15) {
+              if (other.colorIndex !== null) {
+                allEmpty = false;
+                break;
+              }
+            }
+          }
+          if (!allEmpty) continue;
+
+          seenVertices.add(key);
+          ctx.beginPath();
+          ctx.arc(vx, vy, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Flash overlay border
+      if (gameState.flash) {
+        const hover = hoveredCell(gameState);
+        if (hover) {
+          const pos = hexToPixel(hover.q, hover.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+          const flashColor = gameState.flash.type === 'success' ? FLASH_SUCCESS_COLOR : FLASH_FAILURE_COLOR;
+          drawHex(
+            ctx,
+            scaledX,
+            scaledY,
+            HEX_SIZE * scale,
+            hover.colorIndex !== null ? params.ColorPalette[hover.colorIndex] : '#000',
+            flashColor,
+            3 * scale,
+          );
+        }
+      }
+
+      // Cursor visuals
+      const protagonistCell = protagonistPos ?? gameState.protagonist;
+      const hover = hoveredCell(gameState) ?? null;
+
+      if (hover) {
+        const pos = hexToPixel(hover.q, hover.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+
+        const isCarrying = !!gameState.capturedCell;
+        const isInCooldown = gameState.captureCooldownTicksRemaining > 0;
+
+        if (isCarrying) {
+          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, 'transparent', FLASH_SUCCESS_COLOR, 3 * scale);
+        } else if (isInCooldown) {
+          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, 'transparent', FLASH_FAILURE_COLOR, 3 * scale);
+        }
+
+        // Rotating edge cursor
+        if (!gameState.flash) {
+          const now = performance.now();
+          const baseEdge = computeEdgeIndex(now);
+          const edges: number[] = [];
+          if (gameState.captureChargeStartTick !== null && !isInCooldown) {
+            const heldTicks = gameState.tick - gameState.captureChargeStartTick;
+            const fraction = Math.min(1, heldTicks / params.CaptureHoldDurationTicks);
+            const edgeCount = Math.max(1, Math.ceil(fraction * 6));
+            for (let i = 0; i < edgeCount; i++) edges.push((baseEdge + i) % 6);
+          } else {
+            edges.push(baseEdge);
+          }
+          const edgeColor = isInCooldown ? FLASH_FAILURE_EDGE_DARK : '#FFFFFF';
+          edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
+        }
+
+        // Protagonist flower
+        const turtleCenterQ = protagonistCell.q;
+        const turtleCenterR = protagonistCell.r;
+
+        const turtlePos = hexToPixel(turtleCenterQ, turtleCenterR);
+        const turtleX = centerX + turtlePos.x * scale;
+        const turtleY = centerY + turtlePos.y * scale;
+
+        const parentRadius = HEX_SIZE * scale;
+        const centerRadius = parentRadius / 3;
+
+        const smallCenters: { x: number; y: number }[] = [];
+        for (let i = 0; i < 6; i++) {
+          const ang = (Math.PI / 180) * (60 * i - 30);
+          const ringRadius = centerRadius * 2.05;
+          const cx = turtleX + ringRadius * Math.cos(ang);
+          const cy = turtleY + ringRadius * Math.sin(ang);
+          smallCenters.push({ x: cx, y: cy });
+        }
+
+        let headIndex = 0;
+        if (!(protagonistCell.q === hover.q && protagonistCell.r === hover.r)) {
+          const hoverPos = hexToPixel(hover.q, hover.r);
+          const hx = centerX + hoverPos.x * scale;
+          const hy = centerY + hoverPos.y * scale;
+          const vx = hx - turtleX;
+          const vy = hy - turtleY;
+          const targetAngle = Math.atan2(vy, vx);
+
+          let bestDiff = Number.POSITIVE_INFINITY;
+          for (let i = 0; i < 6; i++) {
+            const c = smallCenters[i];
+            const px = c.x - turtleX;
+            const py = c.y - turtleY;
+            const petalAngle = Math.atan2(py, px);
+            const diff = Math.abs(Math.atan2(Math.sin(targetAngle - petalAngle), Math.cos(targetAngle - petalAngle)));
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              headIndex = i;
+            }
+          }
+        }
+
+        const tailIndex = (headIndex + 3) % 6;
+
+        const baseColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#FFFFFF';
+        for (let i = 0; i < smallCenters.length; i++) {
+          if (i === tailIndex) continue;
+          const c = smallCenters[i];
+          const isHead = i === headIndex;
+          const radius = isHead ? centerRadius : parentRadius / 9;
+          const fill = isHead ? baseColor : 'rgba(255,255,255,0.6)';
+          drawHex(ctx, c.x, c.y, radius, fill, '#FFFFFF', 0.8 * scale);
+        }
+
+        const shellRadius = parentRadius / Math.sqrt(3);
+        ctx.save();
+        ctx.translate(turtleX, turtleY);
+        ctx.rotate((30 * Math.PI) / 180);
+        drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', 0.8 * scale);
+        ctx.restore();
+      }
+
+      // Mobile controls
+      const isMobileLayout = window.innerWidth <= 900;
+      if (isMobileLayout) {
+        const margin = 64;
+        const inward = canvas.width * 0.10;
+        const baseY = canvas.height - margin;
+
+        // Joystick
+        const joyCenterX = margin + inward;
+        const joyCenterY = baseY;
+        const outerRadius = 40;
+        const innerRadius = 18;
+
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath();
+        ctx.arc(joyCenterX, joyCenterY, outerRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        const knob = joystickVector;
+        const maxOffset = outerRadius - innerRadius - 4;
+        const len = Math.sqrt(knob.x * knob.x + knob.y * knob.y) || 1;
+        const kx = joyCenterX + (knob.x / len) * Math.min(len, maxOffset);
+        const ky = joyCenterY + (knob.y / len) * Math.min(len, maxOffset);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath();
+        ctx.arc(kx, ky, innerRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Debug arrow
+        const dir = joystickToAxial(knob.x, knob.y);
+        const arrowCenterX = joyCenterX + outerRadius + 48;
+        const arrowCenterY = joyCenterY;
+        ctx.save();
+        ctx.globalAlpha = 1.0;
+        const debugArrow = true;
+        if (debugArrow && dir) {
+          const px = hexToPixel(dir[0], dir[1]);
+          const ang = Math.atan2(px.y, px.x);
+          const arrowLen = 36;
+          const arrowWidth = 8;
+          ctx.translate(arrowCenterX, arrowCenterY);
+          ctx.rotate(ang);
+          ctx.strokeStyle = '#ff00ff';
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(arrowLen, 0);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(arrowLen, 0);
+          ctx.lineTo(arrowLen - arrowWidth, -arrowWidth * 0.7);
+          ctx.lineTo(arrowLen - arrowWidth, arrowWidth * 0.7);
+          ctx.closePath();
+          ctx.fillStyle = '#ff00ff';
+          ctx.fill();
+        } else if (debugArrow) {
+          ctx.fillStyle = '#ff00ff';
+          ctx.beginPath();
+          ctx.arc(arrowCenterX, arrowCenterY, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // CAP/REL button
+        const capCenterX = canvas.width - margin - inward;
+        const capCenterY = baseY;
+        const capRadius = 30;
+
+        drawHex(
+          ctx,
+          capCenterX,
+          capCenterY,
+          capRadius,
+          gameState.capturedCell ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.18)',
+          gameState.capturedCell ? 'transparent' : 'rgba(255,255,255,0.85)',
+          3,
+        );
+
+        ctx.fillStyle = gameState.capturedCell ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.95)';
+        ctx.font = '15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(gameState.capturedCell ? 'REL' : 'CAP', capCenterX, capCenterY + 1);
+
+        // EAT button
+        if (gameState.capturedCell) {
+          const eatCenterX = capCenterX;
+          const eatCenterY = capCenterY - 64;
+          const eatRadius = 24;
+          drawHex(ctx, eatCenterX, eatCenterY, eatRadius, 'rgba(255,255,255,0.95)', 'transparent', 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.85)';
+          ctx.font = '12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('EAT', eatCenterX, eatCenterY + 0);
+        }
+      }
+
+      // FPS
+      const frameData = frameCounterRef.current;
+      frameData.frames++;
+      const now = performance.now();
+      if (now - frameData.last >= 1000) {
+        setFps(frameData.frames);
+        frameData.frames = 0;
+        frameData.last = now;
+      }
+
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.85;
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`FPS: ${fps}`, canvas.width / 2, canvas.height - 4);
+      ctx.restore();
+
+      requestAnimationFrame(render);
+    }
+    const raf = requestAnimationFrame(render);
+    return () => {
+      mounted = false;
+      cancelAnimationFrame(raf);
+    };
+  }, [gameState, params, protagonistPos, fps, joystickVector, joystickToAxial, setFps]);
+
+  return (
+    <div ref={canvasContainerRef} className="game-field">
+      <canvas ref={canvasRef} style={{ display: 'block' }} />
+    </div>
+  );
+};
+
+export default GameField;

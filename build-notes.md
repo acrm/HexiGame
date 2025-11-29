@@ -47,3 +47,5 @@
 - 25w48-0.25 — Extract ControlsDesktop/ControlsMobile components; place desktop inline and mobile popup below 'i'
 
 - 25w48-0.26 — Fix EAT touch coordinates, joystick direction mapping, extract PaletteCluster component
+
+- 25w48-0.27 — Extract GameField component with canvas rendering and mobile controls touch handling
