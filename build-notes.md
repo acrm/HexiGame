@@ -45,3 +45,5 @@
 - 25w48-0.24 — Controls blocks: split desktop/mobile; reorder text 'control: action'; mobile popup offset
 
 - 25w48-0.25 — Extract ControlsDesktop/ControlsMobile components; place desktop inline and mobile popup below 'i'
+
+- 25w48-0.26 — Fix EAT touch coordinates, joystick direction mapping, extract PaletteCluster component

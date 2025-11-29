@@ -19,10 +19,10 @@ const ControlsMobile: React.FC<{ onClose: () => void; topOffset?: number }> = ({
           }}
         >
           <div style={{ marginBottom: 8, fontSize: 15, fontWeight: 'bold' }}>Controls</div>
-          <div>Joystick: move</div>
-          <div>CAP: hold to capture</div>
-          <div>REL: drop carried</div>
-          <div>EAT: consume carried</div>
+          <div>Joystick = move cursor between hexs</div>
+          <div>CAP = hold to capture a hex under cursor</div>
+          <div>REL = drop carried hex</div>
+          <div>EAT = consume carried hex</div>
         </div>
       </div>
     </>

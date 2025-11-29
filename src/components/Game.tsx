@@ -21,6 +21,7 @@ import {
 } from '../logic/pureLogic';
 import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
+import PaletteCluster from './PaletteCluster';
 
 // --- Rendering-only constants (not part of pure logic) ---
 const HEX_SIZE = 10; // pixels
@@ -117,40 +118,38 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   function joystickToAxial(vx: number, vy: number): [number, number] | null {
     const len = Math.hypot(vx, vy);
     if (len < 6) return null; // dead zone to avoid jitter
-    const angle = Math.atan2(vy, vx); // 0: right, clockwise
+    
+    // Screen coordinates: +X right, +Y down
+    // atan2(vy, vx): 0° = right, 90° = down, 180° = left, -90° = up
+    const angle = Math.atan2(vy, vx);
     const norm = (angle + 2 * Math.PI) % (2 * Math.PI);
-    // Use nearest sector (round) to avoid boundary misclassification,
-    // screen coordinates: +Y is down.
-    const sector = Math.round((norm / (2 * Math.PI)) * 6) % 6; // 0..5
-      const approxDirs: [number, number][] = [
-        [1, 0],   // 0: right
-        [1, 1],   // 1: down-right (approximate)
-        [0, 1],   // 2: down
-        [-1, 0],  // 3: left
-        [-1, -1], // 4: up-left (approximate)
-        [0, -1],  // 5: up
-    ];
-    const [dqApprox, drApprox] = approxDirs[sector];
-    const trueDirs: [number, number][] = [
-      [0, -1],
-      [1, -1],
-      [1, 0],
-      [0, 1],
-      [-1, 1],
-      [-1, 0],
-    ];
-    let best: [number, number] = trueDirs[0];
-    let bestDist = Number.POSITIVE_INFINITY;
-    for (const [aq, ar] of trueDirs) {
-      const dq = aq - dqApprox;
-      const dr = ar - drApprox;
-      const dist = dq * dq + dr * dr;
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = [aq, ar];
-      }
+    const deg = (norm * 180) / Math.PI;
+    
+    // Axial directions (pointy-top hex): 0=up, 1=up-right, 2=down-right, 3=down, 4=down-left, 5=up-left
+    // Screen angle → axial direction mapping:
+    // right (0°) → [1, 0] (down-right in axial)
+    // down-right (60°) → [0, 1] (down in axial)
+    // down-left (120°) → [-1, 1] (down-left in axial)
+    // left (180°) → [-1, 0] (up-left in axial)
+    // up-left (240°) → [0, -1] (up in axial)
+    // up-right (300°) → [1, -1] (up-right in axial)
+    
+    let dir: [number, number];
+    if (deg >= 330 || deg < 30) {
+      dir = [1, 0]; // right → down-right
+    } else if (deg >= 30 && deg < 90) {
+      dir = [0, 1]; // down-right → down
+    } else if (deg >= 90 && deg < 150) {
+      dir = [-1, 1]; // down-left → down-left
+    } else if (deg >= 150 && deg < 210) {
+      dir = [-1, 0]; // left → up-left
+    } else if (deg >= 210 && deg < 270) {
+      dir = [0, -1]; // up-left → up
+    } else {
+      dir = [1, -1]; // up-right → up-right
     }
-    return best;
+    
+    return dir;
   }
 
   // Tick loop (12 ticks/sec)
@@ -674,7 +673,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         const capCenterY = baseY;
         const joyOuterRadius = 40;
         const capRadius = 30;
-        const eatCenterX = currentCanvas.width - margin;
+        const eatCenterX = currentCanvas.width - margin - inward;
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
 
@@ -756,7 +755,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         const capCenterX = currentCanvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
-        const eatCenterX = currentCanvas.width - margin;
+        const eatCenterX = currentCanvas.width - margin - inward;
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
         const dCap = Math.hypot(x - capCenterX, y - capCenterY);
@@ -797,115 +796,48 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
-  const uniformHexSize = 40; // px, larger across panel
-  // Diamond cluster of 8 hexes (flat-top), center empty gap
-  // Positions relative to center: two lines of 3 and singles left/right
-  const clusterPositions = [
-    { x: 0, y: 0 }, // center gap
-    // Top line of 3
-    { x: -uniformHexSize * 0.87, y: -uniformHexSize * 0.5 },
-    { x: 0,                     y: -uniformHexSize * 1 },
-    { x: +uniformHexSize * 0.87, y: -uniformHexSize * 0.5 },
-    // Bottom line of 3
-    { x: -uniformHexSize * 0.87, y: +uniformHexSize * 0.5 },
-    { x: 0,                     y: +uniformHexSize * 1 },
-    { x: +uniformHexSize * 0.87, y: +uniformHexSize * 0.5 },
-    // Singles left/right
-    { x: -uniformHexSize * 1.74, y: 0 },
-    { x: +uniformHexSize * 1.74, y: 0 },
-  ];
-  // Order colors to fill 8 ring positions: left -> top row (3) -> right -> bottom row (3)
-  const middleColors = mergedParams.ColorPalette.map((_, i) => i)
-    .filter(i => i !== mergedParams.PlayerBaseColorIndex && i !== antagonistIndex);
-  const ringOrder = [
-    antagonistIndex,
-    ...(middleColors.slice(0, 3)),
-    mergedParams.PlayerBaseColorIndex,
-    ...(middleColors.slice(3, 6)),
-  ];
 
   return (
     <div className="game-root">
       <div className="game-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', justifyContent: 'space-between' }}>
           {/* Palette cluster with center showing chance/state */}
-          <div style={{ position: 'relative', width: '100%', height: 120 }}>
-            {/* ring hexes */}
-            {clusterPositions.slice(1).map((pos, i) => {
-              const colorIdx = ringOrder[i % ringOrder.length];
-              const color = mergedParams.ColorPalette[colorIdx];
-              const cnt = eatenCounts[color] || 0;
-              const isHover = colorIdx === hoverColorIndex;
-              return (
-                <svg
-                  key={color + i}
-                  width={uniformHexSize}
-                  height={uniformHexSize}
-                  viewBox="-1 -1 2 2"
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(${pos.x - uniformHexSize / 2}px, ${pos.y - uniformHexSize / 2}px)`,
-                  }}
-                >
-                  <polygon
-                    points={Array.from({ length: 6 }, (_, k) => {
-                      const ang = (Math.PI / 180) * (60 * k); // flat-top
-                      const r = 0.98;
-                      const px = r * Math.cos(ang);
-                      const py = r * Math.sin(ang);
-                      return `${px},${py}`;
-                    }).join(' ')}
-                    fill={color}
-                    stroke={isHover ? '#FFFFFF' : '#BBBBBB'}
-                    strokeWidth={0.12}
-                  />
-                  {cnt > 0 ? (
-                    <text x={0} y={0.08} textAnchor="middle" dominantBaseline="middle" fontSize="0.9" fill="#FFFFFF">{cnt}</text>
-                  ) : null}
-                </svg>
-              );
-            })}
-            {/* center hex with chance/state */}
-            <svg
-              width={uniformHexSize}
-              height={uniformHexSize}
-              viewBox="-1 -1 2 2"
-              style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(${-uniformHexSize / 2}px, ${-uniformHexSize / 2}px)` }}
-            >
-              <text x={0} y={0} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#FFFFFF">
-                {gameState.capturedCell ? 'Kept' : (chance !== null && hoverColorIndex !== null ? `${chance}%` : '')}
-              </text>
-            </svg>
-          </div>
+          <PaletteCluster
+            colorPalette={mergedParams.ColorPalette}
+            playerBaseColorIndex={mergedParams.PlayerBaseColorIndex}
+            antagonistIndex={antagonistIndex}
+            eatenCounts={eatenCounts}
+            hoverColorIndex={hoverColorIndex}
+            capturedCell={!!gameState.capturedCell}
+            chance={chance}
+          />
           {/* Info button (mobile only) */}
-            {isMobileLayout && (
-              <button
-                type="button"
-                onClick={() => setIsMobileInfoOpen(v => !v)}
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  border: '1px solid #ffffff88',
-                  background: isMobileInfoOpen ? '#ffffff22' : 'transparent',
-                  color: '#fff',
-                  fontSize: 13,
-                  padding: 0,
-                  cursor: 'pointer',
-                }}
-              >
-                i
-              </button>
-            )}
+          {isMobileLayout && (
+            <button
+              type="button"
+              onClick={() => setIsMobileInfoOpen(v => !v)}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                border: '1px solid #ffffff88',
+                background: isMobileInfoOpen ? '#ffffff22' : 'transparent',
+                color: '#fff',
+                fontSize: 13,
+                padding: 0,
+                cursor: 'pointer',
+              }}
+            >
+              i
+            </button>
+          )}
         </div>
         {!isMobileLayout && <ControlsDesktop />}
       </div>
       {/* Controls blocks inserted separately for desktop and mobile */}
 
       {isMobileLayout && isMobileInfoOpen && (
-        <ControlsMobile onClose={() => setIsMobileInfoOpen(false)} topOffset={80} />
+        <ControlsMobile onClose={() => setIsMobileInfoOpen(false)} topOffset={96} />
       )}
       <div ref={canvasContainerRef} className="game-field">
         <canvas ref={canvasRef} style={{ display: 'block' }} />
