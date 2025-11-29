@@ -99,10 +99,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           return;
         }
         spaceIsDownRef.current = true;
-        setGameState(prev => {
-          if (prev.capturedCell) return dropCarried(prev);
-          return beginCaptureCharge(prev);
-        });
+        // Enter action mode (do not directly start capture/release)
+        setGameState(prev => ({ ...prev, isActionMode: true }));
         return;
       }
       if (e.key === 'e' || e.key === 'E') {
@@ -125,20 +123,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     function handleKeyUp(e: KeyboardEvent) {
       if (e.code === 'Space') {
         if (!spaceIsDownRef.current) {
-          // Spurious keyup without a tracked down
           return;
         }
         spaceIsDownRef.current = false;
-        // При отпускании Space: если зарядка ещё идёт и не достигла порога,
-        // просто отменяем её без попытки захвата. Если порог уже достигнут,
-        // авто-захват произошёл внутри tick, здесь ничего не делаем.
         setGameState(prev => {
-          if (prev.captureChargeStartTick === null) return prev;
-          const heldTicks = prev.tick - prev.captureChargeStartTick;
-          if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-            return { ...prev, captureChargeStartTick: null };
+          if (prev.captureChargeStartTick !== null) {
+            const heldTicks = prev.tick - prev.captureChargeStartTick;
+            if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+              return { ...prev, captureChargeStartTick: null, isActionMode: false };
+            }
+            return { ...prev, isActionMode: false };
           }
-          return { ...prev, captureChargeStartTick: null };
+          return { ...prev, isActionMode: false };
         });
       }
     }
@@ -222,21 +218,20 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
         }}
         onCapture={() => {
-          setGameState(prev => {
-            if (prev.capturedCell) return dropCarried(prev);
-            return beginCaptureCharge(prev);
-          });
+          // Mobile press -> enter action mode
+          setGameState(prev => ({ ...prev, isActionMode: true }));
         }}
         onRelease={() => {
+          // Mobile release -> exit action mode, cancel incomplete charge
           setGameState(prev => {
-            if (prev.capturedCell) {
-              return beginRelease(prev);
-            }
-            // If not carrying, treat as release of charge: cancel charge without capture
             if (prev.captureChargeStartTick !== null) {
-              return { ...prev, captureChargeStartTick: null };
+              const heldTicks = prev.tick - prev.captureChargeStartTick;
+              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+                return { ...prev, captureChargeStartTick: null, isActionMode: false };
+              }
+              return { ...prev, isActionMode: false };
             }
-            return prev;
+            return { ...prev, isActionMode: false };
           });
         }}
         onEat={() => {

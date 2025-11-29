@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Params, GameState, hoveredCell, hoveredCellInventory, isCarryFlickerOn } from '../logic/pureLogic';
+import { Params, GameState, hoveredCell, hoveredCellInventory } from '../logic/pureLogic';
 
 const HEX_SIZE = 10; // pixels
 const FLASH_SUCCESS_COLOR = '#00BFFF';
@@ -427,129 +427,105 @@ export const GameField: React.FC<GameFieldProps> = ({
               const e = (baseEdge + i) % 6;
               drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
             }
+          } else if (gameState.isActionMode) {
+            // Action mode: two opposite edges rotating one step per tick
+            const edgeA = gameState.tick % 6;
+            const edgeB = (edgeA + 3) % 6;
+            drawEdgeHighlight(ctx, scaledX, scaledY, edgeA, HEX_SIZE * scale, '#FFFFFF');
+            drawEdgeHighlight(ctx, scaledX, scaledY, edgeB, HEX_SIZE * scale, '#FFFFFF');
           } else {
-            // Default: highlight vertices (one per tick)
-            const angleDeg = 60;
-            const pts: [number, number][] = [];
-            for (let i = 0; i < 6; i++) {
-              const angle = (Math.PI / 180) * (angleDeg * i);
-              pts.push([scaledX + HEX_SIZE * scale * Math.cos(angle), scaledY + HEX_SIZE * scale * Math.sin(angle)]);
-            }
-            const v = (gameState.tick % 6);
-            const [vx, vy] = pts[v];
-            ctx.fillStyle = '#FFFFFF';
-            ctx.beginPath();
-            ctx.arc(vx, vy, 1.8 * scale, 0, Math.PI * 2);
-            ctx.fill();
+            // Default (idle): single rotating edge
+            const now = performance.now();
+            const e = computeEdgeIndex(now);
+            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
           }
         }
 
-        // Protagonist flower (skip in inventory)
+        // Turtle (world): pivot around captured hex when carrying; head faces cursor.
         if (!isInventory) {
-        const turtleCenterQ = protagonistCell.q;
-        const turtleCenterR = protagonistCell.r;
+          const carrying = !!gameState.capturedCell;
+          const releasing = (gameState as any).isReleasing;
+          const pivotQ = carrying && !releasing ? gameState.capturedCell!.q : protagonistCell.q;
+          const pivotR = carrying && !releasing ? gameState.capturedCell!.r : protagonistCell.r;
+          const pivotPos = hexToPixel(pivotQ, pivotR);
+          const pivotX = centerX + pivotPos.x * scale;
+          const pivotY = centerY + pivotPos.y * scale;
 
-        const turtlePos = hexToPixel(turtleCenterQ, turtleCenterR);
-        const turtleX = centerX + turtlePos.x * scale;
-        const turtleY = centerY + turtlePos.y * scale;
-
-        const parentRadius = isInventory ? HEX_SIZE * scale / 3 : HEX_SIZE * scale;
-        const centerRadius = parentRadius / 3;
-
-        // In inventory: position turtle head pressed to cursor edge
-        // In world: turtle stays at protagonist position, just rotates to face cursor
-        let turtleOffsetX = turtleX;
-        let turtleOffsetY = turtleY;
-        let cursorAngle = 0;
-        if (isInventory) {
           const hoverPos = hexToPixel(hover.q, hover.r);
-          const hx = centerX + hoverPos.x * scale;
-          const hy = centerY + hoverPos.y * scale;
-          const vx = hx - turtleX;
-          const vy = hy - turtleY;
-          cursorAngle = Math.atan2(vy, vx);
-          const offsetDist = HEX_SIZE * scale * 0.55;
-          turtleOffsetX = turtleX + Math.cos(cursorAngle) * offsetDist;
-          turtleOffsetY = turtleY + Math.sin(cursorAngle) * offsetDist;
-        } else {
-          const hoverPos = hexToPixel(hover.q, hover.r);
-          const hx = centerX + hoverPos.x * scale;
-          const hy = centerY + hoverPos.y * scale;
-          const vx = hx - turtleX;
-          const vy = hy - turtleY;
-          cursorAngle = Math.atan2(vy, vx);
-        }
+            const hx = centerX + hoverPos.x * scale;
+            const hy = centerY + hoverPos.y * scale;
+            const vx = hx - pivotX;
+            const vy = hy - pivotY;
+            const cursorAngle = Math.atan2(vy, vx);
 
-        const smallCenters: { x: number; y: number }[] = [];
-        for (let i = 0; i < 6; i++) {
-          const ang = (Math.PI / 180) * (60 * i - 30);
-          const ringRadius = centerRadius * 2.05;
-          const cx = turtleOffsetX + ringRadius * Math.cos(ang);
-          const cy = turtleOffsetY + ringRadius * Math.sin(ang);
-          smallCenters.push({ x: cx, y: cy });
-        }
+          const parentRadius = HEX_SIZE * scale;
+          const centerRadius = parentRadius / 3;
+          const shellRadius = parentRadius / Math.sqrt(3);
+          const turtleOffsetX = pivotX;
+          const turtleOffsetY = pivotY;
 
-        let headIndex = 0;
-        if (!(protagonistCell.q === hover.q && protagonistCell.r === hover.r)) {
-          const targetAngle = cursorAngle;
+          // Petal centers
+          const smallCenters: { x: number; y: number }[] = [];
+          for (let i = 0; i < 6; i++) {
+            const ang = (Math.PI / 180) * (60 * i - 30);
+            const ringRadius = centerRadius * 2.05;
+            smallCenters.push({
+              x: turtleOffsetX + ringRadius * Math.cos(ang),
+              y: turtleOffsetY + ringRadius * Math.sin(ang),
+            });
+          }
 
-          let bestDiff = Number.POSITIVE_INFINITY;
+          // Choose head toward cursor
+          let headIndex = 0;
+          let bestDiff = Infinity;
           for (let i = 0; i < 6; i++) {
             const c = smallCenters[i];
-            const px = c.x - turtleX;
-            const py = c.y - turtleY;
+            const px = c.x - turtleOffsetX;
+            const py = c.y - turtleOffsetY;
             const petalAngle = Math.atan2(py, px);
-            const diff = Math.abs(Math.atan2(Math.sin(targetAngle - petalAngle), Math.cos(targetAngle - petalAngle)));
+            const diff = Math.abs(Math.atan2(Math.sin(cursorAngle - petalAngle), Math.cos(cursorAngle - petalAngle)));
             if (diff < bestDiff) {
               bestDiff = diff;
               headIndex = i;
             }
           }
-        }
+          const tailIndex = (headIndex + 3) % 6;
+          const baseColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#FFFFFF';
 
-        const tailIndex = (headIndex + 3) % 6;
-
-        const baseColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#FFFFFF';
-        for (let i = 0; i < smallCenters.length; i++) {
-          if (i === tailIndex) continue;
-          const c = smallCenters[i];
-          const isHead = i === headIndex;
-          const radius = isHead ? centerRadius : parentRadius / 9;
-          const fill = isHead ? baseColor : 'rgba(255,255,255,0.6)';
-          const strokeWidth = isInventory ? 0.3 * scale : 0.8 * scale;
-          drawHex(ctx, c.x, c.y, radius, fill, '#FFFFFF', strokeWidth);
-          if (isHead) {
-            // Eyes: placed on line perpendicular to head direction
-            const hx = c.x - turtleX;
-            const hy = c.y - turtleY;
-            const len = Math.hypot(hx, hy) || 1;
-            // Head direction unit vector
-            const ux = hx / len;
-            const uy = hy / len;
-            // Perpendicular unit vector
-            const px = -uy;
-            const py = ux;
-            const eyeOffset = radius * 0.35;
-            const eyeSize = radius * 0.12;
-            ctx.fillStyle = '#000000';
-            ctx.beginPath();
-            ctx.arc(c.x + px * eyeOffset, c.y + py * eyeOffset, eyeSize, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(c.x - px * eyeOffset, c.y - py * eyeOffset, eyeSize, 0, Math.PI * 2);
-            ctx.fill();
+          for (let i = 0; i < smallCenters.length; i++) {
+            if (i === tailIndex) continue;
+            const c = smallCenters[i];
+            const isHead = i === headIndex;
+            const radius = isHead ? centerRadius : parentRadius / 9;
+            const fill = isHead ? baseColor : 'rgba(255,255,255,0.6)';
+            drawHex(ctx, c.x, c.y, radius, fill, '#FFFFFF', 0.8 * scale);
+            if (isHead) {
+              // Eyes perpendicular to head direction
+              const hx2 = c.x - turtleOffsetX;
+              const hy2 = c.y - turtleOffsetY;
+              const len = Math.hypot(hx2, hy2) || 1;
+              const ux = hx2 / len;
+              const uy = hy2 / len;
+              const px = -uy;
+              const py = ux;
+              const eyeOffset = radius * 0.35;
+              const eyeSize = radius * 0.12;
+              ctx.fillStyle = '#000000';
+              ctx.beginPath();
+              ctx.arc(c.x + px * eyeOffset, c.y + py * eyeOffset, eyeSize, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.beginPath();
+              ctx.arc(c.x - px * eyeOffset, c.y - py * eyeOffset, eyeSize, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
-        }
 
-        const shellRadius = parentRadius / Math.sqrt(3);
-        const shellStroke = isInventory ? 0.3 * scale : 0.8 * scale;
-        ctx.save();
-        ctx.translate(turtleOffsetX, turtleOffsetY);
-        ctx.rotate((30 * Math.PI) / 180);
-        drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', shellStroke);
-        ctx.restore();
-
-        // No separate overlay for carried hex; it stays in grid with white outline
+          // Shell
+          ctx.save();
+          ctx.translate(turtleOffsetX, turtleOffsetY);
+          ctx.rotate((30 * Math.PI) / 180);
+          drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', 0.8 * scale);
+          ctx.restore();
         }
       }
 
@@ -621,13 +597,12 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
         ctx.restore();
 
-        // CAP/REL button (show CAP always, REL when carrying)
+        // ACT button (action mode hold)
         const capCenterX = canvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
-        const showCap = !isInventory && !gameState.capturedCell;
-        const showRel = !isInventory && !!gameState.capturedCell;
-        if (showCap || showRel) {
+        const showAct = !isInventory; // always available in world
+        if (showAct) {
           drawHex(
             ctx,
             capCenterX,
@@ -641,7 +616,7 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.font = '15px sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(showRel ? 'REL' : 'CAP', capCenterX, capCenterY + 1);
+          ctx.fillText('ACT', capCenterX, capCenterY + 1);
         }
 
         // EAT button

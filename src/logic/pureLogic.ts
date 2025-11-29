@@ -49,6 +49,7 @@ export interface GameState {
   facingDirIndex: number; // 0..5, protagonist facing direction
   paletteCounts?: Record<string, number>; // eaten counters by color hex value
   isReleasing?: boolean; // true when turtle moves to cursor to release
+  isActionMode?: boolean; // true while player is holding action (Space / ACT button)
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -157,6 +158,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     facingDirIndex: 0,
     grid,
     isReleasing: false,
+    isActionMode: false,
   };
 }
 
@@ -293,7 +295,53 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = { ...next, captureCooldownTicksRemaining: next.captureCooldownTicksRemaining - 1 };
   }
 
-  // Move protagonist toward cursor during capture charge (world mode only)
+  // Action mode movement (world): move protagonist toward cursor until adjacent, but never enter cursor cell.
+  if (next.isActionMode && next.activeField === 'world' && !next.isReleasing && next.captureChargeStartTick === null) {
+    const { q: pq, r: pr } = next.protagonist;
+    const { q: cq, r: cr } = next.cursor;
+    const isAdjacent = axialDirections.some(d => pq + d.q === cq && pr + d.r === cr);
+    if (!isAdjacent) {
+      const movePeriod = 2; // 1 cell per 2 ticks during action mode
+      if (next.tick % movePeriod === 0) {
+        let bestDir: Axial | null = null;
+        let bestDist = Infinity;
+        for (const dir of axialDirections) {
+          const nq = pq + dir.q;
+          const nr = pr + dir.r;
+          // Do not step into cursor cell
+          if (nq === cq && nr === cr) continue;
+          // Do not step into captured hex cell
+          if (next.capturedCell && nq === next.capturedCell.q && nr === next.capturedCell.r) continue;
+          const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
+          if (dist < bestDist) { bestDist = dist; bestDir = dir; }
+        }
+        if (bestDir) {
+          const facingIndex = axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
+          next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r }, facingDirIndex: facingIndex >= 0 ? facingIndex : next.facingDirIndex };
+        }
+      }
+    } else {
+      // Adjacent: trigger capture or release initiation.
+      const cursorCell = getCell(next.grid, next.cursor);
+      if (next.capturedCell && cursorCell && cursorCell.colorIndex === null) {
+        // Move carried hex into cursor cell then start release.
+        const carriedCell = getCell(next.grid, next.capturedCell);
+        if (carriedCell && carriedCell.colorIndex !== null) {
+          const movedColor = carriedCell.colorIndex;
+          const updated = updateCells(next.grid, [
+            { ...carriedCell, colorIndex: null },
+            { ...cursorCell, colorIndex: movedColor },
+          ]);
+          next = { ...next, grid: updated, capturedCell: { ...next.cursor }, isReleasing: true };
+        }
+      } else if (!next.capturedCell && cursorCell && cursorCell.colorIndex !== null && next.captureCooldownTicksRemaining <= 0) {
+        // Begin capture charge when adjacent and hex present under cursor.
+        next = { ...next, captureChargeStartTick: next.tick };
+      }
+    }
+  }
+
+  // Move protagonist toward cursor during capture charge (legacy world mode movement if started by adjacency)
   if (next.captureChargeStartTick !== null && next.activeField === 'world') {
     const { q: pq, r: pr } = next.protagonist;
     const { q: cq, r: cr } = next.cursor;
@@ -310,6 +358,10 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
         for (const dir of axialDirections) {
           const nq = pq + dir.q;
           const nr = pr + dir.r;
+          // Do not step into cursor cell
+          if (nq === cq && nr === cr) continue;
+          // Do not step into captured hex cell
+          if (next.capturedCell && nq === next.capturedCell.q && nr === next.capturedCell.r) continue;
           const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
           if (dist < bestDist) {
             bestDist = dist;
@@ -317,7 +369,8 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
           }
         }
         if (bestDir) {
-          next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r } };
+          const facingIndex = axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
+          next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r }, facingDirIndex: facingIndex >= 0 ? facingIndex : next.facingDirIndex };
         }
       }
     }
@@ -329,12 +382,16 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     if (next.tick % movePeriod === 0) {
       const pq = next.protagonist.q, pr = next.protagonist.r;
       const cq = next.cursor.q, cr = next.cursor.r;
-      // Choose movement direction for turtle (toward cursor)
+      // Choose movement direction for turtle (toward cursor), excluding the cell with captured hex
       let bestDir: Axial | null = null;
       let bestDist = Infinity;
       for (const dir of axialDirections) {
         const nq = pq + dir.q;
         const nr = pr + dir.r;
+        // Do not move into the cell containing the captured hex
+        if (next.capturedCell && nq === next.capturedCell.q && nr === next.capturedCell.r) {
+          continue;
+        }
         // Distance from next position to cursor (using axial metric approximation)
         const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
         if (dist < bestDist) { bestDist = dist; bestDir = dir; }
@@ -445,11 +502,20 @@ export function attemptMoveToOnActive(state: GameState, params: Params, target: 
 }
 
 // ---------- Capture Flow ----------
-// Begin charge (Space down). Does not require hovered cell to be colored.
+// Begin charge (Space down). In world mode, only starts if cursor cell contains hex.
 export function beginCaptureCharge(state: GameState): GameState {
   if (state.capturedCell !== null) return state; // dropping is handled elsewhere
   if (state.captureCooldownTicksRemaining > 0) return state;
   if (state.captureChargeStartTick !== null) return state; // already charging
+  
+  // In world mode, charge only starts if cursor cell contains a hex
+  if (state.activeField === 'world') {
+    const cursorCell = hoveredCell(state);
+    if (!cursorCell || cursorCell.colorIndex === null) {
+      return state; // no hex at cursor, cannot start charge
+    }
+  }
+  
   const next = { ...state, captureChargeStartTick: state.tick };
   console.log(`[capture] begin at tick=${state.tick}`);
   return next;
@@ -515,6 +581,26 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
       capturedCell: { q: cell.q, r: cell.r },
       flash: { type: "success", startedTick: next.tick },
     };
+    // Ensure protagonist is not in the same cell as captured; keep them adjacent.
+    if (next.capturedCell && next.protagonist.q === next.capturedCell.q && next.protagonist.r === next.capturedCell.r) {
+      const pq = next.protagonist.q, pr = next.protagonist.r;
+      const cq = next.capturedCell.q, cr = next.capturedCell.r;
+      let bestDir: Axial | null = null;
+      let bestDist = Infinity;
+      for (const dir of axialDirections) {
+        const nq = pq + dir.q;
+        const nr = pr + dir.r;
+        // Must not be the captured cell and must remain in grid
+        if (nq === cq && nr === cr) continue;
+        if (!axialInDisk(params.GridRadius, nq, nr)) continue;
+        // Prefer the smallest distance to captured to keep adjacency while not overlapping
+        const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
+        if (dist < bestDist) { bestDist = dist; bestDir = dir; }
+      }
+      if (bestDir) {
+        next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r } };
+      }
+    }
   } else {
     // failure
     console.log(`[capture] FAIL at tick=${next.tick}, held=${heldTicks}, roll=${roll.toFixed(2)}, chance=${chance}`);
