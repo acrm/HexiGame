@@ -89,3 +89,7 @@
 - 25w48-0.46 — Enforce protagonist/captured adjacency; add desktop click & mobile tap cursor focus
 
 - 25w48-0.47 — Turtle render pivots on protagonist; add 6-tick post-release/drop cooldown gating action mode
+
+- 25w48-0.48 — Allow release to continue after action release; don't cancel isReleasing on Space/ACT up
+
+- 25w48-0.49 — Fix release target drop and add releaseTarget handling

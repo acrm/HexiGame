@@ -129,16 +129,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }
         spaceIsDownRef.current = false;
         setGameState(prev => {
-          // Abort release movement when action ends
-            const baseReset = { ...prev, isActionMode: false, isReleasing: prev.isReleasing ? false : prev.isReleasing };
-            if (prev.captureChargeStartTick !== null) {
-              const heldTicks = prev.tick - prev.captureChargeStartTick;
-              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-                return { ...baseReset, captureChargeStartTick: null };
-              }
-              return baseReset;
+          // Exit action mode; do not cancel an already-started release movement
+          const baseReset = { ...prev, isActionMode: false };
+          if (prev.captureChargeStartTick !== null) {
+            const heldTicks = prev.tick - prev.captureChargeStartTick;
+            if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
+              return { ...baseReset, captureChargeStartTick: null };
             }
             return baseReset;
+          }
+          return baseReset;
         });
       }
     }
@@ -229,9 +229,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           });
         }}
         onRelease={() => {
-          // Mobile release -> exit action mode, cancel incomplete charge and stop release movement
+          // Mobile release -> exit action mode, cancel incomplete charge
           setGameState(prev => {
-            const baseReset = { ...prev, isActionMode: false, isReleasing: prev.isReleasing ? false : prev.isReleasing };
+            const baseReset = { ...prev, isActionMode: false };
             if (prev.captureChargeStartTick !== null) {
               const heldTicks = prev.tick - prev.captureChargeStartTick;
               if (heldTicks < mergedParams.CaptureHoldDurationTicks) {

@@ -50,6 +50,7 @@ export interface GameState {
   paletteCounts?: Record<string, number>; // eaten counters by color hex value
   isReleasing?: boolean; // true when turtle moves to cursor to release
   isActionMode?: boolean; // true while player is holding action (Space / ACT button)
+  releaseTarget?: Axial | null; // cell where an ongoing release should drop the carried hex
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -159,6 +160,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     grid,
     isReleasing: false,
     isActionMode: false,
+    releaseTarget: null,
   };
 }
 
@@ -332,7 +334,7 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
             { ...carriedCell, colorIndex: null },
             { ...cursorCell, colorIndex: movedColor },
           ]);
-          next = { ...next, grid: updated, capturedCell: { ...next.cursor }, isReleasing: true };
+          next = { ...next, grid: updated, capturedCell: { ...next.cursor }, isReleasing: true, releaseTarget: { ...next.cursor } };
         }
       } else if (!next.capturedCell && cursorCell && cursorCell.colorIndex !== null && next.captureCooldownTicksRemaining <= 0) {
         // Begin capture charge when adjacent and hex present under cursor.
@@ -377,8 +379,8 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   }
 
   // During release phase: move turtle + carried hex toward cursor at carry speed
-  // Requires action mode to stay active; releasing Space aborts further movement.
-  if (next.isReleasing && next.isActionMode && next.activeField === 'world' && next.capturedCell) {
+  // Release movement continues once started, independent of action mode.
+  if (next.isReleasing && next.activeField === 'world' && next.capturedCell) {
     const movePeriod = 4; // 1 cell per 4 ticks when carrying
     if (next.tick % movePeriod === 0) {
       const pq = next.protagonist.q, pr = next.protagonist.r;
@@ -418,10 +420,11 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
             next = { ...next, grid: nextGrid, capturedCell: headCell };
           }
         }
-        // Drop when head cell reaches cursor
-        if (headCell.q === cq && headCell.r === cr) {
-          // Release completes: clear capture and start cooldown
-          next = { ...next, isReleasing: false, capturedCell: null, captureCooldownTicksRemaining: Math.max(next.captureCooldownTicksRemaining, 6) };
+        // Drop when head cell reaches the original release target (cursor at release start)
+        const target = next.releaseTarget ?? { q: cq, r: cr };
+        if (headCell.q === target.q && headCell.r === target.r) {
+          // Release completes: clear capture and start cooldown; clear releaseTarget
+          next = { ...next, isReleasing: false, capturedCell: null, captureCooldownTicksRemaining: Math.max(next.captureCooldownTicksRemaining, 6), releaseTarget: null };
         }
       }
     }
@@ -635,14 +638,14 @@ export function endCaptureChargeOnActive(state: GameState, params: Params, rng: 
 // Drop carried color (Space press while carrying). Pure: just clears carrying anchor.
 export function dropCarried(state: GameState): GameState {
   if (state.capturedCell === null) return state;
-  return { ...state, capturedCell: null, captureCooldownTicksRemaining: Math.max(state.captureCooldownTicksRemaining, 6) };
+  return { ...state, capturedCell: null, captureCooldownTicksRemaining: Math.max(state.captureCooldownTicksRemaining, 6), releaseTarget: null };
 }
 
 // Begin releasing: turtle will move with carried hex toward cursor and drop on arrival
 export function beginRelease(state: GameState): GameState {
   if (state.activeField !== 'world') return state;
   if (state.capturedCell === null) return state;
-  return { ...state, isReleasing: true };
+  return { ...state, isReleasing: true, releaseTarget: { ...state.cursor } };
 }
 
 // Consume the currently carried cell: remove its color from grid and increment palette counter.
