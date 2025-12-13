@@ -138,7 +138,7 @@ All durations expressed in **ticks** (1 tick = 1/12 second ≈ 83.33ms).
 - **Default**: `100`
 - **Description**: Base percent before distance penalties
 - **Effect**: Maximum capture chance (at distance 0)
-- **Note**: Current formula doesn't use this directly; uses maxDist calculation
+- **Note**: Defined in DefaultParams but current formula uses direct 100% calculation instead
 
 ### ChancePenaltyPerPaletteDistance
 
@@ -146,9 +146,9 @@ All durations expressed in **ticks** (1 tick = 1/12 second ≈ 83.33ms).
 - **Default**: `20` (20% per distance unit)
 - **Description**: Percent deducted per palette index distance
 - **Effect**: Rate of probability decay with color distance
-- **Note**: Not used in current formula (uses linear interpolation instead)
+- **Note**: Defined in DefaultParams but not used; current formula uses linear interpolation based on maxDist instead
 
-**Current Formula** (overrides penalty parameter):
+**Current Formula Implementation**:
 ```javascript
 maxDist = floor(paletteLength / 2)  // 4 for 8 colors
 dist = paletteDistance(colorIndex, playerBaseIndex, paletteLength)

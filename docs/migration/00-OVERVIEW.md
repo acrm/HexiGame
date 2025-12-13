@@ -92,9 +92,9 @@ The application follows a clean separation of concerns:
 - `09-INPUT-HANDLING.md` — Keyboard, mouse, and touch input
 - `10-UI-COMPONENTS.md` — React components and HUD elements
 - `11-MOBILE-CONTROLS.md` — Touch controls and mobile-specific features
-- `12-AUDIO-VISUAL-FEEDBACK.md` — Animations, flashes, and visual states
-- `13-PARAMETERS.md` — Configuration and tunable values
-- `14-BUILD-SYSTEM.md` — Versioning, build, and deployment
+- `12-PARAMETERS.md` — Configuration and tunable values
+- `13-BUILD-SYSTEM.md` — Versioning, build, and deployment
+- `14-CHECKLIST.md` — Migration implementation checklist
 
 ## Version Information
 
