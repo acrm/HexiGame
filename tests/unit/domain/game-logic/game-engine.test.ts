@@ -10,7 +10,7 @@ describe('GameEngine', () => {
   describe('tick', () => {
     it('increments tick counter by 1', () => {
       // This test will fail until GameEngine.tick() is implemented
-      expect(true).toBe(false); // Placeholder - forces failure
+      throw new Error('Not implemented: GameEngine.tick() - should increment tick counter by 1');
       
       // Expected implementation:
       // const state = createTestState({ tick: 0 });
@@ -20,7 +20,7 @@ describe('GameEngine', () => {
     });
     
     it('preserves immutability - returns new state object', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.tick() - should preserve immutability');
       
       // const state = createTestState();
       // const newState = engine.tick(state, params);
@@ -29,7 +29,7 @@ describe('GameEngine', () => {
     });
     
     it('decrements cooldown by 1 when cooldown is active', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.tick() - should decrement active cooldown');
       
       // const state = createTestState({ captureCooldownTicksRemaining: 10 });
       // const newState = engine.tick(state, params);
@@ -37,7 +37,7 @@ describe('GameEngine', () => {
     });
     
     it('does not decrement cooldown below 0', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.tick() - should not decrement cooldown below 0');
       
       // const state = createTestState({ captureCooldownTicksRemaining: 0 });
       // const newState = engine.tick(state, params);
@@ -45,7 +45,7 @@ describe('GameEngine', () => {
     });
     
     it('clears flash after duration ticks have elapsed', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.tick() - should clear flash after duration');
       
       // const params = createTestParams({ CaptureFlashDurationTicks: 2 });
       // const flash = { type: 'success', startedTick: 0 };
@@ -55,7 +55,7 @@ describe('GameEngine', () => {
     });
     
     it('preserves flash before duration has elapsed', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.tick() - should preserve flash before duration');
       
       // const params = createTestParams({ CaptureFlashDurationTicks: 2 });
       // const flash = { type: 'success', startedTick: 0 };
@@ -65,7 +65,7 @@ describe('GameEngine', () => {
     });
     
     it('decrements timer by 1 every GameTickRate ticks', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.tick() - should decrement timer every GameTickRate ticks');
       
       // const params = createTestParams({ GameTickRate: 12 });
       // const state = createTestState({ tick: 11, remainingSeconds: 100 });
@@ -74,7 +74,7 @@ describe('GameEngine', () => {
     });
     
     it('does not decrement timer on non-GameTickRate ticks', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.tick() - should not decrement timer on non-GameTickRate ticks');
       
       // const params = createTestParams({ GameTickRate: 12 });
       // const state = createTestState({ tick: 10, remainingSeconds: 100 });
@@ -85,7 +85,7 @@ describe('GameEngine', () => {
   
   describe('canCapture', () => {
     it('returns eligible when all conditions met', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.canCapture() - should return eligible when all conditions met');
       
       // const state = StateFactory.adjacentToColoredHex(1);
       // const result = engine.canCapture(state, params);
@@ -94,7 +94,7 @@ describe('GameEngine', () => {
     });
     
     it('returns ineligible when already carrying', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.canCapture() - should return ineligible when already carrying');
       
       // const state = StateFactory.withCarriedHex({ q: 0, r: 0 });
       // const result = engine.canCapture(state, params);
@@ -103,7 +103,7 @@ describe('GameEngine', () => {
     });
     
     it('returns ineligible when on cooldown', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.canCapture() - should return ineligible when on cooldown');
       
       // const state = StateFactory.withCooldown(10);
       // const result = engine.canCapture(state, params);
@@ -112,7 +112,7 @@ describe('GameEngine', () => {
     });
     
     it('returns ineligible when cursor cell is empty', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.canCapture() - should return ineligible when cursor cell is empty');
       
       // const state = createTestState(); // Empty grid
       // const result = engine.canCapture(state, params);
@@ -121,7 +121,7 @@ describe('GameEngine', () => {
     });
     
     it('returns ineligible when not adjacent to cursor', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.canCapture() - should return ineligible when not adjacent to cursor');
       
       // const protagonist = { q: 0, r: 0 };
       // const cursor = { q: 3, r: 3 }; // Far away
@@ -132,7 +132,7 @@ describe('GameEngine', () => {
     });
     
     it('includes capture chance percentage when eligible', () => {
-      expect(true).toBe(false);
+      throw new Error('Not implemented: GameEngine.canCapture() - should include capture chance percentage when eligible');
       
       // const state = StateFactory.adjacentToColoredHex(0); // Same color as player
       // const result = engine.canCapture(state, params);

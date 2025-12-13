@@ -1,5 +1,8 @@
 // Test data builders for creating test states and parameters
-import type { GameState, GameParams, Axial, Cell, HexGrid, FlashState } from '../src/logic/pureLogic';
+// NOTE: Import path assumes future module structure. Update when implementing:
+// - Change to actual module paths when Domain layer is implemented
+// - Currently imports from existing pureLogic.ts for type definitions
+import type { GameState, GameParams, Axial, Cell, HexGrid, FlashState } from '../../src/logic/pureLogic';
 
 /**
  * Create a minimal test game state with optional overrides.
