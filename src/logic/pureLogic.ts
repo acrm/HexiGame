@@ -330,17 +330,10 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   if (standingCell && standingCell.colorIndex !== null) {
     const target = standingCell.colorIndex;
     const current = next.turtleColorIndex ?? params.PlayerBaseColorIndex;
-    // If just started standing on this color, immediate one-step shift toward target
+    // Only shift immediately upon landing on a new colored hex
     if (next.standTargetColorIndex !== target) {
       const stepped = stepTowardsColor(current, target, params.ColorPalette.length);
       next = { ...next, turtleColorIndex: stepped, standTargetColorIndex: target, lastColorShiftTick: next.tick };
-    } else if (current !== target) {
-      // Continue shifting every 6 ticks
-      const lastShift = next.lastColorShiftTick ?? next.tick;
-      if (next.tick - lastShift >= 6) {
-        const stepped = stepTowardsColor(current, target, params.ColorPalette.length);
-        next = { ...next, turtleColorIndex: stepped, lastColorShiftTick: next.tick };
-      }
     }
   } else {
     // Not standing on a colored hex
@@ -616,7 +609,8 @@ export function previewCaptureChanceAtCursor(state: GameState, params: Params): 
   if (state.captureCooldownTicksRemaining > 0) return null;
   const cell = hoveredCell(state);
   if (!cell || cell.colorIndex === null) return null;
-  return computeCaptureChancePercent(params, cell.colorIndex);
+  const turtleColorIndex = state.turtleColorIndex ?? params.PlayerBaseColorIndex;
+  return computeChanceByPlayerIndex(params, turtleColorIndex, cell.colorIndex);
 }
 
 // Utility to test whether flicker should be "on" for the captured cell at this tick

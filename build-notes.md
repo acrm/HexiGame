@@ -105,3 +105,25 @@
 - 2025w50-0.4 — Short/long actions: cursor teleport, turn, short-step, long eat/jump, breadcrumbs path
 
 - 2025w50-0.5 — Breadcrumbs 1/9 #dddddd; turtle color shifts toward hex over time; eat chance uses current turtle color; visuals use turtle color
+
+- 2025w50-0.6 — Turtle color: shift only when entering colored hex (removed periodic 6-tick shifts)
+
+- 2025w50-0.7 — Palette displays color wheel order; chance updates with turtle's current color vs cursor hex
+
+- 2025w51-0.1 — Fix palette color wheel order; breadcrumbs: first 6 #cccccc, rest #999999
+
+- 2025w51-0.2 — Correct palette wheel order to match yellow line sequence
+
+- 2025w51-0.3 — Fix palette order: swap positions 3 and 4 per user diagram
+
+- 2025w51-0.4 — Palette remap: 3→5, 4→3, 5→6, 6→4
+
+- 2025w51-0.5 — Palette: swap 4 and 6 positions
+
+- 2025w51-0.6 — Palette: swap 5 and 6; highlight turtle's current color with green border
+
+- 2025w51-0.7 — Palette: reorder clusterPositions to match color wheel, remove ringOrder mapping
+
+- 2025w51-0.8 — Palette: use axial coordinates (q,r), convert to pixels on render
+
+- 2025w51-0.9 — Revert to pixel coordinates for palette cluster

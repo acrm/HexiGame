@@ -8,6 +8,7 @@ interface PaletteClusterProps {
   hoverColorIndex: number | null;
   capturedCell: boolean;
   chance: number | null;
+  turtleColorIndex?: number;
 }
 
 const PaletteCluster: React.FC<PaletteClusterProps> = ({
@@ -18,53 +19,34 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
   hoverColorIndex,
   capturedCell,
   chance,
+  turtleColorIndex,
 }) => {
   const uniformHexSize = 40; // px, larger across panel
   // Diamond cluster of 8 hexes (flat-top), center empty gap
-  // Positions relative to center: two lines of 3 and singles left/right
+  // Positions arranged in color wheel order 0→1→2→3→4→5→6→7
   const clusterPositions = [
     { x: 0, y: 0 }, // center gap
-    // Top line of 3
-    { x: -uniformHexSize * 0.87, y: -uniformHexSize * 0.5 },
-    { x: 0, y: -uniformHexSize * 1 },
-    { x: +uniformHexSize * 0.87, y: -uniformHexSize * 0.5 },
-    // Bottom line of 3
-    { x: -uniformHexSize * 0.87, y: +uniformHexSize * 0.5 },
-    { x: 0, y: +uniformHexSize * 1 },
-    { x: +uniformHexSize * 0.87, y: +uniformHexSize * 0.5 },
-    // Singles left/right
-    { x: -uniformHexSize * 1.74, y: 0 },
-    { x: +uniformHexSize * 1.74, y: 0 },
+    { x: 0, y: -uniformHexSize * 1 },                    // 0: top-center
+    { x: +uniformHexSize * 0.87, y: -uniformHexSize * 0.5 }, // 1: top-right
+    { x: +uniformHexSize * 1.74, y: 0 },                 // 2: right
+    { x: +uniformHexSize * 0.87, y: +uniformHexSize * 0.5 }, // 3: bottom-right
+    { x: 0, y: +uniformHexSize * 1 },                    // 4: bottom-center
+    { x: -uniformHexSize * 0.87, y: +uniformHexSize * 0.5 }, // 5: bottom-left
+    { x: -uniformHexSize * 1.74, y: 0 },                 // 6: left
+    { x: -uniformHexSize * 0.87, y: -uniformHexSize * 0.5 }, // 7: top-left
   ];
-  // Diamond cluster fills 8 ring positions clockwise from leftmost:
-  // Based on image: pink top-left, orange top-right, purple left, protagonist top-center,
-  // yellow bottom-center, pink right, arrange spectrum between key colors
-  // clusterPositions.slice(1) order: [0]=top-left, [1]=top-center, [2]=top-right,
-  //                                  [3]=bottom-left, [4]=bottom-center, [5]=bottom-right,
-  //                                  [6]=left, [7]=right
-  // Map palette indices to positions per image layout
-  const ringOrder = [
-    7,  // 0: top-left = pink (#FF99FF)
-    0,  // 1: top-center = orange (#FF8000) protagonist
-    1,  // 2: top-right = darker orange (#CC6600)
-    5,  // 3: bottom-left = purple (#9933FF)
-    2,  // 4: bottom-center = yellow (#996600)
-    6,  // 5: bottom-right = light purple (#CC66FF)
-    4,  // 6: left = dark purple (#660099) antagonist
-    3,  // 7: right = dark yellow (#666600)
-  ];
-
+  
   return (
     <div style={{ position: 'relative', width: '100%', height: 120 }}>
       {/* ring hexes */}
-      {clusterPositions.slice(1).map((pos, i) => {
-        const colorIdx = ringOrder[i % ringOrder.length];
+      {clusterPositions.slice(1).map((pos, colorIdx) => {
         const color = colorPalette[colorIdx];
         const cnt = eatenCounts[color] || 0;
         const isHover = colorIdx === hoverColorIndex;
+        const isTurtleColor = turtleColorIndex !== undefined && colorIdx === turtleColorIndex;
         return (
           <svg
-            key={color + i}
+            key={colorIdx}
             width={uniformHexSize}
             height={uniformHexSize}
             viewBox="-1 -1 2 2"
@@ -84,21 +66,19 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
                 return `${px},${py}`;
               }).join(' ')}
               fill={color}
-              stroke={isHover ? '#FFFFFF' : '#BBBBBB'}
-              strokeWidth={0.12}
+              stroke={isTurtleColor ? '#00FF00' : isHover ? '#FFFFFF' : '#BBBBBB'}
+              strokeWidth={isTurtleColor ? 0.18 : 0.12}
             />
-            {cnt > 0 ? (
-              <text
-                x={0}
-                y={0.08}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize="0.9"
-                fill="#FFFFFF"
-              >
-                {cnt}
-              </text>
-            ) : null}
+            <text
+              x={0}
+              y={0.08}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="0.9"
+              fill="#FFFFFF"
+            >
+              {colorIdx}
+            </text>
           </svg>
         );
       })}

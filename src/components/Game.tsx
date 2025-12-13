@@ -165,6 +165,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             hoverColorIndex={hoverColorIndex}
             capturedCell={!!gameState.capturedCell}
             chance={chance}
+            turtleColorIndex={gameState.turtleColorIndex}
           />
           {/* Info button (mobile only) */}
           {isMobileLayout && (

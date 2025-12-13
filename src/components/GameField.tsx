@@ -606,11 +606,13 @@ export const GameField: React.FC<GameFieldProps> = ({
           const tinySize = (HEX_SIZE * scale) / 9;
           ctx.save();
           ctx.globalAlpha = 0.95;
-          for (const p of crumbs) {
+          for (let idx = 0; idx < crumbs.length; idx++) {
+            const p = crumbs[idx];
             const pos = hexToPixel(p.q, p.r);
             const x = centerX + pos.x * scale;
             const y = centerY + pos.y * scale;
-            drawHex(ctx, x, y, tinySize, '#dddddd', 'transparent', 0);
+            const color = idx < 6 ? '#cccccc' : '#999999';
+            drawHex(ctx, x, y, tinySize, color, 'transparent', 0);
           }
           ctx.restore();
         }
