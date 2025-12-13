@@ -101,3 +101,5 @@
 - 2025w50-0.2 — Simplify copilot-instructions; fix update-version.js to use current week code
 
 - 2025w50-0.3 — Disable capture logic, implement turn/move/eat on action release
+
+- 2025w50-0.4 — Short/long actions: cursor teleport, turn, short-step, long eat/jump, breadcrumbs path

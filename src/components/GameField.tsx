@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Params, GameState, hoveredCell, hoveredCellInventory } from '../logic/pureLogic';
+import { Params, GameState, hoveredCell, hoveredCellInventory, computeBreadcrumbs } from '../logic/pureLogic';
 
 const HEX_SIZE = 10; // pixels
 const FLASH_SUCCESS_COLOR = '#00BFFF';
@@ -593,6 +593,24 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.translate(turtleOffsetX, turtleOffsetY);
           ctx.rotate((30 * Math.PI) / 180);
           drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', 0.8 * scale);
+          ctx.restore();
+        }
+      }
+
+      // Breadcrumbs path: draw tiny white hexes along shortest path when turtle not at cursor
+      if (!isInventory) {
+        const atCursor = gameState.protagonist.q === gameState.cursor.q && gameState.protagonist.r === gameState.cursor.r;
+        if (!atCursor) {
+          const crumbs = computeBreadcrumbs(gameState, params);
+          const tinySize = (HEX_SIZE * scale) / 81;
+          ctx.save();
+          ctx.globalAlpha = 0.95;
+          for (const p of crumbs) {
+            const pos = hexToPixel(p.q, p.r);
+            const x = centerX + pos.x * scale;
+            const y = centerY + pos.y * scale;
+            drawHex(ctx, x, y, tinySize, '#FFFFFF', 'transparent', 0);
+          }
           ctx.restore();
         }
       }

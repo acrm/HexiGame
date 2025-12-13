@@ -53,6 +53,8 @@ export interface GameState {
   releaseTarget?: Axial | null; // cell where an ongoing release should drop the carried hex
   actionHeldTicks?: number; // ticks elapsed since action button was pressed (0..12+)
   actionStartTick?: number | null; // tick when action was started
+  lastActionEndTick?: number | null; // tick when the last action finished
+  actionTurnedOnStart?: boolean; // whether head turned at action start
   eatFailureFlash?: { startedTick: number }; // flash when eat attempt fails
   lastEatAttemptTick?: number; // track when last eat was attempted for cooldown
 }
@@ -167,6 +169,8 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     releaseTarget: null,
     actionHeldTicks: 0,
     actionStartTick: null,
+    lastActionEndTick: null,
+    actionTurnedOnStart: false,
     eatFailureFlash: undefined,
     lastEatAttemptTick: undefined,
   };
@@ -308,6 +312,11 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   // Update action held ticks if action is being held
   if (next.isActionMode && next.actionStartTick !== null && next.actionStartTick !== undefined) {
     next = { ...next, actionHeldTicks: next.tick - next.actionStartTick };
+  }
+
+  // Auto-complete long action at 12 ticks
+  if (next.isActionMode && (next.actionHeldTicks ?? 0) >= 12) {
+    next = finalizeAction(next, params, rng ?? mulberry32(next.tick));
   }
 
   // Clear eat failure flash after duration
@@ -605,33 +614,11 @@ export function handleActionRelease(state: GameState, params: Params, rng: RNG):
   if (!state.isActionMode) return state;
   if (state.activeField !== 'world') return state;
   
-  const { q: pq, r: pr } = state.protagonist;
-  const { q: cq, r: cr } = state.cursor;
-  const dirTowardCursor = findDirectionToward(pq, pr, cq, cr);
-  
-  // If not at cursor, check if turn is needed
-  if (!(pq === cq && pr === cr)) {
-    if (dirTowardCursor !== null && dirTowardCursor !== state.facingDirIndex) {
-      // Turn is needed
-      return { ...state, facingDirIndex: dirTowardCursor, isActionMode: false, actionStartTick: null, actionHeldTicks: 0 };
-    } else if (dirTowardCursor !== null && dirTowardCursor === state.facingDirIndex) {
-      // Already facing cursor: move one step
-      const nextPos = { q: pq + axialDirections[state.facingDirIndex].q, r: pr + axialDirections[state.facingDirIndex].r };
-      return { ...state, protagonist: nextPos, isActionMode: false, actionStartTick: null, actionHeldTicks: 0 };
-    }
-  } else {
-    // At cursor position: if held 12+ ticks and hex under cursor, attempt eat
-    if ((state.actionHeldTicks ?? 0) >= 12) {
-      const cursorCell = getCell(state.grid, state.cursor);
-      if (cursorCell && cursorCell.colorIndex !== null) {
-        // Attempt to eat
-        return attemptEatCellToInventory(state, state.cursor, params, rng);
-      }
-    }
+  // Release finalizes a short action if held <12, otherwise long (handled by finalizeAction)
+  if ((state.actionHeldTicks ?? 0) >= 12) {
+    return finalizeAction(state, params, rng);
   }
-  
-  // Otherwise just close action mode
-  return { ...state, isActionMode: false, actionStartTick: null, actionHeldTicks: 0 };
+  return finalizeShortAction(state, params);
 }
 
 // Find direction index pointing toward target; null if at target
@@ -720,6 +707,89 @@ export function attemptEatCellToInventory(state: GameState, cellPos: Axial, para
         actionHeldTicks: 0,
       };
     }
+}
+
+// Begin action: validate 2-tick spacing, perform turn if needed
+export function beginAction(state: GameState): GameState {
+  if (state.captureCooldownTicksRemaining > 0) return state;
+  const since = state.lastActionEndTick == null ? Infinity : (state.tick - state.lastActionEndTick);
+  if (since < 2) return state;
+  // On action start, mark whether a turn happens (for short action extra step rule)
+  const { q: pq, r: pr } = state.protagonist;
+  const { q: cq, r: cr } = state.cursor;
+  const dirTowardCursor = findDirectionToward(pq, pr, cq, cr);
+  let turned = false;
+  let nextFacing = state.facingDirIndex;
+  if (!(pq === cq && pr === cr) && dirTowardCursor !== null && dirTowardCursor !== state.facingDirIndex) {
+    nextFacing = dirTowardCursor;
+    turned = true;
+  }
+  return {
+    ...state,
+    isActionMode: true,
+    actionStartTick: state.tick,
+    actionHeldTicks: 0,
+    actionTurnedOnStart: turned,
+    facingDirIndex: nextFacing,
+  };
+}
+
+// Finalize short action: step forward if there was no turn; else nothing
+export function finalizeShortAction(state: GameState, params: Params): GameState {
+  const atCursor = state.protagonist.q === state.cursor.q && state.protagonist.r === state.cursor.r;
+  let next = { ...state };
+  if (!atCursor && !state.actionTurnedOnStart) {
+    const dir = axialDirections[next.facingDirIndex];
+    next = { ...next, protagonist: { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r } };
+  }
+  return { ...next, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: next.tick, actionTurnedOnStart: false };
+}
+
+// Finalize long action: eat if at cursor and hex exists; otherwise jump up to 6 steps toward cursor
+export function finalizeAction(state: GameState, params: Params, rng: RNG): GameState {
+  const atCursor = state.protagonist.q === state.cursor.q && state.protagonist.r === state.cursor.r;
+  if (atCursor) {
+    const cell = getCell(state.grid, state.cursor);
+    if (cell && cell.colorIndex !== null) {
+      const eaten = attemptEatCellToInventory(state, state.cursor, params, rng);
+      return { ...eaten, lastActionEndTick: eaten.tick, actionTurnedOnStart: false };
+    }
+    // No hex: long action does nothing extra when at cursor
+    return { ...state, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: state.tick, actionTurnedOnStart: false };
+  }
+  // Jump toward cursor up to 6 steps or stop at cursor
+  const path = computeShortestPath(state.protagonist, state.cursor, params);
+  const jumpLen = Math.min(6, path.length);
+  const target = jumpLen > 0 ? path[jumpLen - 1] : state.protagonist;
+  const next = { ...state, protagonist: { q: target.q, r: target.r }, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: state.tick, actionTurnedOnStart: false };
+  return next;
+}
+
+// Compute greedy shortest path from from->to (list of cells excluding start, including destination)
+export function computeShortestPath(from: Axial, to: Axial, params: Params): Axial[] {
+  const path: Axial[] = [];
+  let cur = { q: from.q, r: from.r };
+  const maxSteps = params.GridRadius * 2 + 2; // safe guard
+  for (let i = 0; i < maxSteps; i++) {
+    if (cur.q === to.q && cur.r === to.r) break;
+    const dirIndex = findDirectionToward(cur.q, cur.r, to.q, to.r);
+    if (dirIndex == null) break;
+    const dir = axialDirections[dirIndex];
+    const next = { q: cur.q + dir.q, r: cur.r + dir.r };
+    if (!axialInDisk(params.GridRadius, next.q, next.r)) break;
+    path.push(next);
+    cur = next;
+  }
+  return path;
+}
+
+// Compute breadcrumbs path starting from facing cell toward cursor
+export function computeBreadcrumbs(state: GameState, params: Params): Axial[] {
+  if (state.protagonist.q === state.cursor.q && state.protagonist.r === state.cursor.r) return [];
+  const headDir = axialDirections[state.facingDirIndex];
+  const start = { q: state.protagonist.q + headDir.q, r: state.protagonist.r + headDir.r };
+  if (!axialInDisk(params.GridRadius, start.q, start.r)) return [];
+  return computeShortestPath(start, state.cursor, params);
 }
 
 // ---------- Default Parameters (mirroring the doc) ----------

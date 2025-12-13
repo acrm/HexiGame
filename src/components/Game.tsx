@@ -15,6 +15,7 @@ import {
   hoveredCellActive,
   computeAdjacentSameColorCounts,
   handleActionRelease,
+  beginAction,
 } from '../logic/pureLogic';
 import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
@@ -99,11 +100,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }
         // Gate action mode by cooldown
         setGameState(prev => {
-          if (prev.captureCooldownTicksRemaining > 0) {
-            return prev; // ignore during cooldown
-          }
           spaceIsDownRef.current = true;
-          return { ...prev, isActionMode: true, actionStartTick: prev.tick, actionHeldTicks: 0 };
+          return beginAction(prev);
         });
         return;
       }
@@ -214,10 +212,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }}
         onCapture={() => {
           // Mobile press -> enter action mode (respect cooldown)
-          setGameState(prev => {
-            if (prev.captureCooldownTicksRemaining > 0) return prev;
-            return { ...prev, isActionMode: true };
-          });
+          setGameState(prev => beginAction(prev));
         }}
         onRelease={() => {
           // Mobile release -> perform action release logic
@@ -235,10 +230,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         onCellClickDown={(q, r) => {
           // Handle LMB click on cell - start action if clicking on cursor cell
           setGameState(prev => {
-            if (prev.captureCooldownTicksRemaining > 0) return prev;
             if (mouseIsDownRef.current) return prev; // Already down
             mouseIsDownRef.current = true;
-            return { ...prev, isActionMode: true, actionStartTick: prev.tick, actionHeldTicks: 0 };
+            // Teleport cursor immediately to clicked cell
+            const withCursor = attemptMoveTo(prev, mergedParams, { q, r });
+            return beginAction(withCursor);
           });
         }}
         onCellClickUp={(q, r) => {
