@@ -65,6 +65,18 @@ function getLastCommitMessage() {
   }
 }
 
+function getWeekCode() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const start = new Date(year, 0, 1);
+  const diff = now - start;
+  const oneDay = 1000 * 60 * 60 * 24;
+  const dayOfYear = Math.floor(diff / oneDay);
+  const week = Math.ceil((dayOfYear + start.getDay() + 1) / 7);
+  const paddedWeek = String(week).padStart(2, '0');
+  return `${year}w${paddedWeek}`;
+}
+
 function formatVersion(weekCode, minor, build) {
   return `${weekCode}-${minor}.${build}`;
 }
@@ -88,20 +100,25 @@ function main() {
   const args = getArgs();
   const meta = readJson(versionFile);
 
-  let { weekCode, minor, build } = meta;
+  const currentWeekCode = getWeekCode();
+  let { minor, build } = meta;
 
-  if (args.minor) {
+  // If we've moved to a new week, reset minor and build
+  if (meta.weekCode !== currentWeekCode) {
+    minor = 0;
+    build = 1;
+  } else if (args.minor) {
     minor += 1;
     build = 1;
   } else {
     build += 1;
   }
 
-  const newVersion = formatVersion(weekCode, minor, build);
+  const newVersion = formatVersion(currentWeekCode, minor, build);
 
   const description = args.desc?.trim() || getLastCommitMessage() || 'No description provided.';
 
-  const updated = { ...meta, minor, build, currentVersion: newVersion };
+  const updated = { weekCode: currentWeekCode, minor, build, currentVersion: newVersion };
   writeJson(versionFile, updated);
   updatePackageJson(newVersion);
   appendBuildNote(newVersion, description);

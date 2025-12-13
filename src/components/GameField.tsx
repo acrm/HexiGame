@@ -86,6 +86,8 @@ interface GameFieldProps {
   onEat: () => void;
   onMove: (dq: number, dr: number) => void;
   onSetCursor: (q: number, r: number) => void;
+  onCellClickDown?: (q: number, r: number) => void;
+  onCellClickUp?: (q: number, r: number) => void;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -106,6 +108,8 @@ export const GameField: React.FC<GameFieldProps> = ({
   onEat,
   onMove,
   onSetCursor,
+  onCellClickDown,
+  onCellClickUp,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -443,6 +447,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         const isInCooldown = gameState.captureCooldownTicksRemaining > 0;
         const isCharging = gameState.captureChargeStartTick !== null;
         const releasing = !isInventory && (gameState as any).isReleasing;
+        const isEatFailed = (gameState as any).eatFailureFlash !== undefined;
 
         if (isInventory) {
           // Inventory: keep previous rotating edges behavior
@@ -461,7 +466,12 @@ export const GameField: React.FC<GameFieldProps> = ({
           edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
         } else {
           // World: new cursor modes
-          if (isInCooldown) {
+          if (isEatFailed) {
+            // Eat failure: red edge rotating
+            const now = performance.now();
+            const e = computeEdgeIndex(now);
+            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, FLASH_FAILURE_EDGE_DARK);
+          } else if (isInCooldown) {
             // Cooldown: rotate red segment
             const now = performance.now();
             const e = computeEdgeIndex(now);
@@ -484,7 +494,9 @@ export const GameField: React.FC<GameFieldProps> = ({
             }
           } else if (gameState.isActionMode) {
             // Action mode: two opposite edges rotating one step per tick
-            const edgeA = gameState.tick % 6;
+            // Speed up the rotation (2x faster) after 2 ticks held
+            const tickStep = (gameState.actionHeldTicks || 0) >= 2 ? 2 : 1;
+            const edgeA = (gameState.tick * tickStep) % 6;
             const edgeB = (edgeA + 3) % 6;
             drawEdgeHighlight(ctx, scaledX, scaledY, edgeA, HEX_SIZE * scale, '#FFFFFF');
             drawEdgeHighlight(ctx, scaledX, scaledY, edgeB, HEX_SIZE * scale, '#FFFFFF');
@@ -739,10 +751,29 @@ export const GameField: React.FC<GameFieldProps> = ({
       const y = ev.clientY - rect.top;
       const axial = pixelToAxial(x, y);
       onSetCursor(axial.q, axial.r);
+      if (onCellClickDown) {
+        onCellClickDown(axial.q, axial.r);
+      }
     }
+    
+    function handleMouseUp(ev: MouseEvent) {
+      if (ev.button !== 0) return;
+      const rect = canvas!.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const axial = pixelToAxial(x, y);
+      if (onCellClickUp) {
+        onCellClickUp(axial.q, axial.r);
+      }
+    }
+    
     canvas.addEventListener('mousedown', handleMouseDown);
-    return () => canvas.removeEventListener('mousedown', handleMouseDown);
-  }, [onSetCursor]);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onSetCursor, onCellClickDown, onCellClickUp]);
 
   return (
     <div ref={canvasContainerRef} className="game-field">

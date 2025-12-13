@@ -93,3 +93,11 @@
 - 25w48-0.48 — Allow release to continue after action release; don't cancel isReleasing on Space/ACT up
 
 - 25w48-0.49 — Fix release target drop and add releaseTarget handling
+
+- 25w48-0.50 — Add copilot-instructions.md with architecture overview and recent changes
+
+- 2025w50-0.1 — Test week code calculation
+
+- 2025w50-0.2 — Simplify copilot-instructions; fix update-version.js to use current week code
+
+- 2025w50-0.3 — Disable capture logic, implement turn/move/eat on action release

@@ -51,6 +51,10 @@ export interface GameState {
   isReleasing?: boolean; // true when turtle moves to cursor to release
   isActionMode?: boolean; // true while player is holding action (Space / ACT button)
   releaseTarget?: Axial | null; // cell where an ongoing release should drop the carried hex
+  actionHeldTicks?: number; // ticks elapsed since action button was pressed (0..12+)
+  actionStartTick?: number | null; // tick when action was started
+  eatFailureFlash?: { startedTick: number }; // flash when eat attempt fails
+  lastEatAttemptTick?: number; // track when last eat was attempted for cooldown
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -161,6 +165,10 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     isReleasing: false,
     isActionMode: false,
     releaseTarget: null,
+    actionHeldTicks: 0,
+    actionStartTick: null,
+    eatFailureFlash: undefined,
+    lastEatAttemptTick: undefined,
   };
 }
 
@@ -297,148 +305,17 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = { ...next, captureCooldownTicksRemaining: next.captureCooldownTicksRemaining - 1 };
   }
 
-  // Action mode movement (world): move protagonist toward cursor until adjacent, but never enter cursor cell.
-  if (next.isActionMode && next.activeField === 'world' && !next.isReleasing && next.captureChargeStartTick === null) {
-    const { q: pq, r: pr } = next.protagonist;
-    const { q: cq, r: cr } = next.cursor;
-    const isAdjacent = axialDirections.some(d => pq + d.q === cq && pr + d.r === cr);
-    if (!isAdjacent) {
-      const movePeriod = 2; // 1 cell per 2 ticks during action mode
-      if (next.tick % movePeriod === 0) {
-        let bestDir: Axial | null = null;
-        let bestDist = Infinity;
-        for (const dir of axialDirections) {
-          const nq = pq + dir.q;
-          const nr = pr + dir.r;
-          // Do not step into cursor cell
-          if (nq === cq && nr === cr) continue;
-          // Do not step into captured hex cell
-          if (next.capturedCell && nq === next.capturedCell.q && nr === next.capturedCell.r) continue;
-          const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
-          if (dist < bestDist) { bestDist = dist; bestDir = dir; }
-        }
-        if (bestDir) {
-          const facingIndex = axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
-          next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r }, facingDirIndex: facingIndex >= 0 ? facingIndex : next.facingDirIndex };
-        }
-      }
-    } else {
-      // Adjacent: trigger capture or release initiation.
-      const cursorCell = getCell(next.grid, next.cursor);
-      if (next.capturedCell && cursorCell && cursorCell.colorIndex === null) {
-        // Move carried hex into cursor cell then start release.
-        const carriedCell = getCell(next.grid, next.capturedCell);
-        if (carriedCell && carriedCell.colorIndex !== null) {
-          const movedColor = carriedCell.colorIndex;
-          const updated = updateCells(next.grid, [
-            { ...carriedCell, colorIndex: null },
-            { ...cursorCell, colorIndex: movedColor },
-          ]);
-          next = { ...next, grid: updated, capturedCell: { ...next.cursor }, isReleasing: true, releaseTarget: { ...next.cursor } };
-        }
-      } else if (!next.capturedCell && cursorCell && cursorCell.colorIndex !== null && next.captureCooldownTicksRemaining <= 0) {
-        // Begin capture charge when adjacent and hex present under cursor.
-        next = { ...next, captureChargeStartTick: next.tick };
-      }
-    }
+  // Update action held ticks if action is being held
+  if (next.isActionMode && next.actionStartTick !== null && next.actionStartTick !== undefined) {
+    next = { ...next, actionHeldTicks: next.tick - next.actionStartTick };
   }
 
-  // Move protagonist toward cursor during capture charge (legacy world mode movement if started by adjacency)
-  if (next.captureChargeStartTick !== null && next.activeField === 'world') {
-    const { q: pq, r: pr } = next.protagonist;
-    const { q: cq, r: cr } = next.cursor;
-    // Target is adjacent cell to cursor, not cursor itself
-    const isAdjacent = axialDirections.some(d => pq + d.q === cq && pr + d.r === cr);
-    if (!isAdjacent) {
-      // Move at 1 cell per 2 ticks during charge
-      const movePeriod = 2;
-      const heldTicks = next.tick - next.captureChargeStartTick;
-      if (heldTicks % movePeriod === 0) {
-        // Find adjacent cell closest to cursor
-        let bestDir: Axial | null = null;
-        let bestDist = Infinity;
-        for (const dir of axialDirections) {
-          const nq = pq + dir.q;
-          const nr = pr + dir.r;
-          // Do not step into cursor cell
-          if (nq === cq && nr === cr) continue;
-          // Do not step into captured hex cell
-          if (next.capturedCell && nq === next.capturedCell.q && nr === next.capturedCell.r) continue;
-          const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestDir = dir;
-          }
-        }
-        if (bestDir) {
-          const facingIndex = axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
-          next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r }, facingDirIndex: facingIndex >= 0 ? facingIndex : next.facingDirIndex };
-        }
-      }
-    }
+  // Clear eat failure flash after duration
+  if (next.eatFailureFlash && (next.tick - next.eatFailureFlash.startedTick) >= params.CaptureFlashDurationTicks) {
+    next = { ...next, eatFailureFlash: undefined };
   }
 
-  // During release phase: move turtle + carried hex toward cursor at carry speed
-  // Release movement continues once started, independent of action mode.
-  if (next.isReleasing && next.activeField === 'world' && next.capturedCell) {
-    const movePeriod = 4; // 1 cell per 4 ticks when carrying
-    if (next.tick % movePeriod === 0) {
-      const pq = next.protagonist.q, pr = next.protagonist.r;
-      const cq = next.cursor.q, cr = next.cursor.r;
-      // Choose movement direction for turtle (toward cursor), excluding the cell with captured hex
-      let bestDir: Axial | null = null;
-      let bestDist = Infinity;
-      for (const dir of axialDirections) {
-        const nq = pq + dir.q;
-        const nr = pr + dir.r;
-        // Do not move into the cell containing the captured hex
-        if (next.capturedCell && nq === next.capturedCell.q && nr === next.capturedCell.r) {
-          continue;
-        }
-        // Distance from next position to cursor (using axial metric approximation)
-        const dist = Math.abs(cq - nq) + Math.abs(cr - nr) + Math.abs(-cq - cr + nq + nr);
-        if (dist < bestDist) { bestDist = dist; bestDir = dir; }
-      }
-      if (bestDir) {
-        // Move turtle one step
-        const newProtagonist = { q: pq + bestDir.q, r: pr + bestDir.r };
-        next = { ...next, protagonist: newProtagonist, facingDirIndex: axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r) };
-        // Head cell = position of the carried hex (in front of turtle head)
-        const headDir = axialDirections[next.facingDirIndex];
-        const headCell = { q: newProtagonist.q + headDir.q, r: newProtagonist.r + headDir.r };
-        const currentCaptured = next.capturedCell;
-        const fromKey = currentCaptured ? keyOfAxial(currentCaptured) : null;
-        const fromCell = fromKey ? next.grid.get(fromKey) : null;
-        const toCell = getCell(next.grid, headCell);
-        if (fromCell && fromCell.colorIndex !== null && toCell && (!params.CarryingMoveRequiresEmpty || toCell.colorIndex === null || (currentCaptured && keyOfAxial(currentCaptured) === keyOfAxial(headCell)))) {
-          if (fromKey && keyOfAxial(headCell) !== fromKey) {
-            const movedColor = fromCell.colorIndex;
-            const nextGrid = updateCells(next.grid, [
-              { ...fromCell, colorIndex: null },
-              { ...toCell, colorIndex: movedColor },
-            ]);
-            next = { ...next, grid: nextGrid, capturedCell: headCell };
-          }
-        }
-        // Drop when head cell reaches the original release target (cursor at release start)
-        const target = next.releaseTarget ?? { q: cq, r: cr };
-        if (headCell.q === target.q && headCell.r === target.r) {
-          // Release completes: clear capture and start cooldown; clear releaseTarget
-          next = { ...next, isReleasing: false, capturedCell: null, captureCooldownTicksRemaining: Math.max(next.captureCooldownTicksRemaining, 6), releaseTarget: null };
-        }
-      }
-    }
-  }
-
-  // Auto-complete capture when full charge duration is reached
-  const chargeDuration = next.activeField === 'inventory' ? 1 : params.CaptureHoldDurationTicks;
-  if (
-    rng &&
-    next.captureChargeStartTick !== null &&
-    (next.tick - next.captureChargeStartTick) >= chargeDuration
-  ) {
-    next = endCaptureChargeOnActive(next, params, rng);
-  }
+  // NOTE: Capture logic is disabled. Only movement and eating on release are active.
 
   if (next.flash && (next.tick - next.flash.startedTick) >= params.CaptureFlashDurationTicks) {
     next = { ...next, flash: null };
@@ -712,6 +589,137 @@ export function isCarryFlickerOn(state: GameState, params: Params): boolean {
   if (cycle <= 0) return false;
   const phase = state.tick % cycle;
   return phase < Math.floor(cycle * params.CarryFlickerOnFraction);
+}
+
+// Utility to test whether action mode flicker should be "on" (accelerated flicker)
+// Flicker is visible after 2 ticks of holding, at 2x speed
+export function isActionModeFlickerOn(state: GameState, params: Params): boolean {
+  if (!state.isActionMode || state.actionHeldTicks === undefined || state.actionHeldTicks < 2) return false;
+  const cycle = Math.max(1, Math.floor(params.CarryFlickerCycleTicks / 2)); // 2x faster
+  const phase = state.tick % cycle;
+  return phase < Math.floor(cycle * params.CarryFlickerOnFraction);
+}
+
+// Handle action release: perform turn (if needed) or move+eat (if held 12 ticks at cursor with hex)
+export function handleActionRelease(state: GameState, params: Params, rng: RNG): GameState {
+  if (!state.isActionMode) return state;
+  if (state.activeField !== 'world') return state;
+  
+  const { q: pq, r: pr } = state.protagonist;
+  const { q: cq, r: cr } = state.cursor;
+  const dirTowardCursor = findDirectionToward(pq, pr, cq, cr);
+  
+  // If not at cursor, check if turn is needed
+  if (!(pq === cq && pr === cr)) {
+    if (dirTowardCursor !== null && dirTowardCursor !== state.facingDirIndex) {
+      // Turn is needed
+      return { ...state, facingDirIndex: dirTowardCursor, isActionMode: false, actionStartTick: null, actionHeldTicks: 0 };
+    } else if (dirTowardCursor !== null && dirTowardCursor === state.facingDirIndex) {
+      // Already facing cursor: move one step
+      const nextPos = { q: pq + axialDirections[state.facingDirIndex].q, r: pr + axialDirections[state.facingDirIndex].r };
+      return { ...state, protagonist: nextPos, isActionMode: false, actionStartTick: null, actionHeldTicks: 0 };
+    }
+  } else {
+    // At cursor position: if held 12+ ticks and hex under cursor, attempt eat
+    if ((state.actionHeldTicks ?? 0) >= 12) {
+      const cursorCell = getCell(state.grid, state.cursor);
+      if (cursorCell && cursorCell.colorIndex !== null) {
+        // Attempt to eat
+        return attemptEatCellToInventory(state, state.cursor, params, rng);
+      }
+    }
+  }
+  
+  // Otherwise just close action mode
+  return { ...state, isActionMode: false, actionStartTick: null, actionHeldTicks: 0 };
+}
+
+// Find direction index pointing toward target; null if at target
+function findDirectionToward(fromQ: number, fromR: number, toQ: number, toR: number): number | null {
+  if (fromQ === toQ && fromR === toR) return null;
+  
+  let bestDir: Axial | null = null;
+  let bestDist = Infinity;
+  
+  for (const dir of axialDirections) {
+    const nq = fromQ + dir.q;
+    const nr = fromR + dir.r;
+    const dist = Math.abs(toQ - nq) + Math.abs(toR - nr) + Math.abs(-toQ - toR + nq + nr);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestDir = dir;
+    }
+  }
+  
+  if (!bestDir) return null;
+  return axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
+}
+
+// Attempt to eat a cell (move from world to inventory)
+// On success: cell is removed from world, added to random empty inventory cell
+// On failure: show red flash for cooldown duration
+export function attemptEatCellToInventory(state: GameState, cellPos: Axial, params: Params, rng: RNG): GameState {
+  const cell = getCell(state.grid, cellPos);
+  if (!cell || cell.colorIndex === null) {
+    // No hex to eat
+    return { ...state, isActionMode: false, actionStartTick: null, actionHeldTicks: 0 };
+  }
+  
+  const colorIndex = cell.colorIndex;
+  const color = params.ColorPalette[colorIndex] || `#${colorIndex}`;
+  
+  // Compute eat chance (same as capture chance)
+  const chance = computeCaptureChancePercent(params, colorIndex);
+  const roll = rng() * 100;
+  
+  if (roll < chance) {
+    // Success: move to inventory
+    const worldGrid = updateCells(state.grid, [{ ...cell, colorIndex: null }]);
+    
+    // Find empty inventory cells
+    const empties: Cell[] = [];
+    for (const c of state.inventoryGrid.values()) {
+      if (c.colorIndex === null) empties.push(c);
+    }
+    
+    if (empties.length > 0) {
+      const idx = Math.floor(rng() * empties.length);
+      const target = empties[idx];
+      const nextInv = updateCells(state.inventoryGrid, [{ ...target, colorIndex }]);
+      const nextCounts: Record<string, number> = { ...(state.paletteCounts || {}) };
+      nextCounts[color] = (nextCounts[color] || 0) + 1;
+      return {
+        ...state,
+        grid: worldGrid,
+        inventoryGrid: nextInv,
+        paletteCounts: nextCounts,
+        isActionMode: false,
+        actionStartTick: null,
+        actionHeldTicks: 0,
+      };
+    } else {
+      // Inventory full: eat anyway, just lose the color
+      const nextCounts: Record<string, number> = { ...(state.paletteCounts || {}) };
+      nextCounts[color] = (nextCounts[color] || 0) + 1;
+      return {
+        ...state,
+        grid: worldGrid,
+        paletteCounts: nextCounts,
+        isActionMode: false,
+        actionStartTick: null,
+        actionHeldTicks: 0,
+      };
+    }
+    } else {
+      // Failure: show red flash
+      return {
+        ...state,
+        eatFailureFlash: { startedTick: state.tick },
+        isActionMode: false,
+        actionStartTick: null,
+        actionHeldTicks: 0,
+      };
+    }
 }
 
 // ---------- Default Parameters (mirroring the doc) ----------

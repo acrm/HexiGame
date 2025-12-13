@@ -14,6 +14,7 @@ import {
   previewCaptureChanceAtCursor,
   hoveredCellActive,
   computeAdjacentSameColorCounts,
+  handleActionRelease,
 } from '../logic/pureLogic';
 import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
@@ -27,6 +28,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [gameState, setGameState] = useState<GameState>(() => createInitialState(mergedParams, rngRef.current));
   const [fps, setFps] = useState(0);
   const spaceIsDownRef = useRef(false);
+  const mouseIsDownRef = useRef(false);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
 
@@ -101,7 +103,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             return prev; // ignore during cooldown
           }
           spaceIsDownRef.current = true;
-          return { ...prev, isActionMode: true };
+          return { ...prev, isActionMode: true, actionStartTick: prev.tick, actionHeldTicks: 0 };
         });
         return;
       }
@@ -128,18 +130,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           return;
         }
         spaceIsDownRef.current = false;
-        setGameState(prev => {
-          // Exit action mode; do not cancel an already-started release movement
-          const baseReset = { ...prev, isActionMode: false };
-          if (prev.captureChargeStartTick !== null) {
-            const heldTicks = prev.tick - prev.captureChargeStartTick;
-            if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-              return { ...baseReset, captureChargeStartTick: null };
-            }
-            return baseReset;
-          }
-          return baseReset;
-        });
+        setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -229,18 +220,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           });
         }}
         onRelease={() => {
-          // Mobile release -> exit action mode, cancel incomplete charge
-          setGameState(prev => {
-            const baseReset = { ...prev, isActionMode: false };
-            if (prev.captureChargeStartTick !== null) {
-              const heldTicks = prev.tick - prev.captureChargeStartTick;
-              if (heldTicks < mergedParams.CaptureHoldDurationTicks) {
-                return { ...baseReset, captureChargeStartTick: null };
-              }
-              return baseReset;
-            }
-            return baseReset;
-          });
+          // Mobile release -> perform action release logic
+          setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
         }}
         onEat={() => {
           setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
@@ -250,6 +231,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }}
         onSetCursor={(q, r) => {
           setGameState(prev => attemptMoveTo(prev, mergedParams, { q, r }));
+        }}
+        onCellClickDown={(q, r) => {
+          // Handle LMB click on cell - start action if clicking on cursor cell
+          setGameState(prev => {
+            if (prev.captureCooldownTicksRemaining > 0) return prev;
+            if (mouseIsDownRef.current) return prev; // Already down
+            mouseIsDownRef.current = true;
+            return { ...prev, isActionMode: true, actionStartTick: prev.tick, actionHeldTicks: 0 };
+          });
+        }}
+        onCellClickUp={(q, r) => {
+          // Handle LMB release on cell
+          if (!mouseIsDownRef.current) return;
+          mouseIsDownRef.current = false;
+          setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
         }}
       />
       <div className="game-footer-controls" />
