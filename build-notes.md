@@ -103,3 +103,5 @@
 - 2025w50-0.3 — Disable capture logic, implement turn/move/eat on action release
 
 - 2025w50-0.4 — Short/long actions: cursor teleport, turn, short-step, long eat/jump, breadcrumbs path
+
+- 2025w50-0.5 — Breadcrumbs 1/9 #dddddd; turtle color shifts toward hex over time; eat chance uses current turtle color; visuals use turtle color

@@ -558,7 +558,8 @@ export const GameField: React.FC<GameFieldProps> = ({
             }
           }
           const tailIndex = (headIndex + 3) % 6;
-          const baseColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#FFFFFF';
+          const turtleColorIndex = (gameState as any).turtleColorIndex ?? params.PlayerBaseColorIndex;
+          const baseColor = params.ColorPalette[turtleColorIndex] || '#FFFFFF';
 
           for (let i = 0; i < smallCenters.length; i++) {
             if (i === tailIndex) continue;
@@ -597,19 +598,19 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
       }
 
-      // Breadcrumbs path: draw tiny white hexes along shortest path when turtle not at cursor
+      // Breadcrumbs path: draw tiny hexes along shortest path when turtle not at cursor
       if (!isInventory) {
         const atCursor = gameState.protagonist.q === gameState.cursor.q && gameState.protagonist.r === gameState.cursor.r;
         if (!atCursor) {
           const crumbs = computeBreadcrumbs(gameState, params);
-          const tinySize = (HEX_SIZE * scale) / 81;
+          const tinySize = (HEX_SIZE * scale) / 9;
           ctx.save();
           ctx.globalAlpha = 0.95;
           for (const p of crumbs) {
             const pos = hexToPixel(p.q, p.r);
             const x = centerX + pos.x * scale;
             const y = centerY + pos.y * scale;
-            drawHex(ctx, x, y, tinySize, '#FFFFFF', 'transparent', 0);
+            drawHex(ctx, x, y, tinySize, '#dddddd', 'transparent', 0);
           }
           ctx.restore();
         }

@@ -57,6 +57,9 @@ export interface GameState {
   actionTurnedOnStart?: boolean; // whether head turned at action start
   eatFailureFlash?: { startedTick: number }; // flash when eat attempt fails
   lastEatAttemptTick?: number; // track when last eat was attempted for cooldown
+  turtleColorIndex?: number; // current turtle color index
+  lastColorShiftTick?: number | null; // last tick when turtle color shifted
+  standTargetColorIndex?: number | null; // color of hex currently standing on
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -173,6 +176,9 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     actionTurnedOnStart: false,
     eatFailureFlash: undefined,
     lastEatAttemptTick: undefined,
+    turtleColorIndex: params.PlayerBaseColorIndex,
+    lastColorShiftTick: null,
+    standTargetColorIndex: null,
   };
 }
 
@@ -317,6 +323,28 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   // Auto-complete long action at 12 ticks
   if (next.isActionMode && (next.actionHeldTicks ?? 0) >= 12) {
     next = finalizeAction(next, params, rng ?? mulberry32(next.tick));
+  }
+
+  // Turtle color shifting when standing on colored hex
+  const standingCell = getCell(next.grid, next.protagonist);
+  if (standingCell && standingCell.colorIndex !== null) {
+    const target = standingCell.colorIndex;
+    const current = next.turtleColorIndex ?? params.PlayerBaseColorIndex;
+    // If just started standing on this color, immediate one-step shift toward target
+    if (next.standTargetColorIndex !== target) {
+      const stepped = stepTowardsColor(current, target, params.ColorPalette.length);
+      next = { ...next, turtleColorIndex: stepped, standTargetColorIndex: target, lastColorShiftTick: next.tick };
+    } else if (current !== target) {
+      // Continue shifting every 6 ticks
+      const lastShift = next.lastColorShiftTick ?? next.tick;
+      if (next.tick - lastShift >= 6) {
+        const stepped = stepTowardsColor(current, target, params.ColorPalette.length);
+        next = { ...next, turtleColorIndex: stepped, lastColorShiftTick: next.tick };
+      }
+    }
+  } else {
+    // Not standing on a colored hex
+    next = { ...next, standTargetColorIndex: null };
   }
 
   // Clear eat failure flash after duration
@@ -655,8 +683,9 @@ export function attemptEatCellToInventory(state: GameState, cellPos: Axial, para
   const colorIndex = cell.colorIndex;
   const color = params.ColorPalette[colorIndex] || `#${colorIndex}`;
   
-  // Compute eat chance (same as capture chance)
-  const chance = computeCaptureChancePercent(params, colorIndex);
+  // Compute eat chance based on turtle's current color vs cell
+  const baseIndex = state.turtleColorIndex ?? params.PlayerBaseColorIndex;
+  const chance = computeChanceByPlayerIndex(params, baseIndex, colorIndex);
   const roll = rng() * 100;
   
   if (roll < chance) {
@@ -707,6 +736,38 @@ export function attemptEatCellToInventory(state: GameState, cellPos: Axial, para
         actionHeldTicks: 0,
       };
     }
+}
+
+// Step one color toward target along shortest path on the wheel
+export function stepTowardsColor(current: number, target: number, paletteLen: number): number {
+  if (paletteLen <= 0) return current;
+  const mod = (n: number) => ((n % paletteLen) + paletteLen) % paletteLen;
+  current = mod(current);
+  target = mod(target);
+  if (current === target) return current;
+  // Distances clockwise and counter-clockwise
+  const cw = mod(target - current);
+  const ccw = mod(current - target);
+  // Move one step in the direction that reduces distance
+  if (cw <= ccw) {
+    return mod(current + 1);
+  } else {
+    return mod(current - 1);
+  }
+}
+
+// Chance by distance between player (current turtle color) and target color
+export function computeChanceByPlayerIndex(params: Params, playerIndex: number, colorIndex: number): number {
+  const paletteLen = params.ColorPalette.length;
+  if (paletteLen <= 0) return 0;
+  const dist = paletteDistance(colorIndex, playerIndex, paletteLen);
+  const maxDist = Math.floor(paletteLen / 2);
+  if (maxDist === 0) return params.ChanceBasePercent;
+  if (dist === maxDist) return 0;
+  if (dist === 0) return params.ChanceBasePercent;
+  const raw = ((maxDist - dist) / maxDist) * params.ChanceBasePercent;
+  const mapped = Math.max(10, Math.round(raw));
+  return Math.max(0, Math.min(100, mapped));
 }
 
 // Begin action: validate 2-tick spacing, perform turn if needed
