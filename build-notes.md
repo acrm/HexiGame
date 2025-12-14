@@ -135,3 +135,13 @@
 - 2025w51-0.12 — Restore real palette coordinates with accurate formula comments
 
 - 2025w51-0.13 — Remove mobile joystick and act tap
+
+- 2025w51-0.14 — Update control info to English
+
+- 2025w51-0.15 — Update control info for hold-eat
+
+- 2025w51-0.16 — Update info for hold-eat color mechanic
+
+- 2025w51-0.17 — Clarify hold eat vs jump in tips
+
+- 2025w51-0.18 — Mention ACT in mobile tips

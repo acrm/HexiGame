@@ -18,13 +18,14 @@ const ControlsMobile: React.FC<{ onClose: () => void; topOffset?: number }> = ({
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
           }}
         >
-          <div style={{ marginBottom: 8, fontSize: 15, fontWeight: 'bold' }}>Controls</div>
-          <div>Joystick = move cursor</div>
-          <div>CAP = hold to capture hex under cursor</div>
-          <div>REL = drop carried hex</div>
-          <div>EAT = eat carried hex (stores in inventory)</div>
+          <div style={{ marginBottom: 8, fontSize: 15, fontWeight: 'bold' }}>Goal</div>
+          <div>Collect hexes of different colors into your inventory.</div>
+
+          <div style={{ margin: '10px 0 6px', fontSize: 15, fontWeight: 'bold' }}>Controls</div>
+          <div>Tap a hex = move cursor; turtle walks toward the cursor</div>
+          <div>Long press (or hold ACT) = if cursor is on the turtle's hex, it tries to eat that hex; otherwise it jumps toward the cursor</div>
           <div>INV/WRL = toggle World ↔ Inventory</div>
-          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6 }}>In Inventory: cursor & capture/move work on inventory grid</div>
+          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6 }}>Eat success depends on color difference; turtle color drifts toward hexes it travels over</div>
         </div>
       </div>
     </>
