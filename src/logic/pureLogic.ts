@@ -325,21 +325,6 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = finalizeAction(next, params, rng ?? mulberry32(next.tick));
   }
 
-  // Turtle color shifting when standing on colored hex
-  const standingCell = getCell(next.grid, next.protagonist);
-  if (standingCell && standingCell.colorIndex !== null) {
-    const target = standingCell.colorIndex;
-    const current = next.turtleColorIndex ?? params.PlayerBaseColorIndex;
-    // Only shift immediately upon landing on a new colored hex
-    if (next.standTargetColorIndex !== target) {
-      const stepped = stepTowardsColor(current, target, params.ColorPalette.length);
-      next = { ...next, turtleColorIndex: stepped, standTargetColorIndex: target, lastColorShiftTick: next.tick };
-    }
-  } else {
-    // Not standing on a colored hex
-    next = { ...next, standTargetColorIndex: null };
-  }
-
   // Clear eat failure flash after duration
   if (next.eatFailureFlash && (next.tick - next.eatFailureFlash.startedTick) >= params.CaptureFlashDurationTicks) {
     next = { ...next, eatFailureFlash: undefined };
@@ -363,6 +348,7 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
       // Ensure candidate is a real cell on grid
       if (!getCell(next.grid, candidate)) continue;
       // Move protagonist here and keep facing consistent
+      next = applyColorDriftOnDeparture(next, params, next.protagonist);
       next = { ...next, protagonist: candidate };
       break;
     }
@@ -523,6 +509,7 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
         if (dist < bestDist) { bestDist = dist; bestDir = dir; }
       }
       if (bestDir) {
+        next = applyColorDriftOnDeparture(next, params, next.protagonist);
         next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r } };
       }
     }
@@ -750,6 +737,25 @@ export function stepTowardsColor(current: number, target: number, paletteLen: nu
   }
 }
 
+// Shift turtle color when it leaves a colored hex
+function applyColorDriftOnDeparture(state: GameState, params: Params, from: Axial): GameState {
+  const cell = getCell(state.grid, from);
+  if (!cell || cell.colorIndex === null) return state;
+  const paletteLen = params.ColorPalette.length;
+  if (paletteLen <= 0) return state;
+  const current = state.turtleColorIndex ?? params.PlayerBaseColorIndex;
+  const nextColor = stepTowardsColor(current, cell.colorIndex, paletteLen);
+  if (nextColor === current) {
+    return { ...state, standTargetColorIndex: cell.colorIndex, lastColorShiftTick: state.tick };
+  }
+  return {
+    ...state,
+    turtleColorIndex: nextColor,
+    standTargetColorIndex: cell.colorIndex,
+    lastColorShiftTick: state.tick,
+  };
+}
+
 // Chance by distance between player (current turtle color) and target color
 export function computeChanceByPlayerIndex(params: Params, playerIndex: number, colorIndex: number): number {
   const paletteLen = params.ColorPalette.length;
@@ -795,7 +801,10 @@ export function finalizeShortAction(state: GameState, params: Params): GameState
   let next = { ...state };
   if (!atCursor && !state.actionTurnedOnStart) {
     const dir = axialDirections[next.facingDirIndex];
-    next = { ...next, protagonist: { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r } };
+    const from = next.protagonist;
+    const to = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
+    next = applyColorDriftOnDeparture(next, params, from);
+    next = { ...next, protagonist: to };
   }
   return { ...next, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: next.tick, actionTurnedOnStart: false };
 }
@@ -815,8 +824,22 @@ export function finalizeAction(state: GameState, params: Params, rng: RNG): Game
   // Jump toward cursor up to 6 steps or stop at cursor
   const path = computeShortestPath(state.protagonist, state.cursor, params);
   const jumpLen = Math.min(6, path.length);
-  const target = jumpLen > 0 ? path[jumpLen - 1] : state.protagonist;
-  const next = { ...state, protagonist: { q: target.q, r: target.r }, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: state.tick, actionTurnedOnStart: false };
+  let working: GameState = { ...state };
+  let current = working.protagonist;
+  for (let i = 0; i < jumpLen; i++) {
+    const step = path[i];
+    working = applyColorDriftOnDeparture(working, params, current);
+    current = step;
+  }
+  const next = {
+    ...working,
+    protagonist: { q: current.q, r: current.r },
+    isActionMode: false,
+    actionStartTick: null,
+    actionHeldTicks: 0,
+    lastActionEndTick: state.tick,
+    actionTurnedOnStart: false,
+  };
   return next;
 }
 

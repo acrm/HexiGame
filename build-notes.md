@@ -145,3 +145,7 @@
 - 2025w51-0.17 — Clarify hold eat vs jump in tips
 
 - 2025w51-0.18 — Mention ACT in mobile tips
+
+- 2025w51-0.19 — Clarify color drift on hex exit
+
+- 2025w51-0.20 — Color drift on leaving hex

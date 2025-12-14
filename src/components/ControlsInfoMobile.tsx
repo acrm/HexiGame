@@ -25,7 +25,7 @@ const ControlsMobile: React.FC<{ onClose: () => void; topOffset?: number }> = ({
           <div>Tap a hex = move cursor; turtle walks toward the cursor</div>
           <div>Long press (or hold ACT) = if cursor is on the turtle's hex, it tries to eat that hex; otherwise it jumps toward the cursor</div>
           <div>INV/WRL = toggle World ↔ Inventory</div>
-          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6 }}>Eat success depends on color difference; turtle color drifts toward hexes it travels over</div>
+          <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6 }}>Eat success depends on color difference; turtle color drifts toward the hex it just left when moving</div>
         </div>
       </div>
     </>
