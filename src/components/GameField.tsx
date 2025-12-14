@@ -73,18 +73,11 @@ interface GameFieldProps {
   params: Params;
   fps: number;
   setFps: (fps: number) => void;
-  joystickVector: { x: number; y: number };
-  joystickToAxial: (vx: number, vy: number) => [number, number] | null;
-  joystickTouchIdRef: React.MutableRefObject<number | null>;
-  joystickCenterRef: React.MutableRefObject<{ x: number; y: number } | null>;
-  joystickVectorRef: React.MutableRefObject<{ x: number; y: number }>;
-  lastJoystickMoveTickRef: React.MutableRefObject<number>;
   isInventory: boolean;
   onToggleInventory: () => void;
   onCapture: () => void;
   onRelease: () => void;
   onEat: () => void;
-  onMove: (dq: number, dr: number) => void;
   onSetCursor: (q: number, r: number) => void;
   onCellClickDown?: (q: number, r: number) => void;
   onCellClickUp?: (q: number, r: number) => void;
@@ -95,18 +88,11 @@ export const GameField: React.FC<GameFieldProps> = ({
   params,
   fps,
   setFps,
-  joystickVector,
-  joystickToAxial,
-  joystickTouchIdRef,
-  joystickCenterRef,
-  joystickVectorRef,
-  lastJoystickMoveTickRef,
   isInventory,
   onToggleInventory,
   onCapture,
   onRelease,
   onEat,
-  onMove,
   onSetCursor,
   onCellClickDown,
   onCellClickUp,
@@ -173,17 +159,8 @@ export const GameField: React.FC<GameFieldProps> = ({
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
         const invCenterX = joyCenterX;
-        const invCenterY = joyCenterY - 64;
-        const invRadius = 24;
-
-        const dJoy = Math.hypot(x - joyCenterX, y - joyCenterY);
-        if (dJoy <= joyOuterRadius && joystickTouchIdRef.current === null) {
-          joystickTouchIdRef.current = t.identifier;
-          joystickCenterRef.current = { x: joyCenterX, y: joyCenterY };
-          joystickVectorRef.current = { x: 0, y: 0 };
-          ev.preventDefault();
-          continue;
-        }
+        const invCenterY = joyCenterY;
+        const invRadius = 32;
 
         const showAct = !isInventory; // ACT always available in world
         let consumed = false;
@@ -214,36 +191,19 @@ export const GameField: React.FC<GameFieldProps> = ({
 
         if (!consumed) {
           const axial = pixelToAxial(x, y);
-            onSetCursor(axial.q, axial.r);
+          onSetCursor(axial.q, axial.r);
+          if (!isInventory) {
+            // Mirror desktop behavior: pressing a cell also holds ACT
+            actTouchIdRef.current = t.identifier;
+            onCapture();
+          }
         }
       }
     }
 
     function handleTouchMove(ev: TouchEvent) {
-      const currentCanvas = canvasRef.current;
-      if (!currentCanvas || joystickTouchIdRef.current === null) return;
-      const rect = currentCanvas.getBoundingClientRect();
-      for (let i = 0; i < ev.changedTouches.length; i++) {
-        const t = ev.changedTouches[i];
-        if (t.identifier !== joystickTouchIdRef.current) continue;
-        const center = joystickCenterRef.current;
-        if (!center) return;
-        const x = t.clientX - rect.left;
-        const y = t.clientY - rect.top;
-        const vx = x - center.x;
-        const vy = y - center.y;
-        joystickVectorRef.current = { x: vx, y: vy };
-
-        const nowTick = gameState.tick;
-        if (nowTick - lastJoystickMoveTickRef.current >= 6) {
-          lastJoystickMoveTickRef.current = nowTick;
-          const dir = joystickToAxial(vx, vy);
-          if (dir) {
-            onMove(dir[0], dir[1]);
-          }
-        }
-        ev.preventDefault();
-      }
+      // Joystick is disabled on mobile; prevent accidental page scroll while swiping.
+      ev.preventDefault();
     }
 
     function handleTouchEnd(ev: TouchEvent) {
@@ -252,14 +212,6 @@ export const GameField: React.FC<GameFieldProps> = ({
       const rect = currentCanvas.getBoundingClientRect();
       for (let i = 0; i < ev.changedTouches.length; i++) {
         const t = ev.changedTouches[i];
-        if (t.identifier === joystickTouchIdRef.current) {
-          joystickTouchIdRef.current = null;
-          joystickCenterRef.current = null;
-          joystickVectorRef.current = { x: 0, y: 0 };
-          ev.preventDefault();
-          continue;
-        }
-
         const x = t.clientX - rect.left;
         const y = t.clientY - rect.top;
         const margin = 64;
@@ -272,8 +224,8 @@ export const GameField: React.FC<GameFieldProps> = ({
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
         const invCenterX = margin + inward;
-        const invCenterY = baseY - 64;
-        const invRadius = 24;
+        const invCenterY = baseY;
+        const invRadius = 32;
         // Release action mode if ACT touch ends (regardless of where it ends)
         if (t.identifier === actTouchIdRef.current) {
           actTouchIdRef.current = null;
@@ -315,7 +267,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       canvas.removeEventListener('touchend', handleTouchEnd as any);
       canvas.removeEventListener('touchcancel', handleTouchEnd as any);
     };
-  }, [gameState.tick, gameState.capturedCell, joystickToAxial, onCapture, onRelease, onEat, onMove, joystickTouchIdRef, joystickCenterRef, joystickVectorRef, lastJoystickMoveTickRef]);
+  }, [gameState.capturedCell, isInventory, onToggleInventory, onCapture, onRelease, onEat, onSetCursor]);
 
   useEffect(() => {
     let mounted = true;
@@ -356,7 +308,11 @@ export const GameField: React.FC<GameFieldProps> = ({
       const logicalWidth = maxX - minX;
       const logicalHeight = maxY - minY;
 
-      const scale = Math.min(availableWidth / logicalWidth, availableHeight / logicalHeight);
+      const padding = 12; // keep a thin margin so hexes are never cut off
+      const scale = Math.min(
+        (availableWidth - padding * 2) / logicalWidth,
+        (availableHeight - padding * 2) / logicalHeight,
+      );
 
       const pixelWidth = availableWidth;
       const pixelHeight = availableHeight;
@@ -625,80 +581,31 @@ export const GameField: React.FC<GameFieldProps> = ({
         const inward = canvas.width * 0.10;
         const baseY = canvas.height - margin;
 
-        // Joystick
-        const joyCenterX = margin + inward;
-        const joyCenterY = baseY;
-        const outerRadius = 40;
-        const innerRadius = 18;
-
-        ctx.save();
-        ctx.globalAlpha = 0.9;
-        ctx.fillStyle = 'rgba(255,255,255,0.18)';
-        ctx.beginPath();
-        ctx.arc(joyCenterX, joyCenterY, outerRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        const knob = joystickVector;
-        const maxOffset = outerRadius - innerRadius - 4;
-        const len = Math.sqrt(knob.x * knob.x + knob.y * knob.y) || 1;
-        const kx = joyCenterX + (knob.x / len) * Math.min(len, maxOffset);
-        const ky = joyCenterY + (knob.y / len) * Math.min(len, maxOffset);
-
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.beginPath();
-        ctx.arc(kx, ky, innerRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        // Debug arrow
-        const dir = joystickToAxial(knob.x, knob.y);
-        const arrowCenterX = joyCenterX + outerRadius + 48;
-        const arrowCenterY = joyCenterY;
-        ctx.save();
-        ctx.globalAlpha = 1.0;
-        const debugArrow = true;
-        if (debugArrow && dir) {
-          const px = hexToPixel(dir[0], dir[1]);
-          const ang = Math.atan2(px.y, px.x);
-          const arrowLen = 36;
-          const arrowWidth = 8;
-          ctx.translate(arrowCenterX, arrowCenterY);
-          ctx.rotate(ang);
-          ctx.strokeStyle = '#ff00ff';
-          ctx.lineWidth = 4;
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(arrowLen, 0);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(arrowLen, 0);
-          ctx.lineTo(arrowLen - arrowWidth, -arrowWidth * 0.7);
-          ctx.lineTo(arrowLen - arrowWidth, arrowWidth * 0.7);
-          ctx.closePath();
-          ctx.fillStyle = '#ff00ff';
-          ctx.fill();
-        } else if (debugArrow) {
-          ctx.fillStyle = '#ff00ff';
-          ctx.beginPath();
-          ctx.arc(arrowCenterX, arrowCenterY, 6, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
+        // Inventory toggle button (takes former joystick spot)
+        const invCenterX = margin + inward;
+        const invCenterY = baseY;
+        const invRadius = 32;
+        drawHex(ctx, invCenterX, invCenterY, invRadius, 'rgba(255,255,255,0.95)', 'transparent', 3);
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(isInventory ? 'WRL' : 'INV', invCenterX, invCenterY + 1);
 
         // ACT button (action mode hold)
         const capCenterX = canvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
         const showAct = !isInventory; // always available in world
+        const actPressed = gameState.isActionMode;
         if (showAct) {
           drawHex(
             ctx,
             capCenterX,
             capCenterY,
             capRadius,
-            'rgba(255,255,255,0.95)',
-            'transparent',
+            actPressed ? 'rgba(255,255,255,0.70)' : 'rgba(255,255,255,0.95)',
+            actPressed ? '#ffffff' : 'transparent',
             3,
           );
           ctx.fillStyle = 'rgba(0,0,0,0.85)';
@@ -721,16 +628,7 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.fillText('EAT', eatCenterX, eatCenterY + 0);
         }
 
-        // Inventory toggle button above joystick
-        const invCenterX = joyCenterX;
-        const invCenterY = joyCenterY - 64;
-        const invRadius = 24;
-        drawHex(ctx, invCenterX, invCenterY, invRadius, 'rgba(255,255,255,0.95)', 'transparent', 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.font = '12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(isInventory ? 'WRL' : 'INV', invCenterX, invCenterY + 0);
+        // Removed old inventory-above-joystick button (replaced by primary inv button)
       }
 
       // FPS
@@ -759,7 +657,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       mounted = false;
       cancelAnimationFrame(raf);
     };
-  }, [gameState, params, fps, joystickVector, joystickToAxial, setFps, isInventory]);
+  }, [gameState, params, fps, setFps, isInventory]);
 
   // Desktop mouse click focusing
   useEffect(() => {

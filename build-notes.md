@@ -133,3 +133,5 @@
 - 2025w51-0.11 — Fix palette coordinates: flat-top formula with accurate coefficients
 
 - 2025w51-0.12 — Restore real palette coordinates with accurate formula comments
+
+- 2025w51-0.13 — Remove mobile joystick and act tap

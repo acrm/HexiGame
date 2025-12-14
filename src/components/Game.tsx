@@ -33,50 +33,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
 
-  // virtual joystick state
-  const joystickTouchIdRef = useRef<number | null>(null);
-  const joystickCenterRef = useRef<{ x: number; y: number } | null>(null);
-  const joystickVectorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const lastJoystickMoveTickRef = useRef(0);
-
-  // Convert joystick vector to nearest axial hex direction; null if in dead zone
-  function joystickToAxial(vx: number, vy: number): [number, number] | null {
-    const len = Math.hypot(vx, vy);
-    if (len < 6) return null; // dead zone to avoid jitter
-    
-    // Screen coordinates: +X right, +Y down
-    // atan2(vy, vx): 0° = right, 90° = down, 180° = left, -90° = up
-    const angle = Math.atan2(vy, vx);
-    const norm = (angle + 2 * Math.PI) % (2 * Math.PI);
-    const deg = (norm * 180) / Math.PI;
-    
-    // Axial directions (pointy-top hex): 0=up, 1=up-right, 2=down-right, 3=down, 4=down-left, 5=up-left
-    // Screen angle → axial direction mapping:
-    // right (0°) → [1, 0] (down-right in axial)
-    // down-right (60°) → [0, 1] (down in axial)
-    // down-left (120°) → [-1, 1] (down-left in axial)
-    // left (180°) → [-1, 0] (up-left in axial)
-    // up-left (240°) → [0, -1] (up in axial)
-    // up-right (300°) → [1, -1] (up-right in axial)
-    
-    let dir: [number, number];
-    if (deg >= 330 || deg < 30) {
-      dir = [1, 0]; // right → down-right
-    } else if (deg >= 30 && deg < 90) {
-      dir = [0, 1]; // down-right → down
-    } else if (deg >= 90 && deg < 150) {
-      dir = [-1, 1]; // down-left → down-left
-    } else if (deg >= 150 && deg < 210) {
-      dir = [-1, 0]; // left → up-left
-    } else if (deg >= 210 && deg < 270) {
-      dir = [0, -1]; // up-left → up
-    } else {
-      dir = [1, -1]; // up-right → up-right
-    }
-    
-    return dir;
-  }
-
   // Tick loop (12 ticks/sec)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -200,12 +156,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         params={mergedParams}
         fps={fps}
         setFps={setFps}
-        joystickVector={joystickVectorRef.current}
-        joystickToAxial={joystickToAxial}
-        joystickTouchIdRef={joystickTouchIdRef}
-        joystickCenterRef={joystickCenterRef}
-        joystickVectorRef={joystickVectorRef}
-        lastJoystickMoveTickRef={lastJoystickMoveTickRef}
         isInventory={isInventory}
         onToggleInventory={() => {
           setIsInventory(v => !v);
@@ -221,9 +171,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }}
         onEat={() => {
           setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
-        }}
-        onMove={(dq, dr) => {
-          setGameState(prev => attemptMoveByDeltaOnActive(prev, mergedParams, dq, dr));
         }}
         onSetCursor={(q, r) => {
           setGameState(prev => attemptMoveTo(prev, mergedParams, { q, r }));
