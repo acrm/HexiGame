@@ -21,29 +21,35 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
   chance,
   turtleColorIndex,
 }) => {
-  const uniformHexSize = 40; // px, larger across panel
+  const uniformHexSize = 40; // px, box size per hex (width/height of SVG)
+  const hexRadius = uniformHexSize / 2; // px, actual hex radius for spacing
   // Diamond cluster of 8 hexes (flat-top), center empty gap
   // Positions arranged in color wheel order 0→1→2→3→4→5→6→7
-  const clusterPositions = [
-    { x: 0, y: 0 }, // center gap
-    { x: 0, y: -uniformHexSize * 1 },                    // 0: top-center
-    { x: +uniformHexSize * 0.87, y: -uniformHexSize * 0.5 }, // 1: top-right
-    { x: +uniformHexSize * 1.74, y: 0 },                 // 2: right
-    { x: +uniformHexSize * 0.87, y: +uniformHexSize * 0.5 }, // 3: bottom-right
-    { x: 0, y: +uniformHexSize * 1 },                    // 4: bottom-center
-    { x: -uniformHexSize * 0.87, y: +uniformHexSize * 0.5 }, // 5: bottom-left
-    { x: -uniformHexSize * 1.74, y: 0 },                 // 6: left
-    { x: -uniformHexSize * 0.87, y: -uniformHexSize * 0.5 }, // 7: top-left
-  ];
+  // Flat-top axial -> Cartesian: x = 1.5*q*R, y = √3*(r+q/2)*R, where R = hexRadius
   
   return (
     <div style={{ position: 'relative', width: '100%', height: 120 }}>
-      {/* ring hexes */}
-      {clusterPositions.slice(1).map((pos, colorIdx) => {
+      {/* ring hexes with grid overlay */}
+      {[
+        { q: 0, r: -1, colorIdx: 0 },
+        { q: 1, r: -1, colorIdx: 1 },
+        { q: 2, r: -1, colorIdx: 2 },
+        { q: 1, r: 0, colorIdx: 3 },
+        { q: 0, r: 1, colorIdx: 4 },
+        { q: -1, r: 1, colorIdx: 5 },
+        { q: -2, r: 1, colorIdx: 6 },
+        { q: -1, r: 0, colorIdx: 7 },
+      ].map(({ q, r, colorIdx }) => {
+        const sqrt3 = Math.sqrt(3);
+        const pos = {
+          x: 1.5 * q * hexRadius,
+          y: sqrt3 * (r + q / 2) * hexRadius,
+        };
         const color = colorPalette[colorIdx];
         const cnt = eatenCounts[color] || 0;
         const isHover = colorIdx === hoverColorIndex;
         const isTurtleColor = turtleColorIndex !== undefined && colorIdx === turtleColorIndex;
+
         return (
           <svg
             key={colorIdx}
@@ -57,6 +63,7 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
               transform: `translate(${pos.x - uniformHexSize / 2}px, ${pos.y - uniformHexSize / 2}px)`,
             }}
           >
+            {/* colored hex */}
             <polygon
               points={Array.from({ length: 6 }, (_, k) => {
                 const ang = (Math.PI / 180) * (60 * k); // flat-top
@@ -71,13 +78,13 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
             />
             <text
               x={0}
-              y={0.08}
+              y={0.1}
               textAnchor="middle"
               dominantBaseline="middle"
               fontSize="0.9"
               fill="#FFFFFF"
             >
-              {colorIdx}
+              {cnt}
             </text>
           </svg>
         );

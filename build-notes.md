@@ -127,3 +127,9 @@
 - 2025w51-0.8 — Palette: use axial coordinates (q,r), convert to pixels on render
 
 - 2025w51-0.9 — Revert to pixel coordinates for palette cluster
+
+- 2025w51-0.10 — Add hexagonal and Cartesian coordinate comments to palette cluster
+
+- 2025w51-0.11 — Fix palette coordinates: flat-top formula with accurate coefficients
+
+- 2025w51-0.12 — Restore real palette coordinates with accurate formula comments
