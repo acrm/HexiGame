@@ -149,3 +149,5 @@
 - 2025w51-0.19 — Clarify color drift on hex exit
 
 - 2025w51-0.20 — Color drift on leaving hex
+
+- 2025w51-0.21 — Add itch.io publishing files and workflow
