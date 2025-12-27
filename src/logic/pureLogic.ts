@@ -138,12 +138,12 @@ export function generateGrid(params: Params, rng: RNG): Grid {
 
 export function createInitialState(params: Params, rng: RNG): GameState {
   const grid = generateGrid(params, rng);
-  // Inventory grid: same shape, all empty
+  // Inventory grid: small fixed grid with radius 3
   const inv: Grid = new Map();
-  const radius = params.GridRadius;
-  for (let q = -radius; q <= radius; q++) {
-    for (let r = -radius; r <= radius; r++) {
-      if (!axialInDisk(radius, q, r)) continue;
+  const invRadius = 3;
+  for (let q = -invRadius; q <= invRadius; q++) {
+    for (let r = -invRadius; r <= invRadius; r++) {
+      if (!axialInDisk(invRadius, q, r)) continue;
       inv.set(keyOf(q, r), { q, r, colorIndex: null });
     }
   }

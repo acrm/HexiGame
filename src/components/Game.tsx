@@ -168,17 +168,20 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         </div>
       )}
       <div className="game-main">
-        <Hotbar
-          slots={gameState.hotbarSlots || []}
-          selectedIndex={gameState.selectedHotbarIndex ?? 3}
-          colorPalette={mergedParams.ColorPalette}
-          onSelect={(idx) => {
-            setGameState(prev => ({
-              ...prev,
-              selectedHotbarIndex: idx,
-            }));
-          }}
-        />
+        {/* Show Hotbar only in world mode (hide in inventory and wiki) */}
+        {!effectiveIsInventory && !(isMobileLayout && mobileTab === 'wiki') && (
+          <Hotbar
+            slots={gameState.hotbarSlots || []}
+            selectedIndex={gameState.selectedHotbarIndex ?? 3}
+            colorPalette={mergedParams.ColorPalette}
+            onSelect={(idx) => {
+              setGameState(prev => ({
+                ...prev,
+                selectedHotbarIndex: idx,
+              }));
+            }}
+          />
+        )}
         <div className="game-field-area">
           {isMobileLayout && mobileTab === 'wiki' ? (
             <div className="wiki-placeholder" />

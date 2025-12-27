@@ -82,6 +82,17 @@ const AXIAL_DIRECTIONS: Readonly<{ q: number; r: number }[]> = [
   { q: -1, r: 0 },
 ] as const;
 
+// Hotbar cells that should be displayed with grey border in inventory
+const HOTBAR_INVENTORY_CELLS: Readonly<{ q: number; r: number }[]> = [
+  { q: -3, r: 0 },
+  { q: -2, r: -1},
+  { q: -1, r: -2 },
+  { q: 0, r: -3 },
+  { q: 1, r: -3 },
+  { q: 2, r: -3 },
+  { q: 3, r: -3 },
+] as const;
+
 interface GameFieldProps {
   gameState: GameState;
   params: Params;
@@ -264,30 +275,48 @@ export const GameField: React.FC<GameFieldProps> = ({
       const availableWidth = container.clientWidth;
       const availableHeight = container.clientHeight;
 
-      // Compute tight logical bounds
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
+      // Compute world bounds for consistent cell scaling across views
+      let worldMinX = Infinity;
+      let worldMaxX = -Infinity;
+      let worldMinY = Infinity;
+      let worldMaxY = -Infinity;
       for (const cell of gameState.grid.values()) {
         const pos = hexToPixel(cell.q, cell.r);
         const x = pos.x;
         const y = pos.y;
         const halfW = HEX_SIZE * 1.0;
         const halfH = HEX_SIZE * Math.sqrt(3) * 0.5;
-        minX = Math.min(minX, x - halfW);
-        maxX = Math.max(maxX, x + halfW);
-        minY = Math.min(minY, y - halfH);
-        maxY = Math.max(maxY, y + halfH);
+        worldMinX = Math.min(worldMinX, x - halfW);
+        worldMaxX = Math.max(worldMaxX, x + halfW);
+        worldMinY = Math.min(worldMinY, y - halfH);
+        worldMaxY = Math.max(worldMaxY, y + halfH);
       }
 
-      const logicalWidth = maxX - minX;
-      const logicalHeight = maxY - minY;
+      const worldLogicalWidth = worldMaxX - worldMinX;
+      const worldLogicalHeight = worldMaxY - worldMinY;
+
+      // Compute active grid bounds (world or inventory) for centering
+      const activeBoundsGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
+      let activeMinX = Infinity;
+      let activeMaxX = -Infinity;
+      let activeMinY = Infinity;
+      let activeMaxY = -Infinity;
+      for (const cell of activeBoundsGrid.values()) {
+        const pos = hexToPixel(cell.q, cell.r);
+        const x = pos.x;
+        const y = pos.y;
+        const halfW = HEX_SIZE * 1.0;
+        const halfH = HEX_SIZE * Math.sqrt(3) * 0.5;
+        activeMinX = Math.min(activeMinX, x - halfW);
+        activeMaxX = Math.max(activeMaxX, x + halfW);
+        activeMinY = Math.min(activeMinY, y - halfH);
+        activeMaxY = Math.max(activeMaxY, y + halfH);
+      }
 
       const padding = 12; // keep a thin margin so hexes are never cut off
       const scale = Math.min(
-        (availableWidth - padding * 2) / logicalWidth,
-        (availableHeight - padding * 2) / logicalHeight,
+        (availableWidth - padding * 2) / worldLogicalWidth,
+        (availableHeight - padding * 2) / worldLogicalHeight,
       );
 
       const pixelWidth = availableWidth;
@@ -305,66 +334,18 @@ export const GameField: React.FC<GameFieldProps> = ({
         ctx.globalAlpha = 1.0;
       }
 
-      const centerX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
-      // In portrait (mobile) layout, align grid to the top padding; otherwise keep centered
-      const isPortrait = canvas.height > canvas.width;
-      const centerY = isPortrait
-        ? padding - minY * scale
-        : canvas.height / 2 - ((minY + maxY) / 2) * scale;
+      const centerX = canvas.width / 2 - ((activeMinX + activeMaxX) / 2) * scale;
+      // Always center vertically for both world and inventory
+      const centerY = canvas.height / 2 - ((activeMinY + activeMaxY) / 2) * scale;
       scaleRef.current = scale;
       centerXRef.current = centerX;
       centerYRef.current = centerY;
 
-      // Draw world or inventory as full hex grids
+      // Draw grid corner dots (for world or inventory)
       const activeGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
-      for (const cell of activeGrid.values()) {
-        const pos = hexToPixel(cell.q, cell.r);
-        const scaledX = centerX + pos.x * scale;
-        const scaledY = centerY + pos.y * scale;
-        let fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
-        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
-      }
-
-      // Draw grid corner dots
       ctx.fillStyle = GRID_STROKE_COLOR;
       const dotRadius = 1.2 * scale;
-      const seenVertices = new Set<string>();
-      const emptyCells = Array.from(activeGrid.values()).filter(c => c.colorIndex === null);
-      for (const cell of emptyCells) {
-        const pos = hexToPixel(cell.q, cell.r);
-        const baseX = centerX + pos.x * scale;
-        const baseY = centerY + pos.y * scale;
-        const angleDeg = 60;
-        for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI / 180) * (angleDeg * i);
-          const vx = baseX + HEX_SIZE * scale * Math.cos(angle);
-          const vy = baseY + HEX_SIZE * scale * Math.sin(angle);
-          const key = `${Math.round(vx)}:${Math.round(vy)}`;
-          if (seenVertices.has(key)) continue;
-
-          let allEmpty = true;
-          for (const other of activeGrid.values()) {
-            const otherPos = hexToPixel(other.q, other.r);
-            const ox = centerX + otherPos.x * scale;
-            const oy = centerY + otherPos.y * scale;
-            const dx = ox - vx;
-            const dy = oy - vy;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (Math.abs(dist - HEX_SIZE * scale) < HEX_SIZE * scale * 0.15) {
-              if (other.colorIndex !== null) {
-                allEmpty = false;
-                break;
-              }
-            }
-          }
-          if (!allEmpty) continue;
-
-          seenVertices.add(key);
-          ctx.beginPath();
-          ctx.arc(vx, vy, dotRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      // Removed early grid-dot rendering to allow for later redraws
 
       // Focus and target visuals
       const protagonistCell = gameState.protagonist;
@@ -392,17 +373,155 @@ export const GameField: React.FC<GameFieldProps> = ({
         drawVertexHighlights(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF', 1 * scale);
       }
 
-      // Inventory cursor: keep rotating edges
+      // In inventory mode: draw turtle background first, then inventoryGrid naturally
       if (isInventory) {
-        const hover = hoveredCellInventory(gameState);
-        if (hover) {
-          const pos = hexToPixel(hover.q, hover.r);
+        // Inventory Turtle: centered below the grid, drawn under all cells
+        const INV_TURTLE_ROTATION_DEG = 0; // ignored for head direction (kept for future use)
+        const INV_TURTLE_SCALE = 12.0;     // controls turtle size relative to HEX_SIZE
+        const INV_TURTLE_MARGIN_HEX = -6;  // vertical gap below grid in hex units
+
+        const invBgColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#000';
+        // Match the visible inventory background tint (background is drawn with alpha 0.15 over a dark base)
+        const invBgShellColor = '#570546ff'; 
+        const turtleColorIndex = (gameState as any).turtleColorIndex ?? params.PlayerBaseColorIndex;
+        const baseColor = params.ColorPalette[turtleColorIndex] || '#FFFFFF';
+
+        // Position turtle just below bottom of inventory grid
+        const pivotX = centerX;
+        const pivotY = centerY + (activeMaxY + HEX_SIZE * INV_TURTLE_MARGIN_HEX) * scale;
+
+        const parentRadius = HEX_SIZE * scale * INV_TURTLE_SCALE;
+        const centerRadius = parentRadius / 3;
+        const shellRadius = parentRadius / Math.sqrt(3);
+        const turtleStroke = '#FFFFFF';
+        const turtleLineWidth = 0.1 * scale;
+
+        // Fix orientation: head strictly upward, ignore rotation param
+        const rotationRad = 0;
+        const smallCenters: { x: number; y: number }[] = [];
+        for (let i = 0; i < 6; i++) {
+          const ang = (Math.PI / 180) * (60 * i - 30) + rotationRad;
+          const ringRadius = centerRadius * 2.05;
+          smallCenters.push({
+            x: pivotX + ringRadius * Math.cos(ang),
+            y: pivotY + ringRadius * Math.sin(ang),
+          });
+        }
+
+        // Choose head strictly upward: pick petal with minimal y (most negative vy)
+        let headIndex = 0;
+        let minVy = Infinity;
+        for (let i = 0; i < 6; i++) {
+          const c = smallCenters[i];
+          const vy = c.y - pivotY;
+          if (vy < minVy) {
+            minVy = vy;
+            headIndex = i;
+          }
+        }
+        const tailIndex = (headIndex + 3) % 6;
+
+        // Draw head + other petals (outlines only), under cells
+        for (let i = 0; i < smallCenters.length; i++) {
+          if (i === tailIndex) continue;
+          const c = smallCenters[i];
+          const isHead = i === headIndex;
+          const radius = isHead ? centerRadius : parentRadius / 9;
+          drawHex(ctx, c.x, c.y, radius, 'transparent', turtleStroke, turtleLineWidth);
+        }
+
+        // Shell: filled with inventory background color to occlude inner hexes
+        ctx.save();
+        ctx.translate(pivotX, pivotY);
+        ctx.rotate((30 * Math.PI) / 180 + rotationRad);
+        drawHex(ctx, 0, 0, shellRadius, invBgShellColor, turtleStroke, turtleLineWidth);
+        ctx.restore();
+
+        const activeGrid = gameState.inventoryGrid;
+        // Create set of hotbar cell keys for fast lookup
+        const hotbarCellKeys = new Set<string>();
+        for (const cell of HOTBAR_INVENTORY_CELLS) {
+          hotbarCellKeys.add(`${cell.q},${cell.r}`);
+        }
+        
+        for (const cell of activeGrid.values()) {
+          const pos = hexToPixel(cell.q, cell.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+          
+          const isHotbarCell = hotbarCellKeys.has(`${cell.q},${cell.r}`);
+          let fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
+          const stroke = (cell.colorIndex === null && isHotbarCell) ? '#888888' : 'transparent';
+          const lineWidth = (cell.colorIndex === null && isHotbarCell) ? 2 : 0;
+          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, stroke, lineWidth);
+        }
+        
+        // Draw hotbar slot contents on top of inventory grid (use same coords as grey-bordered cells)
+        for (let slotIdx = 0; slotIdx < gameState.hotbarSlots.length; slotIdx++) {
+          const colorIndex = gameState.hotbarSlots[slotIdx];
+          if (colorIndex === null || colorIndex === undefined) continue;
+
+          const slotCoord = HOTBAR_INVENTORY_CELLS[slotIdx];
+          const pos = hexToPixel(slotCoord.q, slotCoord.r);
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
 
-          const now = performance.now();
-          const baseEdge = computeEdgeIndex(now);
-          drawEdgeHighlight(ctx, scaledX, scaledY, baseEdge, HEX_SIZE * scale, '#FFFFFF');
+          const fill = params.ColorPalette[colorIndex] || 'transparent';
+          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
+        }
+      } else {
+        // World mode: draw normal grid
+        const activeGrid = gameState.grid;
+        for (const cell of activeGrid.values()) {
+          const pos = hexToPixel(cell.q, cell.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+          let fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
+          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
+        }
+      }
+
+      // Draw grid corner dots (for world or inventory) AFTER turtle/background so dots stay visible
+      {
+        const activeGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
+        ctx.fillStyle = GRID_STROKE_COLOR;
+        const dotRadius = 1.2 * scale;
+        const seenVertices = new Set<string>();
+        const emptyCells = Array.from(activeGrid.values()).filter(c => c.colorIndex === null);
+        for (const cell of emptyCells) {
+          const pos = hexToPixel(cell.q, cell.r);
+          const baseX = centerX + pos.x * scale;
+          const baseY = centerY + pos.y * scale;
+          const angleDeg = 60;
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 180) * (angleDeg * i);
+            const vx = baseX + HEX_SIZE * scale * Math.cos(angle);
+            const vy = baseY + HEX_SIZE * scale * Math.sin(angle);
+            const key = `${Math.round(vx)}:${Math.round(vy)}`;
+            if (seenVertices.has(key)) continue;
+
+            let allEmpty = true;
+            for (const other of activeGrid.values()) {
+              const otherPos = hexToPixel(other.q, other.r);
+              const ox = centerX + otherPos.x * scale;
+              const oy = centerY + otherPos.y * scale;
+              const dx = ox - vx;
+              const dy = oy - vy;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (Math.abs(dist - HEX_SIZE * scale) < HEX_SIZE * scale * 0.15) {
+                if (other.colorIndex !== null) {
+                  allEmpty = false;
+                  break;
+                }
+              }
+            }
+            if (!allEmpty) continue;
+
+            seenVertices.add(key);
+            ctx.beginPath();
+            ctx.arc(vx, vy, dotRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
 

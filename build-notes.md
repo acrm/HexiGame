@@ -207,3 +207,33 @@
 - 2025w52-0.27 — Simplify action system: instant context action on click, no isActionMode state, fix hotbar never uses center slot
 
 - 2025w52-0.28 — Add context action trigger on focus cell click (desktop: LMB, mobile: ACT button)
+
+- 2025w52-0.29 — Set inventory grid radius to fixed 7 (same cell size as world)
+
+- 2025w52-0.30 — Visualize hotbar slots in inventory with borders matching selected state
+
+- 2025w52-0.31 — Move hotbar display to separate horizontal strip above inventory grid
+
+- 2025w52-0.32 — Fix inventory grid initialization to match 7x7 layout
+
+- 2025w52-0.33 — Revert inventory to natural grid display with hotbar as part of inventory cells
+
+- 2025w52-0.34 — Draw grey borders only on hotbar cells in inventory
+
+- 2025w53-0.1 — Add hotbar slot coordinate mapping for inventory display
+
+- 2025w53-0.2 — Unify hotbar inventory mapping: use HOTBAR_INVENTORY_CELLS for slot content positions
+
+- 2025w53-0.3 — Show Hotbar only in world view; remove in inventory mode
+
+- 2025w53-0.4 — Center inventory grid using its bounds; add configurable turtle under grid (rotation, scale)
+
+- 2025w53-0.5 — Inventory cells now use world-based scale; centering preserved
+
+- 2025w53-0.6 — Inventory turtle: outlines-only, head fixed upward (ignore rotation param)
+
+- 2025w53-0.7 — Inventory turtle under grid; shell filled with bg color
+
+- 2025w53-0.8 — Inventory turtle shell matches background tint; dots remain above
+
+- 2025w53-0.9 — Hide hotbar in wiki tab; inventory dots drawn above turtle
