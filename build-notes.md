@@ -151,3 +151,15 @@
 - 2025w51-0.20 — Color drift on leaving hex
 
 - 2025w51-0.21 — Add itch.io publishing files and workflow
+
+- 2025w52-0.1 — Cursor renamed to focus, always positioned ahead of turtle head. Added drag support and auto-movement to clicked cells (1 cell per 2 ticks)
+
+- 2025w52-0.2 — Removed turtle color shift logic on movement
+
+- 2025w52-0.3 — Changed visualization: rotating edges now only for auto-move target, focus shown with highlighted vertices (no animation)
+
+- 2025w52-0.4 — Fix: focus no longer jumps to clicked cell; auto-move highlights destination only
+
+- 2025w52-0.5 — Fix: focus updates in desktop during auto-move (stays ahead of turtle)
+
+- 2025w52-0.6 — Fix: focus sticks on destination by aligning facing on arrival

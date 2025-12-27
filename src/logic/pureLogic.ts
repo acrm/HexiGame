@@ -37,7 +37,7 @@ export interface Params {
 export interface GameState {
   tick: number; // increases by 1 each logic step
   remainingSeconds: number;
-  cursor: Axial; // visual target hex (where protagonist is looking)
+  focus: Axial; // focus hex - always adjacent to protagonist head
   protagonist: Axial; // protagonist position
   capturedCell: Axial | null; // anchor cell currently being carried, if any
   captureCooldownTicksRemaining: number;
@@ -48,7 +48,7 @@ export interface GameState {
   activeField?: 'world' | 'inventory';
   facingDirIndex: number; // 0..5, protagonist facing direction
   paletteCounts?: Record<string, number>; // eaten counters by color hex value
-  isReleasing?: boolean; // true when turtle moves to cursor to release
+  isReleasing?: boolean; // true when turtle moves to focus to release
   isActionMode?: boolean; // true while player is holding action (Space / ACT button)
   releaseTarget?: Axial | null; // cell where an ongoing release should drop the carried hex
   actionHeldTicks?: number; // ticks elapsed since action button was pressed (0..12+)
@@ -60,6 +60,10 @@ export interface GameState {
   turtleColorIndex?: number; // current turtle color index
   lastColorShiftTick?: number | null; // last tick when turtle color shifted
   standTargetColorIndex?: number | null; // color of hex currently standing on
+  isDragging?: boolean; // true when user is dragging protagonist/focus
+  autoMoveTarget?: Axial | null; // target cell for automatic movement
+  autoMoveTicksRemaining?: number; // ticks until next auto move step (2 ticks per step)
+  autoFocusTarget?: Axial | null; // destination focus cell to highlight while moving
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -154,10 +158,11 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     }
   }
   const start: Axial = { q: 0, r: 0 };
+  const startFocus = addAxial(start, axialDirections[0]); // focus starts ahead of protagonist
   return {
     tick: 0,
     remainingSeconds: params.TimerInitialSeconds,
-    cursor: { ...start },
+    focus: startFocus,
     protagonist: { ...start },
     capturedCell: null,
     captureCooldownTicksRemaining: 0,
@@ -179,6 +184,10 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     turtleColorIndex: params.PlayerBaseColorIndex,
     lastColorShiftTick: null,
     standTargetColorIndex: null,
+    isDragging: false,
+    autoMoveTarget: null,
+    autoMoveTicksRemaining: 0,
+    autoFocusTarget: null,
   };
 }
 
@@ -220,52 +229,94 @@ export function computeCaptureChancePercent(params: Params, colorIndex: number):
 }
 
 export function hoveredCell(state: GameState): Cell | undefined {
-  return getCell(state.grid, state.cursor);
+  return getCell(state.grid, state.focus);
 }
 
 export function hoveredCellInventory(state: GameState): Cell | undefined {
-  return getCell(state.inventoryGrid, state.cursor);
+  return getCell(state.inventoryGrid, state.focus);
 }
 
 export function hoveredCellActive(state: GameState): Cell | undefined {
   return state.activeField === 'inventory' ? hoveredCellInventory(state) : hoveredCell(state);
 }
 
-// Visual follower logic for protagonist: follows cursor with one-step lag.
-// If cursor is adjacent to protagonist, protagonist stays.
-// If cursor leaves adjacency, protagonist moves into previous cursor position
-// if that position was adjacent; otherwise it also stays.
-export function evolveProtagonistFollower(
-  protagonist: Axial,
-  cursor: Axial,
-  lastCursor: Axial | null,
-): { protagonist: Axial; nextLastCursor: Axial | null } {
-  // If cursor did not change, nothing to do
-  if (lastCursor && lastCursor.q === cursor.q && lastCursor.r === cursor.r) {
-    return { protagonist, nextLastCursor: lastCursor };
-  }
+// Update focus position to be always in front of protagonist based on facing direction
+export function updateFocusPosition(state: GameState): GameState {
+  if (state.isDragging) return state; // Don't auto-update focus during drag
+  const dir = axialDirections[state.facingDirIndex];
+  const newFocus = addAxial(state.protagonist, dir);
+  return { ...state, focus: newFocus };
+}
 
-  const nextLastCursor: Axial = { q: cursor.q, r: cursor.r };
-
-  // 1) Movement: protagonist moves only when cursor is no longer adjacent
-  const isAdjacent = axialDirections.some(
-    d => protagonist.q + d.q === cursor.q && protagonist.r + d.r === cursor.r,
-  );
-
-  if (!isAdjacent && !(protagonist.q === cursor.q && protagonist.r === cursor.r)) {
-    // Move protagonist into the previous cursor position, if it was adjacent
-    if (
-      lastCursor &&
-      axialDirections.some(
-        d => protagonist.q + d.q === lastCursor.q && protagonist.r + d.r === lastCursor.r,
-      )
-    ) {
-      return { protagonist: { q: lastCursor.q, r: lastCursor.r }, nextLastCursor };
+// Start automatic movement to target cell (focus will land on target)
+export function startAutoMove(state: GameState, target: Axial, params: Params): GameState {
+  if (!axialInDisk(params.GridRadius, target.q, target.r)) return state;
+  if (state.isDragging) return state; // Don't start auto move during drag
+  
+  // Calculate where protagonist needs to be so that focus lands on target
+  // We need to find adjacent cell to target that's in the direction we'll face
+  let bestProtagonistPos: Axial | null = null;
+  let bestDir = 0;
+  let minDist = Infinity;
+  
+  for (let dirIdx = 0; dirIdx < 6; dirIdx++) {
+    const dir = axialDirections[dirIdx];
+    // If focus is at target, protagonist is one step back (opposite direction)
+    const candidatePos = { q: target.q - dir.q, r: target.r - dir.r };
+    if (!axialInDisk(params.GridRadius, candidatePos.q, candidatePos.r)) continue;
+    
+    const dist = Math.abs(state.protagonist.q - candidatePos.q) + 
+                 Math.abs(state.protagonist.r - candidatePos.r) +
+                 Math.abs(-state.protagonist.q - state.protagonist.r + candidatePos.q + candidatePos.r);
+    if (dist < minDist) {
+      minDist = dist;
+      bestProtagonistPos = candidatePos;
+      bestDir = dirIdx;
     }
   }
+  
+  if (!bestProtagonistPos) return state;
+  
+  return {
+    ...state,
+    autoMoveTarget: bestProtagonistPos,
+    autoMoveTicksRemaining: 0,
+    facingDirIndex: bestDir,
+    autoFocusTarget: { ...target },
+  };
+}
 
-  // Otherwise stay in place
-  return { protagonist, nextLastCursor };
+// Start drag mode - protagonist and focus move together
+export function startDrag(state: GameState): GameState {
+  return { ...state, isDragging: true, autoMoveTarget: null };
+}
+
+// End drag mode - return to normal
+export function endDrag(state: GameState): GameState {
+  return updateFocusPosition({ ...state, isDragging: false });
+}
+
+// Move protagonist by delta during drag (focus moves with it)
+export function dragMoveProtagonist(state: GameState, params: Params, dq: number, dr: number): GameState {
+  if (!state.isDragging) return state;
+  
+  // Only allow movement to adjacent cells (1 step at a time)
+  const dist = Math.abs(dq) + Math.abs(dr) + Math.abs(-dq - dr);
+  if (dist !== 2) return state; // Not a single hex step
+  
+  const newPos = { q: state.protagonist.q + dq, r: state.protagonist.r + dr };
+  if (!axialInDisk(params.GridRadius, newPos.q, newPos.r)) return state;
+  
+  const newFocus = { q: state.focus.q + dq, r: state.focus.r + dr };
+  if (!axialInDisk(params.GridRadius, newFocus.q, newFocus.r)) return state;
+  
+  // Update facing direction based on movement
+  const dirIndex = axialDirections.findIndex(d => d.q === dq && d.r === dr);
+  if (dirIndex !== -1) {
+    return { ...state, protagonist: newPos, focus: newFocus, facingDirIndex: dirIndex };
+  }
+  
+  return { ...state, protagonist: newPos, focus: newFocus };
 }
 
 
@@ -330,6 +381,47 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = { ...next, eatFailureFlash: undefined };
   }
 
+  // Auto-movement logic: move 1 cell every 2 ticks
+  if (next.autoMoveTarget && !next.isDragging) {
+    if (next.autoMoveTicksRemaining === undefined || next.autoMoveTicksRemaining <= 0) {
+      // Time to move
+      if (next.protagonist.q === next.autoMoveTarget.q && next.protagonist.r === next.autoMoveTarget.r) {
+        // Reached target: align facing toward destination focus so focus lands exactly there
+        if (next.autoFocusTarget) {
+          const dirTowardFocus = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoFocusTarget.q, next.autoFocusTarget.r);
+          if (dirTowardFocus !== null) {
+            next = { ...next, facingDirIndex: dirTowardFocus };
+          }
+        }
+        next = updateFocusPosition(next); // place focus in front of head (at destination)
+        next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0, autoFocusTarget: null };
+      } else {
+        // Move one step toward target
+        const dirIndex = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoMoveTarget.q, next.autoMoveTarget.r);
+        if (dirIndex !== null) {
+          const dir = axialDirections[dirIndex];
+          const newPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
+          if (axialInDisk(params.GridRadius, newPos.q, newPos.r)) {
+            next = { ...next, protagonist: newPos, facingDirIndex: dirIndex, autoMoveTicksRemaining: 2 };
+            // Keep focus always ahead of turtle even during auto-move
+            next = updateFocusPosition(next);
+          } else {
+            // Can't move further, stop
+            next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0 };
+            next = updateFocusPosition(next);
+          }
+        } else {
+          // Already at target
+          next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0 };
+          next = updateFocusPosition(next);
+        }
+      }
+    } else {
+      // Count down
+      next = { ...next, autoMoveTicksRemaining: next.autoMoveTicksRemaining - 1 };
+    }
+  }
+
   // NOTE: Capture logic is disabled. Only movement and eating on release are active.
 
   if (next.flash && (next.tick - next.flash.startedTick) >= params.CaptureFlashDurationTicks) {
@@ -348,58 +440,53 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
       // Ensure candidate is a real cell on grid
       if (!getCell(next.grid, candidate)) continue;
       // Move protagonist here and keep facing consistent
-      next = applyColorDriftOnDeparture(next, params, next.protagonist);
       next = { ...next, protagonist: candidate };
       break;
     }
+  }
+
+  // Always keep focus updated when not dragging
+  if (!next.isDragging) {
+    next = updateFocusPosition(next);
   }
 
   return next;
 }
 
 // ---------- Movement ----------
+// Rotate protagonist to face a direction (updates focus automatically)
 export function attemptMoveByDirectionIndex(state: GameState, params: Params, dirIndex: number): GameState {
+  if (state.isDragging || state.autoMoveTarget) return state;
   const normIndex = ((dirIndex % 6) + 6) % 6;
-  const dir = axialDirections[normIndex];
-  const target = addAxial(state.cursor, dir);
-  return attemptMoveTo({ ...state, facingDirIndex: normIndex }, params, target);
+  const next = { ...state, facingDirIndex: normIndex };
+  return updateFocusPosition(next);
 }
 
+// Rotate protagonist by delta direction (updates focus automatically)
 export function attemptMoveByDelta(state: GameState, params: Params, dq: number, dr: number): GameState {
-  const target = { q: state.cursor.q + dq, r: state.cursor.r + dr };
+  if (state.isDragging || state.autoMoveTarget) return state;
+  const target = { q: state.focus.q + dq, r: state.focus.r + dr };
   // Enforce adjacency: must match one of the six axial directions
   const matchedIndex = axialDirections.findIndex(
-    d => state.cursor.q + d.q === target.q && state.cursor.r + d.r === target.r,
+    d => state.focus.q + d.q === target.q && state.focus.r + d.r === target.r,
   );
   if (matchedIndex === -1) return state;
   const nextState: GameState = { ...state, facingDirIndex: matchedIndex };
-  return attemptMoveTo(nextState, params, target);
+  return updateFocusPosition(nextState);
 }
 
 export function attemptMoveByDeltaOnActive(state: GameState, params: Params, dq: number, dr: number): GameState {
-  // In world mode with captured cell, throttle movement to 1 cell per 4 ticks
-  if (state.activeField === 'world' && state.capturedCell) {
-    const movePeriod = 4;
-    const lastMove = (state as any).lastCarryMoveTick ?? 0;
-    if (state.tick - lastMove < movePeriod) {
-      return state; // too soon, ignore move
-    }
-  }
-  const target = { q: state.cursor.q + dq, r: state.cursor.r + dr };
-  const matchedIndex = axialDirections.findIndex(
-    d => state.cursor.q + d.q === target.q && state.cursor.r + d.r === target.r,
-  );
-  if (matchedIndex === -1) return state;
-  const nextState: GameState = { ...state, facingDirIndex: matchedIndex };
-  return attemptMoveToOnActive(nextState, params, target);
+  // Same as attemptMoveByDelta for now
+  return attemptMoveByDelta(state, params, dq, dr);
 }
 
+// Start auto-move to target position (focus will be placed on target)
 export function attemptMoveTo(state: GameState, params: Params, target: Axial): GameState {
   if (!axialInDisk(params.GridRadius, target.q, target.r)) return state;
   const targetCell = getCell(state.grid, target);
   if (!targetCell) return state; // outside generated grid
-  // Always move the cursor only (the carried hex is moved by the turtle, not by the cursor)
-  return { ...state, cursor: { ...target } };
+  // Start automatic movement to target
+  return startAutoMove(state, target, params);
 }
 
 export function attemptMoveToOnActive(state: GameState, params: Params, target: Axial): GameState {
@@ -408,8 +495,8 @@ export function attemptMoveToOnActive(state: GameState, params: Params, target: 
   const grid = usingInventory ? state.inventoryGrid : state.grid;
   const targetCell = getCell(grid, target);
   if (!targetCell) return state;
-  // Cursor always moves empty; moving the carried hex happens in release tick
-  return { ...state, cursor: { ...target } };
+  // Start automatic movement to target
+  return startAutoMove(state, target, params);
 }
 
 // ---------- Capture Flow ----------
@@ -453,13 +540,13 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
     return next;
   }
 
-  // In world mode, check if protagonist reached adjacent cell to cursor
+  // In world mode, check if protagonist is adjacent to focus
   if (!inInventory) {
     const { q: pq, r: pr } = next.protagonist;
-    const { q: cq, r: cr } = next.cursor;
-    const isAdjacent = axialDirections.some(d => pq + d.q === cq && pr + d.r === cr);
+    const { q: fq, r: fr } = next.focus;
+    const isAdjacent = axialDirections.some(d => pq + d.q === fq && pr + d.r === fr);
     if (!isAdjacent) {
-      console.log(`[capture] FAIL: turtle didn't reach cursor adjacency at tick=${next.tick}`);
+      console.log(`[capture] FAIL: turtle didn't reach focus adjacency at tick=${next.tick}`);
       next = {
         ...next,
         captureCooldownTicksRemaining: params.CaptureFailureCooldownTicks,
@@ -472,11 +559,11 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
   const usingInventory = next.activeField === 'inventory';
   const cell = usingInventory ? hoveredCellInventory(next) : hoveredCell(next);
   if (!cell) {
-    console.log(`[capture] no cell at cursor at tick=${next.tick}`);
+    console.log(`[capture] no cell at focus at tick=${next.tick}`);
     return next;
   }
 
-  // Allow capture on empty cells (turtle just walks to cursor)
+  // Allow capture on empty cells (turtle just walks to focus)
   if (cell.colorIndex === null) {
     console.log(`[capture] empty cell at tick=${next.tick}, turtle reached`);
     return next;
@@ -509,7 +596,6 @@ export function endCaptureCharge(state: GameState, params: Params, rng: RNG): Ga
         if (dist < bestDist) { bestDist = dist; bestDir = dir; }
       }
       if (bestDir) {
-        next = applyColorDriftOnDeparture(next, params, next.protagonist);
         next = { ...next, protagonist: { q: pq + bestDir.q, r: pr + bestDir.r } };
       }
     }
@@ -535,11 +621,11 @@ export function dropCarried(state: GameState): GameState {
   return { ...state, capturedCell: null, captureCooldownTicksRemaining: Math.max(state.captureCooldownTicksRemaining, 6), releaseTarget: null };
 }
 
-// Begin releasing: turtle will move with carried hex toward cursor and drop on arrival
+// Begin releasing: turtle will move with carried hex toward focus and drop on arrival
 export function beginRelease(state: GameState): GameState {
   if (state.activeField !== 'world') return state;
   if (state.capturedCell === null) return state;
-  return { ...state, isReleasing: true, releaseTarget: { ...state.cursor } };
+  return { ...state, isReleasing: true, releaseTarget: { ...state.focus } };
 }
 
 // Consume the currently carried cell: remove its color from grid and increment palette counter.
@@ -777,15 +863,15 @@ export function beginAction(state: GameState): GameState {
   if (since < 2) return state;
   // On action start, mark whether a turn happens (for short action extra step rule)
   const { q: pq, r: pr } = state.protagonist;
-  const { q: cq, r: cr } = state.cursor;
-  const dirTowardCursor = findDirectionToward(pq, pr, cq, cr);
+  const { q: fq, r: fr } = state.focus;
+  const dirTowardFocus = findDirectionToward(pq, pr, fq, fr);
   let turned = false;
   let nextFacing = state.facingDirIndex;
-  if (!(pq === cq && pr === cr) && dirTowardCursor !== null && dirTowardCursor !== state.facingDirIndex) {
-    nextFacing = dirTowardCursor;
+  if (!(pq === fq && pr === fr) && dirTowardFocus !== null && dirTowardFocus !== state.facingDirIndex) {
+    nextFacing = dirTowardFocus;
     turned = true;
   }
-  return {
+  const next = {
     ...state,
     isActionMode: true,
     actionStartTick: state.tick,
@@ -793,42 +879,42 @@ export function beginAction(state: GameState): GameState {
     actionTurnedOnStart: turned,
     facingDirIndex: nextFacing,
   };
+  return updateFocusPosition(next);
 }
 
 // Finalize short action: step forward if there was no turn; else nothing
 export function finalizeShortAction(state: GameState, params: Params): GameState {
-  const atCursor = state.protagonist.q === state.cursor.q && state.protagonist.r === state.cursor.r;
+  const atFocus = state.protagonist.q === state.focus.q && state.protagonist.r === state.focus.r;
   let next = { ...state };
-  if (!atCursor && !state.actionTurnedOnStart) {
+  if (!atFocus && !state.actionTurnedOnStart) {
     const dir = axialDirections[next.facingDirIndex];
     const from = next.protagonist;
     const to = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
-    next = applyColorDriftOnDeparture(next, params, from);
     next = { ...next, protagonist: to };
   }
-  return { ...next, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: next.tick, actionTurnedOnStart: false };
+  next = { ...next, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: next.tick, actionTurnedOnStart: false };
+  return updateFocusPosition(next);
 }
 
-// Finalize long action: eat if at cursor and hex exists; otherwise jump up to 6 steps toward cursor
+// Finalize long action: eat if at focus and hex exists; otherwise jump up to 6 steps toward focus
 export function finalizeAction(state: GameState, params: Params, rng: RNG): GameState {
-  const atCursor = state.protagonist.q === state.cursor.q && state.protagonist.r === state.cursor.r;
-  if (atCursor) {
-    const cell = getCell(state.grid, state.cursor);
+  const atFocus = state.protagonist.q === state.focus.q && state.protagonist.r === state.focus.r;
+  if (atFocus) {
+    const cell = getCell(state.grid, state.focus);
     if (cell && cell.colorIndex !== null) {
-      const eaten = attemptEatCellToInventory(state, state.cursor, params, rng);
+      const eaten = attemptEatCellToInventory(state, state.focus, params, rng);
       return { ...eaten, lastActionEndTick: eaten.tick, actionTurnedOnStart: false };
     }
-    // No hex: long action does nothing extra when at cursor
+    // No hex: long action does nothing extra when at focus
     return { ...state, isActionMode: false, actionStartTick: null, actionHeldTicks: 0, lastActionEndTick: state.tick, actionTurnedOnStart: false };
   }
-  // Jump toward cursor up to 6 steps or stop at cursor
-  const path = computeShortestPath(state.protagonist, state.cursor, params);
+  // Jump toward focus up to 6 steps or stop at focus
+  const path = computeShortestPath(state.protagonist, state.focus, params);
   const jumpLen = Math.min(6, path.length);
   let working: GameState = { ...state };
   let current = working.protagonist;
   for (let i = 0; i < jumpLen; i++) {
     const step = path[i];
-    working = applyColorDriftOnDeparture(working, params, current);
     current = step;
   }
   const next = {
@@ -861,13 +947,13 @@ export function computeShortestPath(from: Axial, to: Axial, params: Params): Axi
   return path;
 }
 
-// Compute breadcrumbs path starting from facing cell toward cursor
+// Compute breadcrumbs path starting from facing cell toward focus
 export function computeBreadcrumbs(state: GameState, params: Params): Axial[] {
-  if (state.protagonist.q === state.cursor.q && state.protagonist.r === state.cursor.r) return [];
+  if (state.protagonist.q === state.focus.q && state.protagonist.r === state.focus.r) return [];
   const headDir = axialDirections[state.facingDirIndex];
   const start = { q: state.protagonist.q + headDir.q, r: state.protagonist.r + headDir.r };
   if (!axialInDisk(params.GridRadius, start.q, start.r)) return [];
-  return computeShortestPath(start, state.cursor, params);
+  return computeShortestPath(start, state.focus, params);
 }
 
 // ---------- Default Parameters (mirroring the doc) ----------

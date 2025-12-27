@@ -59,6 +59,20 @@ function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, cente
   ctx.stroke();
 }
 
+// Draw highlighted vertices (corners) of hex
+function drawVertexHighlights(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, color: string, radius = 3) {
+  const angleDeg = 60;
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (angleDeg * i);
+    const vx = centerX + size * Math.cos(angle);
+    const vy = centerY + size * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(vx, vy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+}
+
 const AXIAL_DIRECTIONS: Readonly<{ q: number; r: number }[]> = [
   { q: 0, r: -1 },
   { q: +1, r: -1 },
@@ -81,6 +95,7 @@ interface GameFieldProps {
   onSetCursor: (q: number, r: number) => void;
   onCellClickDown?: (q: number, r: number) => void;
   onCellClickUp?: (q: number, r: number) => void;
+  onCellDrag?: (q: number, r: number) => void;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -96,6 +111,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   onSetCursor,
   onCellClickDown,
   onCellClickUp,
+  onCellDrag,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -391,22 +407,51 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       // Skip flash overlay rendering; success is indicated by white outline on captured hex.
 
-      // Cursor visuals
+      // Focus and target visuals
       const protagonistCell = gameState.protagonist;
-      const hover = (isInventory ? hoveredCellInventory(gameState) : hoveredCell(gameState)) ?? null;
+      const focusCell = gameState.focus;
+      const autoMoveTarget = gameState.autoMoveTarget;
 
-      if (hover) {
-        const pos = hexToPixel(hover.q, hover.r);
+      // Draw auto-move target with rotating edges (destination focus cell)
+      if (!isInventory && gameState.autoFocusTarget && autoMoveTarget &&
+          (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r)) {
+        const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
+        const now = performance.now();
+        const e = computeEdgeIndex(now);
+        drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
+      }
 
+      // Draw focus with highlighted vertices (always, no animation)
+      if (!isInventory) {
+        const pos = hexToPixel(focusCell.q, focusCell.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        
         const isInCooldown = gameState.captureCooldownTicksRemaining > 0;
-        const isCharging = gameState.captureChargeStartTick !== null;
-        const releasing = !isInventory && (gameState as any).isReleasing;
         const isEatFailed = (gameState as any).eatFailureFlash !== undefined;
+        
+        if (isEatFailed || isInCooldown) {
+          // Show error state with red vertices
+          drawVertexHighlights(ctx, scaledX, scaledY, HEX_SIZE * scale, FLASH_FAILURE_EDGE_DARK, 1 * scale);
+        } else {
+          // Normal focus: white vertices
+          drawVertexHighlights(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF', 1 * scale);
+        }
+      }
 
-        if (isInventory) {
-          // Inventory: keep previous rotating edges behavior
+      // Inventory cursor: keep rotating edges
+      if (isInventory) {
+        const hover = hoveredCellInventory(gameState);
+        if (hover) {
+          const pos = hexToPixel(hover.q, hover.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+
+          const isInCooldown = gameState.captureCooldownTicksRemaining > 0;
+          const isCharging = gameState.captureChargeStartTick !== null;
+
           const now = performance.now();
           const baseEdge = computeEdgeIndex(now);
           const edges: number[] = [];
@@ -420,52 +465,11 @@ export const GameField: React.FC<GameFieldProps> = ({
           }
           const edgeColor = isInCooldown ? FLASH_FAILURE_EDGE_DARK : '#FFFFFF';
           edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
-        } else {
-          // World: new cursor modes
-          if (isEatFailed) {
-            // Eat failure: red edge rotating
-            const now = performance.now();
-            const e = computeEdgeIndex(now);
-            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, FLASH_FAILURE_EDGE_DARK);
-          } else if (isInCooldown) {
-            // Cooldown: rotate red segment
-            const now = performance.now();
-            const e = computeEdgeIndex(now);
-            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, FLASH_FAILURE_EDGE_DARK);
-          } else if (releasing) {
-            // Releasing: rotate edges like empty capture
-            const now = performance.now();
-            const e = computeEdgeIndex(now);
-            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
-          } else if (isCharging) {
-            // Charging: fill edges sequentially
-            const now = performance.now();
-            const baseEdge = computeEdgeIndex(now);
-            const heldTicks = gameState.tick - (gameState.captureChargeStartTick || 0);
-            const fraction = Math.min(1, heldTicks / params.CaptureHoldDurationTicks);
-            const edgeCount = Math.max(1, Math.ceil(fraction * 6));
-            for (let i = 0; i < edgeCount; i++) {
-              const e = (baseEdge + i) % 6;
-              drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
-            }
-          } else if (gameState.isActionMode) {
-            // Action mode: two opposite edges rotating one step per tick
-            // Speed up the rotation (2x faster) after 2 ticks held
-            const tickStep = (gameState.actionHeldTicks || 0) >= 2 ? 2 : 1;
-            const edgeA = (gameState.tick * tickStep) % 6;
-            const edgeB = (edgeA + 3) % 6;
-            drawEdgeHighlight(ctx, scaledX, scaledY, edgeA, HEX_SIZE * scale, '#FFFFFF');
-            drawEdgeHighlight(ctx, scaledX, scaledY, edgeB, HEX_SIZE * scale, '#FFFFFF');
-          } else {
-            // Default (idle): single rotating edge
-            const now = performance.now();
-            const e = computeEdgeIndex(now);
-            drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
-          }
         }
+      }
 
-        // Turtle (world): pivot around captured hex when carrying; head faces cursor.
-        if (!isInventory) {
+      // Turtle (world): pivot around captured hex when carrying; head faces focus.
+      if (!isInventory) {
           const carrying = !!gameState.capturedCell;
           const releasing = (gameState as any).isReleasing;
           // Always pivot around protagonist; captured hex is rendered separately with outline.
@@ -475,12 +479,12 @@ export const GameField: React.FC<GameFieldProps> = ({
           const pivotX = centerX + pivotPos.x * scale;
           const pivotY = centerY + pivotPos.y * scale;
 
-          const hoverPos = hexToPixel(hover.q, hover.r);
-            const hx = centerX + hoverPos.x * scale;
-            const hy = centerY + hoverPos.y * scale;
+          const focusPos = hexToPixel(focusCell.q, focusCell.r);
+            const hx = centerX + focusPos.x * scale;
+            const hy = centerY + focusPos.y * scale;
             const vx = hx - pivotX;
             const vy = hy - pivotY;
-            const cursorAngle = Math.atan2(vy, vx);
+            const focusAngle = Math.atan2(vy, vx);
 
           const parentRadius = HEX_SIZE * scale;
           const centerRadius = parentRadius / 3;
@@ -499,7 +503,7 @@ export const GameField: React.FC<GameFieldProps> = ({
             });
           }
 
-          // Choose head toward cursor
+          // Choose head toward focus
           let headIndex = 0;
           let bestDiff = Infinity;
           for (let i = 0; i < 6; i++) {
@@ -507,7 +511,7 @@ export const GameField: React.FC<GameFieldProps> = ({
             const px = c.x - turtleOffsetX;
             const py = c.y - turtleOffsetY;
             const petalAngle = Math.atan2(py, px);
-            const diff = Math.abs(Math.atan2(Math.sin(cursorAngle - petalAngle), Math.cos(cursorAngle - petalAngle)));
+            const diff = Math.abs(Math.atan2(Math.sin(focusAngle - petalAngle), Math.cos(focusAngle - petalAngle)));
             if (diff < bestDiff) {
               bestDiff = diff;
               headIndex = i;
@@ -551,13 +555,12 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.rotate((30 * Math.PI) / 180);
           drawHex(ctx, 0, 0, shellRadius, baseColor, '#FFFFFF', 0.8 * scale);
           ctx.restore();
-        }
       }
 
-      // Breadcrumbs path: draw tiny hexes along shortest path when turtle not at cursor
+      // Breadcrumbs path: draw tiny hexes along shortest path when turtle not at focus
       if (!isInventory) {
-        const atCursor = gameState.protagonist.q === gameState.cursor.q && gameState.protagonist.r === gameState.cursor.r;
-        if (!atCursor) {
+        const atFocus = gameState.protagonist.q === gameState.focus.q && gameState.protagonist.r === gameState.focus.r;
+        if (!atFocus) {
           const crumbs = computeBreadcrumbs(gameState, params);
           const tinySize = (HEX_SIZE * scale) / 9;
           ctx.save();
@@ -663,15 +666,33 @@ export const GameField: React.FC<GameFieldProps> = ({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    let lastAxial: { q: number; r: number } | null = null;
+    
     function handleMouseDown(ev: MouseEvent) {
       if (ev.button !== 0) return;
       const rect = canvas!.getBoundingClientRect();
       const x = ev.clientX - rect.left;
       const y = ev.clientY - rect.top;
       const axial = pixelToAxial(x, y);
+      lastAxial = axial;
       onSetCursor(axial.q, axial.r);
       if (onCellClickDown) {
         onCellClickDown(axial.q, axial.r);
+      }
+    }
+    
+    function handleMouseMove(ev: MouseEvent) {
+      if (!lastAxial) return; // Not dragging
+      const rect = canvas!.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const axial = pixelToAxial(x, y);
+      // Only call drag if we moved to a different cell
+      if (axial.q !== lastAxial.q || axial.r !== lastAxial.r) {
+        lastAxial = axial;
+        if (onCellDrag) {
+          onCellDrag(axial.q, axial.r);
+        }
       }
     }
     
@@ -681,18 +702,21 @@ export const GameField: React.FC<GameFieldProps> = ({
       const x = ev.clientX - rect.left;
       const y = ev.clientY - rect.top;
       const axial = pixelToAxial(x, y);
+      lastAxial = null; // End drag
       if (onCellClickUp) {
         onCellClickUp(axial.q, axial.r);
       }
     }
     
     canvas.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [onSetCursor, onCellClickDown, onCellClickUp]);
+  }, [onSetCursor, onCellClickDown, onCellClickUp, onCellDrag]);
 
   return (
     <div ref={canvasContainerRef} className="game-field">
