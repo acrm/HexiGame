@@ -185,20 +185,13 @@ export const GameField: React.FC<GameFieldProps> = ({
           consumed = true;
         }
 
-        if (!isInventory && gameState.capturedCell) {
-          const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
-          if (dEat <= eatRadius) {
-            ev.preventDefault();
-            onEat();
-            consumed = true;
-          }
-        }
-
         if (!consumed) {
           const axial = pixelToAxial(x, y);
-          onSetCursor(axial.q, axial.r);
-          if (!isInventory) {
-            // Mirror desktop behavior: pressing a cell also holds ACT
+          if (onCellClickDown) {
+            onCellClickDown(axial.q, axial.r);
+          }
+          // If tapping on focus cell in world mode, also start action mode
+          if (!isInventory && axial.q === gameState.focus.q && axial.r === gameState.focus.r) {
             actTouchIdRef.current = t.identifier;
             onCapture();
           }
@@ -233,25 +226,6 @@ export const GameField: React.FC<GameFieldProps> = ({
           actTouchIdRef.current = null;
           ev.preventDefault();
           onRelease();
-        } else {
-          // Legacy tap detection (fallback) - if user taps ACT without moving finger
-          const showAct = !isInventory;
-          const dCap = Math.hypot(x - capCenterX, y - capCenterY);
-          if (dCap <= capRadius && showAct) {
-            ev.preventDefault();
-            onCapture();
-          } else {
-            const axial = pixelToAxial(x, y);
-            onSetCursor(axial.q, axial.r);
-          }
-        }
-
-        if (!isInventory && gameState.capturedCell) {
-          const dEat = Math.hypot(x - eatCenterX, y - eatCenterY);
-          if (dEat <= eatRadius) {
-            ev.preventDefault();
-            onEat();
-          }
         }
 
         // Inventory toggle handled on touchstart (press), not on release
@@ -269,7 +243,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       canvas.removeEventListener('touchend', handleTouchEnd as any);
       canvas.removeEventListener('touchcancel', handleTouchEnd as any);
     };
-  }, [gameState.capturedCell, isInventory, onToggleInventory, onCapture, onRelease, onEat, onSetCursor]);
+  }, [gameState.focus, isInventory, onToggleInventory, onCapture, onRelease, onEat, onSetCursor, onCellClickDown]);
 
   useEffect(() => {
     let mounted = true;
@@ -348,10 +322,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
         let fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
-        const isCapturedHere = !isInventory && !!gameState.capturedCell && cell.q === gameState.capturedCell.q && cell.r === gameState.capturedCell.r;
-        const strokeColor = isCapturedHere ? '#FFFFFF' : 'transparent';
-        const strokeWidth = isCapturedHere ? 2 * scale : 0;
-        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, strokeColor, strokeWidth);
+        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
       }
 
       // Draw grid corner dots
@@ -395,8 +366,6 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
       }
 
-      // Skip flash overlay rendering; success is indicated by white outline on captured hex.
-
       // Focus and target visuals
       const protagonistCell = gameState.protagonist;
       const focusCell = gameState.focus;
@@ -419,16 +388,8 @@ export const GameField: React.FC<GameFieldProps> = ({
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
         
-        const isInCooldown = gameState.captureCooldownTicksRemaining > 0;
-        const isEatFailed = (gameState as any).eatFailureFlash !== undefined;
-        
-        if (isEatFailed || isInCooldown) {
-          // Show error state with red vertices
-          drawVertexHighlights(ctx, scaledX, scaledY, HEX_SIZE * scale, FLASH_FAILURE_EDGE_DARK, 1 * scale);
-        } else {
-          // Normal focus: white vertices
-          drawVertexHighlights(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF', 1 * scale);
-        }
+        // Normal focus: white vertices
+        drawVertexHighlights(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF', 1 * scale);
       }
 
       // Inventory cursor: keep rotating edges
@@ -439,30 +400,14 @@ export const GameField: React.FC<GameFieldProps> = ({
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
 
-          const isInCooldown = gameState.captureCooldownTicksRemaining > 0;
-          const isCharging = gameState.captureChargeStartTick !== null;
-
           const now = performance.now();
           const baseEdge = computeEdgeIndex(now);
-          const edges: number[] = [];
-          if (isCharging && !isInCooldown) {
-            const heldTicks = gameState.tick - (gameState.captureChargeStartTick || 0);
-            const fraction = Math.min(1, heldTicks / params.CaptureHoldDurationTicks);
-            const edgeCount = Math.max(1, Math.ceil(fraction * 6));
-            for (let i = 0; i < edgeCount; i++) edges.push((baseEdge + i) % 6);
-          } else {
-            edges.push(baseEdge);
-          }
-          const edgeColor = isInCooldown ? FLASH_FAILURE_EDGE_DARK : '#FFFFFF';
-          edges.forEach(e => drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, edgeColor));
+          drawEdgeHighlight(ctx, scaledX, scaledY, baseEdge, HEX_SIZE * scale, '#FFFFFF');
         }
       }
 
-      // Turtle (world): pivot around captured hex when carrying; head faces focus.
+      // Turtle (world): head faces focus
       if (!isInventory) {
-          const carrying = !!gameState.capturedCell;
-          const releasing = (gameState as any).isReleasing;
-          // Always pivot around protagonist; captured hex is rendered separately with outline.
           const pivotQ = protagonistCell.q;
           const pivotR = protagonistCell.r;
           const pivotPos = hexToPixel(pivotQ, pivotR);
@@ -574,20 +519,19 @@ export const GameField: React.FC<GameFieldProps> = ({
         const inward = canvas.width * 0.10;
         const baseY = canvas.height - margin;
 
-        // ACT button (action mode hold)
+        // ACT button (action context)
         const capCenterX = canvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
         const showAct = !isInventory; // always available in world
-        const actPressed = gameState.isActionMode;
         if (showAct) {
           drawHex(
             ctx,
             capCenterX,
             capCenterY,
             capRadius,
-            actPressed ? 'rgba(255,255,255,0.70)' : 'rgba(255,255,255,0.95)',
-            actPressed ? '#ffffff' : 'transparent',
+            'rgba(255,255,255,0.95)',
+            'transparent',
             3,
           );
           ctx.fillStyle = 'rgba(0,0,0,0.85)';
@@ -595,19 +539,6 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText('ACT', capCenterX, capCenterY + 1);
-        }
-
-        // EAT button
-        if (!isInventory && gameState.capturedCell) {
-          const eatCenterX = capCenterX;
-          const eatCenterY = capCenterY - 64;
-          const eatRadius = 24;
-          drawHex(ctx, eatCenterX, eatCenterY, eatRadius, 'rgba(255,255,255,0.95)', 'transparent', 2);
-          ctx.fillStyle = 'rgba(0,0,0,0.85)';
-          ctx.font = '12px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('EAT', eatCenterX, eatCenterY + 0);
         }
 
         // Removed old inventory-above-joystick button (replaced by primary inv button)

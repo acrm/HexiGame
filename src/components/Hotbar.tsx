@@ -21,7 +21,15 @@ function hexToPixel(q: number, r: number) {
   return { x, y };
 }
 
-function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, stroke: string, lineWidth: number) {
+function drawHex(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  stroke: string,
+  lineWidth: number,
+  fill: string = 'transparent',
+) {
   const angleDeg = 60;
   const pts: [number, number][] = [];
   for (let i = 0; i < 6; i++) {
@@ -32,7 +40,7 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, size: numb
   ctx.moveTo(pts[0][0], pts[0][1]);
   for (let i = 1; i < 6; i++) ctx.lineTo(pts[i][0], pts[i][1]);
   ctx.closePath();
-  ctx.fillStyle = 'transparent';
+  ctx.fillStyle = fill;
   ctx.fill();
   ctx.strokeStyle = stroke;
   ctx.lineWidth = lineWidth;
@@ -53,10 +61,16 @@ function pixelToHotbarIndex(px: number, py: number, centerX: number, centerY: nu
   return null;
 }
 
-export const Hotbar: React.FC = () => {
+interface HotbarProps {
+  slots: Array<number | null>;
+  selectedIndex: number;
+  colorPalette: string[];
+  onSelect: (idx: number) => void;
+}
+
+export const Hotbar: React.FC<HotbarProps> = ({ slots, selectedIndex, colorPalette, onSelect }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState<number>(3); // default center slot
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const scaleRef = useRef<number>(1);
   const centerXRef = useRef<number>(0);
@@ -109,14 +123,21 @@ export const Hotbar: React.FC = () => {
       centerYRef.current = centerY;
 
       const lineWidth = 1 * scale;
+      const paletteLen = colorPalette.length;
 
-      // Layer 1: Draw all cells with base color
+      // Layer 1: Draw all cells with base color and slot fill
       for (let i = 0; i < HOTBAR_CELLS.length; i++) {
         const cell = HOTBAR_CELLS[i];
         const pos = hexToPixel(cell.q, cell.r);
         const x = centerX + pos.x * scale;
         const y = centerY + pos.y * scale;
         drawHex(ctx, x, y, HEX_SIZE * scale, GRID_STROKE_COLOR, lineWidth);
+        const slotValue = slots[i];
+        if (slotValue !== null && slotValue !== undefined && paletteLen > 0) {
+          const paletteIndex = ((slotValue % paletteLen) + paletteLen) % paletteLen;
+          const fillColor = colorPalette[paletteIndex];
+          drawHex(ctx, x, y, HEX_SIZE * scale * 0.78, 'transparent', 0, fillColor);
+        }
       }
 
       // Layer 2: Draw hover highlight on top (if not selected)
@@ -145,7 +166,7 @@ export const Hotbar: React.FC = () => {
     return () => {
       ro.disconnect();
     };
-  }, [selectedIndex, hoveredIndex]);
+  }, [slots, selectedIndex, hoveredIndex, colorPalette]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -170,7 +191,7 @@ export const Hotbar: React.FC = () => {
       const py = ev.clientY - rect.top;
       const idx = pixelToHotbarIndex(px, py, centerXRef.current, centerYRef.current, scaleRef.current);
       if (idx !== null) {
-        setSelectedIndex(idx);
+        onSelect(idx);
       }
     }
 
@@ -183,7 +204,7 @@ export const Hotbar: React.FC = () => {
         const py = t.clientY - rect.top;
         const idx = pixelToHotbarIndex(px, py, centerXRef.current, centerYRef.current, scaleRef.current);
         if (idx !== null) {
-          setSelectedIndex(idx);
+          onSelect(idx);
         }
       }
     }
@@ -199,7 +220,7 @@ export const Hotbar: React.FC = () => {
       canvas.removeEventListener('click', handleClick);
       canvas.removeEventListener('touchstart', handleTouchStart as any);
     };
-  }, []);
+  }, [onSelect]);
 
   return (
     <div className="hotbar" ref={containerRef}>

@@ -10,12 +10,10 @@ import {
   tick as logicTick,
   attemptMoveByDeltaOnActive,
   attemptMoveTo,
-  eatCapturedToInventory,
-  previewCaptureChanceAtCursor,
+  eatToHotbar,
   hoveredCellActive,
   computeAdjacentSameColorCounts,
-  handleActionRelease,
-  beginAction,
+  performContextAction,
   startDrag,
   endDrag,
   dragMoveProtagonist,
@@ -56,19 +54,24 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
         return;
       }
+      if (e.key >= '1' && e.key <= '7') {
+        const idx = Number(e.key) - 1;
+        setGameState(prev => ({
+          ...prev,
+          selectedHotbarIndex: Math.max(0, Math.min(idx, (prev.hotbarSlots?.length ?? 7) - 1)),
+        }));
+        return;
+      }
       if (e.code === 'Space') {
         if (spaceIsDownRef.current) {
           return; // already down
         }
-        // Gate action mode by cooldown
-        setGameState(prev => {
-          spaceIsDownRef.current = true;
-          return beginAction(prev);
-        });
+        spaceIsDownRef.current = true;
+        setGameState(prev => performContextAction(prev, mergedParams));
         return;
       }
       if (e.key === 'e' || e.key === 'E') {
-        setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
+        setGameState(prev => eatToHotbar(prev, mergedParams));
         return;
       }
       const moves: Record<string, [number, number]> = {
@@ -90,7 +93,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           return;
         }
         spaceIsDownRef.current = false;
-        setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
+        // Action already performed on keydown, just reset the flag
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -102,7 +105,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   }, [mergedParams]);
 
   // Derived HUD data
-  const chance = previewCaptureChanceAtCursor(gameState, mergedParams);
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
 
@@ -136,8 +138,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               antagonistIndex={antagonistIndex}
               eatenCounts={eatenCounts}
               hoverColorIndex={hoverColorIndex}
-              capturedCell={!!gameState.capturedCell}
-              chance={chance}
+              chance={null}
               turtleColorIndex={gameState.turtleColorIndex}
             />
           </div>
@@ -167,7 +168,17 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         </div>
       )}
       <div className="game-main">
-        <Hotbar />
+        <Hotbar
+          slots={gameState.hotbarSlots || []}
+          selectedIndex={gameState.selectedHotbarIndex ?? 3}
+          colorPalette={mergedParams.ColorPalette}
+          onSelect={(idx) => {
+            setGameState(prev => ({
+              ...prev,
+              selectedHotbarIndex: idx,
+            }));
+          }}
+        />
         <div className="game-field-area">
           {isMobileLayout && mobileTab === 'wiki' ? (
             <div className="wiki-placeholder" />
@@ -187,15 +198,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 }
               }}
               onCapture={() => {
-                // Mobile press -> enter action mode (respect cooldown)
-                setGameState(prev => beginAction(prev));
+                // Mobile press ACT -> perform instant context action
+                setGameState(prev => performContextAction(prev, mergedParams));
               }}
               onRelease={() => {
-                // Mobile release -> perform action release logic
-                setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
+                // Mobile release ACT -> action already performed on press
               }}
               onEat={() => {
-                setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
+                setGameState(prev => eatToHotbar(prev, mergedParams));
               }}
               onSetCursor={(q, r) => {
                 // Check if clicking on focus or protagonist - start drag
@@ -215,13 +225,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 });
               }}
               onCellClickDown={(q, r) => {
-                // Handle LMB click on cell - check if on focus/protagonist for drag
+                // Handle LMB click on cell
                 setGameState(prev => {
                   if (mouseIsDownRef.current) return prev; // Already down
                   mouseIsDownRef.current = true;
                   
                   const clickedPos = { q, r };
                   const isFocus = equalAxial(clickedPos, prev.focus);
+                  
+                  // If clicking on focus cell and not moving: perform context action
+                  if (isFocus && !prev.isDragging && !prev.autoMoveTarget) {
+                    return performContextAction(prev, mergedParams);
+                  }
+                  
                   const isProtagonist = equalAxial(clickedPos, prev.protagonist);
                   
                   if (isFocus || isProtagonist) {

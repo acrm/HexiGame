@@ -185,3 +185,25 @@
 - 2025w52-0.16 — Mobile tabs switch views; wiki shows grey scene
 
 - 2025w52-0.17 — Portrait view aligns field under hotbar
+
+- 2025w52-0.18 — Hotbar slot rendering and selection
+
+- 2025w52-0.19 — Fixed action triggering on clicks outside focus
+
+- 2025w52-0.20 — Fixed action mode triggering on focus cell taps
+
+- 2025w52-0.21 — Fixed touch handlers dependencies for action mode
+
+- 2025w52-0.22 — Hotbar eat logic: central slot always empty, eaten hex goes to nearest free slot or selected slot
+
+- 2025w52-0.23 — Fixed eatToHotbar to use focus cell instead of capturedCell
+
+- 2025w52-0.24 — Remove capture system completely - all actions instant with hotbar
+
+- 2025w52-0.25 — Fix action execution - ensure isActionMode and action fields are cleared on release
+
+- 2025w52-0.26 — Remove action cooldown check - allow immediate action triggers
+
+- 2025w52-0.27 — Simplify action system: instant context action on click, no isActionMode state, fix hotbar never uses center slot
+
+- 2025w52-0.28 — Add context action trigger on focus cell click (desktop: LMB, mobile: ACT button)

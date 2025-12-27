@@ -6,7 +6,6 @@ interface PaletteClusterProps {
   antagonistIndex: number;
   eatenCounts: Record<string, number>;
   hoverColorIndex: number | null;
-  capturedCell: boolean;
   chance: number | null;
   turtleColorIndex?: number;
 }
@@ -17,7 +16,6 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
   antagonistIndex,
   eatenCounts,
   hoverColorIndex,
-  capturedCell,
   chance,
   turtleColorIndex,
 }) => {
@@ -102,7 +100,7 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
         }}
       >
         <text x={0} y={0} textAnchor="middle" dominantBaseline="middle" fontSize="0.7" fill="#FFFFFF">
-          {capturedCell ? 'Kept' : chance !== null && hoverColorIndex !== null ? `${chance}%` : ''}
+          {chance !== null && hoverColorIndex !== null ? `${chance}%` : ''}
         </text>
       </svg>
     </div>
