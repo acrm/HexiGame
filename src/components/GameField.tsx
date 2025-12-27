@@ -174,9 +174,6 @@ export const GameField: React.FC<GameFieldProps> = ({
         const eatCenterX = currentCanvas.width - margin - inward;
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
-        const invCenterX = joyCenterX;
-        const invCenterY = joyCenterY;
-        const invRadius = 32;
 
         const showAct = !isInventory; // ACT always available in world
         let consumed = false;
@@ -195,14 +192,6 @@ export const GameField: React.FC<GameFieldProps> = ({
             onEat();
             consumed = true;
           }
-        }
-
-        // Inventory toggle tap
-        const dInv = Math.hypot(x - invCenterX, y - invCenterY);
-        if (dInv <= invRadius) {
-          ev.preventDefault();
-          onToggleInventory();
-          consumed = true;
         }
 
         if (!consumed) {
@@ -239,9 +228,6 @@ export const GameField: React.FC<GameFieldProps> = ({
         const eatCenterX = currentCanvas.width - margin - inward;
         const eatCenterY = baseY - 64;
         const eatRadius = 24;
-        const invCenterX = margin + inward;
-        const invCenterY = baseY;
-        const invRadius = 32;
         // Release action mode if ACT touch ends (regardless of where it ends)
         if (t.identifier === actTouchIdRef.current) {
           actTouchIdRef.current = null;
@@ -346,7 +332,11 @@ export const GameField: React.FC<GameFieldProps> = ({
       }
 
       const centerX = canvas.width / 2 - ((minX + maxX) / 2) * scale;
-      const centerY = canvas.height / 2 - ((minY + maxY) / 2) * scale;
+      // In portrait (mobile) layout, align grid to the top padding; otherwise keep centered
+      const isPortrait = canvas.height > canvas.width;
+      const centerY = isPortrait
+        ? padding - minY * scale
+        : canvas.height / 2 - ((minY + maxY) / 2) * scale;
       scaleRef.current = scale;
       centerXRef.current = centerX;
       centerYRef.current = centerY;
@@ -583,17 +573,6 @@ export const GameField: React.FC<GameFieldProps> = ({
         const margin = 64;
         const inward = canvas.width * 0.10;
         const baseY = canvas.height - margin;
-
-        // Inventory toggle button (takes former joystick spot)
-        const invCenterX = margin + inward;
-        const invCenterY = baseY;
-        const invRadius = 32;
-        drawHex(ctx, invCenterX, invCenterY, invRadius, 'rgba(255,255,255,0.95)', 'transparent', 3);
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.font = '13px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(isInventory ? 'WRL' : 'INV', invCenterX, invCenterY + 1);
 
         // ACT button (action mode hold)
         const capCenterX = canvas.width - margin - inward;

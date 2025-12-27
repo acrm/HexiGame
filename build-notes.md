@@ -175,3 +175,13 @@
 - 2025w52-0.11 — Hotbar uniform stroke width, layered highlights
 
 - 2025w52-0.12 — Prevent mobile tap flash on hotbar
+
+- 2025w52-0.13 — Mobile: replace panel with World/Self/Wiki tabs
+
+- 2025w52-0.14 — Light/dark mobile tab colors
+
+- 2025w52-0.15 — Remove mobile INV toggle (tabs handle it)
+
+- 2025w52-0.16 — Mobile tabs switch views; wiki shows grey scene
+
+- 2025w52-0.17 — Portrait view aligns field under hotbar

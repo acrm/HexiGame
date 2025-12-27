@@ -94,6 +94,56 @@ html, body {
   padding: 8px 14px;
 }
 
+.mobile-tab-bar {
+  display: none;
+}
+
+.mobile-tab {
+  flex: 1;
+  padding: 12px 0;
+  border: none;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.mobile-tab:nth-child(1) {
+  background: #e6d9ff;
+}
+
+.mobile-tab:nth-child(2) {
+  background: #f4d9c2;
+}
+
+.mobile-tab:nth-child(3) {
+  background: #dedede;
+}
+
+.mobile-tab.active {
+  color: #fff;
+  border-bottom-color: #ffffff;
+}
+
+.wiki-placeholder {
+  flex: 1;
+  background: #2f2f2f;
+}
+
+.mobile-tab:nth-child(1).active {
+  background: #27013b;
+}
+
+.mobile-tab:nth-child(2).active {
+  background: #5a2a00;
+}
+
+.mobile-tab:nth-child(3).active {
+  background: #2b2b2b;
+}
+
 @media (max-width: 900px) {
   .game-root {
     flex-direction: column;
@@ -111,13 +161,12 @@ html, body {
   }
 
   .game-panel {
+    display: none;
+  }
+
+  .mobile-tab-bar {
+    display: flex;
     width: 100%;
-    min-width: 0;
-    max-width: none;
-    padding: 12px 16px;
-    border-right: none;
-    border-bottom: 1px solid #202030;
-    gap: 8px;
   }
 
   .game-field {

@@ -37,6 +37,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const mouseIsDownRef = useRef(false);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'world' | 'self' | 'wiki'>('world');
 
   // Tick loop (12 ticks/sec)
   useEffect(() => {
@@ -113,131 +114,148 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
 
+  // Sync mobile tab selection with active field and inventory flag
+  useEffect(() => {
+    if (!isMobileLayout) return;
+    const nextInventory = mobileTab === 'self';
+    setIsInventory(nextInventory);
+    setGameState(prev => ({ ...prev, activeField: mobileTab === 'self' ? 'inventory' : 'world' }));
+  }, [isMobileLayout, mobileTab]);
+
+  const effectiveIsInventory = isMobileLayout ? mobileTab === 'self' : isInventory;
+
   return (
     <div className="game-root">
-      <div className="game-panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', justifyContent: 'space-between' }}>
-          {/* Palette cluster with center showing chance/state */}
-          <PaletteCluster
-            colorPalette={mergedParams.ColorPalette}
-            playerBaseColorIndex={mergedParams.PlayerBaseColorIndex}
-            antagonistIndex={antagonistIndex}
-            eatenCounts={eatenCounts}
-            hoverColorIndex={hoverColorIndex}
-            capturedCell={!!gameState.capturedCell}
-            chance={chance}
-            turtleColorIndex={gameState.turtleColorIndex}
-          />
-          {/* Info button (mobile only) */}
-          {isMobileLayout && (
-            <button
-              type="button"
-              onClick={() => setIsMobileInfoOpen(v => !v)}
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                border: '1px solid #ffffff88',
-                background: isMobileInfoOpen ? '#ffffff22' : 'transparent',
-                color: '#fff',
-                fontSize: 13,
-                padding: 0,
-                cursor: 'pointer',
-              }}
-            >
-              i
-            </button>
-          )}
+      {!isMobileLayout && (
+        <div className="game-panel">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', justifyContent: 'space-between' }}>
+            {/* Palette cluster with center showing chance/state */}
+            <PaletteCluster
+              colorPalette={mergedParams.ColorPalette}
+              playerBaseColorIndex={mergedParams.PlayerBaseColorIndex}
+              antagonistIndex={antagonistIndex}
+              eatenCounts={eatenCounts}
+              hoverColorIndex={hoverColorIndex}
+              capturedCell={!!gameState.capturedCell}
+              chance={chance}
+              turtleColorIndex={gameState.turtleColorIndex}
+            />
+          </div>
+          <ControlsDesktop />
         </div>
-        {!isMobileLayout && <ControlsDesktop />}
-      </div>
-      {/* Controls blocks inserted separately for desktop and mobile */}
-
-      {isMobileLayout && isMobileInfoOpen && (
-        <ControlsMobile onClose={() => setIsMobileInfoOpen(false)} topOffset={96} />
+      )}
+      {isMobileLayout && (
+        <div className="mobile-tab-bar">
+          <button
+            className={`mobile-tab ${mobileTab === 'world' ? 'active' : ''}`}
+            onClick={() => setMobileTab('world')}
+          >
+            World
+          </button>
+          <button
+            className={`mobile-tab ${mobileTab === 'self' ? 'active' : ''}`}
+            onClick={() => setMobileTab('self')}
+          >
+            Self
+          </button>
+          <button
+            className={`mobile-tab ${mobileTab === 'wiki' ? 'active' : ''}`}
+            onClick={() => setMobileTab('wiki')}
+          >
+            Wiki
+          </button>
+        </div>
       )}
       <div className="game-main">
         <Hotbar />
         <div className="game-field-area">
-          <GameField
-            gameState={gameState}
-            params={mergedParams}
-            fps={fps}
-            setFps={setFps}
-            isInventory={isInventory}
-            onToggleInventory={() => {
-              setIsInventory(v => !v);
-              setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
-            }}
-            onCapture={() => {
-              // Mobile press -> enter action mode (respect cooldown)
-              setGameState(prev => beginAction(prev));
-            }}
-            onRelease={() => {
-              // Mobile release -> perform action release logic
-              setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
-            }}
-            onEat={() => {
-              setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
-            }}
-            onSetCursor={(q, r) => {
-              // Check if clicking on focus or protagonist - start drag
-              // Otherwise - start auto-move to target
-              setGameState(prev => {
-                const clickedPos = { q, r };
-                const isFocus = equalAxial(clickedPos, prev.focus);
-                const isProtagonist = equalAxial(clickedPos, prev.protagonist);
-                
-                if (isFocus || isProtagonist) {
-                  // Start drag mode
-                  return startDrag(prev);
+          {isMobileLayout && mobileTab === 'wiki' ? (
+            <div className="wiki-placeholder" />
+          ) : (
+            <GameField
+              gameState={gameState}
+              params={mergedParams}
+              fps={fps}
+              setFps={setFps}
+              isInventory={effectiveIsInventory}
+              onToggleInventory={() => {
+                if (isMobileLayout) {
+                  setMobileTab(prev => (prev === 'self' ? 'world' : 'self'));
                 } else {
-                  // Start auto-move to clicked cell
-                  return attemptMoveTo(prev, mergedParams, clickedPos);
+                  setIsInventory(v => !v);
+                  setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
                 }
-              });
-            }}
-            onCellClickDown={(q, r) => {
-              // Handle LMB click on cell - check if on focus/protagonist for drag
-              setGameState(prev => {
-                if (mouseIsDownRef.current) return prev; // Already down
-                mouseIsDownRef.current = true;
-                
-                const clickedPos = { q, r };
-                const isFocus = equalAxial(clickedPos, prev.focus);
-                const isProtagonist = equalAxial(clickedPos, prev.protagonist);
-                
-                if (isFocus || isProtagonist) {
-                  // Start drag mode
-                  return startDrag(prev);
-                } else {
-                  // Start auto-move to clicked cell
-                  return attemptMoveTo(prev, mergedParams, clickedPos);
-                }
-              });
-            }}
-            onCellClickUp={(q, r) => {
-              // Handle LMB release on cell - end drag if was dragging
-              if (!mouseIsDownRef.current) return;
-              mouseIsDownRef.current = false;
-              setGameState(prev => {
-                if (prev.isDragging) {
-                  return endDrag(prev);
-                }
-                return prev;
-              });
-            }}
-            onCellDrag={(q, r) => {
-              // Handle drag - move protagonist if in drag mode
-              setGameState(prev => {
-                if (!prev.isDragging) return prev;
-                // Calculate delta from current position
-                const dq = q - prev.protagonist.q;
-                const dr = r - prev.protagonist.r;
-                return dragMoveProtagonist(prev, mergedParams, dq, dr);
-              });
-            }}
-          />
+              }}
+              onCapture={() => {
+                // Mobile press -> enter action mode (respect cooldown)
+                setGameState(prev => beginAction(prev));
+              }}
+              onRelease={() => {
+                // Mobile release -> perform action release logic
+                setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
+              }}
+              onEat={() => {
+                setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
+              }}
+              onSetCursor={(q, r) => {
+                // Check if clicking on focus or protagonist - start drag
+                // Otherwise - start auto-move to target
+                setGameState(prev => {
+                  const clickedPos = { q, r };
+                  const isFocus = equalAxial(clickedPos, prev.focus);
+                  const isProtagonist = equalAxial(clickedPos, prev.protagonist);
+                  
+                  if (isFocus || isProtagonist) {
+                    // Start drag mode
+                    return startDrag(prev);
+                  } else {
+                    // Start auto-move to clicked cell
+                    return attemptMoveTo(prev, mergedParams, clickedPos);
+                  }
+                });
+              }}
+              onCellClickDown={(q, r) => {
+                // Handle LMB click on cell - check if on focus/protagonist for drag
+                setGameState(prev => {
+                  if (mouseIsDownRef.current) return prev; // Already down
+                  mouseIsDownRef.current = true;
+                  
+                  const clickedPos = { q, r };
+                  const isFocus = equalAxial(clickedPos, prev.focus);
+                  const isProtagonist = equalAxial(clickedPos, prev.protagonist);
+                  
+                  if (isFocus || isProtagonist) {
+                    // Start drag mode
+                    return startDrag(prev);
+                  } else {
+                    // Start auto-move to clicked cell
+                    return attemptMoveTo(prev, mergedParams, clickedPos);
+                  }
+                });
+              }}
+              onCellClickUp={(q, r) => {
+                // Handle LMB release on cell - end drag if was dragging
+                if (!mouseIsDownRef.current) return;
+                mouseIsDownRef.current = false;
+                setGameState(prev => {
+                  if (prev.isDragging) {
+                    return endDrag(prev);
+                  }
+                  return prev;
+                });
+              }}
+              onCellDrag={(q, r) => {
+                // Handle drag - move protagonist if in drag mode
+                setGameState(prev => {
+                  if (!prev.isDragging) return prev;
+                  // Calculate delta from current position
+                  const dq = q - prev.protagonist.q;
+                  const dr = r - prev.protagonist.r;
+                  return dragMoveProtagonist(prev, mergedParams, dq, dr);
+                });
+              }}
+            />
+          )}
         </div>
         <div className="game-footer-controls" />
       </div>
