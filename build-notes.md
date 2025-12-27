@@ -163,3 +163,15 @@
 - 2025w52-0.5 — Fix: focus updates in desktop during auto-move (stays ahead of turtle)
 
 - 2025w52-0.6 — Fix: focus sticks on destination by aligning facing on arrival
+
+- 2025w52-0.7 — Add hotbar: top 7 hexes duplicated two cells above field (world view)
+
+- 2025w52-0.8 — Hotbar shows all seven slots in top row
+
+- 2025w52-0.9 — Separate outlined hotbar component above field
+
+- 2025w52-0.10 — Hotbar selection and hover highlights
+
+- 2025w52-0.11 — Hotbar uniform stroke width, layered highlights
+
+- 2025w52-0.12 — Prevent mobile tap flash on hotbar

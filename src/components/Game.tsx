@@ -25,6 +25,7 @@ import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField';
+import Hotbar from './Hotbar';
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -155,86 +156,91 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       {isMobileLayout && isMobileInfoOpen && (
         <ControlsMobile onClose={() => setIsMobileInfoOpen(false)} topOffset={96} />
       )}
-      <GameField
-        gameState={gameState}
-        params={mergedParams}
-        fps={fps}
-        setFps={setFps}
-        isInventory={isInventory}
-        onToggleInventory={() => {
-          setIsInventory(v => !v);
-          setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
-        }}
-        onCapture={() => {
-          // Mobile press -> enter action mode (respect cooldown)
-          setGameState(prev => beginAction(prev));
-        }}
-        onRelease={() => {
-          // Mobile release -> perform action release logic
-          setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
-        }}
-        onEat={() => {
-          setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
-        }}
-        onSetCursor={(q, r) => {
-          // Check if clicking on focus or protagonist - start drag
-          // Otherwise - start auto-move to target
-          setGameState(prev => {
-            const clickedPos = { q, r };
-            const isFocus = equalAxial(clickedPos, prev.focus);
-            const isProtagonist = equalAxial(clickedPos, prev.protagonist);
-            
-            if (isFocus || isProtagonist) {
-              // Start drag mode
-              return startDrag(prev);
-            } else {
-              // Start auto-move to clicked cell
-              return attemptMoveTo(prev, mergedParams, clickedPos);
-            }
-          });
-        }}
-        onCellClickDown={(q, r) => {
-          // Handle LMB click on cell - check if on focus/protagonist for drag
-          setGameState(prev => {
-            if (mouseIsDownRef.current) return prev; // Already down
-            mouseIsDownRef.current = true;
-            
-            const clickedPos = { q, r };
-            const isFocus = equalAxial(clickedPos, prev.focus);
-            const isProtagonist = equalAxial(clickedPos, prev.protagonist);
-            
-            if (isFocus || isProtagonist) {
-              // Start drag mode
-              return startDrag(prev);
-            } else {
-              // Start auto-move to clicked cell
-              return attemptMoveTo(prev, mergedParams, clickedPos);
-            }
-          });
-        }}
-        onCellClickUp={(q, r) => {
-          // Handle LMB release on cell - end drag if was dragging
-          if (!mouseIsDownRef.current) return;
-          mouseIsDownRef.current = false;
-          setGameState(prev => {
-            if (prev.isDragging) {
-              return endDrag(prev);
-            }
-            return prev;
-          });
-        }}
-        onCellDrag={(q, r) => {
-          // Handle drag - move protagonist if in drag mode
-          setGameState(prev => {
-            if (!prev.isDragging) return prev;
-            // Calculate delta from current position
-            const dq = q - prev.protagonist.q;
-            const dr = r - prev.protagonist.r;
-            return dragMoveProtagonist(prev, mergedParams, dq, dr);
-          });
-        }}
-      />
-      <div className="game-footer-controls" />
+      <div className="game-main">
+        <Hotbar />
+        <div className="game-field-area">
+          <GameField
+            gameState={gameState}
+            params={mergedParams}
+            fps={fps}
+            setFps={setFps}
+            isInventory={isInventory}
+            onToggleInventory={() => {
+              setIsInventory(v => !v);
+              setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
+            }}
+            onCapture={() => {
+              // Mobile press -> enter action mode (respect cooldown)
+              setGameState(prev => beginAction(prev));
+            }}
+            onRelease={() => {
+              // Mobile release -> perform action release logic
+              setGameState(prev => handleActionRelease(prev, mergedParams, rngRef.current));
+            }}
+            onEat={() => {
+              setGameState(prev => eatCapturedToInventory(prev, mergedParams, rngRef.current));
+            }}
+            onSetCursor={(q, r) => {
+              // Check if clicking on focus or protagonist - start drag
+              // Otherwise - start auto-move to target
+              setGameState(prev => {
+                const clickedPos = { q, r };
+                const isFocus = equalAxial(clickedPos, prev.focus);
+                const isProtagonist = equalAxial(clickedPos, prev.protagonist);
+                
+                if (isFocus || isProtagonist) {
+                  // Start drag mode
+                  return startDrag(prev);
+                } else {
+                  // Start auto-move to clicked cell
+                  return attemptMoveTo(prev, mergedParams, clickedPos);
+                }
+              });
+            }}
+            onCellClickDown={(q, r) => {
+              // Handle LMB click on cell - check if on focus/protagonist for drag
+              setGameState(prev => {
+                if (mouseIsDownRef.current) return prev; // Already down
+                mouseIsDownRef.current = true;
+                
+                const clickedPos = { q, r };
+                const isFocus = equalAxial(clickedPos, prev.focus);
+                const isProtagonist = equalAxial(clickedPos, prev.protagonist);
+                
+                if (isFocus || isProtagonist) {
+                  // Start drag mode
+                  return startDrag(prev);
+                } else {
+                  // Start auto-move to clicked cell
+                  return attemptMoveTo(prev, mergedParams, clickedPos);
+                }
+              });
+            }}
+            onCellClickUp={(q, r) => {
+              // Handle LMB release on cell - end drag if was dragging
+              if (!mouseIsDownRef.current) return;
+              mouseIsDownRef.current = false;
+              setGameState(prev => {
+                if (prev.isDragging) {
+                  return endDrag(prev);
+                }
+                return prev;
+              });
+            }}
+            onCellDrag={(q, r) => {
+              // Handle drag - move protagonist if in drag mode
+              setGameState(prev => {
+                if (!prev.isDragging) return prev;
+                // Calculate delta from current position
+                const dq = q - prev.protagonist.q;
+                const dr = r - prev.protagonist.r;
+                return dragMoveProtagonist(prev, mergedParams, dq, dr);
+              });
+            }}
+          />
+        </div>
+        <div className="game-footer-controls" />
+      </div>
     </div>
   );
 };
