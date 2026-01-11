@@ -237,3 +237,25 @@
 - 2025w53-0.8 — Inventory turtle shell matches background tint; dots remain above
 
 - 2025w53-0.9 — Hide hotbar in wiki tab; inventory dots drawn above turtle
+
+- 2026w03-0.1 — Add Yandex build mode, platform integration stub, pause/resume events
+
+- 2026w03-0.2 — Explicit interaction mode; desktop-only keyboard handlers
+
+- 2026w03-0.3 — Add i18n and settings overlay; gear button top-right
+
+- 2026w03-0.4 — Guest start overlay; Wiki shows elapsed time
+
+- 2026w03-0.5 — Mobile tab bar redesign; settings with reset/sound/FPS/mascot; yandex build pipeline
+
+- 2026w03-0.6 — Settings UI polish: large checkboxes, X close icon, gear button borderless; FPS toggle working; mascot shows exact turtle; timer reset; SDK loads in integration only
+
+- 2026w03-0.7 — Settings UI polish: large checkboxes, X close icon, gear button borderless; FPS toggle working; mascot shows exact turtle; timer reset; SDK loads in integration only
+
+- 2026w03-0.8 — Mascot full width; guest start full screen; Font Awesome icons; game time starts only after guest start
+
+- 2026w03-0.9 — Mascot min size 300x300 scaled to screen width; lighter gear icon
+
+- 2026w03-0.10 — Fixed mascot turtle scaling to fill canvas; restored gear icon to solid style
+
+- 2026w03-0.11 — Mascot turtle scaled to fill canvas properly (HEX_SIZE = size/16)

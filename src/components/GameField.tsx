@@ -98,6 +98,7 @@ interface GameFieldProps {
   params: Params;
   fps: number;
   setFps: (fps: number) => void;
+  showFPS?: boolean;
   isInventory: boolean;
   onToggleInventory: () => void;
   onCapture: () => void;
@@ -114,6 +115,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   params,
   fps,
   setFps,
+  showFPS = false,
   isInventory,
   onToggleInventory,
   onCapture,
@@ -679,7 +681,9 @@ export const GameField: React.FC<GameFieldProps> = ({
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(`FPS: ${fps}`, canvas.width / 2, canvas.height - 4);
+      if (showFPS) {
+        ctx.fillText(`FPS: ${fps}`, canvas.width / 2, canvas.height - 4);
+      }
       ctx.restore();
 
       requestAnimationFrame(render);

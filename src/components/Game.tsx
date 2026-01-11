@@ -24,6 +24,12 @@ import ControlsMobile from './ControlsInfoMobile';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField';
 import Hotbar from './Hotbar';
+import Settings from './Settings';
+import { t } from '../ui/i18n';
+import { integration } from '../appLogic/integration';
+import GuestStart from './GuestStart';
+import Wiki from './Wiki';
+import Mascot from './Mascot';
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -36,14 +42,76 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
   const [mobileTab, setMobileTab] = useState<'world' | 'self' | 'wiki'>('world');
+  const [isPaused, setIsPaused] = useState(false);
+  const [interactionMode, setInteractionMode] = useState<'desktop' | 'mobile'>(() => {
+    const coarse = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const touch = typeof navigator !== 'undefined' && (navigator as any).maxTouchPoints > 0;
+    return coarse || touch ? 'mobile' : 'desktop';
+  });
+  const [guestStarted, setGuestStarted] = useState<boolean>(() => {
+    return !!localStorage.getItem('hexigame.guest.started');
+  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMascotOpen, setIsMascotOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('hexigame.sound');
+    return saved ? saved === 'true' : true;
+  });
+  const [showFPS, setShowFPS] = useState(() => {
+    const saved = localStorage.getItem('hexigame.showFPS');
+    return saved ? saved === 'true' : false;
+  });
 
-  // Tick loop (12 ticks/sec)
+  // Detect mode changes based on pointer/orientation/size
   useEffect(() => {
+    const detect = () => {
+      const coarse = window.matchMedia?.('(pointer: coarse)')?.matches ?? false;
+      const touch = (navigator as any)?.maxTouchPoints > 0;
+      const narrow = window.innerWidth <= 900;
+      const mobile = coarse || touch || narrow;
+      setInteractionMode(mobile ? 'mobile' : 'desktop');
+    };
+    detect();
+    window.addEventListener('resize', detect);
+    window.addEventListener('orientationchange', detect as any);
+    return () => {
+      window.removeEventListener('resize', detect);
+      window.removeEventListener('orientationchange', detect as any);
+    };
+  }, []);
+
+  // Tick loop (12 ticks/sec) - only runs after guest starts
+  useEffect(() => {
+    if (!guestStarted) return; // Don't start ticking until guest starts
     const interval = setInterval(() => {
-      setGameState(prev => logicTick(prev, mergedParams, rngRef.current));
+      if (!isPaused) {
+        setGameState(prev => logicTick(prev, mergedParams, rngRef.current));
+      }
     }, 1000 / mergedParams.GameTickRate);
     return () => clearInterval(interval);
-  }, [mergedParams]);
+  }, [mergedParams, isPaused, guestStarted]);
+
+  // Pause/resume on tab visibility change
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) {
+        setIsPaused(true);
+        integration.onPause();
+      } else {
+        setIsPaused(false);
+        integration.onResume();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  // Gameplay lifecycle (start/stop)
+  useEffect(() => {
+    // Gameplay lifecycle (start when guest starts, stop on unmount)
+    if (guestStarted) integration.onGameplayStart();
+    return () => integration.onGameplayStop();
+  }, []);
 
   // Keyboard input handlers
   useEffect(() => {
@@ -96,13 +164,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         // Action already performed on keydown, just reset the flag
       }
     }
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    if (interactionMode === 'desktop') {
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+    }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [mergedParams]);
+  }, [mergedParams, interactionMode]);
 
   // Derived HUD data
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
@@ -147,23 +217,29 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       )}
       {isMobileLayout && (
         <div className="mobile-tab-bar">
-          <button
-            className={`mobile-tab ${mobileTab === 'world' ? 'active' : ''}`}
-            onClick={() => setMobileTab('world')}
-          >
-            World
-          </button>
-          <button
-            className={`mobile-tab ${mobileTab === 'self' ? 'active' : ''}`}
-            onClick={() => setMobileTab('self')}
-          >
-            Self
-          </button>
-          <button
-            className={`mobile-tab ${mobileTab === 'wiki' ? 'active' : ''}`}
-            onClick={() => setMobileTab('wiki')}
-          >
-            Wiki
+          <div className="mobile-tabs-container">
+            <button
+              className={`mobile-tab ${mobileTab === 'world' ? 'active' : ''}`}
+              onClick={() => setMobileTab('world')}
+            >
+              {t('tab.world')}
+            </button>
+            <button
+              className={`mobile-tab ${mobileTab === 'self' ? 'active' : ''}`}
+              onClick={() => setMobileTab('self')}
+            >
+              {t('tab.self')}
+            </button>
+            <button
+              className={`mobile-tab ${mobileTab === 'wiki' ? 'active' : ''}`}
+              onClick={() => setMobileTab('wiki')}
+            >
+              {t('tab.wiki')}
+            </button>
+          </div>
+          {/* Settings gear on right side of tab bar */}
+          <button className="settings-button" onClick={() => setIsSettingsOpen(true)} title={t('settings.open')}>
+            <i className="fas fa-cog"></i>
           </button>
         </div>
       )}
@@ -184,13 +260,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         )}
         <div className="game-field-area">
           {isMobileLayout && mobileTab === 'wiki' ? (
-            <div className="wiki-placeholder" />
+            <Wiki gameState={gameState} params={mergedParams} />
           ) : (
             <GameField
               gameState={gameState}
               params={mergedParams}
               fps={fps}
               setFps={setFps}
+              showFPS={showFPS}
               isInventory={effectiveIsInventory}
               onToggleInventory={() => {
                 if (isMobileLayout) {
@@ -278,6 +355,38 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         </div>
         <div className="game-footer-controls" />
       </div>
+      {!guestStarted && (
+        <GuestStart onStart={() => {
+          localStorage.setItem('hexigame.guest.started', '1');
+          setGuestStarted(true);
+        }} />
+      )}
+      {isSettingsOpen && (
+        <Settings 
+          onClose={() => setIsSettingsOpen(false)}
+          onResetSession={() => {
+            localStorage.removeItem('hexigame.guest.started');
+            setGuestStarted(false);
+            // Reset game state to initial
+            setGameState(createInitialState(mergedParams, rngRef.current));
+          }}
+          onShowMascot={() => {
+            setIsSettingsOpen(false);
+            setIsMascotOpen(true);
+          }}
+          soundEnabled={soundEnabled}
+          onToggleSound={(enabled) => {
+            setSoundEnabled(enabled);
+            localStorage.setItem('hexigame.sound', String(enabled));
+          }}
+          showFPS={showFPS}
+          onToggleShowFPS={(show) => {
+            setShowFPS(show);
+            localStorage.setItem('hexigame.showFPS', String(show));
+          }}
+        />
+      )}
+      {isMascotOpen && <Mascot onClose={() => setIsMascotOpen(false)} />}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import Game from './components/Game';
+import { integration } from './appLogic/integration';
 
 // Vite exposes package.json version via import.meta.env if configured.
 // We pass it using define in vite.config.mts.
@@ -18,6 +19,14 @@ if (version) {
 
 function Root() {
 	useEffect(() => {
+		// Initialize platform integration and mark game ready when bootstrapped
+		(async () => {
+			try {
+				await integration.init();
+				integration.onGameReady();
+			} catch {}
+		})();
+
 		const applyVh = () => {
 			const vh = window.innerHeight * 0.01;
 			document.documentElement.style.setProperty('--vh', `${vh}px`);

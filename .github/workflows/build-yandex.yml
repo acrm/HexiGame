@@ -1,0 +1,79 @@
+name: Build for Yandex.Games
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Optional version tag (e.g., 2026w03-0.5)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Read version from version.json
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version_tag }}" ]; then
+            echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(node -p "require('./version.json').currentVersion")
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build project for Yandex.Games
+        run: npm run build:yandex
+        env:
+          NODE_ENV: production
+      
+      - name: Create Yandex.Games distribution
+        run: |
+          cd dist
+          # Create ZIP archive with all built files
+          zip -r ../hexi-yandex-${{ steps.version.outputs.VERSION }}.zip .
+          cd ..
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hexi-yandex-build
+          path: hexi-yandex-*.zip
+          retention-days: 90
+      
+      - name: Create release assets (optional)
+        if: github.event.inputs.version_tag != ''
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version_tag }}
+          name: Release ${{ github.event.inputs.version_tag }}
+          files: hexi-yandex-*.zip
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build summary
+        run: |
+          echo "## Yandex.Games Build Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download the artifact \`hexi-yandex-${{ steps.version.outputs.VERSION }}.zip\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Go to [Yandex.Games Console](https://games.yandex.ru/console/)" >> $GITHUB_STEP_SUMMARY
+          echo "3. Upload the ZIP file to your game draft" >> $GITHUB_STEP_SUMMARY
+          echo "4. Submit for moderation" >> $GITHUB_STEP_SUMMARY

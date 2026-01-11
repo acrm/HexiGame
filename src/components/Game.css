@@ -96,11 +96,17 @@ html, body {
 
 .mobile-tab-bar {
   display: none;
+  background: #000;
+  position: relative;
+}
+
+.mobile-tabs-container {
+  display: flex;
+  width: fit-content;
 }
 
 .mobile-tab {
-  flex: 1;
-  padding: 12px 0;
+  padding: 12px 20px;
   border: none;
   color: #000;
   font-size: 14px;
@@ -178,4 +184,160 @@ html, body {
   .game-footer-controls {
     display: none;
   }
+}
+
+/* Settings overlay */
+.settings-button {
+  position: absolute;
+  right: 12px;
+  top: 0;
+  bottom: 0;
+  background: transparent;
+  color: #fff;
+  border: none;
+  padding: 0 8px;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 28px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.settings-panel {
+  background: #000;
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 8px;
+  min-width: 280px;
+  max-width: 360px;
+  padding: 16px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.settings-close {
+  background: transparent;
+  color: #fff;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.settings-row input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.settings-action-button {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.settings-action-button:hover {
+  background: #444;
+}
+
+.settings-reset {
+  background: #660000;
+  border-color: #880000;
+}
+
+.settings-reset:hover {
+  background: #770000;
+}
+
+.mascot-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.mascot-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  max-width: 100%;
+}
+
+.mascot-text {
+  color: #fff;
+  font-size: 16px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.guest-start-screen {
+  position: fixed;
+  inset: 0;
+  background: #370152ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.guest-start-content {
+  text-align: center;
+  color: #fff;
+}
+
+.guest-start-content h1 {
+  font-size: 48px;
+  margin-bottom: 40px;
+  color: #fff;
+}
+
+.guest-start-button {
+  background: #FF8000;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 32px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.guest-start-button:hover {
+  background: #CC6600;
 }

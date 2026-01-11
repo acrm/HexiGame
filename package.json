@@ -1,14 +1,17 @@
 {
   "name": "hexigame",
-  "version": "2025w53-0.9",
+  "version": "2026w03-0.11",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:yandex": "vite --mode yandex",
     "build": "vite build",
+    "build:yandex": "vite build --mode yandex",
     "bump:build": "node scripts/update-version.js",
     "bump:minor": "node scripts/update-version.js --minor",
     "preview": "vite preview",
+    "preview:yandex": "vite preview --mode yandex",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
