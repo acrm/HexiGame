@@ -46,9 +46,13 @@ export const Settings: React.FC<SettingsProps> = ({
           <label>{t('settings.language')}</label>
           <select
             value={lang}
-            onChange={(e) => setLanguage(e.target.value as any)}
+            onChange={(e) => {
+              setLanguage(e.target.value as any);
+              window.location.reload();
+            }}
           >
             <option value="en">{t('language.en')}</option>
+            <option value="ru">{t('language.ru')}</option>
           </select>
         </div>
 

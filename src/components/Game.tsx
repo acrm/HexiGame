@@ -260,7 +260,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         )}
         <div className="game-field-area">
           {isMobileLayout && mobileTab === 'wiki' ? (
-            <Wiki gameState={gameState} params={mergedParams} />
+            <Wiki gameState={gameState} params={mergedParams} isMobile={interactionMode === 'mobile'} />
           ) : (
             <GameField
               gameState={gameState}

@@ -259,3 +259,9 @@
 - 2026w03-0.10 — Fixed mascot turtle scaling to fill canvas; restored gear icon to solid style
 
 - 2026w03-0.11 — Mascot turtle scaled to fill canvas properly (HEX_SIZE = size/16)
+
+- 2026w03-0.12 — Added Russian localization
+
+- 2026w03-0.13 — Added Russian language selector in settings; added game instructions to Wiki
+
+- 2026w03-0.14 — Platform-specific instructions in Wiki (desktop: arrows+Space, mobile: tap+ACT); full localization
