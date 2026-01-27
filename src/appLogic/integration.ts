@@ -30,6 +30,10 @@ class YandexIntegration implements PlatformIntegration {
     // Override default language for Yandex build
     if (import.meta.env.MODE === 'yandex') {
       (CONFIG as any).DEFAULT_LANGUAGE = 'ru';
+      // Share initial language choice so i18n can pick it lazily
+      if (typeof window !== 'undefined') {
+        (window as any).__HEXIGAME_DEFAULT_LANGUAGE = 'ru';
+      }
     }
   }
 
@@ -51,6 +55,15 @@ class YandexIntegration implements PlatformIntegration {
       if ((window as any).YaGames?.init) {
         try {
           this.ysdk = await (window as any).YaGames.init();
+          // After SDK init, take language from SDK environment
+          const sdkLang = this.ysdk?.environment?.i18n?.lang || this.ysdk?.i18n?.lang;
+          const mapped = typeof sdkLang === 'string' && sdkLang.startsWith('ru') ? 'ru' : 'en';
+          (CONFIG as any).DEFAULT_LANGUAGE = mapped;
+          (window as any).__HEXIGAME_DEFAULT_LANGUAGE = mapped;
+          // If пользователь ещё не выбрал язык, зафиксируем автоопределённый
+          if (typeof localStorage !== 'undefined' && !localStorage.getItem('hexigame.lang')) {
+            localStorage.setItem('hexigame.lang', mapped);
+          }
         } catch {
           this.ysdk = null;
         }

@@ -8,7 +8,13 @@ let current: Lang | null = null;
 
 function getCurrentLanguage(): Lang {
   if (current === null) {
-    current = (localStorage.getItem(STORAGE_KEY) as Lang) || CONFIG.DEFAULT_LANGUAGE;
+    const stored = localStorage.getItem(STORAGE_KEY) as Lang | null;
+    if (stored) {
+      current = stored;
+    } else {
+      const winLang = typeof window !== 'undefined' ? ((window as any).__HEXIGAME_DEFAULT_LANGUAGE as Lang | undefined) : undefined;
+      current = winLang || CONFIG.DEFAULT_LANGUAGE;
+    }
   }
   return current;
 }
