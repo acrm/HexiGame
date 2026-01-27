@@ -106,6 +106,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
+  // Signal game ready to SDK (LoadingAPI.ready for Yandex)
+  useEffect(() => {
+    integration.onGameReady();
+  }, []);
+
   // Gameplay lifecycle (start/stop)
   useEffect(() => {
     // Gameplay lifecycle (start when guest starts, stop on unmount)

@@ -1,18 +1,27 @@
+import { CONFIG } from '../config';
+
 export type Lang = 'en' | 'ru';
 
 const STORAGE_KEY = 'hexigame.lang';
 
-let current: Lang = (localStorage.getItem(STORAGE_KEY) as Lang) || 'en';
+let current: Lang | null = null;
+
+function getCurrentLanguage(): Lang {
+  if (current === null) {
+    current = (localStorage.getItem(STORAGE_KEY) as Lang) || CONFIG.DEFAULT_LANGUAGE;
+  }
+  return current;
+}
 
 const dict: Record<Lang, Record<string, string>> = {
   en: {
-    'tab.world': 'World',
-    'tab.self': 'Self',
+    'tab.world': 'Outside',
+    'tab.self': 'Inside',
     'tab.wiki': 'Wiki',
     'settings.title': 'Settings',
     'settings.language': 'Language',
-    'language.en': 'English',
-    'language.ru': 'Русский',
+    'language.en': '🇬🇧 English',
+    'language.ru': '🇷🇺 Русский',
     'action.startGuest': 'Start as Guest',
     'wiki.elapsed': 'Elapsed Time',
     'wiki.instructions.title': 'How to Play',
@@ -37,13 +46,13 @@ const dict: Record<Lang, Record<string, string>> = {
     'action.cancel': 'Cancel',
   },
   ru: {
-    'tab.world': 'Мир',
-    'tab.self': 'Я',
+    'tab.world': 'Снаружи',
+    'tab.self': 'Внутри',
     'tab.wiki': 'Вики',
     'settings.title': 'Настройки',
     'settings.language': 'Язык',
-    'language.en': 'English',
-    'language.ru': 'Русский',
+    'language.en': '🇬🇧 English',
+    'language.ru': '🇷🇺 Русский',
     'action.startGuest': 'Начать как гость',
     'wiki.elapsed': 'Прошло времени',
     'wiki.instructions.title': 'Как играть',
@@ -70,11 +79,11 @@ const dict: Record<Lang, Record<string, string>> = {
 };
 
 export function t(key: string): string {
-  return dict[current][key] ?? key;
+  return dict[getCurrentLanguage()][key] ?? key;
 }
 
 export function getLanguage(): Lang {
-  return current;
+  return getCurrentLanguage();
 }
 
 export function setLanguage(lang: Lang) {

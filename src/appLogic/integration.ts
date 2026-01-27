@@ -1,6 +1,8 @@
 // Platform integration abstraction (agnostic main code)
 // Only binds Yandex SDK when built with mode 'yandex'.
 
+import { CONFIG } from '../config';
+
 export interface PlatformIntegration {
   init(): Promise<void> | void;
   onGameReady(): void;
@@ -23,6 +25,13 @@ class NullIntegration implements PlatformIntegration {
 class YandexIntegration implements PlatformIntegration {
   private ysdk: any | null = null;
   private sdkLoaded = false;
+
+  constructor() {
+    // Override default language for Yandex build
+    if (import.meta.env.MODE === 'yandex') {
+      (CONFIG as any).DEFAULT_LANGUAGE = 'ru';
+    }
+  }
 
   async init() {
     if (typeof window === 'undefined') return;
@@ -89,3 +98,8 @@ class YandexIntegration implements PlatformIntegration {
 
 export const integration: PlatformIntegration =
   import.meta.env.MODE === 'yandex' ? new YandexIntegration() : new NullIntegration();
+
+// Initialize integration early to set up config overrides
+if (typeof window !== 'undefined') {
+  integration.init();
+}

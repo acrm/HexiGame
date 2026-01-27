@@ -265,3 +265,9 @@
 - 2026w03-0.13 — Added Russian language selector in settings; added game instructions to Wiki
 
 - 2026w03-0.14 — Platform-specific instructions in Wiki (desktop: arrows+Space, mobile: tap+ACT); full localization
+
+- 2026w05-0.1 — Added LoadingAPI.ready() call on game initialization
+
+- 2026w05-0.2 — Added config for default language by build mode; flag emojis in language selector
+
+- 2026w05-0.3 — Config no longer depends on mode; Yandex integration overrides default language to ru; emoji flags properly displayed
