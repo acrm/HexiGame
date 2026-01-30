@@ -108,15 +108,23 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Signal game ready to SDK (LoadingAPI.ready for Yandex)
   useEffect(() => {
-    integration.onGameReady();
+    let mounted = true;
+    Promise.resolve(integration.init()).then(() => {
+      if (mounted) integration.onGameReady();
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Gameplay lifecycle (start/stop)
   useEffect(() => {
     // Gameplay lifecycle (start when guest starts, stop on unmount)
-    if (guestStarted) integration.onGameplayStart();
+    if (guestStarted) {
+      Promise.resolve(integration.init()).then(() => integration.onGameplayStart());
+    }
     return () => integration.onGameplayStop();
-  }, []);
+  }, [guestStarted]);
 
   // Keyboard input handlers
   useEffect(() => {
