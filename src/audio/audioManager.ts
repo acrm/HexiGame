@@ -6,7 +6,7 @@ class AudioManager {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.audio = new Audio('/audio/Desert Pixels.mp3');
+      this.audio = new Audio('audio/Desert Pixels.mp3');
       this.audio.loop = true;
       this.audio.volume = 0.5;
     }

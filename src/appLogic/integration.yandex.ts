@@ -28,7 +28,7 @@ class YandexIntegration implements PlatformIntegration {
 
     await new Promise<void>((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://yandex.ru/games/sdk.js';
+      script.src = '/sdk.js';
       script.async = true;
       script.onload = () => resolve();
       script.onerror = () => reject(new Error('Yandex SDK failed to load'));
