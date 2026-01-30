@@ -273,3 +273,5 @@
 - 2026w05-0.3 — Config no longer depends on mode; Yandex integration overrides default language to ru; emoji flags properly displayed
 
 - 2026w05-0.4 — SDK language now drives default locale; Yandex init maps SDK lang to ru/en and shares via global flag
+
+- 2026w05-0.5 — Build-time Yandex integration swap via Vite alias; no Yandex code in non-Yandex builds

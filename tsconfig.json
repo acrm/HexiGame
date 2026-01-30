@@ -8,7 +8,11 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["react", "react-dom", "vite/client"]
+    "types": ["react", "react-dom", "vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "integration.impl": ["src/appLogic/integration.null.ts"]
+    }
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules"]
