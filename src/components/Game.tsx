@@ -27,6 +27,7 @@ import Hotbar from './Hotbar';
 import Settings from './Settings';
 import { t } from '../ui/i18n';
 import { integration } from '../appLogic/integration';
+import { audioManager } from '../audio/audioManager';
 import GuestStart from './GuestStart';
 import Wiki from './Wiki';
 import Mascot from './Mascot';
@@ -61,6 +62,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = localStorage.getItem('hexigame.showFPS');
     return saved ? saved === 'true' : false;
   });
+
+  // Initialize audio manager with sound settings
+  useEffect(() => {
+    audioManager.setEnabled(soundEnabled);
+  }, [soundEnabled]);
+
+  // Start audio on guest start (user interaction required)
+  useEffect(() => {
+    if (guestStarted && soundEnabled) {
+      audioManager.play();
+    }
+  }, [guestStarted, soundEnabled]);
 
   // Detect mode changes based on pointer/orientation/size
   useEffect(() => {
@@ -97,9 +110,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       if (document.hidden) {
         setIsPaused(true);
         integration.onPause();
+        audioManager.pause();
       } else {
         setIsPaused(false);
         integration.onResume();
+        audioManager.resume();
       }
     };
     document.addEventListener('visibilitychange', onVis);

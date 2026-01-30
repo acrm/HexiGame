@@ -279,3 +279,5 @@
 - 2026w05-0.6 — Added Yandex metadata files (RU/EN)
 
 - 2026w05-0.7 — Await SDK init before ready/gameplay start
+
+- 2026w05-0.8 — Added background music system with Desert Pixels.mp3; sound toggle integrated
