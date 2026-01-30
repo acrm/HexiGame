@@ -283,3 +283,9 @@
 - 2026w05-0.8 — Added background music system with Desert Pixels.mp3; sound toggle integrated
 
 - 2026w05-0.9 — Added metadata to build artifacts; build script copies publishing files to dist
+
+- 2026w05-0.10 — Removed Font Awesome CDN (CORS); separated platform metadata; added @types/ysdk; fixed SDK lifecycle (ready on load, start/stop on gameplay/menu)
+
+- 2026w05-0.11 — Add music volume slider control
+
+- 2026w05-0.12 — Bundle Roboto font and Font Awesome icons locally

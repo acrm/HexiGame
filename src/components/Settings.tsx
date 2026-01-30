@@ -7,6 +7,8 @@ interface SettingsProps {
   onShowMascot: () => void;
   soundEnabled: boolean;
   onToggleSound: (enabled: boolean) => void;
+  musicVolume: number;
+  onMusicVolumeChange: (volume: number) => void;
   showFPS: boolean;
   onToggleShowFPS: (show: boolean) => void;
 }
@@ -17,6 +19,8 @@ export const Settings: React.FC<SettingsProps> = ({
   onShowMascot,
   soundEnabled,
   onToggleSound,
+  musicVolume,
+  onMusicVolumeChange,
   showFPS,
   onToggleShowFPS,
 }) => {
@@ -63,6 +67,23 @@ export const Settings: React.FC<SettingsProps> = ({
             checked={soundEnabled}
             onChange={(e) => onToggleSound(e.target.checked)}
           />
+        </div>
+
+        <div className="settings-row">
+          <label>{t('settings.musicVolume')}</label>
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.01"
+            value={musicVolume}
+            onChange={(e) => onMusicVolumeChange(parseFloat(e.target.value))}
+            disabled={!soundEnabled}
+            style={{ flex: 1 }}
+          />
+          <span style={{ marginLeft: 8, minWidth: 40, textAlign: 'right' }}>
+            {Math.round(musicVolume * 100)}%
+          </span>
         </div>
 
         <div className="settings-row">

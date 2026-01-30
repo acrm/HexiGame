@@ -11,7 +11,7 @@ html, body {
   max-height: 100vh;
   background: #370152ff;
   color: #fff;
-  font-family: sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 .game-main {

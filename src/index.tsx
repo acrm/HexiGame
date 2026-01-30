@@ -2,6 +2,9 @@ import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import Game from './components/Game';
 import { integration } from './appLogic/integration';
+import '@fortawesome/fontawesome-free/css/all.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/700.css';
 
 // Vite exposes package.json version via import.meta.env if configured.
 // We pass it using define in vite.config.mts.

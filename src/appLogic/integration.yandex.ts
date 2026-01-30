@@ -1,4 +1,5 @@
 import { CONFIG } from '../config';
+import type { SDK } from 'ysdk';
 
 interface PlatformIntegration {
   init(): Promise<void> | void;
@@ -11,7 +12,7 @@ interface PlatformIntegration {
 
 // Yandex SDK integration (Yandex build only)
 class YandexIntegration implements PlatformIntegration {
-  private ysdk: any | null = null;
+  private ysdk: SDK | null = null;
   private sdkLoaded = false;
 
   constructor() {
@@ -38,7 +39,7 @@ class YandexIntegration implements PlatformIntegration {
     if ((window as any).YaGames?.init) {
       try {
         this.ysdk = await (window as any).YaGames.init();
-        const sdkLang = this.ysdk?.environment?.i18n?.lang || this.ysdk?.i18n?.lang;
+        const sdkLang = this.ysdk?.environment?.i18n?.lang;
         const mapped = typeof sdkLang === 'string' && sdkLang.startsWith('ru') ? 'ru' : 'en';
         CONFIG.DEFAULT_LANGUAGE = mapped;
         (window as any).__HEXIGAME_DEFAULT_LANGUAGE = mapped;

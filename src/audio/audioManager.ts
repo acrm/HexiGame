@@ -12,6 +12,12 @@ class AudioManager {
     }
   }
 
+  setVolume(volume: number) {
+    if (this.audio) {
+      this.audio.volume = Math.max(0, Math.min(1, volume));
+    }
+  }
+
   setEnabled(enabled: boolean) {
     this.enabled = enabled;
     if (this.initialized) {

@@ -58,6 +58,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = localStorage.getItem('hexigame.sound');
     return saved ? saved === 'true' : true;
   });
+  const [musicVolume, setMusicVolume] = useState(() => {
+    const saved = localStorage.getItem('hexigame.musicVolume');
+    return saved ? parseFloat(saved) : 0.5;
+  });
   const [showFPS, setShowFPS] = useState(() => {
     const saved = localStorage.getItem('hexigame.showFPS');
     return saved ? saved === 'true' : false;
@@ -67,6 +71,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     audioManager.setEnabled(soundEnabled);
   }, [soundEnabled]);
+
+  // Apply music volume
+  useEffect(() => {
+    audioManager.setVolume(musicVolume);
+  }, [musicVolume]);
 
   // Start audio on guest start (user interaction required)
   useEffect(() => {
@@ -109,37 +118,41 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const onVis = () => {
       if (document.hidden) {
         setIsPaused(true);
-        integration.onPause();
+        integration.onGameplayStop();
         audioManager.pause();
       } else {
         setIsPaused(false);
-        integration.onResume();
+        if (guestStarted && !isSettingsOpen) {
+          integration.onGameplayStart();
+        }
         audioManager.resume();
       }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, []);
+  }, [guestStarted, isSettingsOpen]);
 
-  // Signal game ready to SDK (LoadingAPI.ready for Yandex)
+  // Signal game ready to SDK (LoadingAPI.ready for Yandex) - call as soon as loaded
   useEffect(() => {
     let mounted = true;
     Promise.resolve(integration.init()).then(() => {
-      if (mounted) integration.onGameReady();
+      if (mounted) {
+        integration.onGameReady();
+      }
     });
     return () => {
       mounted = false;
     };
   }, []);
 
-  // Gameplay lifecycle (start/stop)
+  // Gameplay lifecycle (start/stop based on game state and menu)
   useEffect(() => {
-    // Gameplay lifecycle (start when guest starts, stop on unmount)
-    if (guestStarted) {
+    if (guestStarted && !isPaused && !isSettingsOpen && !isMascotOpen) {
       Promise.resolve(integration.init()).then(() => integration.onGameplayStart());
+    } else if (guestStarted) {
+      integration.onGameplayStop();
     }
-    return () => integration.onGameplayStop();
-  }, [guestStarted]);
+  }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen]);
 
   // Keyboard input handlers
   useEffect(() => {
@@ -406,6 +419,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           onToggleSound={(enabled) => {
             setSoundEnabled(enabled);
             localStorage.setItem('hexigame.sound', String(enabled));
+          }}
+          musicVolume={musicVolume}
+          onMusicVolumeChange={(volume) => {
+            setMusicVolume(volume);
+            localStorage.setItem('hexigame.musicVolume', String(volume));
           }}
           showFPS={showFPS}
           onToggleShowFPS={(show) => {

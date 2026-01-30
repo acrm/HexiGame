@@ -1,13 +1,13 @@
 {
   "name": "hexigame",
-  "version": "2026w05-0.9",
+  "version": "2026w05-0.12",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:yandex": "vite --mode yandex",
     "build": "vite build && bash scripts/copy-metadata.sh",
-    "build:yandex": "vite build --mode yandex && bash scripts/copy-metadata.sh",
+    "build:yandex": "VITE_MODE=yandex vite build --mode yandex && VITE_MODE=yandex bash scripts/copy-metadata.sh",
     "bump:build": "node scripts/update-version.js",
     "bump:minor": "node scripts/update-version.js --minor",
     "preview": "vite preview",
@@ -15,12 +15,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/roboto": "^5.2.9",
+    "@fortawesome/fontawesome-free": "^7.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
+    "@types/ysdk": "^1.2.0",
     "@vitejs/plugin-react": "^5.1.1",
     "typescript": "^5.4.0",
     "vite": "^5.0.0"
