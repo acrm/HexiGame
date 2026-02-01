@@ -39,6 +39,7 @@ class YandexIntegration implements PlatformIntegration {
     if ((window as any).YaGames?.init) {
       try {
         this.ysdk = await (window as any).YaGames.init();
+        (window as any).ysdk = this.ysdk;
         const sdkLang = this.ysdk?.environment?.i18n?.lang;
         const mapped = typeof sdkLang === 'string' && sdkLang.startsWith('ru') ? 'ru' : 'en';
         CONFIG.DEFAULT_LANGUAGE = mapped;
@@ -57,36 +58,71 @@ class YandexIntegration implements PlatformIntegration {
   onGameReady() {
     const ysdk = this.ysdk ?? (window as any).ysdk;
     try {
-      if (ysdk?.LoadingAPI?.ready) ysdk.LoadingAPI.ready();
-    } catch {}
+      if (ysdk?.features?.LoadingAPI?.ready) {
+        ysdk.features.LoadingAPI.ready();
+        console.log('[Yandex SDK] ✓ LoadingAPI.ready() called successfully');
+      } else {
+        console.warn('[Yandex SDK] ⚠ LoadingAPI.ready() not available');
+      }
+    } catch (err) {
+      console.error('[Yandex SDK] ✗ LoadingAPI.ready() failed:', err);
+    }
   }
 
   onGameplayStart() {
     const ysdk = this.ysdk ?? (window as any).ysdk;
     try {
-      if (ysdk?.GameplayAPI?.start) ysdk.GameplayAPI.start();
-    } catch {}
+      if (ysdk?.features?.GameplayAPI?.start) {
+        ysdk.features.GameplayAPI.start();
+        console.log('[Yandex SDK] ▶ GameplayAPI.start() called successfully');
+      } else {
+        console.warn('[Yandex SDK] ⚠ GameplayAPI.start() not available');
+      }
+    } catch (err) {
+      console.error('[Yandex SDK] ✗ GameplayAPI.start() failed:', err);
+    }
   }
 
   onGameplayStop() {
     const ysdk = this.ysdk ?? (window as any).ysdk;
     try {
-      if (ysdk?.GameplayAPI?.stop) ysdk.GameplayAPI.stop();
-    } catch {}
+      if (ysdk?.features?.GameplayAPI?.stop) {
+        ysdk.features.GameplayAPI.stop();
+        console.log('[Yandex SDK] ⏹ GameplayAPI.stop() called successfully');
+      } else {
+        console.warn('[Yandex SDK] ⚠ GameplayAPI.stop() not available');
+      }
+    } catch (err) {
+      console.error('[Yandex SDK] ✗ GameplayAPI.stop() failed:', err);
+    }
   }
 
   onPause() {
     const ysdk = this.ysdk ?? (window as any).ysdk;
     try {
-      if (ysdk?.GameplayAPI?.stop) ysdk.GameplayAPI.stop();
-    } catch {}
+      if (ysdk?.features?.GameplayAPI?.stop) {
+        ysdk.features.GameplayAPI.stop();
+        console.log('[Yandex SDK] ⏸ GameplayAPI.stop() (pause) called successfully');
+      } else {
+        console.warn('[Yandex SDK] ⚠ GameplayAPI.stop() (pause) not available');
+      }
+    } catch (err) {
+      console.error('[Yandex SDK] ✗ GameplayAPI.stop() (pause) failed:', err);
+    }
   }
 
   onResume() {
     const ysdk = this.ysdk ?? (window as any).ysdk;
     try {
-      if (ysdk?.GameplayAPI?.start) ysdk.GameplayAPI.start();
-    } catch {}
+      if (ysdk?.features?.GameplayAPI?.start) {
+        ysdk.features.GameplayAPI.start();
+        console.log('[Yandex SDK] ▶ GameplayAPI.start() (resume) called successfully');
+      } else {
+        console.warn('[Yandex SDK] ⚠ GameplayAPI.start() (resume) not available');
+      }
+    } catch (err) {
+      console.error('[Yandex SDK] ✗ GameplayAPI.start() (resume) failed:', err);
+    }
   }
 }
 

@@ -400,6 +400,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         <GuestStart onStart={() => {
           localStorage.setItem('hexigame.guest.started', '1');
           setGuestStarted(true);
+          // Play music immediately on user interaction (required for mobile autoplay policy)
+          if (soundEnabled) {
+            audioManager.play().catch(() => console.log('[Audio] Autoplay blocked'));
+          }
         }} />
       )}
       {isSettingsOpen && (

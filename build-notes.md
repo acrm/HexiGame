@@ -289,3 +289,11 @@
 - 2026w05-0.11 — Add music volume slider control
 
 - 2026w05-0.12 — Bundle Roboto font and Font Awesome icons locally
+
+- 2026w05-0.13 — Add favicon set
+
+- 2026w05-0.14 — Fix Yandex SDK ready/start/stop calls
+
+- 2026w06-0.1 — Add SDK logging, fix mobile audio autoplay, implement rotating focus cell animation
+
+- 2026w06-0.2 — Fix focus cell animation to use game ticks instead of frame time

@@ -35,10 +35,23 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, size: numb
   }
 }
 
-// Visual rotating edge highlight index (0..5)
-function computeEdgeIndex(timeMs: number, rotationPeriodMs = 500) {
-  const phase = (timeMs % rotationPeriodMs) / rotationPeriodMs;
-  return Math.floor(phase * 6) % 6;
+// Visual rotating edge highlight index with custom period (4 ticks = 1 edge rotation)
+function computeEdgeIndexForFocusCell(tickCount: number, edgesPerCycle = 6) {
+  // 1 edge rotates every 4 ticks, so cycle = 6 * 4 = 24 ticks
+  const cycleLength = edgesPerCycle * 1;
+  const phase = (tickCount % cycleLength) / cycleLength;
+  return Math.floor(phase * edgesPerCycle) % edgesPerCycle;
+}
+
+// Draw two opposite rotating edges (edges 0 and 3 at cycle start)
+function drawRotatingOppositeFaces(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number, color: string) {
+  const currentEdge = computeEdgeIndexForFocusCell(tickCount, 6);
+  const oppositeEdge = (currentEdge + 3) % 6;
+  
+  // Draw current rotating edge
+  drawEdgeHighlight(ctx, centerX, centerY, currentEdge, size, color);
+  // Draw opposite edge (always opposite)
+  drawEdgeHighlight(ctx, centerX, centerY, oppositeEdge, size, color);
 }
 
 function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, edge: number, size: number, color: string) {
@@ -354,25 +367,28 @@ export const GameField: React.FC<GameFieldProps> = ({
       const focusCell = gameState.focus;
       const autoMoveTarget = gameState.autoMoveTarget;
 
-      // Draw auto-move target with rotating edges (destination focus cell)
+      // Check if turtle is moving (has auto-move target and is not at turtle position)
+      const isTurtleMoving = !isInventory && autoMoveTarget &&
+          (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r);
+
+      // Draw focus cell with rotating opposite faces ONLY if not moving
+      if (!isInventory && !isTurtleMoving) {
+        const pos = hexToPixel(focusCell.q, focusCell.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        
+        // Use game tick for animation (12 ticks/sec, 1 edge every 4 ticks)
+        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
+      }
+
+      // Draw auto-move target (cursor) with rotating edges 2x faster when moving
       if (!isInventory && gameState.autoFocusTarget && autoMoveTarget &&
           (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r)) {
         const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
-        const now = performance.now();
-        const e = computeEdgeIndex(now);
-        drawEdgeHighlight(ctx, scaledX, scaledY, e, HEX_SIZE * scale, '#FFFFFF');
-      }
-
-      // Draw focus with highlighted vertices (always, no animation)
-      if (!isInventory) {
-        const pos = hexToPixel(focusCell.q, focusCell.r);
-        const scaledX = centerX + pos.x * scale;
-        const scaledY = centerY + pos.y * scale;
-        
-        // Normal focus: white vertices
-        drawVertexHighlights(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF', 1 * scale);
+        // 2x faster: multiply tick by 2 for 2x rotation speed
+        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick * 2, '#FFFFFF');
       }
 
       // In inventory mode: draw turtle background first, then inventoryGrid naturally
