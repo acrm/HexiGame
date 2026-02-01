@@ -637,6 +637,12 @@ export const GameField: React.FC<GameFieldProps> = ({
           const hotbarHexSize = HOTBAR_HEX_SIZE;
           const hotbarRingRadius = hotbarHexSize * HOTBAR_RING_RADIUS_MULT;
 
+          // Determine ACT button text based on focus cell
+          const focusKey = `${gameState.focus.q},${gameState.focus.r}`;
+          const focusCell = gameState.grid.get(focusKey);
+          const focusHasHex = focusCell && focusCell.colorIndex !== null;
+          const actText = focusHasHex ? 'DROP' : 'SPAWN';
+
           // Draw ACT button in center with rotating animation
           drawHex(
             ctx,
@@ -648,15 +654,15 @@ export const GameField: React.FC<GameFieldProps> = ({
             3,
           );
           ctx.fillStyle = 'rgba(0,0,0,0.85)';
-          ctx.font = '15px sans-serif';
+          ctx.font = '11px sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('ACT', hotbarCenterX, hotbarCenterY + 1);
+          ctx.fillText(actText, hotbarCenterX, hotbarCenterY + 1);
           
           // Draw rotation animation on ACT button
           drawRotatingOppositeFaces(ctx, hotbarCenterX, hotbarCenterY, hotbarHexSize, gameState.tick, '#FFFFFF');
 
-          // Draw 6 hotbar slots in a ring
+          // Draw 6 hotbar slots in a ring with command labels
           for (let slotIndex = 0; slotIndex < 6; slotIndex++) {
             const angle = (Math.PI / 3) * slotIndex - 3 * Math.PI / 6; // 60 degrees apart
             const slotX = hotbarCenterX + hotbarRingRadius * Math.cos(angle);
@@ -667,6 +673,25 @@ export const GameField: React.FC<GameFieldProps> = ({
             const fill = !isEmpty ? params.ColorPalette[colorIndex] : 'transparent';
             
             drawHex(ctx, slotX, slotY, hotbarHexSize, fill, 'rgba(255,255,255,0.5)', 1.5);
+
+            // Determine command text for this slot
+            let commandText = '';
+            if (isEmpty && focusHasHex) {
+              commandText = 'EAT';
+            } else if (!isEmpty && focusHasHex) {
+              commandText = 'SWAP';
+            } else if (!isEmpty && !focusHasHex) {
+              commandText = 'PUT';
+            }
+
+            // Draw command text
+            if (commandText) {
+              ctx.fillStyle = 'rgba(255,255,255,0.9)';
+              ctx.font = '9px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(commandText, slotX, slotY);
+            }
           }
         }
 

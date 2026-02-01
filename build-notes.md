@@ -321,3 +321,5 @@
 - 2026w06-0.13 — Hotbar redesign: ACT in center, uniform hex sizes, simplified layout
 
 - 2026w06-0.14 — Fix inventory colors, split sound/music settings, unify hotbar radius
+
+- 2026w06-0.15 — Audio system: music playlist rotation, sound effects on all interactions, hotbar contextual command labels

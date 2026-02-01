@@ -86,18 +86,27 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Initialize audio manager with music settings
   useEffect(() => {
-    audioManager.setEnabled(musicEnabled);
+    audioManager.setMusicEnabled(musicEnabled);
   }, [musicEnabled]);
 
   // Apply music volume
   useEffect(() => {
-    audioManager.setVolume(musicVolume);
+    audioManager.setMusicVolume(musicVolume);
   }, [musicVolume]);
+
+  // Apply sound settings
+  useEffect(() => {
+    audioManager.setSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    audioManager.setSoundVolume(soundVolume);
+  }, [soundVolume]);
 
   // Start audio on guest start (user interaction required)
   useEffect(() => {
     if (guestStarted && musicEnabled) {
-      audioManager.play();
+      audioManager.playMusic();
     }
   }, [guestStarted, musicEnabled]);
 
@@ -283,25 +292,25 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <div className="mobile-tabs-container">
             <button
               className={`mobile-tab ${mobileTab === 'world' ? 'active' : ''}`}
-              onClick={() => setMobileTab('world')}
+              onClick={() => { audioManager.playRandomSound(); setMobileTab('world'); }}
             >
               {t('tab.world')}
             </button>
             <button
               className={`mobile-tab ${mobileTab === 'self' ? 'active' : ''}`}
-              onClick={() => setMobileTab('self')}
+              onClick={() => { audioManager.playRandomSound(); setMobileTab('self'); }}
             >
               {t('tab.self')}
             </button>
             <button
               className={`mobile-tab ${mobileTab === 'wiki' ? 'active' : ''}`}
-              onClick={() => setMobileTab('wiki')}
+              onClick={() => { audioManager.playRandomSound(); setMobileTab('wiki'); }}
             >
               {t('tab.wiki')}
             </button>
           </div>
           {/* Settings gear on right side of tab bar */}
-          <button className="settings-button" onClick={() => setIsSettingsOpen(true)} title={t('settings.open')}>
+          <button className="settings-button" onClick={() => { audioManager.playRandomSound(); setIsSettingsOpen(true); }} title={t('settings.open')}>
             <i className="fas fa-cog"></i>
           </button>
         </div>
@@ -319,6 +328,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               showFPS={showFPS}
               isInventory={effectiveIsInventory}
               onToggleInventory={() => {
+                audioManager.playRandomSound();
                 if (isMobileLayout) {
                   setMobileTab(prev => (prev === 'self' ? 'world' : 'self'));
                 } else {
@@ -327,6 +337,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 }
               }}
               onCapture={() => {
+                audioManager.playRandomSound();
                 // Mobile press ACT -> perform instant context action
                 setGameState(prev => performContextAction(prev, mergedParams));
               }}
@@ -337,6 +348,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 setGameState(prev => eatToHotbar(prev, mergedParams));
               }}
               onSetCursor={(q, r) => {
+                audioManager.playRandomSound();
                 // Check if clicking on focus or protagonist - start drag
                 // Otherwise - start auto-move to target
                 setGameState(prev => {
@@ -400,6 +412,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 });
               }}
               onHotbarSlotClick={(slotIdx) => {
+                audioManager.playRandomSound();
                 // Handle hotbar slot click - exchange with slot
                 setGameState(prev => exchangeWithHotbarSlot(prev, mergedParams, slotIdx));
               }}
@@ -413,9 +426,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         <GuestStart onStart={() => {
           localStorage.setItem('hexigame.guest.started', '1');
           setGuestStarted(true);
+          audioManager.playRandomSound();
           // Play music immediately on user interaction (required for mobile autoplay policy)
           if (musicEnabled) {
-            audioManager.play().catch(() => console.log('[Audio] Autoplay blocked'));
+            audioManager.playMusic().catch(() => console.log('[Audio] Autoplay blocked'));
           }
         }} />
       )}

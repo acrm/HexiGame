@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getLanguage, setLanguage, t } from '../ui/i18n';
 import version from '../../version.json';
+import { audioManager } from '../audio/audioManager';
 
 interface SettingsProps {
   onClose: () => void;
@@ -54,7 +55,7 @@ export const Settings: React.FC<SettingsProps> = ({
       <div className="settings-panel">
         <div className="settings-header">
           <span>{t('settings.title')}</span>
-          <button className="settings-close" onClick={onClose}>
+          <button className="settings-close" onClick={() => { audioManager.playRandomSound(); onClose(); }}>
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -64,6 +65,7 @@ export const Settings: React.FC<SettingsProps> = ({
           <select
             value={lang}
             onChange={(e) => {
+              audioManager.playRandomSound();
               setLanguage(e.target.value as any);
               window.location.reload();
             }}
@@ -78,7 +80,7 @@ export const Settings: React.FC<SettingsProps> = ({
           <input 
             type="checkbox" 
             checked={soundEnabled}
-            onChange={(e) => onToggleSound(e.target.checked)}
+            onChange={(e) => { audioManager.playRandomSound(); onToggleSound(e.target.checked); }}
           />
         </div>
 
@@ -104,7 +106,7 @@ export const Settings: React.FC<SettingsProps> = ({
           <input 
             type="checkbox" 
             checked={musicEnabled}
-            onChange={(e) => onToggleMusic(e.target.checked)}
+            onChange={(e) => { audioManager.playRandomSound(); onToggleMusic(e.target.checked); }}
           />
         </div>
 
@@ -130,7 +132,7 @@ export const Settings: React.FC<SettingsProps> = ({
           <input 
             type="checkbox" 
             checked={showFPS}
-            onChange={(e) => onToggleShowFPS(e.target.checked)}
+            onChange={(e) => { audioManager.playRandomSound(); onToggleShowFPS(e.target.checked); }}
           />
         </div>
 
@@ -138,7 +140,7 @@ export const Settings: React.FC<SettingsProps> = ({
           <label>{t('settings.handedness')}</label>
           <select
             value={isLeftHanded ? 'left' : 'right'}
-            onChange={(e) => onToggleLeftHanded(e.target.value === 'left')}
+            onChange={(e) => { audioManager.playRandomSound(); onToggleLeftHanded(e.target.value === 'left'); }}
           >
             <option value="right">{t('settings.rightHanded')}</option>
             <option value="left">{t('settings.leftHanded')}</option>
@@ -146,24 +148,24 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
 
         <div className="settings-row">
-          <button className="settings-action-button" onClick={onShowMascot}>
+          <button className="settings-action-button" onClick={() => { audioManager.playRandomSound(); onShowMascot(); }}>
             {t('settings.mascot')}
           </button>
         </div>
 
         <div className="settings-row">
           {!showResetConfirm ? (
-            <button className="settings-action-button settings-reset" onClick={handleReset}>
+            <button className="settings-action-button settings-reset" onClick={() => { audioManager.playRandomSound(); handleReset(); }}>
               {t('settings.resetSession')}
             </button>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
               <div style={{ fontSize: 12, color: '#ff9999' }}>{t('settings.resetConfirm')}</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="settings-action-button settings-reset" onClick={handleReset}>
+                <button className="settings-action-button settings-reset" onClick={() => { audioManager.playRandomSound(); handleReset(); }}>
                   {t('action.reset')}
                 </button>
-                <button className="settings-action-button" onClick={() => setShowResetConfirm(false)}>
+                <button className="settings-action-button" onClick={() => { audioManager.playRandomSound(); setShowResetConfirm(false); }}>
                   {t('action.cancel')}
                 </button>
               </div>
