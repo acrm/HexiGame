@@ -1,10 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Params, GameState, hoveredCell, hoveredCellInventory, computeBreadcrumbs } from '../logic/pureLogic';
+import { Params, GameState, computeBreadcrumbs } from '../logic/pureLogic';
 
 const HEX_SIZE = 10; // pixels
-const FLASH_SUCCESS_COLOR = '#00BFFF';
-const FLASH_FAILURE_COLOR = '#FF4444';
-const FLASH_FAILURE_EDGE_DARK = '#AA0000';
 const GRID_STROKE_COLOR = '#635572ff';
 
 // Helper: axial -> pixel (pointy-top)
@@ -72,39 +69,22 @@ function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, cente
   ctx.stroke();
 }
 
-// Draw highlighted vertices (corners) of hex
-function drawVertexHighlights(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, color: string, radius = 3) {
-  const angleDeg = 60;
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (angleDeg * i);
-    const vx = centerX + size * Math.cos(angle);
-    const vy = centerY + size * Math.sin(angle);
-    ctx.beginPath();
-    ctx.arc(vx, vy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
+// Draw 5-pointed star
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, points: number, outer: number, inner: number, color: string) {
+  const angle = Math.PI / 2;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner;
+    const a = (i * Math.PI) / points - angle;
+    const x = cx + r * Math.cos(a);
+    const y = cy + r * Math.sin(a);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   }
+  ctx.closePath();
+  ctx.fill();
 }
-
-const AXIAL_DIRECTIONS: Readonly<{ q: number; r: number }[]> = [
-  { q: 0, r: -1 },
-  { q: +1, r: -1 },
-  { q: +1, r: 0 },
-  { q: 0, r: +1 },
-  { q: -1, r: +1 },
-  { q: -1, r: 0 },
-] as const;
-
-// Hotbar cells that should be displayed with grey border in inventory
-const HOTBAR_INVENTORY_CELLS: Readonly<{ q: number; r: number }[]> = [
-  { q: -3, r: 0 },
-  { q: -2, r: -1},
-  { q: -1, r: -2 },
-  { q: 0, r: -3 },
-  { q: 1, r: -3 },
-  { q: 2, r: -3 },
-  { q: 3, r: -3 },
-] as const;
 
 interface GameFieldProps {
   gameState: GameState;
@@ -121,6 +101,7 @@ interface GameFieldProps {
   onCellClickDown?: (q: number, r: number) => void;
   onCellClickUp?: (q: number, r: number) => void;
   onCellDrag?: (q: number, r: number) => void;
+  onHotbarSlotClick?: (slotIdx: number) => void;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -138,6 +119,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   onCellClickDown,
   onCellClickUp,
   onCellDrag,
+  onHotbarSlotClick,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -174,6 +156,37 @@ export const GameField: React.FC<GameFieldProps> = ({
     return { q: Math.round(q), r: Math.round(r) };
   }
 
+  // Detect if a click is on a hotbar ring slot (mobile only)
+  function detectHotbarSlotClick(px: number, py: number): number | null {
+    if (isInventory) return null;
+    const isMobileLayout = window.innerWidth <= 900;
+    if (!isMobileLayout) return null;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const margin = 64;
+    const inward = canvas.width * 0.10;
+    const baseY = canvas.height - margin;
+    const hotbarCenterX = margin + inward;
+    const hotbarCenterY = baseY;
+    const scale = scaleRef.current;
+    const hotbarHexSize = HEX_SIZE * scale;
+    const hotbarRingRadius = hotbarHexSize * 1.8;
+
+    // Check distance to each slot
+    for (let slotIndex = 0; slotIndex < 6; slotIndex++) {
+      const angle = (Math.PI / 3) * slotIndex - 3 * Math.PI / 6;
+      const slotX = hotbarCenterX + hotbarRingRadius * Math.cos(angle);
+      const slotY = hotbarCenterY + hotbarRingRadius * Math.sin(angle);
+      const dist = Math.hypot(px - slotX, py - slotY);
+      if (dist < hotbarHexSize * 1.1) {
+        return slotIndex;
+      }
+    }
+    return null;
+  }
+
   // Touch handling for mobile controls
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -188,18 +201,20 @@ export const GameField: React.FC<GameFieldProps> = ({
         const x = t.clientX - rect.left;
         const y = t.clientY - rect.top;
 
+        // Check hotbar first
+        const hotbarSlotIdx = detectHotbarSlotClick(x, y);
+        if (hotbarSlotIdx !== null && onHotbarSlotClick) {
+          ev.preventDefault();
+          onHotbarSlotClick(hotbarSlotIdx);
+          continue;
+        }
+
         const margin = 64;
         const inward = currentCanvas.width * 0.10;
         const baseY = currentCanvas.height - margin;
-        const joyCenterX = margin + inward;
-        const joyCenterY = baseY;
         const capCenterX = currentCanvas.width - margin - inward;
         const capCenterY = baseY;
-        const joyOuterRadius = 40;
         const capRadius = 30;
-        const eatCenterX = currentCanvas.width - margin - inward;
-        const eatCenterY = baseY - 64;
-        const eatRadius = 24;
 
         const showAct = !isInventory; // ACT always available in world
         let consumed = false;
@@ -233,28 +248,14 @@ export const GameField: React.FC<GameFieldProps> = ({
     function handleTouchEnd(ev: TouchEvent) {
       const currentCanvas = canvasRef.current;
       if (!currentCanvas) return;
-      const rect = currentCanvas.getBoundingClientRect();
       for (let i = 0; i < ev.changedTouches.length; i++) {
         const t = ev.changedTouches[i];
-        const x = t.clientX - rect.left;
-        const y = t.clientY - rect.top;
-        const margin = 64;
-        const inward = currentCanvas.width * 0.10;
-        const baseY = currentCanvas.height - margin;
-        const capCenterX = currentCanvas.width - margin - inward;
-        const capCenterY = baseY;
-        const capRadius = 30;
-        const eatCenterX = currentCanvas.width - margin - inward;
-        const eatCenterY = baseY - 64;
-        const eatRadius = 24;
         // Release action mode if ACT touch ends (regardless of where it ends)
         if (t.identifier === actTouchIdRef.current) {
           actTouchIdRef.current = null;
           ev.preventDefault();
           onRelease();
         }
-
-        // Inventory toggle handled on touchstart (press), not on release
       }
     }
 
@@ -357,7 +358,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       centerYRef.current = centerY;
 
       // Draw grid corner dots (for world or inventory)
-      const activeGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
+      const activeGridDots = isInventory ? gameState.inventoryGrid : gameState.grid;
       ctx.fillStyle = GRID_STROKE_COLOR;
       const dotRadius = 1.2 * scale;
       // Removed early grid-dot rendering to allow for later redraws
@@ -394,12 +395,9 @@ export const GameField: React.FC<GameFieldProps> = ({
       // In inventory mode: draw turtle background first, then inventoryGrid naturally
       if (isInventory) {
         // Inventory Turtle: centered below the grid, drawn under all cells
-        const INV_TURTLE_ROTATION_DEG = 0; // ignored for head direction (kept for future use)
         const INV_TURTLE_SCALE = 12.0;     // controls turtle size relative to HEX_SIZE
         const INV_TURTLE_MARGIN_HEX = -6;  // vertical gap below grid in hex units
 
-        const invBgColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#000';
-        // Match the visible inventory background tint (background is drawn with alpha 0.15 over a dark base)
         const invBgShellColor = '#570546ff'; 
         const turtleColorIndex = (gameState as any).turtleColorIndex ?? params.PlayerBaseColorIndex;
         const baseColor = params.ColorPalette[turtleColorIndex] || '#FFFFFF';
@@ -456,35 +454,13 @@ export const GameField: React.FC<GameFieldProps> = ({
         ctx.restore();
 
         const activeGrid = gameState.inventoryGrid;
-        // Create set of hotbar cell keys for fast lookup
-        const hotbarCellKeys = new Set<string>();
-        for (const cell of HOTBAR_INVENTORY_CELLS) {
-          hotbarCellKeys.add(`${cell.q},${cell.r}`);
-        }
         
         for (const cell of activeGrid.values()) {
           const pos = hexToPixel(cell.q, cell.r);
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
           
-          const isHotbarCell = hotbarCellKeys.has(`${cell.q},${cell.r}`);
           let fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
-          const stroke = (cell.colorIndex === null && isHotbarCell) ? '#888888' : 'transparent';
-          const lineWidth = (cell.colorIndex === null && isHotbarCell) ? 2 : 0;
-          drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, stroke, lineWidth);
-        }
-        
-        // Draw hotbar slot contents on top of inventory grid (use same coords as grey-bordered cells)
-        for (let slotIdx = 0; slotIdx < gameState.hotbarSlots.length; slotIdx++) {
-          const colorIndex = gameState.hotbarSlots[slotIdx];
-          if (colorIndex === null || colorIndex === undefined) continue;
-
-          const slotCoord = HOTBAR_INVENTORY_CELLS[slotIdx];
-          const pos = hexToPixel(slotCoord.q, slotCoord.r);
-          const scaledX = centerX + pos.x * scale;
-          const scaledY = centerY + pos.y * scale;
-
-          const fill = params.ColorPalette[colorIndex] || 'transparent';
           drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
         }
       } else {
@@ -656,7 +632,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         const inward = canvas.width * 0.10;
         const baseY = canvas.height - margin;
 
-        // ACT button (action context)
+        // ACT button (action context) - bottom right
         const capCenterX = canvas.width - margin - inward;
         const capCenterY = baseY;
         const capRadius = 30;
@@ -676,6 +652,131 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText('ACT', capCenterX, capCenterY + 1);
+        }
+
+        // Hotbar ring (bottom left, opposite to ACT button) - 6 equal slots + center preview
+        if (!isInventory) {
+          const hotbarCenterX = margin + inward;
+          const hotbarCenterY = baseY;
+          const hotbarHexSize = HEX_SIZE * scale;
+          const hotbarRingRadius = hotbarHexSize * 1.8;
+
+          // Determine preview cell: cursor if exists, otherwise focus
+          const hasCursor = gameState.autoFocusTarget && 
+            (gameState.autoFocusTarget.q !== gameState.protagonist.q || 
+             gameState.autoFocusTarget.r !== gameState.protagonist.r);
+          const previewCell = hasCursor ? gameState.autoFocusTarget! : gameState.focus;
+          const previewCellKey = `${previewCell.q},${previewCell.r}`;
+          const previewCellData = gameState.grid.get(previewCellKey);
+          const hasPreviewHex = previewCellData && previewCellData.colorIndex !== null;
+          
+          // Draw center preview hex with fill color or outline with star
+          if (hasPreviewHex && previewCellData && previewCellData.colorIndex !== null) {
+            const centerFill = params.ColorPalette[previewCellData.colorIndex];
+            drawHex(ctx, hotbarCenterX, hotbarCenterY, hotbarHexSize, centerFill, 'rgba(255,255,255,0.5)', 2);
+          } else {
+            // Draw empty preview hex with star
+            drawHex(ctx, hotbarCenterX, hotbarCenterY, hotbarHexSize, 'transparent', 'rgba(255,255,255,0.5)', 2);
+            
+            // Draw star in center
+            const starSize = hotbarHexSize * 0.4;
+            drawStar(ctx, hotbarCenterX, hotbarCenterY, 5, starSize, starSize * 0.4, 'rgba(255,255,255,0.6)');
+          }
+
+          // Draw rotating animation on preview center (same as focus/cursor)
+          if (hasPreviewHex) {
+            // Use 2x faster animation for cursor, normal for focus
+            const animationSpeed = hasCursor ? gameState.tick * 2 : gameState.tick;
+            drawRotatingOppositeFaces(ctx, hotbarCenterX, hotbarCenterY, hotbarHexSize, animationSpeed, '#FFFFFF');
+          }
+
+          // Draw 6 hotbar slots in a ring
+          const slotPositions: { x: number; y: number; slotIndex: number; isEmpty: boolean }[] = [];
+          for (let slotIndex = 0; slotIndex < 6; slotIndex++) {
+            const angle = (Math.PI / 3) * slotIndex - 3 * Math.PI / 6; // 60 degrees apart
+            const slotX = hotbarCenterX + hotbarRingRadius * Math.cos(angle);
+            const slotY = hotbarCenterY + hotbarRingRadius * Math.sin(angle);
+
+            const colorIndex = gameState.hotbarSlots[slotIndex];
+            const isEmpty = colorIndex === null || colorIndex === undefined;
+            const fill = !isEmpty ? params.ColorPalette[colorIndex] : 'transparent';
+            
+            slotPositions.push({ x: slotX, y: slotY, slotIndex, isEmpty });
+            drawHex(ctx, slotX, slotY, hotbarHexSize, fill, 'rgba(255,255,255,0.5)', 1.5);
+          }
+
+          // Draw arrow/indicator in center only if focus (no cursor) and has hex
+          if (!hasCursor && hasPreviewHex) {
+            // Find target slot (nearest empty or first filled if all full)
+            let targetSlot: { x: number; y: number; slotIndex: number; isEmpty: boolean } | null = null;
+            let minDist = Infinity;
+            
+            for (const slot of slotPositions) {
+              if (!slot.isEmpty) continue;
+              const distToSlot = Math.min(Math.abs(slot.slotIndex - gameState.selectedHotbarIndex), 6 - Math.abs(slot.slotIndex - gameState.selectedHotbarIndex));
+              if (distToSlot < minDist) {
+                minDist = distToSlot;
+                targetSlot = slot;
+              }
+            }
+            
+            // If no empty slot, pick first filled (exchange mode)
+            if (!targetSlot) {
+              for (const slot of slotPositions) {
+                if (!slot.isEmpty) {
+                  targetSlot = slot;
+                  break;
+                }
+              }
+            }
+            
+            if (!targetSlot && slotPositions.length > 0) {
+              targetSlot = slotPositions[0];
+            }
+            
+            if (targetSlot) {
+              const arrowLength = hotbarHexSize * 0.6;
+              const arrowWidth = hotbarHexSize * 0.25;
+              const dx = targetSlot.x - hotbarCenterX;
+              const dy = targetSlot.y - hotbarCenterY;
+              const angleToTarget = Math.atan2(dy, dx);
+              
+              ctx.save();
+              ctx.strokeStyle = '#FFFFFF';
+              ctx.fillStyle = '#FFFFFF';
+              ctx.lineWidth = 2;
+              ctx.translate(hotbarCenterX, hotbarCenterY);
+              ctx.rotate(angleToTarget);
+              
+              // Arrow head (pointing to target)
+              ctx.beginPath();
+              ctx.moveTo(arrowLength, 0);
+              ctx.lineTo(arrowLength - arrowWidth, arrowWidth * 0.5);
+              ctx.lineTo(arrowLength - arrowWidth, -arrowWidth * 0.5);
+              ctx.closePath();
+              ctx.fill();
+              
+              // Arrow shaft
+              ctx.beginPath();
+              ctx.moveTo(-arrowLength * 0.3, 0);
+              ctx.lineTo(arrowLength - arrowWidth * 0.8, 0);
+              ctx.stroke();
+              
+              // If all slots filled, draw reverse arrow (exchange indicator)
+              const hasEmptySlot = slotPositions.some(s => s.isEmpty);
+              if (!hasEmptySlot) {
+                ctx.rotate(Math.PI);
+                ctx.beginPath();
+                ctx.moveTo(arrowLength, 0);
+                ctx.lineTo(arrowLength - arrowWidth, arrowWidth * 0.5);
+                ctx.lineTo(arrowLength - arrowWidth, -arrowWidth * 0.5);
+                ctx.closePath();
+                ctx.fill();
+              }
+              
+              ctx.restore();
+            }
+          }
         }
 
         // Removed old inventory-above-joystick button (replaced by primary inv button)
@@ -722,6 +823,14 @@ export const GameField: React.FC<GameFieldProps> = ({
       const rect = canvas!.getBoundingClientRect();
       const x = ev.clientX - rect.left;
       const y = ev.clientY - rect.top;
+      
+      // Check if click is on hotbar slot first
+      const hotbarSlotIdx = detectHotbarSlotClick(x, y);
+      if (hotbarSlotIdx !== null && onHotbarSlotClick) {
+        onHotbarSlotClick(hotbarSlotIdx);
+        return;
+      }
+      
       const axial = pixelToAxial(x, y);
       lastAxial = axial;
       onSetCursor(axial.q, axial.r);

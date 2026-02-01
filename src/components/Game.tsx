@@ -11,6 +11,7 @@ import {
   attemptMoveByDeltaOnActive,
   attemptMoveTo,
   eatToHotbar,
+  exchangeWithHotbarSlot,
   hoveredCellActive,
   computeAdjacentSameColorCounts,
   performContextAction,
@@ -23,7 +24,6 @@ import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField';
-import Hotbar from './Hotbar';
 import Settings from './Settings';
 import { t } from '../ui/i18n';
 import { integration } from '../appLogic/integration';
@@ -285,20 +285,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         </div>
       )}
       <div className="game-main">
-        {/* Show Hotbar only in world mode (hide in inventory and wiki) */}
-        {!effectiveIsInventory && !(isMobileLayout && mobileTab === 'wiki') && (
-          <Hotbar
-            slots={gameState.hotbarSlots || []}
-            selectedIndex={gameState.selectedHotbarIndex ?? 3}
-            colorPalette={mergedParams.ColorPalette}
-            onSelect={(idx) => {
-              setGameState(prev => ({
-                ...prev,
-                selectedHotbarIndex: idx,
-              }));
-            }}
-          />
-        )}
         <div className="game-field-area">
           {isMobileLayout && mobileTab === 'wiki' ? (
             <Wiki gameState={gameState} params={mergedParams} isMobile={interactionMode === 'mobile'} />
@@ -390,6 +376,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                   const dr = r - prev.protagonist.r;
                   return dragMoveProtagonist(prev, mergedParams, dq, dr);
                 });
+              }}
+              onHotbarSlotClick={(slotIdx) => {
+                // Handle hotbar slot click - exchange with slot
+                setGameState(prev => exchangeWithHotbarSlot(prev, mergedParams, slotIdx));
               }}
             />
           )}

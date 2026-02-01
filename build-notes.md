@@ -297,3 +297,19 @@
 - 2026w06-0.1 — Add SDK logging, fix mobile audio autoplay, implement rotating focus cell animation
 
 - 2026w06-0.2 — Fix focus cell animation to use game ticks instead of frame time
+
+- 2026w06-0.3 — Redesign hotbar as ring of 6 hexes in bottom left
+
+- 2026w06-0.4 — Hotbar cells same size and orientation as field; center shows focus cell color
+
+- 2026w06-0.5 — Fix TypeScript errors: grid.get() takes string key, remove unused variables
+
+- 2026w06-0.6 — Add direction arrows in hotbar center: single arrow to empty slot, bidirectional for exchange
+
+- 2026w06-0.7 — Fix hotbar arrow targeting: use all 7 slots (skip center index 3), find nearest empty slot correctly
+
+- 2026w06-0.8 — Refactor hotbar: 6 equal slots + center preview, show star when focus empty, simplified exchange logic
+
+- 2026w06-0.9 — Remove top linear hotbar, add click/tap handlers for ring hotbar slots - exchange/absorb with focus
+
+- 2026w06-0.10 — Hotbar: hide slot numbers, add rotating animation to preview, show cursor in preview instead of focus when cursor exists, hide arrows for cursor

@@ -157,8 +157,8 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     flash: null,
     inventoryGrid: inv,
     activeField: 'world',
-    hotbarSlots: [null, null, null, null, null, null, null],
-    selectedHotbarIndex: 3,
+    hotbarSlots: [null, null, null, null, null, null],
+    selectedHotbarIndex: 0,
     facingDirIndex: 0,
     grid,
     turtleColorIndex: params.PlayerBaseColorIndex,
@@ -464,31 +464,31 @@ export function eatToHotbar(state: GameState, params: Params): GameState {
   }
 
   const colorIndex = cell.colorIndex;
-  const slotIdx = Math.max(0, Math.min(6, state.selectedHotbarIndex));
-  const isCentralSlot = slotIdx === 3;
+  const slotIdx = Math.max(0, Math.min(5, state.selectedHotbarIndex));
   const nextGrid = updateCells(state.grid, [{ ...cell, colorIndex: null }]);
 
   let nextSlots = [...state.hotbarSlots];
   let nextGridFinal = nextGrid;
 
-  if (isCentralSlot) {
-    // Central slot: find nearest empty slot (excluding central)
-    let targetSlot = -1;
-    let minDist = Infinity;
-    for (let i = 0; i < nextSlots.length; i++) {
-      if (i === 3 || nextSlots[i] !== null) continue; // Skip central and occupied slots
-      // Prefer closer slots (distance based on slot index)
-      const dist = Math.abs(i - 3);
-      if (dist < minDist) {
-        minDist = dist;
-        targetSlot = i;
-      }
+  // Find nearest empty slot
+  let targetSlot = -1;
+  let minDist = Infinity;
+  for (let i = 0; i < nextSlots.length; i++) {
+    if (nextSlots[i] !== null) continue; // Skip occupied slots
+    // Prefer closer slots (distance based on slot index, modulo ring distance)
+    let dist = Math.abs(i - slotIdx);
+    dist = Math.min(dist, 6 - dist); // Ring distance
+    if (dist < minDist) {
+      minDist = dist;
+      targetSlot = i;
     }
-    if (targetSlot !== -1) {
-      nextSlots[targetSlot] = colorIndex;
-    }
+  }
+
+  if (targetSlot !== -1) {
+    // Place hex in nearest empty slot
+    nextSlots[targetSlot] = colorIndex;
   } else {
-    // Non-central slot: place eaten hex there, if occupied, place old hex in world
+    // No empty slots: replace the selected slot (exchange)
     const occupiedHex = nextSlots[slotIdx];
     nextSlots[slotIdx] = colorIndex;
     
@@ -609,11 +609,65 @@ export function beginAction(state: GameState): GameState {
 // Deprecated: use performContextAction instead  
 export function handleActionRelease(state: GameState, params: Params, rng: RNG): GameState {
   return state;
-}function performHotbarTransfer(state: GameState, params: Params): GameState {
-  const slotIdx = Math.max(0, Math.min(6, state.selectedHotbarIndex));
+}
+
+// Hotbar slot click: exchange/absorb hex with specific slot
+export function exchangeWithHotbarSlot(state: GameState, params: Params, slotIdx: number): GameState {
+  if (slotIdx < 0 || slotIdx >= 6) return state;
   
-  // Never transfer to/from center slot (index 3)
-  if (slotIdx === 3) return state;
+  const slotValue = state.hotbarSlots[slotIdx];
+  const focusCell = getCell(state.grid, state.focus);
+  if (!focusCell) return state;
+
+  const focusHasHex = focusCell.colorIndex !== null;
+  const slotHasHex = slotValue !== null && slotValue !== undefined;
+
+  // If slot is empty and focus has hex: absorb to slot
+  if (!slotHasHex && focusHasHex) {
+    const nextSlots = [...state.hotbarSlots];
+    nextSlots[slotIdx] = focusCell.colorIndex;
+    const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex: null }]);
+    return {
+      ...state,
+      hotbarSlots: nextSlots,
+      grid: nextGrid,
+      selectedHotbarIndex: slotIdx,
+    };
+  }
+
+  // If slot has hex and focus is empty: take from slot
+  if (slotHasHex && !focusHasHex) {
+    const nextSlots = [...state.hotbarSlots];
+    const colorIndex = slotValue as number;
+    nextSlots[slotIdx] = null;
+    const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex }]);
+    return {
+      ...state,
+      hotbarSlots: nextSlots,
+      grid: nextGrid,
+      selectedHotbarIndex: slotIdx,
+    };
+  }
+
+  // If both have hex: exchange
+  if (slotHasHex && focusHasHex) {
+    const nextSlots = [...state.hotbarSlots];
+    const temp = focusCell.colorIndex;
+    nextSlots[slotIdx] = temp;
+    const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex: slotValue as number }]);
+    return {
+      ...state,
+      hotbarSlots: nextSlots,
+      grid: nextGrid,
+      selectedHotbarIndex: slotIdx,
+    };
+  }
+
+  return state;
+}
+
+function performHotbarTransfer(state: GameState, params: Params): GameState {
+  const slotIdx = Math.max(0, Math.min(5, state.selectedHotbarIndex));
   
   const slotValue = state.hotbarSlots[slotIdx];
   const focusCell = getCell(state.grid, state.focus);
