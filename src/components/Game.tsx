@@ -31,6 +31,7 @@ import { audioManager } from '../audio/audioManager';
 import GuestStart from './GuestStart';
 import Wiki from './Wiki';
 import Mascot from './Mascot';
+import { ColorScheme } from '../ui/colorScheme';
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -55,8 +56,20 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMascotOpen, setIsMascotOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    const saved = localStorage.getItem('hexigame.sound');
-    return saved ? saved === 'true' : true;
+    const saved = localStorage.getItem('hexigame.soundEnabled');
+    if (saved !== null) return saved === 'true';
+    const legacy = localStorage.getItem('hexigame.sound');
+    return legacy ? legacy === 'true' : true;
+  });
+  const [soundVolume, setSoundVolume] = useState(() => {
+    const saved = localStorage.getItem('hexigame.soundVolume');
+    return saved ? parseFloat(saved) : 0.6;
+  });
+  const [musicEnabled, setMusicEnabled] = useState(() => {
+    const saved = localStorage.getItem('hexigame.musicEnabled');
+    if (saved !== null) return saved === 'true';
+    const legacy = localStorage.getItem('hexigame.sound');
+    return legacy ? legacy === 'true' : true;
   });
   const [musicVolume, setMusicVolume] = useState(() => {
     const saved = localStorage.getItem('hexigame.musicVolume');
@@ -66,11 +79,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = localStorage.getItem('hexigame.showFPS');
     return saved ? saved === 'true' : false;
   });
+  const [isLeftHanded, setIsLeftHanded] = useState(() => {
+    const saved = localStorage.getItem('hexigame.isLeftHanded');
+    return saved ? saved === 'true' : false;
+  });
 
-  // Initialize audio manager with sound settings
+  // Initialize audio manager with music settings
   useEffect(() => {
-    audioManager.setEnabled(soundEnabled);
-  }, [soundEnabled]);
+    audioManager.setEnabled(musicEnabled);
+  }, [musicEnabled]);
 
   // Apply music volume
   useEffect(() => {
@@ -79,10 +96,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Start audio on guest start (user interaction required)
   useEffect(() => {
-    if (guestStarted && soundEnabled) {
+    if (guestStarted && musicEnabled) {
       audioManager.play();
     }
-  }, [guestStarted, soundEnabled]);
+  }, [guestStarted, musicEnabled]);
 
   // Detect mode changes based on pointer/orientation/size
   useEffect(() => {
@@ -237,8 +254,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'self' : isInventory;
 
+  // Determine background color based on active tab
+  const backgroundColor = isMobileLayout 
+    ? (mobileTab === 'world' ? ColorScheme.outside.background : mobileTab === 'self' ? ColorScheme.inside.background : '#2f2f2f')
+    : '#370152ff';
+
   return (
-    <div className="game-root">
+    <div className="game-root" style={{ backgroundColor }}>
       {!isMobileLayout && (
         <div className="game-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', justifyContent: 'space-between' }}>
@@ -381,6 +403,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 // Handle hotbar slot click - exchange with slot
                 setGameState(prev => exchangeWithHotbarSlot(prev, mergedParams, slotIdx));
               }}
+              isLeftHanded={isLeftHanded}
             />
           )}
         </div>
@@ -391,7 +414,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           localStorage.setItem('hexigame.guest.started', '1');
           setGuestStarted(true);
           // Play music immediately on user interaction (required for mobile autoplay policy)
-          if (soundEnabled) {
+          if (musicEnabled) {
             audioManager.play().catch(() => console.log('[Audio] Autoplay blocked'));
           }
         }} />
@@ -412,7 +435,17 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           soundEnabled={soundEnabled}
           onToggleSound={(enabled) => {
             setSoundEnabled(enabled);
-            localStorage.setItem('hexigame.sound', String(enabled));
+            localStorage.setItem('hexigame.soundEnabled', String(enabled));
+          }}
+          soundVolume={soundVolume}
+          onSoundVolumeChange={(volume) => {
+            setSoundVolume(volume);
+            localStorage.setItem('hexigame.soundVolume', String(volume));
+          }}
+          musicEnabled={musicEnabled}
+          onToggleMusic={(enabled) => {
+            setMusicEnabled(enabled);
+            localStorage.setItem('hexigame.musicEnabled', String(enabled));
           }}
           musicVolume={musicVolume}
           onMusicVolumeChange={(volume) => {
@@ -423,6 +456,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           onToggleShowFPS={(show) => {
             setShowFPS(show);
             localStorage.setItem('hexigame.showFPS', String(show));
+          }}
+          isLeftHanded={isLeftHanded}
+          onToggleLeftHanded={(isLeft) => {
+            setIsLeftHanded(isLeft);
+            localStorage.setItem('hexigame.isLeftHanded', String(isLeft));
           }}
         />
       )}

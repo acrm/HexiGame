@@ -108,29 +108,30 @@ html, body {
 .mobile-tab {
   padding: 12px 20px;
   border: none;
-  color: #000;
+  color: #fff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
-  border-bottom: 2px solid transparent;
+  border: none;
+  flex: 1;
+  text-align: center;
 }
 
 .mobile-tab:nth-child(1) {
-  background: #e6d9ff;
+  background: #2b0041;
 }
 
 .mobile-tab:nth-child(2) {
-  background: #f4d9c2;
+  background: #663300;
 }
 
 .mobile-tab:nth-child(3) {
-  background: #dedede;
+  background: #333333;
 }
 
 .mobile-tab.active {
   color: #fff;
-  border-bottom-color: #ffffff;
 }
 
 .wiki-placeholder {
@@ -139,15 +140,15 @@ html, body {
 }
 
 .mobile-tab:nth-child(1).active {
-  background: #27013b;
+  background: #4d0073;
 }
 
 .mobile-tab:nth-child(2).active {
-  background: #5a2a00;
+  background: #994D00;
 }
 
 .mobile-tab:nth-child(3).active {
-  background: #2b2b2b;
+  background: #444444;
 }
 
 @media (max-width: 900px) {

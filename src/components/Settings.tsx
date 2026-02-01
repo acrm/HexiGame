@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getLanguage, setLanguage, t } from '../ui/i18n';
+import version from '../../version.json';
 
 interface SettingsProps {
   onClose: () => void;
@@ -7,10 +8,16 @@ interface SettingsProps {
   onShowMascot: () => void;
   soundEnabled: boolean;
   onToggleSound: (enabled: boolean) => void;
+  soundVolume: number;
+  onSoundVolumeChange: (volume: number) => void;
+  musicEnabled: boolean;
+  onToggleMusic: (enabled: boolean) => void;
   musicVolume: number;
   onMusicVolumeChange: (volume: number) => void;
   showFPS: boolean;
   onToggleShowFPS: (show: boolean) => void;
+  isLeftHanded: boolean;
+  onToggleLeftHanded: (isLeft: boolean) => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
@@ -19,10 +26,16 @@ export const Settings: React.FC<SettingsProps> = ({
   onShowMascot,
   soundEnabled,
   onToggleSound,
+  soundVolume,
+  onSoundVolumeChange,
+  musicEnabled,
+  onToggleMusic,
   musicVolume,
   onMusicVolumeChange,
   showFPS,
   onToggleShowFPS,
+  isLeftHanded,
+  onToggleLeftHanded,
 }) => {
   const lang = getLanguage();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -61,11 +74,37 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
 
         <div className="settings-row">
-          <label>{t('settings.sound')}</label>
+          <label>{t('settings.soundEnabled')}</label>
           <input 
             type="checkbox" 
             checked={soundEnabled}
             onChange={(e) => onToggleSound(e.target.checked)}
+          />
+        </div>
+
+        <div className="settings-row">
+          <label>{t('settings.soundVolume')}</label>
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.01"
+            value={soundVolume}
+            onChange={(e) => onSoundVolumeChange(parseFloat(e.target.value))}
+            disabled={!soundEnabled}
+            style={{ flex: 1 }}
+          />
+          <span style={{ marginLeft: 8, minWidth: 40, textAlign: 'right' }}>
+            {Math.round(soundVolume * 100)}%
+          </span>
+        </div>
+
+        <div className="settings-row">
+          <label>{t('settings.musicEnabled')}</label>
+          <input 
+            type="checkbox" 
+            checked={musicEnabled}
+            onChange={(e) => onToggleMusic(e.target.checked)}
           />
         </div>
 
@@ -78,7 +117,7 @@ export const Settings: React.FC<SettingsProps> = ({
             step="0.01"
             value={musicVolume}
             onChange={(e) => onMusicVolumeChange(parseFloat(e.target.value))}
-            disabled={!soundEnabled}
+            disabled={!musicEnabled}
             style={{ flex: 1 }}
           />
           <span style={{ marginLeft: 8, minWidth: 40, textAlign: 'right' }}>
@@ -93,6 +132,17 @@ export const Settings: React.FC<SettingsProps> = ({
             checked={showFPS}
             onChange={(e) => onToggleShowFPS(e.target.checked)}
           />
+        </div>
+
+        <div className="settings-row">
+          <label>{t('settings.handedness')}</label>
+          <select
+            value={isLeftHanded ? 'left' : 'right'}
+            onChange={(e) => onToggleLeftHanded(e.target.value === 'left')}
+          >
+            <option value="right">{t('settings.rightHanded')}</option>
+            <option value="left">{t('settings.leftHanded')}</option>
+          </select>
         </div>
 
         <div className="settings-row">
@@ -119,6 +169,10 @@ export const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+          v{version.currentVersion}
         </div>
       </div>
     </div>

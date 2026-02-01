@@ -313,3 +313,11 @@
 - 2026w06-0.9 — Remove top linear hotbar, add click/tap handlers for ring hotbar slots - exchange/absorb with focus
 
 - 2026w06-0.10 — Hotbar: hide slot numbers, add rotating animation to preview, show cursor in preview instead of focus when cursor exists, hide arrows for cursor
+
+- 2026w06-0.11 — UI overhaul: colors, hotbar repositioning, Settings features
+
+- 2026w06-0.12 — Refined color scheme with darker shades and dynamic backgrounds
+
+- 2026w06-0.13 — Hotbar redesign: ACT in center, uniform hex sizes, simplified layout
+
+- 2026w06-0.14 — Fix inventory colors, split sound/music settings, unify hotbar radius
