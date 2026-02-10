@@ -56,12 +56,25 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     }
   }
 
+  // Format ticks into MM:SS
+  // Game runs at 12 ticks per second
+  const formatSessionTime = (ticks: number): string => {
+    const seconds = Math.floor(ticks / 12);
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const sessionDuration = progress?.startTick !== undefined ? gameState.tick - progress.startTick : 0;
+
   return (
     <div className="hexipedia-root">
       {tutorialLevel || allLevels.length > 0 ? (
-        <div className="hexipedia-accordion-list">
-          <div className="hexipedia-accordion-header">{t('tutorial.tasksTitle')}</div>
-          {allLevels.map(level => {
+        <div>
+          <div className="hexipedia-accordion-list">
+            <div className="hexipedia-accordion-header">{t('tutorial.tasksTitle')}</div>
+            {allLevels.map(level => {
             const isCurrent = tutorialLevel?.id === level.id;
             const isCompleted = completedLevelIds.has(level.id) || (isCurrent && isTutorialTaskComplete);
             const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode);
@@ -112,6 +125,21 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
               </div>
             );
           })}
+          </div>
+
+          <div className="hexipedia-stats-section">
+            <div className="hexipedia-stats-header">{t('stats.title')}</div>
+            <div className="hexipedia-stats-content">
+              <div className="hexipedia-stat-row">
+                <span className="hexipedia-stat-label">{t('stats.sessionTime')}</span>
+                <span className="hexipedia-stat-value">{formatSessionTime(sessionDuration)}</span>
+              </div>
+              <div className="hexipedia-stat-row">
+                <span className="hexipedia-stat-label">{t('stats.sessionTicks')}</span>
+                <span className="hexipedia-stat-value">{sessionDuration}</span>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="hexipedia-panel">

@@ -74,6 +74,9 @@ const dict: Record<Lang, Record<string, string>> = {
     'tutorial.controlHint': 'Tap on a cell to move the focus to it. The agent will follow the focus.',
     'tutorial.followFocusNote': 'The agent will follow the focus.',
     'tutorial.tasksTitle': 'Tasks',
+    'stats.title': 'Statistics',
+    'stats.sessionTime': 'Session Time',
+    'stats.sessionTicks': 'Session Ticks',
   },
   ru: {
     'tab.heximap': 'HexiMap',
@@ -129,6 +132,9 @@ const dict: Record<Lang, Record<string, string>> = {
     'tutorial.controlHint': 'Тапните по клетке, чтобы подойти к ней. Агент будет следовать за фокусом.',
     'tutorial.followFocusNote': 'Агент будет следовать за фокусом.',
     'tutorial.tasksTitle': 'Задания',
+    'stats.title': 'Статистика',
+    'stats.sessionTime': 'Время сессии',
+    'stats.sessionTicks': 'Такты сессии',
   },
 };
 

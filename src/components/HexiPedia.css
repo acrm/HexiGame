@@ -123,6 +123,45 @@
   font-weight: bold;
 }
 
+.hexipedia-stats-section {
+  margin-top: 16px;
+  background: #333333;
+  border: 1px solid #555555;
+  padding: 12px 16px;
+}
+
+.hexipedia-stats-header {
+  font-size: 11px;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.hexipedia-stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hexipedia-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.hexipedia-stat-label {
+  color: #999999;
+}
+
+.hexipedia-stat-value {
+  color: #aaddff;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+
 @media (max-width: 600px) {
   .hexipedia-panel {
     padding: 12px;

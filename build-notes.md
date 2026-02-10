@@ -341,3 +341,11 @@
 - 2026w07-0.8 — Merge tutorial tasks into single accordion and add placeholder levels
 
 - 2026w07-0.9 — Implement true accordion: only one section open at a time, remove gaps between tasks, add spacing to Tasks header
+
+- 2026w07-0.10 — Add session statistics section with time tracking
+
+- 2026w07-0.11 — Fix session time tracking: 12 ticks/sec, pause in settings, display MM:SS (ticks) format
+
+- 2026w07-0.12 — Split session statistics into separate rows: time and ticks
+
+- 2026w07-0.13 — Persist session state across page reloads: save tick count and tutorial progress

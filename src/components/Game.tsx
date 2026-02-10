@@ -36,11 +36,64 @@ import TutorialProgressWidget from './TutorialProgressWidget';
 import { getTutorialLevel, getNextTutorialLevel } from '../tutorial/tutorialLevels';
 import { axialToKey } from '../tutorial/tutorialState';
 
+// Session persistence helpers
+const SESSION_STORAGE_KEY = 'hexigame.session.state';
+const SESSION_GUEST_START_KEY = 'hexigame.session.guest.start';
+
+function saveSessionState(state: GameState) {
+  try {
+    const serialized = JSON.stringify({
+      tick: state.tick,
+      tutorialLevelId: state.tutorialLevelId,
+      tutorialProgress: state.tutorialProgress ? {
+        visitedTargetKeys: Array.from(state.tutorialProgress.visitedTargetKeys),
+        startTick: state.tutorialProgress.startTick,
+        completedAtTick: state.tutorialProgress.completedAtTick,
+      } : undefined,
+    });
+    localStorage.setItem(SESSION_STORAGE_KEY, serialized);
+  } catch (e) {
+    console.warn('Failed to save session state:', e);
+  }
+}
+
+function loadSessionState(): { tick: number; tutorialLevelId?: string | null; tutorialProgress?: any } | null {
+  try {
+    const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (e) {
+    console.warn('Failed to load session state:', e);
+    return null;
+  }
+}
+
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
   const mergedParams: Params = { ...DefaultParams, ...(params || {}) };
   const rngRef = useRef<RNG>(mulberry32(seed ?? Date.now()));
-  const [gameState, setGameState] = useState<GameState>(() => createInitialState(mergedParams, rngRef.current));
+  const [gameState, setGameState] = useState<GameState>(() => {
+    const guestStarted = !!localStorage.getItem('hexigame.guest.started');
+    const initialState = createInitialState(mergedParams, rngRef.current);
+    
+    // If guest was already started (user returning after reload), restore session state
+    if (guestStarted) {
+      const savedState = loadSessionState();
+      if (savedState) {
+        return {
+          ...initialState,
+          tick: savedState.tick,
+          tutorialLevelId: savedState.tutorialLevelId,
+          tutorialProgress: savedState.tutorialProgress ? {
+            visitedTargetKeys: new Set(savedState.tutorialProgress.visitedTargetKeys),
+            startTick: savedState.tutorialProgress.startTick,
+            completedAtTick: savedState.tutorialProgress.completedAtTick,
+          } : undefined,
+        };
+      }
+    }
+    
+    return initialState;
+  });
   const [fps, setFps] = useState(0);
   const spaceIsDownRef = useRef(false);
   const mouseIsDownRef = useRef(false);
@@ -196,6 +249,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [guestStarted, isSettingsOpen]);
+
+  // Pause/resume on settings open/close
+  useEffect(() => {
+    if (isSettingsOpen) {
+      setIsPaused(true);
+    } else if (guestStarted && !document.hidden) {
+      setIsPaused(false);
+    }
+  }, [isSettingsOpen, guestStarted]);
+
+  // Persist game state changes to localStorage
+  useEffect(() => {
+    if (guestStarted) {
+      saveSessionState(gameState);
+    }
+  }, [gameState, guestStarted]);
 
   // Signal game ready to SDK (LoadingAPI.ready for Yandex) - call as soon as loaded
   useEffect(() => {
@@ -576,6 +645,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           onResetSession={() => {
             localStorage.removeItem('hexigame.guest.started');
             localStorage.removeItem('hexigame.tutorial.started');
+            localStorage.removeItem(SESSION_STORAGE_KEY);
             setGuestStarted(false);
             setTutorialLevelId('tutorial_1_movement');
             setMobileTab('hexipedia');
