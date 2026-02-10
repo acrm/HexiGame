@@ -12,7 +12,7 @@ const SOUND_EFFECTS = [
 //   'audio/mixkit-game-spinning-machine-2645.wav',
   'audio/mixkit-game-user-interface-tone-2570.wav',
   'audio/mixkit-interface-device-click-2577.wav',
-  'audio/mixkit-select-click-1109.wav',
+//   'audio/mixkit-select-click-1109.wav',
 //   'audio/mixkit-spacey-swish-spin-1500.wav',
 //   'audio/mixkit-swirling-whoosh-1493.wav',
   'audio/mixkit-video-game-retro-click-237.wav',
@@ -135,6 +135,13 @@ class AudioManager {
     const clone = audio.cloneNode() as HTMLAudioElement;
     clone.volume = this.soundVolume;
     clone.play().catch(() => {});
+  }
+
+  playSound(soundPath: string) {
+    if (!this.soundEnabled) return;
+    const audio = new Audio(soundPath);
+    audio.volume = this.soundVolume;
+    audio.play().catch(() => {});
   }
 
   // Legacy compatibility methods

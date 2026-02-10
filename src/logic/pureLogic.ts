@@ -54,6 +54,15 @@ export interface GameState {
   autoMoveTarget?: Axial | null; // target cell for automatic movement
   autoMoveTicksRemaining?: number; // ticks until next auto move step (2 ticks per step)
   autoFocusTarget?: Axial | null; // destination focus cell to highlight while moving
+  
+  // Tutorial system
+  tutorialLevelId?: string | null; // Current tutorial level ID, null if no tutorial
+  tutorialProgress?: {
+    visitedTargetKeys: Set<string>; // Target cells visited in format "q,r"
+    startTick: number;          // Tick when the level started
+    completedAtTick?: number;   // Tick when the level completed
+  };
+  tutorialInteractionMode?: 'desktop' | 'mobile'; // Control mode for hints
 }
 
 export type RNG = () => number; // returns float in [0,1)

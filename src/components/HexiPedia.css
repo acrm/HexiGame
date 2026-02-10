@@ -1,0 +1,130 @@
+.hexipedia-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  color: #ffffff;
+}
+
+.hexipedia-panel {
+  width: 100%;
+  background: #333333;
+  border: 1px solid #555555;
+  padding: 16px;
+}
+
+.hexipedia-accordion-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.hexipedia-accordion-header {
+  font-size: 11px;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  padding: 5px;
+  margin-top: 12px;
+}
+
+.hexipedia-accordion-item {
+  background: #333333;
+  border: 1px solid #555555;
+}
+
+.hexipedia-accordion-title {
+  background: #2a2a2a;
+  border-bottom: 1px solid #555555;
+  padding: 12px 16px;
+  cursor: pointer;
+  color: #cccccc;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.hexipedia-accordion-title:hover {
+  background: #333333;
+}
+
+.hexipedia-accordion-content {
+  padding: 12px 16px;
+}
+
+.hexipedia-section {
+  margin-bottom: 12px;
+}
+
+.hexipedia-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999999;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.hexipedia-text {
+  font-size: 13px;
+  color: #cccccc;
+  line-height: 1.5;
+}
+
+.hexipedia-link {
+  color: #88ccff;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.hexipedia-link:hover {
+  color: #aaddff;
+}
+
+.hexipedia-task-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #cccccc;
+  line-height: 1.4;
+}
+
+.hexipedia-task-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 1px solid #cccccc;
+  color: #111111;
+  background: transparent;
+  font-size: 11px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.hexipedia-task-checkbox.checked {
+  background: #ffffff;
+  color: #111111;
+}
+
+.hexipedia-task-name {
+  flex: 1;
+}
+
+.hexipedia-task-name.current {
+  color: #aaddff;
+  font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  .hexipedia-panel {
+    padding: 12px;
+  }
+}

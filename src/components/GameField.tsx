@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Params, GameState, computeBreadcrumbs } from '../logic/pureLogic';
+import { Params, GameState, Axial, computeBreadcrumbs } from '../logic/pureLogic';
 
 const HEX_SIZE = 10; // pixels
 const GRID_STROKE_COLOR = '#635572ff';
@@ -88,6 +88,24 @@ function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, points:
   ctx.fill();
 }
 
+function drawCornerDots(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number) {
+  const angleDeg = 60;
+  const blinkOn = (tickCount % 12) < 6;
+  const alpha = blinkOn ? 1 : 0.35;
+  const dotRadius = Math.max(1.4, size * 0.12);
+  ctx.save();
+  ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (angleDeg * i);
+    const vx = centerX + size * Math.cos(angle);
+    const vy = centerY + size * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(vx, vy, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 interface GameFieldProps {
   gameState: GameState;
   params: Params;
@@ -105,6 +123,9 @@ interface GameFieldProps {
   onCellDrag?: (q: number, r: number) => void;
   onHotbarSlotClick?: (slotIdx: number) => void;
   isLeftHanded?: boolean;
+  tutorialTargetCells?: Axial[];
+  visitedTutorialCells?: Set<string>;
+  hideHotbar?: boolean;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -124,6 +145,9 @@ export const GameField: React.FC<GameFieldProps> = ({
   onCellDrag,
   onHotbarSlotClick,
   isLeftHanded = false,
+  tutorialTargetCells = [],
+  visitedTutorialCells = new Set(),
+  hideHotbar = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -162,7 +186,7 @@ export const GameField: React.FC<GameFieldProps> = ({
 
   // Detect if a click is on a hotbar ring slot (mobile only)
   function detectHotbarSlotClick(px: number, py: number): number | null {
-    if (isInventory) return null;
+    if (isInventory || hideHotbar) return null;
     const isMobileLayout = window.innerWidth <= 900;
     if (!isMobileLayout) return null;
 
@@ -517,6 +541,18 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
       }
 
+      // Tutorial target cells: blinking corner dots (only unvisited)
+      if (!isInventory && tutorialTargetCells.length > 0) {
+        for (const cell of tutorialTargetCells) {
+          const cellKey = `${cell.q},${cell.r}`;
+          if (visitedTutorialCells.has(cellKey)) continue; // Skip visited cells
+          const pos = hexToPixel(cell.q, cell.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+          drawCornerDots(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick);
+        }
+      }
+
       // Turtle (world): head faces focus
       if (!isInventory) {
           const pivotQ = protagonistCell.q;
@@ -631,7 +667,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         const baseY = canvas.height - margin;
 
         // Hotbar ring (mirrored based on handedness) - 6 slots with ACT in center
-        if (!isInventory) {
+        if (!isInventory && !hideHotbar) {
           const hotbarCenterX = isLeftHanded ? margin + inward : canvas.width - margin - inward;
           const hotbarCenterY = baseY;
           const hotbarHexSize = HOTBAR_HEX_SIZE;

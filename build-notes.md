@@ -323,3 +323,21 @@
 - 2026w06-0.14 — Fix inventory colors, split sound/music settings, unify hotbar radius
 
 - 2026w06-0.15 — Audio system: music playlist rotation, sound effects on all interactions, hotbar contextual command labels
+
+- 2026w07-0.1 — Tutorial system with movement level
+
+- 2026w07-0.2 — HexiMap/HexiLab/HexiPedia interface with tutorial on startup
+
+- 2026w07-0.3 — Tutorial UI refinements: simplify styling, overlay widget, skip visited cells
+
+- 2026w07-0.4 — Simplify tutorial UI: compact widget, accordion in HexiPedia, service-bell sound on cell visit
+
+- 2026w07-0.5 — Add interactive task UI: HexiMap link, widget switch, control hints, inventory lock during tutorial
+
+- 2026w07-0.6 — Add hotbar hide, task completion list with checkmarks, remove widget duplication, add link click sound
+
+- 2026w07-0.7 — Refine HexiPedia accordion header, localized labels, and follow-focus hints
+
+- 2026w07-0.8 — Merge tutorial tasks into single accordion and add placeholder levels
+
+- 2026w07-0.9 — Implement true accordion: only one section open at a time, remove gaps between tasks, add spacing to Tasks header

@@ -1,0 +1,81 @@
+/* Tutorial Overlay Styles */
+
+.tutorial-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+.tutorial-panel {
+  background: rgba(20, 20, 40, 0.95);
+  border: 2px solid #9966ff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  pointer-events: all;
+  box-shadow: 0 8px 32px rgba(153, 102, 255, 0.3);
+}
+
+.tutorial-objective {
+  margin-bottom: 16px;
+}
+
+.tutorial-objective h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tutorial-progress {
+  background: rgba(153, 102, 255, 0.15);
+  border-left: 3px solid #9966ff;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #b399ff;
+  font-weight: 500;
+}
+
+.tutorial-hint {
+  background: rgba(100, 150, 255, 0.1);
+  border-left: 3px solid #6496ff;
+  padding: 12px 16px;
+  border-radius: 4px;
+}
+
+.tutorial-hint p {
+  margin: 0;
+  font-size: 14px;
+  color: #b0d0ff;
+  line-height: 1.5;
+}
+
+/* Адаптация для мобильных устройств */
+@media (max-width: 600px) {
+  .tutorial-overlay {
+    padding-top: 20px;
+  }
+
+  .tutorial-panel {
+    max-width: 90vw;
+    padding: 16px;
+  }
+
+  .tutorial-objective h3 {
+    font-size: 16px;
+  }
+
+  .tutorial-hint p {
+    font-size: 13px;
+  }
+}

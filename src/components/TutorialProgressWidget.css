@@ -1,0 +1,74 @@
+.tutorial-progress-widget {
+  background: #333333;
+  border: 1px solid #555555;
+  padding: 8px 12px;
+  margin: 8px 8px;
+  width: calc(100% - 16px);
+  box-sizing: border-box;
+  text-align: left;
+  cursor: default;
+  color: #cccccc;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.tutorial-progress-widget.complete {
+  cursor: pointer;
+  background: #3a3a3a;
+  border-color: #666666;
+}
+
+.tutorial-progress-widget.clickable {
+  cursor: pointer;
+  background: #3a3a3a;
+  border-color: #666666;
+}
+
+.tutorial-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tutorial-progress-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #cccccc;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tutorial-progress-checkbox.checked {
+  background: #ffffff;
+  color: #111111;
+}
+
+.tutorial-progress-count {
+  font-size: 16px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.tutorial-progress-label {
+  font-size: 12px;
+  color: #999999;
+  font-weight: 600;
+}
+
+.tutorial-control-hint {
+  background: #333333;
+  border: 1px solid #555555;
+  border-top: none;
+  padding: 8px 12px;
+  margin: 0 8px 8px 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #999999;
+  line-height: 1.3;
+}

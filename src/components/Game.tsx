@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './Game.css';
 import {
   DefaultParams,
@@ -29,9 +29,12 @@ import { t } from '../ui/i18n';
 import { integration } from '../appLogic/integration';
 import { audioManager } from '../audio/audioManager';
 import GuestStart from './GuestStart';
-import Wiki from './Wiki';
+import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../ui/colorScheme';
+import TutorialProgressWidget from './TutorialProgressWidget';
+import { getTutorialLevel, getNextTutorialLevel } from '../tutorial/tutorialLevels';
+import { axialToKey } from '../tutorial/tutorialState';
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -43,7 +46,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const mouseIsDownRef = useRef(false);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'world' | 'self' | 'wiki'>('world');
+  const [mobileTab, setMobileTab] = useState<'heximap' | 'hexilab' | 'hexipedia'>(() => {
+    const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
+    return hasTutorialStarted ? 'heximap' : 'hexipedia';
+  });
   const [isPaused, setIsPaused] = useState(false);
   const [interactionMode, setInteractionMode] = useState<'desktop' | 'mobile'>(() => {
     const coarse = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -82,6 +88,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [isLeftHanded, setIsLeftHanded] = useState(() => {
     const saved = localStorage.getItem('hexigame.isLeftHanded');
     return saved ? saved === 'true' : false;
+  });
+  const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
+    // Start mandatory tutorial on first session
+    const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
+    return hasTutorialStarted ? null : 'tutorial_1_movement';
   });
 
   // Initialize audio manager with music settings
@@ -139,6 +150,34 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return () => clearInterval(interval);
   }, [mergedParams, isPaused, guestStarted]);
 
+  // Initialize tutorial in gameState when tutorial starts
+  useEffect(() => {
+    if (!tutorialLevelId) {
+      setGameState(prev => {
+        if (!prev.tutorialLevelId && !prev.tutorialProgress) return prev;
+        return {
+          ...prev,
+          tutorialLevelId: null,
+          tutorialProgress: undefined,
+          tutorialInteractionMode: interactionMode,
+        };
+      });
+      return;
+    }
+    setGameState(prev => {
+      if (prev.tutorialLevelId === tutorialLevelId) return prev;
+      return {
+        ...prev,
+        tutorialLevelId,
+        tutorialProgress: {
+          visitedTargetKeys: new Set(),
+          startTick: prev.tick,
+        },
+        tutorialInteractionMode: interactionMode,
+      };
+    });
+  }, [tutorialLevelId, interactionMode]);
+
   // Pause/resume on tab visibility change
   useEffect(() => {
     const onVis = () => {
@@ -185,6 +224,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Tab') {
         e.preventDefault();
+        if (isHexiLabLocked) return;
         setIsInventory(v => !v);
         setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
         return;
@@ -248,7 +288,76 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
   const eatenCounts: Record<string, number> = gameState.paletteCounts || {};
 
+  const tutorialLevel = useMemo(() => {
+    return tutorialLevelId ? getTutorialLevel(tutorialLevelId) : null;
+  }, [tutorialLevelId]);
+
+  const tutorialTargetKeys = useMemo(() => {
+    return tutorialLevel?.targetCells?.map(axialToKey) ?? [];
+  }, [tutorialLevel]);
+
+  const visitedTargetCount = useMemo(() => {
+    if (!gameState.tutorialProgress) return 0;
+    return tutorialTargetKeys.filter(key => gameState.tutorialProgress?.visitedTargetKeys.has(key)).length;
+  }, [gameState.tutorialProgress, tutorialTargetKeys]);
+
+  const isTutorialTaskComplete = tutorialTargetKeys.length > 0 && visitedTargetCount === tutorialTargetKeys.length;
+
+  const handleTutorialCompleteClick = () => {
+    if (!tutorialLevelId || !tutorialLevel) return;
+    if (!isTutorialTaskComplete) return;
+    audioManager.playRandomSound();
+    const nextLevel = getNextTutorialLevel(tutorialLevelId);
+    if (nextLevel) {
+      setTutorialLevelId(nextLevel.id);
+      setMobileTab('hexipedia');
+    } else {
+      localStorage.setItem('hexigame.tutorial.started', '1');
+      setTutorialLevelId(null);
+      setMobileTab('hexipedia');
+    }
+  };
+
+  const handleViewTutorialTask = () => {
+    audioManager.playRandomSound();
+    setMobileTab('hexipedia');
+  };
+
   const isMobileLayout = typeof window !== 'undefined' && window.innerWidth <= 900;
+
+  const isHexiLabLocked = tutorialLevel?.disableInventory ?? false;
+
+  // Track focus visits on target cells
+  useEffect(() => {
+    if (!tutorialLevelId || !gameState.tutorialProgress) return;
+    if (gameState.activeField === 'inventory') return;
+    if (isMobileLayout && mobileTab !== 'heximap') return;
+
+    const level = getTutorialLevel(tutorialLevelId);
+    if (!level?.targetCells || level.targetCells.length === 0) return;
+
+    const focusKey = axialToKey(gameState.focus);
+    if (!tutorialTargetKeys.includes(focusKey)) return;
+
+    if (gameState.tutorialProgress.visitedTargetKeys.has(focusKey)) return;
+
+    // Play service bell sound on target cell visit
+    audioManager.playSound('audio/mixkit-service-bell-931.wav');
+
+    setGameState(prev => {
+      if (!prev.tutorialProgress) return prev;
+      if (prev.tutorialProgress.visitedTargetKeys.has(focusKey)) return prev;
+      const nextVisited = new Set(prev.tutorialProgress.visitedTargetKeys);
+      nextVisited.add(focusKey);
+      return {
+        ...prev,
+        tutorialProgress: {
+          ...prev.tutorialProgress,
+          visitedTargetKeys: nextVisited,
+        },
+      };
+    });
+  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialLevelId, tutorialTargetKeys, isMobileLayout, mobileTab]);
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
@@ -256,16 +365,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Sync mobile tab selection with active field and inventory flag
   useEffect(() => {
     if (!isMobileLayout) return;
-    const nextInventory = mobileTab === 'self';
+    const nextInventory = mobileTab === 'hexilab';
     setIsInventory(nextInventory);
-    setGameState(prev => ({ ...prev, activeField: mobileTab === 'self' ? 'inventory' : 'world' }));
+    setGameState(prev => ({ ...prev, activeField: mobileTab === 'hexilab' ? 'inventory' : 'world' }));
   }, [isMobileLayout, mobileTab]);
 
-  const effectiveIsInventory = isMobileLayout ? mobileTab === 'self' : isInventory;
+  const effectiveIsInventory = isMobileLayout ? mobileTab === 'hexilab' : isInventory;
 
   // Determine background color based on active tab
   const backgroundColor = isMobileLayout 
-    ? (mobileTab === 'world' ? ColorScheme.outside.background : mobileTab === 'self' ? ColorScheme.inside.background : '#2f2f2f')
+    ? (mobileTab === 'heximap' ? ColorScheme.outside.background : mobileTab === 'hexilab' ? ColorScheme.inside.background : '#2f2f2f')
     : '#370152ff';
 
   return (
@@ -291,22 +400,23 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         <div className="mobile-tab-bar">
           <div className="mobile-tabs-container">
             <button
-              className={`mobile-tab ${mobileTab === 'world' ? 'active' : ''}`}
-              onClick={() => { audioManager.playRandomSound(); setMobileTab('world'); }}
+              className={`mobile-tab ${mobileTab === 'heximap' ? 'active' : ''}`}
+              onClick={() => { audioManager.playRandomSound(); setMobileTab('heximap'); }}
             >
-              {t('tab.world')}
+              {t('tab.heximap')}
             </button>
             <button
-              className={`mobile-tab ${mobileTab === 'self' ? 'active' : ''}`}
-              onClick={() => { audioManager.playRandomSound(); setMobileTab('self'); }}
+              className={`mobile-tab ${mobileTab === 'hexilab' ? 'active' : ''} disabled`}
+              onClick={() => {}}
+              disabled
             >
-              {t('tab.self')}
+              {t('tab.hexilab')}
             </button>
             <button
-              className={`mobile-tab ${mobileTab === 'wiki' ? 'active' : ''}`}
-              onClick={() => { audioManager.playRandomSound(); setMobileTab('wiki'); }}
+              className={`mobile-tab ${mobileTab === 'hexipedia' ? 'active' : ''}`}
+              onClick={() => { audioManager.playRandomSound(); setMobileTab('hexipedia'); }}
             >
-              {t('tab.wiki')}
+              {t('tab.hexipedia')}
             </button>
           </div>
           {/* Settings gear on right side of tab bar */}
@@ -317,8 +427,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       )}
       <div className="game-main">
         <div className="game-field-area">
-          {isMobileLayout && mobileTab === 'wiki' ? (
-            <Wiki gameState={gameState} params={mergedParams} isMobile={interactionMode === 'mobile'} />
+          {isMobileLayout && mobileTab === 'hexipedia' ? (
+            <HexiPedia
+              gameState={gameState}
+              interactionMode={interactionMode}
+              tutorialLevel={tutorialLevel}
+              onSwitchTab={(tab) => {
+                if (tab === 'heximap') setMobileTab('heximap');
+              }}
+            />
           ) : (
             <GameField
               gameState={gameState}
@@ -330,8 +447,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               onToggleInventory={() => {
                 audioManager.playRandomSound();
                 if (isMobileLayout) {
-                  setMobileTab(prev => (prev === 'self' ? 'world' : 'self'));
+                  setMobileTab('heximap');
                 } else {
+                  if (isHexiLabLocked) return;
                   setIsInventory(v => !v);
                   setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
                 }
@@ -417,11 +535,30 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 setGameState(prev => exchangeWithHotbarSlot(prev, mergedParams, slotIdx));
               }}
               isLeftHanded={isLeftHanded}
+              tutorialTargetCells={
+                tutorialLevel && (!isMobileLayout || mobileTab === 'heximap')
+                  ? (tutorialLevel.targetCells ?? [])
+                  : []
+              }
+              visitedTutorialCells={gameState.tutorialProgress?.visitedTargetKeys ?? new Set()}
+              hideHotbar={tutorialLevel?.hideHotbar ?? false}
             />
           )}
         </div>
         <div className="game-footer-controls" />
       </div>
+      {isMobileLayout && mobileTab === 'heximap' && tutorialLevel && (
+        <div className="tutorial-widget-overlay">
+          <TutorialProgressWidget
+            level={tutorialLevel}
+            visitedCount={visitedTargetCount}
+            totalCount={tutorialTargetKeys.length}
+            isComplete={isTutorialTaskComplete}
+            onComplete={handleTutorialCompleteClick}
+            onViewTask={handleViewTutorialTask}
+          />
+        </div>
+      )}
       {!guestStarted && (
         <GuestStart onStart={() => {
           localStorage.setItem('hexigame.guest.started', '1');
@@ -438,7 +575,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           onClose={() => setIsSettingsOpen(false)}
           onResetSession={() => {
             localStorage.removeItem('hexigame.guest.started');
+            localStorage.removeItem('hexigame.tutorial.started');
             setGuestStarted(false);
+            setTutorialLevelId('tutorial_1_movement');
+            setMobileTab('hexipedia');
             // Reset game state to initial
             setGameState(createInitialState(mergedParams, rngRef.current));
           }}

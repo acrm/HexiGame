@@ -1,0 +1,149 @@
+/* Tutorial Completion Screen Styles */
+
+.tutorial-completion-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  pointer-events: all;
+}
+
+.tutorial-completion-dialog {
+  background: linear-gradient(135deg, rgba(30, 20, 60, 0.98), rgba(50, 30, 80, 0.98));
+  border: 2px solid #9966ff;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 16px 64px rgba(153, 102, 255, 0.4), 0 0 40px rgba(153, 102, 255, 0.2);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tutorial-completion-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.tutorial-completion-header h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(153, 102, 255, 0.3);
+  font-weight: 700;
+}
+
+.tutorial-completion-body {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.tutorial-completion-message {
+  font-size: 16px;
+  color: #d0d0ff;
+  margin: 0 0 12px 0;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.tutorial-completion-next-hint {
+  font-size: 14px;
+  color: #a0c0ff;
+  margin: 12px 0 0 0;
+  line-height: 1.5;
+}
+
+.tutorial-completion-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tutorial-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 160px;
+}
+
+.tutorial-btn-primary {
+  background: linear-gradient(135deg, #9966ff, #7744cc);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(153, 102, 255, 0.4);
+}
+
+.tutorial-btn-primary:hover {
+  background: linear-gradient(135deg, #aa77ff, #8855dd);
+  box-shadow: 0 6px 16px rgba(153, 102, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.tutorial-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(153, 102, 255, 0.3);
+}
+
+.tutorial-btn-secondary {
+  background: rgba(153, 102, 255, 0.15);
+  color: #b399ff;
+  border: 1px solid #9966ff;
+}
+
+.tutorial-btn-secondary:hover {
+  background: rgba(153, 102, 255, 0.25);
+  color: #d0b3ff;
+}
+
+.tutorial-btn-secondary:active {
+  background: rgba(153, 102, 255, 0.2);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .tutorial-completion-dialog {
+    padding: 24px;
+  }
+
+  .tutorial-completion-header h2 {
+    font-size: 24px;
+  }
+
+  .tutorial-completion-message {
+    font-size: 15px;
+  }
+
+  .tutorial-btn {
+    min-width: 140px;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .tutorial-completion-actions {
+    flex-direction: column;
+  }
+
+  .tutorial-btn {
+    width: 100%;
+  }
+}
