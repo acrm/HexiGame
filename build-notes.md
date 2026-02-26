@@ -373,3 +373,5 @@
 - 2026w09-0.6 — Document git commit workflow and critical bug squash process
 
 - 2026w09-0.7 — Build Template System: full documentation, 4 new templates (Hexagon, Star, Rainbow Spiral, Cross), improved HexiPedia UI with template details and hints
+
+- 2026w09-0.8 — Add Build Template System section to GAME_CONCEPT.md with template descriptions and design rationale

@@ -125,6 +125,53 @@ The turtle serves as both the player's avatar and a navigation element:
 
 ---
 
+## Pattern Challenges: Build Templates
+
+### Overview
+**Build Templates** are optional spatial color puzzles that reward creative pattern-building and strategic color planning. Players activate templates in HexiPedia and earn completion bonuses for matching predefined patterns. This system adds a goal-driven layer atop the open-ended sandbox.
+
+### Core Concept
+- **Template**: A visual guide (flickering overlay) that shows where cells should be placed and what colors they should be.
+- **Relative Colors**: Colors are defined as percentages from a base color, allowing a single template to work with any palette starting point.
+- **Difficulty Tiers**: Templates scale from Easy (3–7 cells, single color) to Hard (9 cells, complex gradients).
+- **No Failure State**: Templates are entirely optional. Players can abandon templates at any time to continue freeform play.
+
+### Template Lifecycle
+1. **Activation**: Player selects a template in HexiPedia UI.
+2. **Flickering Mode**: Template attaches to the turtle's focus and pulses (~0.5s period). Guides player vision.
+3. **Anchoring**: Player places the first hex matching a template cell → system auto-detects the base color and locks the template in the world.
+4. **Validation**: As cells are placed, the overlay shows:
+   - **White borders** = correctly placed cells (hidden once valid)
+   - **Black borders** = incorrectly colored cells (triggers error sound)
+   - **Semi-transparent preview** = cells awaiting completion
+5. **Completion**: All required cells filled correctly → fanfare plays, template recorded in completion list.
+6. **Reset**: Removing all template cells reverts to flickering mode for re-attempts.
+
+### Available Templates
+| Level | Name | Cells | Description |
+|-------|------|-------|-------------|
+| Easy | Simple Ring | 7 | Center + 6 neighbors, single color. Introduction. |
+| Easy | Rainbow Triangle | 3 | Small gradient: base, +12.5%, +25%. Minimal. |
+| Easy | Cross | 5 | Plus-shaped pattern, single color. Rotation practice. |
+| Medium | Flower | 7 | Center + 6 petals, alternating colors (base, +25%). |
+| Medium | Hexagon | 6 | Ring of 6, alternating colors. Radiating pattern. |
+| Medium | Star | 13 | Central hub + 6 rays extending outward. Complex layout. |
+| Hard | Yin-Yang | 7 | Balanced opposites: base, +25%, +50%, -25%. Symmetry. |
+| Hard | Rainbow Spiral | 9 | Spiral gradient covering full palette. All 8 colors. |
+
+### Design Rationale
+- **Accessibility**: Easy templates (~3–7 cells) teach color matching and spatial planning without overload.
+- **Progression**: Medium and Hard templates introduce palette cycling and complex geometries.
+- **Replayability**: Players can revisit templates with different base colors, creating infinite variations.
+- **Optional Engagement**: No rewards or penalties for skipping templates; they're purely creative challenges.
+
+### Integration with Core Gameplay
+- Templates use the same grid, hotbar system, and placement mechanics as freeform play.
+- Placing a template cell counts as a normal hex transfer (consumes a hotbar slot).
+- No interference: templates are purely visual guides; they don't block movement or placement of non-template cells.
+- All existing capture, transport, and inventory mechanics apply unchanged.
+
+---
 ## User Interface
 
 ### HUD Elements
