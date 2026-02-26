@@ -149,6 +149,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Randomness via `Math.random()`; no seed or reproducible sequence.
 - Hex size (`HEX_SIZE = 10`) influences rendering only; not part of pure logic.
 - HUD shows dynamic chance string; logic only supplies numeric chance.
+- Tutorial tasks are freely selectable in HexiPedia; completed tasks are tracked and can be restarted on demand.
+- Tutorial completion only fires on state transition (incomplete → complete), then auto-advances to the next task in order.
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:

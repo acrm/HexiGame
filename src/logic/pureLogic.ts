@@ -69,6 +69,7 @@ export interface GameState {
     completedAtTick?: number;   // Tick when the level completed
   };
   tutorialInteractionMode?: 'desktop' | 'mobile'; // Control mode for hints
+  tutorialCompletedLevelIds?: Set<string>; // Completed tutorial level IDs
   
   // Build Template system
   activeTemplate?: ActiveTemplateState | null;
@@ -189,6 +190,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     autoMoveTarget: null,
     autoMoveTicksRemaining: 0,
     autoFocusTarget: null,
+    tutorialCompletedLevelIds: new Set(),
   };
 }
 

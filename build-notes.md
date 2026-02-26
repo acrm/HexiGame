@@ -375,3 +375,5 @@
 - 2026w09-0.7 — Build Template System: full documentation, 4 new templates (Hexagon, Star, Rainbow Spiral, Cross), improved HexiPedia UI with template details and hints
 
 - 2026w09-0.8 — Add Build Template System section to GAME_CONCEPT.md with template descriptions and design rationale
+
+- 2026w09-0.9 — Tutorial task selection/restart, completion transition gating, section filter in HexiPedia, and visibility-aware music start

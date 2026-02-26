@@ -46,6 +46,7 @@ function saveSessionState(state: GameState) {
     const serialized = JSON.stringify({
       tick: state.tick,
       tutorialLevelId: state.tutorialLevelId,
+      tutorialCompletedLevelIds: Array.from(state.tutorialCompletedLevelIds ?? []),
       tutorialProgress: state.tutorialProgress ? {
         visitedTargetKeys: Array.from(state.tutorialProgress.visitedTargetKeys),
         startTick: state.tutorialProgress.startTick,
@@ -58,7 +59,12 @@ function saveSessionState(state: GameState) {
   }
 }
 
-function loadSessionState(): { tick: number; tutorialLevelId?: string | null; tutorialProgress?: any } | null {
+function loadSessionState(): {
+  tick: number;
+  tutorialLevelId?: string | null;
+  tutorialCompletedLevelIds?: string[];
+  tutorialProgress?: any;
+} | null {
   try {
     const saved = localStorage.getItem(SESSION_STORAGE_KEY);
     return saved ? JSON.parse(saved) : null;
@@ -84,6 +90,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           ...initialState,
           tick: savedState.tick,
           tutorialLevelId: savedState.tutorialLevelId,
+          tutorialCompletedLevelIds: new Set(savedState.tutorialCompletedLevelIds ?? []),
           tutorialProgress: savedState.tutorialProgress ? {
             visitedTargetKeys: new Set(savedState.tutorialProgress.visitedTargetKeys),
             startTick: savedState.tutorialProgress.startTick,
@@ -98,7 +105,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [fps, setFps] = useState(0);
   const spaceIsDownRef = useRef(false);
   const mouseIsDownRef = useRef(false);
-  const tutorialWinPlayedRef = useRef(false);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
   const [mobileTab, setMobileTab] = useState<'heximap' | 'hexilab' | 'hexipedia'>(() => {
@@ -167,7 +173,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Start audio on guest start (user interaction required)
   useEffect(() => {
-    if (guestStarted && musicEnabled) {
+    if (guestStarted && musicEnabled && !document.hidden) {
       audioManager.playMusic();
     }
   }, [guestStarted, musicEnabled]);
@@ -227,6 +233,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         setIsPaused(false);
         if (guestStarted && !isSettingsOpen) {
           integration.onGameplayStart();
+        }
+        if (guestStarted && musicEnabled) {
+          audioManager.playMusic().catch(() => console.log('[Audio] Autoplay blocked'));
         }
         audioManager.resume();
       }
@@ -379,35 +388,73 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return tutorialTargetKeys.filter(key => gameState.tutorialProgress?.visitedTargetKeys.has(key)).length;
   }, [gameState.tutorialProgress, tutorialTargetKeys]);
 
-  const isTutorialTaskComplete = tutorialTargetKeys.length > 0 && visitedTargetCount === tutorialTargetKeys.length;
+  const isTutorialTaskComplete = !!tutorialLevel && !!gameState.tutorialProgress
+    ? tutorialLevel.winCondition(gameState, mergedParams, gameState.tutorialProgress)
+    : false;
+  const completedTutorialLevelIds = gameState.tutorialCompletedLevelIds ?? new Set<string>();
+  const prevTutorialCompleteRef = useRef<boolean>(isTutorialTaskComplete);
+
+  const completeTutorialLevel = (completedLevelId: string) => {
+    setGameState(prev => {
+      const completedSet = new Set(prev.tutorialCompletedLevelIds ?? []);
+      completedSet.add(completedLevelId);
+      const progress = prev.tutorialProgress;
+      const nextProgress = progress && !progress.completedAtTick
+        ? { ...progress, completedAtTick: prev.tick }
+        : progress;
+      return {
+        ...prev,
+        tutorialCompletedLevelIds: completedSet,
+        tutorialProgress: nextProgress,
+      };
+    });
+
+    const nextLevel = getNextTutorialLevel(completedLevelId);
+    if (nextLevel) {
+      setTutorialLevelId(nextLevel.id);
+    } else {
+      localStorage.setItem('hexigame.tutorial.started', '1');
+      setTutorialLevelId(null);
+    }
+  };
+
+  const handleSelectTutorialLevel = (levelId: string) => {
+    if (completedTutorialLevelIds.has(levelId)) return;
+    setTutorialLevelId(levelId);
+    setMobileTab('hexipedia');
+  };
+
+  const handleRestartTutorialLevel = (levelId: string) => {
+    setGameState(prev => {
+      const completedSet = new Set(prev.tutorialCompletedLevelIds ?? []);
+      completedSet.delete(levelId);
+      return {
+        ...prev,
+        tutorialCompletedLevelIds: completedSet,
+      };
+    });
+    setTutorialLevelId(levelId);
+    setMobileTab('hexipedia');
+  };
 
   useEffect(() => {
     if (!tutorialLevelId) {
-      tutorialWinPlayedRef.current = false;
+      prevTutorialCompleteRef.current = false;
       return;
     }
-    if (isTutorialTaskComplete && !tutorialWinPlayedRef.current) {
+    const wasComplete = prevTutorialCompleteRef.current;
+    if (!wasComplete && isTutorialTaskComplete) {
       audioManager.playSound('audio/mixkit-small-win-2020.wav');
-      tutorialWinPlayedRef.current = true;
+      completeTutorialLevel(tutorialLevelId);
     }
-    if (!isTutorialTaskComplete) {
-      tutorialWinPlayedRef.current = false;
-    }
-  }, [gameState.tick, isTutorialTaskComplete, tutorialLevelId]);
+    prevTutorialCompleteRef.current = isTutorialTaskComplete;
+  }, [isTutorialTaskComplete, tutorialLevelId]);
 
   const handleTutorialCompleteClick = () => {
     if (!tutorialLevelId || !tutorialLevel) return;
     if (!isTutorialTaskComplete) return;
     audioManager.playRandomSound();
-    const nextLevel = getNextTutorialLevel(tutorialLevelId);
-    if (nextLevel) {
-      setTutorialLevelId(nextLevel.id);
-      setMobileTab('hexipedia');
-    } else {
-      localStorage.setItem('hexigame.tutorial.started', '1');
-      setTutorialLevelId(null);
-      setMobileTab('hexipedia');
-    }
+    completeTutorialLevel(tutorialLevelId);
   };
 
   const handleViewTutorialTask = () => {
@@ -525,6 +572,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               gameState={gameState}
               interactionMode={interactionMode}
               tutorialLevel={tutorialLevel}
+              tutorialLevelId={tutorialLevelId}
+              isTutorialTaskComplete={isTutorialTaskComplete}
+              completedTutorialLevelIds={completedTutorialLevelIds}
+              onSelectTutorialLevel={handleSelectTutorialLevel}
+              onRestartTutorialLevel={handleRestartTutorialLevel}
               onSwitchTab={(tab) => {
                 if (tab === 'heximap') setMobileTab('heximap');
               }}
