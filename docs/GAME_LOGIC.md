@@ -183,79 +183,162 @@ PaletteDistance = |cell.colorIndex - PlayerBaseColorIndex|
 ```
 
 ---
-## 6. Build Template System
+## 7. Build Template System
 
-### Overview
-The build template system allows players to create spatial color patterns following predefined templates. Templates guide players through visual overlays that move with the player or remain fixed once anchored.
+The build template system allows players to create spatial color patterns following predefined templates. Templates provide puzzle-like challenges that reward careful color matching and spatial planning. Players optionally select templates in HexiPedia to earn completion bonuses.
 
-### Template Data Structure
-Each template (`BuildTemplate`) contains:
-- **Metadata**: id, name, description, difficulty level
-- **Anchor Cell**: Starting reference point (relative coordinates)
-- **Cell List**: Array of template cells with:
-  - Relative coordinates (q, r)
-  - Relative color (-50 to +50, percentage offset from base color)
-  - `null` for cells that should remain empty
+### 7.1 Core Concepts
 
-### Relative Color System
-Colors are specified as percentages from the base color:
-- **0%**: Same as anchor (base color)
-- **±25%**: Quarter-step around the palette
-- **±50%**: Opposite/antagonist color (half-step)
+**Template Definition** (`BuildTemplate`)
+```typescript
+{
+  id: string;                          // Unique identifier
+  name: { en, ru };                    // Localized template name
+  description?: { en, ru };            // Optional description
+  difficulty: 'easy' | 'medium' | 'hard';
+  anchorCell: { q, r };                // Anchor position (usually 0,0)
+  cells: TemplateCell[];               // Cell definitions
+  hints?: { en?, ru? };                // Player hints (array)
+}
+```
 
-Formula for absolute color:
+**Template Cell** (`TemplateCell`)
+```typescript
+{
+  q, r: number;                        // Position relative to anchor
+  relativeColor: number | null;        // -50..50 (percentage) or null (empty)
+}
+```
+
+**Relative Color System**
+Colors are percentages from base (anchor) color in the palette:
+- **0%**: Exact base color
+- **25%**: +1 step (2 indices in 8-color palette)
+- **±25%**: ±1/4 around palette
+- **±50%**: Opposite/antagonist (+4 indices)
+
+Absolute color formula:
 ```
 absoluteColorIndex = (baseColorIndex + round(relativeColor/100 × paletteSize) + paletteSize) % paletteSize
 ```
 
-### Template Lifecycle
+### 7.2 Template Lifecycle
 
-#### 1. **Activation**
-Player selects a template. Template enters "flickering mode":
-- Attaches to player's focus position
-- Rotates with player's facing direction
-- Opacity oscillates (0.2–0.6) at ~0.5s period
+**Phase 1: Activation**
+1. Player selects template in HexiPedia UI
+2. `activateTemplate(state, templateId)` called
+3. Template enters **flickering mode**: attached to focus position, opacity = 0.4 + 0.2 × sin((tick/6) × π)
+4. Rotates with `facingDirIndex` (0–5)
 
-#### 2. **Anchoring**
-When player places first hex matching the template:
-- Base color inferred from placed hex
-- Template anchors to that position
-- Rotation locked to current facing direction
-- Template transitions to validation mode
+**Phase 2: Anchoring**
+1. Player places hex at an expected template cell position
+2. System detects match → calls `determineTemplateAnchor()`
+3. Base color calculated: `baseColorIndex = (placedColorIndex - offset + paletteSize×10) % paletteSize`
+4. Template **anchors to world** at that position
+5. First cell recorded as filled
 
-#### 3. **Validation**
-For each cell in anchored template:
-- **Correct**: Cell matches expected color → white stroke, positive sound
-- **Wrong**: Cell has wrong color → black stroke, negative sound
-- **Empty**: Cell awaits filling → semi-transparent preview
+**Phase 3: Validation**
+1. `updateTemplateState()` called after any grid modification (eatToHotbar, exchangeWithHotbarSlot, performHotbarTransfer)
+2. `validateTemplate()` checks each cell:
+   - **Correct**: Matches expected color → white border, `cell_correct` event
+   - **Wrong**: Mismatched color → black border, `cell_wrong` event, `hasErrors = true`
+   - **Empty**: Awaits filling → semi-transparent preview
+3. `filledCells` set updates with all correctly filled cell keys ("q,r" format)
 
-#### 4. **Completion**
-When all template cells correctly filled:
-- Template completion event fires
-- Fanfare sound plays
-- Recorded in `completedTemplates` set
-- Can remove hexes to reset to flickering mode
+**Phase 4: Completion & Reset**
+1. When all required cells correctly filled:
+   - `isTemplateCompleted()` returns true
+   - `completedAtTick` set to current tick
+   - Template ID added to `completedTemplates` set
+   - `template_completed` audio event fires (fanfare)
+2. If player removes all cells → template resets to **flickering mode**
 
-### State Variables in `GameState`
-```typescript
-activeTemplate?: {
-  templateId: string;
-  anchoredAt?: {
-    q: number; r: number;
-    baseColorIndex: number;
-    rotation: number;  // 0–5
-  } | null;
-  hasErrors: boolean;
-  filledCells: Set<string>;  // "q,r" format
-  completedAtTick?: number;
-}
-completedTemplates?: Set<string>;
+### 7.3 Rotation System
+
+Templates rotate with player heading via `facingDirIndex` (0–5):
+```
+function rotateAxial(pos, rotation):
+  repeat rotation times:
+    (q, r) → (-r, q + r)  // 60° clockwise rotation
+    
+worldPos = anchorPos + rotatedPos
 ```
 
-### Audio Feedback
-- **Cell Correct**: UI tone on match
-- **Cell Wrong**: Retro click on mismatch
-- **Template Completed**: Fanfare sound
+### 7.4 Rendering
+
+**Flickering Mode** (not anchored):
+- Opacity animation: `0.4 + 0.2 × sin((tick/6) × π)` ≈ 0.5s period
+- All template cells shown at anchor opacity
+- Follows focus position continuously
+- All cells drawn with colored fill/white stroke
+
+**Anchored Mode** (fixed in world):
+- Correctly filled cells: Not drawn (actual hex grid visible)
+- Empty/wrong cells: Semi-transparent preview at base opacity
+- Stroke color: White (correct) or black (errors in template)
+- Rotation: Locked to anchoring direction
+
+### 7.5 Game State Integration
+
+```typescript
+// In GameState:
+activeTemplate?: {
+  templateId: string;
+  anchoredAt: {
+    q: number; r: number;             // World coordinates
+    baseColorIndex: number;            // Anchor color
+    rotation: number;                  // 0–5 (facing direction)
+  } | null;                            // null = flickering
+  hasErrors: boolean;                  // Any wrong-colored cells?
+  filledCells: Set<string>;            // "q,r" format
+  completedAtTick?: number;            // Completion timestamp
+};
+completedTemplates?: Set<string>;      // Finished template IDs
+```
+
+### 7.6 Available Templates (Standard Library)
+
+| Template ID | Name | Difficulty | Cells | Description |
+|-------------|------|-----------|-------|-------------|
+| `ring_r1` | Simple Ring | Easy | 7 | Center + 6 adjacent, all same color. Tutorial intro. |
+| `triangle` | Rainbow Triangle | Easy | 3 | Small triangle with gradient: 0%, 12.5%, 25% |
+| `flower` | Flower | Medium | 7 | Center (0%) + 6 petals alternating (0%, 25%) |
+| `yin_yang` | Yin-Yang | Hard | 7 | Balanced opposites: 0%, 25%, 50%, -25%. Complex pattern. |
+
+Each template includes localized name/description and optional hints array.
+
+### 7.7 Audio Feedback Events
+
+| Event | Sound | When |
+|-------|-------|------|
+| `cell_correct` | UI tone | Hex placed with correct color |
+| `cell_wrong` | Retro click | Cell has wrong color; `hasErrors` → true |
+| `template_completed` | Fanfare | All required cells correctly filled |
+
+Events triggered in `Game.tsx` via `useEffect` watch on `gameState.activeTemplate`.
+
+### 7.8 Logic Functions (Pure)
+
+Defined in `src/templates/templateLogic.ts`:
+
+| Function | Purpose |
+|----------|---------|
+| `getAbsoluteColor(relative, base, paletteSize)` | Convert relative % to palette index |
+| `rotateAxial(pos, rotation)` | Rotate coordinate by 60° steps |
+| `getTemplateCellWorldPos(cell, anchor, rotation)` | Compute world position |
+| `getTemplateCellsWithWorldPos(template, anchor, base, rotation, palette)` | All cells with colors |
+| `validateTemplate(template, anchor, base, rotation, grid, palette)` | Check correctness |
+| `isTemplateCompleted(...)` | All cells correct? |
+| `isTemplateEmpty(...)` | All cells empty? (for reset) |
+| `determineTemplateAnchor(template, placedPos, placedColor, focusPos, rotation)` | Calculate anchor from first hex |
+
+### 7.9 Design Extensibility
+
+- **More Templates**: Add to `templateLibrary.ts` following `BuildTemplate` interface
+- **Custom Difficulty**: Difficulty filter already implemented in UI
+- **Hints Localization**: `hints` array supports multi-language strings
+- **Persistence**: `completedTemplates` persists across sessions
+- **Future: User-Created Templates**: Architecture supports dynamic template definition
 
 ---
 ## 8. Not Implemented (Scope Notes)
@@ -263,7 +346,7 @@ Still absent: delivery targets, objectives, progression, end conditions, obstacl
 
 ---
 ## 9. Summary
-The prototype’s gameplay centers on probabilistic single-color capture and spatial transport constrained by empty adjacency. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate.
+The prototype's gameplay centers on probabilistic single-color capture and spatial transport constrained by empty adjacency. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate. Template system adds creative spatial pattern challenges as optional gameplay layer.
 
 ---
 ## 10. Potential Future Parameters (Extensions)
@@ -271,5 +354,7 @@ The prototype’s gameplay centers on probabilistic single-color capture and spa
 - `TransportLeavesTrail` (bool, whether previous cell retains color instead of clearing)
 - `CaptureChanceMinClamp` (percent)
 - `MaxSimultaneousFlashes` (int)
+- `TemplateHintRevealCost` (int, ticks spent to unlock hints)
+- `TemplateRotationAllowed` (bool, can player modify template orientation after anchoring)
 
 These can be added without altering core logic structure.

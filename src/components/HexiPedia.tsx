@@ -22,6 +22,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   onSwitchTab,
   onActivateTemplate,
 }) => {
+  const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [expandedLevelId, setExpandedLevelId] = useState<string | null>(
     tutorialLevel?.id ?? null
   );
@@ -155,7 +156,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                   value=""
                   checked={!gameState.activeTemplate}
                   onChange={() => {
-                    /* Deactivate template - handled by parent */
+                    audioManager.playRandomSound();
                     onActivateTemplate?.('');
                   }}
                 />
@@ -165,21 +166,70 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
               {ALL_TEMPLATES.map(template => {
                 const isCompleted = gameState.completedTemplates?.has(template.id) ?? false;
                 const isActive = gameState.activeTemplate?.templateId === template.id;
+                const isExpanded = expandedTemplateId === template.id;
                 
                 return (
-                  <label key={template.id} className="hexipedia-template-radio">
-                    <input
-                      type="radio"
-                      name="active-template"
-                      value={template.id}
-                      checked={isActive}
-                      onChange={() => onActivateTemplate?.(template.id)}
-                    />
-                    <span className="hexipedia-template-name">{template.name.en}</span>
-                    <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
-                      {isCompleted ? '✓' : ''}
-                    </span>
-                  </label>
+                  <div key={template.id} className="hexipedia-template-item">
+                    <label className="hexipedia-template-radio">
+                      <input
+                        type="radio"
+                        name="active-template"
+                        value={template.id}
+                        checked={isActive}
+                        onChange={() => {
+                          audioManager.playRandomSound();
+                          onActivateTemplate?.(template.id);
+                        }}
+                      />
+                      <span className="hexipedia-template-name">{template.name.en}</span>
+                      <span className={`hexipedia-template-difficulty ${template.difficulty}`}>
+                        {template.difficulty === 'easy' && '●'}
+                        {template.difficulty === 'medium' && '●●'}
+                        {template.difficulty === 'hard' && '●●●'}
+                      </span>
+                      <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
+                        {isCompleted ? '✓' : ''}
+                      </span>
+                    </label>
+                    
+                    <button
+                      className={`hexipedia-template-expand ${isExpanded ? 'expanded' : ''}`}
+                      onClick={() => {
+                        audioManager.playRandomSound();
+                        setExpandedTemplateId(isExpanded ? null : template.id);
+                      }}
+                      aria-label="Show template details"
+                    >
+                      ▼
+                    </button>
+
+                    {isExpanded && (
+                      <div className="hexipedia-template-details">
+                        {template.description && (
+                          <div className="hexipedia-template-description">
+                            <span className="hexipedia-detail-label">Description:</span>
+                            <span className="hexipedia-detail-text">{template.description.en}</span>
+                          </div>
+                        )}
+                        
+                        {template.hints && template.hints.en && template.hints.en.length > 0 && (
+                          <div className="hexipedia-template-hints">
+                            <span className="hexipedia-detail-label">Hints:</span>
+                            <ul className="hexipedia-hints-list">
+                              {template.hints.en.map((hint, idx) => (
+                                <li key={idx} className="hexipedia-hint-item">{hint}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        <div className="hexipedia-template-cells">
+                          <span className="hexipedia-detail-label">Cells:</span>
+                          <span className="hexipedia-detail-text">{template.cells.length}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

@@ -175,6 +175,15 @@
   gap: 0;
 }
 
+.hexipedia-template-item {
+  border-bottom: 1px solid #444444;
+  padding: 8px 0;
+}
+
+.hexipedia-template-item:last-child {
+  border-bottom: none;
+}
+
 .hexipedia-template-radio {
   display: flex;
   align-items: center;
@@ -184,6 +193,7 @@
   cursor: pointer;
   user-select: none;
   transition: color 0.2s;
+  flex: 1;
 }
 
 .hexipedia-template-radio:hover {
@@ -200,14 +210,96 @@
   flex: 1;
 }
 
-.hexipedia-template-status {
+.hexipedia-template-difficulty {
   margin-left: 8px;
+  color: #888888;
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-right: 8px;
+}
+
+.hexipedia-template-difficulty.easy {
+  color: #88ff88;
+}
+
+.hexipedia-template-difficulty.medium {
+  color: #ffdd88;
+}
+
+.hexipedia-template-difficulty.hard {
+  color: #ff8888;
+}
+
+.hexipedia-template-status {
+  margin-left: 4px;
   color: #888888;
 }
 
 .hexipedia-template-status.completed {
   color: #88ff88;
   font-weight: bold;
+}
+
+.hexipedia-template-expand {
+  background: none;
+  border: none;
+  color: #888888;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 12px;
+  transition: color 0.2s, transform 0.2s;
+  margin-left: 4px;
+}
+
+.hexipedia-template-expand:hover {
+  color: #aaddff;
+}
+
+.hexipedia-template-expand.expanded {
+  color: #aaddff;
+  transform: rotate(180deg);
+}
+
+.hexipedia-template-details {
+  margin-top: 8px;
+  padding-left: 16px;
+  border-left: 2px solid #444444;
+  color: #aaaaaa;
+  font-size: 12px;
+}
+
+.hexipedia-template-description,
+.hexipedia-template-hints,
+.hexipedia-template-cells {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hexipedia-detail-label {
+  color: #888888;
+  font-weight: bold;
+  flex-shrink: 0;
+  min-width: 70px;
+  text-align: right;
+}
+
+.hexipedia-detail-text {
+  color: #cccccc;
+  flex: 1;
+}
+
+.hexipedia-hints-list {
+  margin: 0;
+  padding-left: 20px;
+  flex: 1;
+}
+
+.hexipedia-hint-item {
+  color: #bbbbbb;
+  margin-bottom: 3px;
+  font-size: 12px;
 }
 
 @media (max-width: 600px) {

@@ -158,6 +158,181 @@ export const TEMPLATE_YIN_YANG: BuildTemplate = {
 };
 
 /**
+ * Hexagon: Ring of 6 cells with alternating colors
+ * Difficulty: Medium
+ */
+export const TEMPLATE_HEXAGON: BuildTemplate = {
+  id: 'hexagon',
+  name: {
+    en: 'Hexagon Ring',
+    ru: 'Гексагон',
+  },
+  description: {
+    en: 'A ring of 6 cells with alternating colors',
+    ru: 'Кольцо из 6 клеток с чередующимися цветами',
+  },
+  difficulty: 'medium',
+  anchorCell: { q: 0, r: 0 },
+  cells: [
+    // Ring cells only, alternating colors
+    { q: 0, r: -1, relativeColor: 0 },      // North (base)
+    { q: 1, r: -1, relativeColor: 25 },     // NE (+2 steps)
+    { q: 1, r: 0, relativeColor: 0 },       // SE (base)
+    { q: 0, r: 1, relativeColor: 25 },      // SW (+2 steps)
+    { q: -1, r: 1, relativeColor: 0 },      // W (base)
+    { q: -1, r: 0, relativeColor: 25 },     // NW (+2 steps)
+  ],
+  hints: {
+    en: [
+      'Six-sided ring without center',
+      'Alternate between base and +25% colors',
+      'Creates a radiating pattern',
+    ],
+    ru: [
+      'Шестиугольное кольцо без центра',
+      'Чередуется между базовым и +25% цветами',
+      'Создаёт радиальный узор',
+    ],
+  },
+};
+
+/**
+ * Star: Central hub with 6 rays extending outward
+ * Difficulty: Medium
+ */
+export const TEMPLATE_STAR: BuildTemplate = {
+  id: 'star',
+  name: {
+    en: 'Star',
+    ru: 'Звезда',
+  },
+  description: {
+    en: 'Center with 6 extending rays',
+    ru: 'Центр с 6 лучами в разных цветах',
+  },
+  difficulty: 'medium',
+  anchorCell: { q: 0, r: 0 },
+  cells: [
+    // Center
+    { q: 0, r: 0, relativeColor: 0 },
+    // Six rays (immediate neighbors + one layer out)
+    // Ray 1: North
+    { q: 0, r: -1, relativeColor: 0 },
+    { q: 0, r: -2, relativeColor: 25 },
+    // Ray 2: NE
+    { q: 1, r: -1, relativeColor: 0 },
+    { q: 2, r: -2, relativeColor: 25 },
+    // Ray 3: SE
+    { q: 1, r: 0, relativeColor: 0 },
+    { q: 2, r: 0, relativeColor: 25 },
+    // Ray 4: South
+    { q: 0, r: 1, relativeColor: 0 },
+    { q: 0, r: 2, relativeColor: 25 },
+    // Ray 5: SW
+    { q: -1, r: 1, relativeColor: 0 },
+    { q: -2, r: 2, relativeColor: 25 },
+    // Ray 6: NW
+    { q: -1, r: 0, relativeColor: 0 },
+    { q: -2, r: 0, relativeColor: 25 },
+  ],
+  hints: {
+    en: [
+      'Six spikes radiating from center',
+      'Base color for inner rays, +25% for outer tips',
+      'Creates a geometric star pattern',
+    ],
+    ru: [
+      'Шесть шипов, радиирующих из центра',
+      'Базовый цвет для внутренних лучей, +25% для внешних',
+      'Создаёт геометрическую звезду',
+    ],
+  },
+};
+
+/**
+ * Rainbow Spiral: Gradient flowing in spiral direction
+ * Difficulty: Hard
+ */
+export const TEMPLATE_RAINBOW_SPIRAL: BuildTemplate = {
+  id: 'rainbow_spiral',
+  name: {
+    en: 'Rainbow Spiral',
+    ru: 'Радужная спираль',
+  },
+  description: {
+    en: 'Spiral gradient with smooth color transitions',
+    ru: 'Спиральный градиент с плавным переходом цветов',
+  },
+  difficulty: 'hard',
+  anchorCell: { q: 0, r: 0 },
+  cells: [
+    // Spiral starting from center and wrapping clockwise
+    { q: 0, r: 0, relativeColor: 0 },      // Center: 0°
+    { q: 0, r: -1, relativeColor: 8.33 },  // N: 12.5% (1/8 palette)
+    { q: 1, r: -1, relativeColor: 16.67 }, // NE: 25% (2/8)
+    { q: 1, r: 0, relativeColor: 25 },     // E: 37.5% (3/8)
+    { q: 1, r: 1, relativeColor: 33.33 },  // SE: 50% (4/8) - opposite
+    { q: 0, r: 1, relativeColor: 25 },     // S: 37.5% (continue back)
+    { q: -1, r: 1, relativeColor: 16.67 }, // SW: 25%
+    { q: -1, r: 0, relativeColor: 8.33 },  // W: 12.5%
+    { q: -1, r: -1, relativeColor: 0 },    // NW: 0° (back to start)
+  ],
+  hints: {
+    en: [
+      'Nine cells forming a spiral path',
+      'Colors rotate through the entire palette',
+      'Creates a rainbow gradient effect',
+      'Most challenging template',
+    ],
+    ru: [
+      'Девять клеток, образующих спираль',
+      'Цвета вращаются через всю палитру',
+      'Создаёт эффект радужного градиента',
+      'Самый сложный шаблон',
+    ],
+  },
+};
+
+/**
+ * Cross: Simple + shaped pattern
+ * Difficulty: Easy
+ */
+export const TEMPLATE_CROSS: BuildTemplate = {
+  id: 'cross',
+  name: {
+    en: 'Cross',
+    ru: 'Крест',
+  },
+  description: {
+    en: 'Plus-shaped pattern with 5 cells',
+    ru: 'Крестообразный узор из 5 клеток',
+  },
+  difficulty: 'easy',
+  anchorCell: { q: 0, r: 0 },
+  cells: [
+    // Center
+    { q: 0, r: 0, relativeColor: 0 },
+    // Four cardinal directions
+    { q: 0, r: -1, relativeColor: 0 },     // North
+    { q: 1, r: 0, relativeColor: 0 },      // East
+    { q: 0, r: 1, relativeColor: 0 },      // South
+    { q: -1, r: 0, relativeColor: 0 },     // West
+  ],
+  hints: {
+    en: [
+      'Five cells in a + shape',
+      'All cells use the same base color',
+      'Good practice for rotation',
+    ],
+    ru: [
+      'Пять клеток в форме +',
+      'Все клетки используют базовый цвет',
+      'Хорошая практика для ротации',
+    ],
+  },
+};
+
+/**
  * All available templates
  */
 export const ALL_TEMPLATES: BuildTemplate[] = [
@@ -165,6 +340,10 @@ export const ALL_TEMPLATES: BuildTemplate[] = [
   TEMPLATE_TRIANGLE,
   TEMPLATE_FLOWER,
   TEMPLATE_YIN_YANG,
+  TEMPLATE_HEXAGON,
+  TEMPLATE_STAR,
+  TEMPLATE_RAINBOW_SPIRAL,
+  TEMPLATE_CROSS,
 ];
 
 /**
