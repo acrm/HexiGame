@@ -377,3 +377,5 @@
 - 2026w09-0.8 — Add Build Template System section to GAME_CONCEPT.md with template descriptions and design rationale
 
 - 2026w09-0.9 — Tutorial task selection/restart, completion transition gating, section filter in HexiPedia, and visibility-aware music start
+
+- 2026w09-0.10 — Persist full session state, fix HexiPedia layout/scrolling, align tab backgrounds, and enforce tutorial restrictions on switch

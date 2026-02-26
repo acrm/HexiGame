@@ -4,6 +4,10 @@
   flex-direction: column;
   padding: 0;
   color: #ffffff;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .hexipedia-section-filter {
@@ -243,6 +247,9 @@
 .hexipedia-template-item {
   border-bottom: 1px solid #444444;
   padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .hexipedia-template-item:last-child {
@@ -303,6 +310,12 @@
 .hexipedia-template-status.completed {
   color: #88ff88;
   font-weight: bold;
+}
+
+.hexipedia-template-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .hexipedia-template-expand {

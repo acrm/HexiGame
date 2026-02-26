@@ -39,35 +39,188 @@ import { axialToKey } from '../tutorial/tutorialState';
 
 // Session persistence helpers
 const SESSION_STORAGE_KEY = 'hexigame.session.state';
-const SESSION_GUEST_START_KEY = 'hexigame.session.guest.start';
 
-function saveSessionState(state: GameState) {
+type SerializedCell = { q: number; r: number; colorIndex: number | null };
+type SerializedActiveTemplate = {
+  templateId: string;
+  anchoredAt: {
+    q: number;
+    r: number;
+    baseColorIndex: number;
+    rotation: number;
+  } | null;
+  hasErrors: boolean;
+  filledCells: string[];
+  completedAtTick?: number;
+};
+
+type SerializedTutorialProgress = {
+  visitedTargetKeys: string[];
+  startTick: number;
+  completedAtTick?: number;
+};
+
+type SerializedGameState = {
+  tick?: number;
+  remainingSeconds?: number;
+  focus?: { q: number; r: number };
+  protagonist?: { q: number; r: number };
+  flash?: { type: 'success' | 'failure'; startedTick: number } | null;
+  grid?: SerializedCell[];
+  inventoryGrid?: SerializedCell[];
+  activeField?: 'world' | 'inventory';
+  hotbarSlots?: Array<number | null>;
+  selectedHotbarIndex?: number;
+  facingDirIndex?: number;
+  isDragging?: boolean;
+  autoMoveTarget?: { q: number; r: number } | null;
+  autoMoveTicksRemaining?: number;
+  autoFocusTarget?: { q: number; r: number } | null;
+  activeTemplate?: SerializedActiveTemplate | null;
+  completedTemplates?: string[];
+  tutorialLevelId?: string | null;
+  tutorialProgress?: SerializedTutorialProgress;
+  tutorialInteractionMode?: 'desktop' | 'mobile';
+  tutorialCompletedLevelIds?: string[];
+};
+
+type SessionState = {
+  gameState: SerializedGameState;
+  ui?: {
+    mobileTab?: 'heximap' | 'hexilab' | 'hexipedia';
+  };
+};
+
+function serializeGrid(grid: Map<string, { q: number; r: number; colorIndex: number | null }>): SerializedCell[] {
+  return Array.from(grid.values()).map(cell => ({
+    q: cell.q,
+    r: cell.r,
+    colorIndex: cell.colorIndex,
+  }));
+}
+
+function deserializeGrid(cells: SerializedCell[] | undefined): Map<string, { q: number; r: number; colorIndex: number | null }> | undefined {
+  if (!cells) return undefined;
+  const next = new Map<string, { q: number; r: number; colorIndex: number | null }>();
+  for (const cell of cells) {
+    next.set(`${cell.q},${cell.r}`, { q: cell.q, r: cell.r, colorIndex: cell.colorIndex });
+  }
+  return next;
+}
+
+function serializeGameState(state: GameState): SerializedGameState {
+  return {
+    tick: state.tick,
+    remainingSeconds: state.remainingSeconds,
+    focus: state.focus,
+    protagonist: state.protagonist,
+    flash: state.flash,
+    grid: serializeGrid(state.grid),
+    inventoryGrid: serializeGrid(state.inventoryGrid),
+    activeField: state.activeField,
+    hotbarSlots: state.hotbarSlots,
+    selectedHotbarIndex: state.selectedHotbarIndex,
+    facingDirIndex: state.facingDirIndex,
+    isDragging: state.isDragging,
+    autoMoveTarget: state.autoMoveTarget,
+    autoMoveTicksRemaining: state.autoMoveTicksRemaining,
+    autoFocusTarget: state.autoFocusTarget,
+    activeTemplate: state.activeTemplate ? {
+      templateId: state.activeTemplate.templateId,
+      anchoredAt: state.activeTemplate.anchoredAt,
+      hasErrors: state.activeTemplate.hasErrors,
+      filledCells: Array.from(state.activeTemplate.filledCells),
+      completedAtTick: state.activeTemplate.completedAtTick,
+    } : state.activeTemplate ?? null,
+    completedTemplates: Array.from(state.completedTemplates ?? []),
+    tutorialLevelId: state.tutorialLevelId ?? null,
+    tutorialProgress: state.tutorialProgress ? {
+      visitedTargetKeys: Array.from(state.tutorialProgress.visitedTargetKeys),
+      startTick: state.tutorialProgress.startTick,
+      completedAtTick: state.tutorialProgress.completedAtTick,
+    } : undefined,
+    tutorialInteractionMode: state.tutorialInteractionMode,
+    tutorialCompletedLevelIds: Array.from(state.tutorialCompletedLevelIds ?? []),
+  };
+}
+
+function deserializeGameState(serialized: SerializedGameState, fallback: GameState): GameState {
+  const grid = deserializeGrid(serialized.grid) ?? fallback.grid;
+  const inventoryGrid = deserializeGrid(serialized.inventoryGrid) ?? fallback.inventoryGrid;
+  const activeTemplate = serialized.activeTemplate === undefined
+    ? fallback.activeTemplate
+    : serialized.activeTemplate
+      ? {
+          ...serialized.activeTemplate,
+          filledCells: new Set(serialized.activeTemplate.filledCells ?? []),
+        }
+      : null;
+
+  return {
+    ...fallback,
+    tick: serialized.tick ?? fallback.tick,
+    remainingSeconds: serialized.remainingSeconds ?? fallback.remainingSeconds,
+    focus: serialized.focus ?? fallback.focus,
+    protagonist: serialized.protagonist ?? fallback.protagonist,
+    flash: serialized.flash ?? fallback.flash,
+    grid,
+    inventoryGrid,
+    activeField: serialized.activeField ?? fallback.activeField,
+    hotbarSlots: serialized.hotbarSlots ?? fallback.hotbarSlots,
+    selectedHotbarIndex: serialized.selectedHotbarIndex ?? fallback.selectedHotbarIndex,
+    facingDirIndex: serialized.facingDirIndex ?? fallback.facingDirIndex,
+    isDragging: serialized.isDragging ?? fallback.isDragging,
+    autoMoveTarget: serialized.autoMoveTarget ?? fallback.autoMoveTarget,
+    autoMoveTicksRemaining: serialized.autoMoveTicksRemaining ?? fallback.autoMoveTicksRemaining,
+    autoFocusTarget: serialized.autoFocusTarget ?? fallback.autoFocusTarget,
+    activeTemplate,
+    completedTemplates: new Set(serialized.completedTemplates ?? Array.from(fallback.completedTemplates ?? [])),
+    tutorialLevelId: serialized.tutorialLevelId ?? fallback.tutorialLevelId,
+    tutorialProgress: serialized.tutorialProgress ? {
+      visitedTargetKeys: new Set(serialized.tutorialProgress.visitedTargetKeys),
+      startTick: serialized.tutorialProgress.startTick,
+      completedAtTick: serialized.tutorialProgress.completedAtTick,
+    } : fallback.tutorialProgress,
+    tutorialInteractionMode: serialized.tutorialInteractionMode ?? fallback.tutorialInteractionMode,
+    tutorialCompletedLevelIds: new Set(serialized.tutorialCompletedLevelIds ?? Array.from(fallback.tutorialCompletedLevelIds ?? [])),
+  };
+}
+
+function normalizeSessionState(raw: any): SessionState | null {
+  if (!raw) return null;
+  if (raw.gameState) return raw as SessionState;
+
+  const legacyProgress = raw.tutorialProgress;
+  const legacyGameState: SerializedGameState = {
+    tick: raw.tick,
+    tutorialLevelId: raw.tutorialLevelId,
+    tutorialCompletedLevelIds: raw.tutorialCompletedLevelIds,
+    tutorialProgress: legacyProgress ? {
+      visitedTargetKeys: legacyProgress.visitedTargetKeys ?? [],
+      startTick: legacyProgress.startTick ?? 0,
+      completedAtTick: legacyProgress.completedAtTick,
+    } : undefined,
+  };
+
+  return { gameState: legacyGameState, ui: raw.ui };
+}
+
+function saveSessionState(state: GameState, ui?: SessionState['ui']) {
   try {
-    const serialized = JSON.stringify({
-      tick: state.tick,
-      tutorialLevelId: state.tutorialLevelId,
-      tutorialCompletedLevelIds: Array.from(state.tutorialCompletedLevelIds ?? []),
-      tutorialProgress: state.tutorialProgress ? {
-        visitedTargetKeys: Array.from(state.tutorialProgress.visitedTargetKeys),
-        startTick: state.tutorialProgress.startTick,
-        completedAtTick: state.tutorialProgress.completedAtTick,
-      } : undefined,
-    });
-    localStorage.setItem(SESSION_STORAGE_KEY, serialized);
+    const serialized: SessionState = {
+      gameState: serializeGameState(state),
+      ui,
+    };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(serialized));
   } catch (e) {
     console.warn('Failed to save session state:', e);
   }
 }
 
-function loadSessionState(): {
-  tick: number;
-  tutorialLevelId?: string | null;
-  tutorialCompletedLevelIds?: string[];
-  tutorialProgress?: any;
-} | null {
+function loadSessionState(): SessionState | null {
   try {
     const saved = localStorage.getItem(SESSION_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : null;
+    return normalizeSessionState(saved ? JSON.parse(saved) : null);
   } catch (e) {
     console.warn('Failed to load session state:', e);
     return null;
@@ -76,28 +229,17 @@ function loadSessionState(): {
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
+  const initialSessionStateRef = useRef(loadSessionState());
   const mergedParams: Params = { ...DefaultParams, ...(params || {}) };
   const rngRef = useRef<RNG>(mulberry32(seed ?? Date.now()));
   const [gameState, setGameState] = useState<GameState>(() => {
     const guestStarted = !!localStorage.getItem('hexigame.guest.started');
     const initialState = createInitialState(mergedParams, rngRef.current);
+    const initialSession = initialSessionStateRef.current;
     
     // If guest was already started (user returning after reload), restore session state
-    if (guestStarted) {
-      const savedState = loadSessionState();
-      if (savedState) {
-        return {
-          ...initialState,
-          tick: savedState.tick,
-          tutorialLevelId: savedState.tutorialLevelId,
-          tutorialCompletedLevelIds: new Set(savedState.tutorialCompletedLevelIds ?? []),
-          tutorialProgress: savedState.tutorialProgress ? {
-            visitedTargetKeys: new Set(savedState.tutorialProgress.visitedTargetKeys),
-            startTick: savedState.tutorialProgress.startTick,
-            completedAtTick: savedState.tutorialProgress.completedAtTick,
-          } : undefined,
-        };
-      }
+    if (guestStarted && initialSession?.gameState) {
+      return deserializeGameState(initialSession.gameState, initialState);
     }
     
     return initialState;
@@ -108,6 +250,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
   const [mobileTab, setMobileTab] = useState<'heximap' | 'hexilab' | 'hexipedia'>(() => {
+    const savedTab = initialSessionStateRef.current?.ui?.mobileTab;
+    if (savedTab) return savedTab;
     const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
     return hasTutorialStarted ? 'heximap' : 'hexipedia';
   });
@@ -147,6 +291,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return saved ? saved === 'true' : false;
   });
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
+    const savedLevelId = initialSessionStateRef.current?.gameState?.tutorialLevelId;
+    if (savedLevelId !== undefined) return savedLevelId ?? null;
     // Start mandatory tutorial on first session
     const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
     return hasTutorialStarted ? null : 'tutorial_1_movement';
@@ -256,9 +402,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Persist game state changes to localStorage
   useEffect(() => {
     if (guestStarted) {
-      saveSessionState(gameState);
+      saveSessionState(gameState, { mobileTab });
     }
-  }, [gameState, guestStarted]);
+  }, [gameState, guestStarted, mobileTab]);
 
   // Handle template audio feedback
   const prevTemplateStateRef = useRef<GameState['activeTemplate']>(null);
@@ -465,6 +611,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const isMobileLayout = true;
 
   const isHexiLabLocked = tutorialLevel?.disableInventory ?? false;
+
+  useEffect(() => {
+    if (!tutorialLevel?.disableInventory) return;
+    setIsInventory(false);
+    setGameState(prev => ({ ...prev, activeField: 'world' }));
+    if (mobileTab === 'hexilab') {
+      setMobileTab('heximap');
+    }
+  }, [tutorialLevel?.disableInventory, mobileTab]);
 
   // Track focus visits on target cells
   useEffect(() => {

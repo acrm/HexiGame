@@ -117,13 +117,14 @@ html, body {
   display: flex;
   width: 100%;
   max-width: min(420px, calc(var(--vh, 1vh) * 100 * 9 / 16));
-  background: var(--game-bg, #370152ff);
+  background: #000000;
 }
 
 .game-root.mobile-forced .game-main {
   width: 100%;
   max-width: min(420px, calc(var(--vh, 1vh) * 100 * 9 / 16));
   background: var(--game-bg, #370152ff);
+  overflow: hidden;
 }
 
 .game-root.mobile-forced .game-field-area {
@@ -140,6 +141,7 @@ html, body {
 .mobile-tabs-container {
   display: flex;
   width: fit-content;
+  background: var(--game-bg, #370152ff);
 }
 
 .mobile-tab {
@@ -193,6 +195,10 @@ html, body {
 
 .mobile-tab:nth-child(3).active {
   background: #444444;
+}
+
+.mobile-tab.active {
+  background: var(--game-bg, #370152ff);
 }
 
 @media (max-width: 900px) {

@@ -212,38 +212,40 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                   
                   return (
                     <div key={template.id} className="hexipedia-template-item">
-                      <label className="hexipedia-template-radio">
-                        <input
-                          type="radio"
-                          name="active-template"
-                          value={template.id}
-                          checked={isActive}
-                          onChange={() => {
+                      <div className="hexipedia-template-row">
+                        <label className="hexipedia-template-radio">
+                          <input
+                            type="radio"
+                            name="active-template"
+                            value={template.id}
+                            checked={isActive}
+                            onChange={() => {
+                              audioManager.playRandomSound();
+                              onActivateTemplate?.(template.id);
+                            }}
+                          />
+                          <span className="hexipedia-template-name">{template.name.en}</span>
+                          <span className={`hexipedia-template-difficulty ${template.difficulty}`}>
+                            {template.difficulty === 'easy' && '●'}
+                            {template.difficulty === 'medium' && '●●'}
+                            {template.difficulty === 'hard' && '●●●'}
+                          </span>
+                          <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
+                            {isCompleted ? '✓' : ''}
+                          </span>
+                        </label>
+                        
+                        <button
+                          className={`hexipedia-template-expand ${isExpanded ? 'expanded' : ''}`}
+                          onClick={() => {
                             audioManager.playRandomSound();
-                            onActivateTemplate?.(template.id);
+                            setExpandedTemplateId(isExpanded ? null : template.id);
                           }}
-                        />
-                        <span className="hexipedia-template-name">{template.name.en}</span>
-                        <span className={`hexipedia-template-difficulty ${template.difficulty}`}>
-                          {template.difficulty === 'easy' && '●'}
-                          {template.difficulty === 'medium' && '●●'}
-                          {template.difficulty === 'hard' && '●●●'}
-                        </span>
-                        <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
-                          {isCompleted ? '✓' : ''}
-                        </span>
-                      </label>
-                      
-                      <button
-                        className={`hexipedia-template-expand ${isExpanded ? 'expanded' : ''}`}
-                        onClick={() => {
-                          audioManager.playRandomSound();
-                          setExpandedTemplateId(isExpanded ? null : template.id);
-                        }}
-                        aria-label="Show template details"
-                      >
-                        ▼
-                      </button>
+                          aria-label="Show template details"
+                        >
+                          ▼
+                        </button>
+                      </div>
 
                       {isExpanded && (
                         <div className="hexipedia-template-details">
