@@ -379,3 +379,5 @@
 - 2026w09-0.9 — Tutorial task selection/restart, completion transition gating, section filter in HexiPedia, and visibility-aware music start
 
 - 2026w09-0.10 — Persist full session state, fix HexiPedia layout/scrolling, align tab backgrounds, and enforce tutorial restrictions on switch
+
+- 2026w09-0.11 — Render hotbar on desktop, fix mobile widget alignment, and show template offsets as text

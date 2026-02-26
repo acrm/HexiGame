@@ -2,7 +2,7 @@
 
 import { GameState, Params, Axial } from '../logic/pureLogic';
 import { getTemplateById } from '../templates/templateLibrary';
-import { getTemplateCellsWithWorldPos } from '../templates/templateLogic';
+import { getTemplateCellsWithWorldPos, validateTemplate } from '../templates/templateLogic';
 
 const HEX_SIZE = 10; // Match GameField's HEX_SIZE
 
@@ -43,7 +43,16 @@ function drawTemplateHex(
 function hexToPixel(q: number, r: number) {
   const x = HEX_SIZE * 1.5 * q;
   const y = HEX_SIZE * Math.sqrt(3) * (r + q / 2);
-return { x, y };
+  return { x, y };
+}
+
+function formatRelativeColor(relativeColor: number): string {
+  if (relativeColor === 0) return '0%';
+  const sign = relativeColor > 0 ? '+' : '';
+  const rounded = Math.abs(relativeColor) % 1 === 0
+    ? Math.abs(relativeColor).toString()
+    : Math.abs(relativeColor).toFixed(1).replace(/\.0$/, '');
+  return `${sign}${rounded}%`;
 }
 
 /**
@@ -95,8 +104,20 @@ export function renderTemplateOverlay(
     params.ColorPalette.length
   );
 
-  // Determine stroke color based on template state
-  const strokeColor = state.activeTemplate.hasErrors ? '#000000' : '#FFFFFF';
+  const incorrectCells = new Set<string>();
+  if (state.activeTemplate.anchoredAt) {
+    const validation = validateTemplate(
+      template,
+      anchorPos,
+      baseColorIndex ?? 0,
+      rotation,
+      state.grid,
+      params.ColorPalette.length
+    );
+    for (const key of validation.incorrectCells) {
+      incorrectCells.add(key);
+    }
+  }
 
   // Flickering animation for unanchored template
   const isFlickering = !state.activeTemplate.anchoredAt;
@@ -110,7 +131,7 @@ export function renderTemplateOverlay(
 
   // Render each template cell
   for (const cell of cells) {
-    const { worldPos, expectedColorIndex } = cell;
+    const { worldPos, expectedColorIndex, templateCell } = cell;
     const { x, y } = hexToPixel(worldPos.q, worldPos.r);
     const screenX = offsetX + x * scale;
     const screenY = offsetY + y * scale;
@@ -118,19 +139,15 @@ export function renderTemplateOverlay(
     // Skip cells that should be empty in template
     if (expectedColorIndex === null) continue;
 
-    // Determine fill color
-    let fillColor: string;
-    if (baseColorIndex !== undefined) {
-      // Template is anchored, use actual expected color
-      fillColor = params.ColorPalette[expectedColorIndex];
-    } else {
-      // Template is flickering, use semi-transparent white
-      fillColor = `rgba(255, 255, 255, ${opacity})`;
-    }
-
-    // For anchored templates, check if cell is filled correctly
     const cellKey = `${worldPos.q},${worldPos.r}`;
     const isCorrectlyFilled = state.activeTemplate.filledCells.has(cellKey);
+    const isIncorrect = incorrectCells.has(cellKey);
+    const strokeColor = isIncorrect ? '#000000' : '#FFFFFF';
+    const textColor = isIncorrect ? '#000000' : '#FFFFFF';
+    const fillColor = 'transparent';
+    const textValue = templateCell.relativeColor !== null
+      ? formatRelativeColor(templateCell.relativeColor)
+      : '';
 
     if (state.activeTemplate.anchoredAt) {
       if (isCorrectlyFilled) {
@@ -140,12 +157,22 @@ export function renderTemplateOverlay(
         // Cell needs to be filled - show template preview
         ctx.globalAlpha = opacity;
         drawTemplateHex(ctx, screenX, screenY, HEX_SIZE * scale, fillColor, strokeColor, 2);
+        ctx.fillStyle = textColor;
+        ctx.font = `${Math.max(9, Math.floor(HEX_SIZE * scale * 0.9))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(textValue, screenX, screenY);
         ctx.globalAlpha = 1;
       }
     } else {
       // Flickering mode - draw all cells
       ctx.globalAlpha = opacity;
       drawTemplateHex(ctx, screenX, screenY, HEX_SIZE * scale, fillColor, strokeColor, 2);
+      ctx.fillStyle = textColor;
+      ctx.font = `${Math.max(9, Math.floor(HEX_SIZE * scale * 0.9))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(textValue, screenX, screenY);
       ctx.globalAlpha = 1;
     }
   }
