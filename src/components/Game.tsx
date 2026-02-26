@@ -96,6 +96,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [fps, setFps] = useState(0);
   const spaceIsDownRef = useRef(false);
   const mouseIsDownRef = useRef(false);
+  const tutorialWinPlayedRef = useRef(false);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
   const [mobileTab, setMobileTab] = useState<'heximap' | 'hexilab' | 'hexipedia'>(() => {
@@ -103,11 +104,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return hasTutorialStarted ? 'heximap' : 'hexipedia';
   });
   const [isPaused, setIsPaused] = useState(false);
-  const [interactionMode, setInteractionMode] = useState<'desktop' | 'mobile'>(() => {
-    const coarse = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    const touch = typeof navigator !== 'undefined' && (navigator as any).maxTouchPoints > 0;
-    return coarse || touch ? 'mobile' : 'desktop';
-  });
+  const [interactionMode, setInteractionMode] = useState<'desktop' | 'mobile'>('mobile');
   const [guestStarted, setGuestStarted] = useState<boolean>(() => {
     return !!localStorage.getItem('hexigame.guest.started');
   });
@@ -173,22 +170,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     }
   }, [guestStarted, musicEnabled]);
 
-  // Detect mode changes based on pointer/orientation/size
+  // Force mobile interaction mode (desktop temporarily disabled)
   useEffect(() => {
-    const detect = () => {
-      const coarse = window.matchMedia?.('(pointer: coarse)')?.matches ?? false;
-      const touch = (navigator as any)?.maxTouchPoints > 0;
-      const narrow = window.innerWidth <= 900;
-      const mobile = coarse || touch || narrow;
-      setInteractionMode(mobile ? 'mobile' : 'desktop');
-    };
-    detect();
-    window.addEventListener('resize', detect);
-    window.addEventListener('orientationchange', detect as any);
-    return () => {
-      window.removeEventListener('resize', detect);
-      window.removeEventListener('orientationchange', detect as any);
-    };
+    setInteractionMode('mobile');
   }, []);
 
   // Tick loop (12 ticks/sec) - only runs after guest starts
@@ -368,6 +352,20 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const isTutorialTaskComplete = tutorialTargetKeys.length > 0 && visitedTargetCount === tutorialTargetKeys.length;
 
+  useEffect(() => {
+    if (!tutorialLevelId) {
+      tutorialWinPlayedRef.current = false;
+      return;
+    }
+    if (isTutorialTaskComplete && !tutorialWinPlayedRef.current) {
+      audioManager.playSound('audio/mixkit-small-win-2020.wav');
+      tutorialWinPlayedRef.current = true;
+    }
+    if (!isTutorialTaskComplete) {
+      tutorialWinPlayedRef.current = false;
+    }
+  }, [gameState.tick, isTutorialTaskComplete, tutorialLevelId]);
+
   const handleTutorialCompleteClick = () => {
     if (!tutorialLevelId || !tutorialLevel) return;
     if (!isTutorialTaskComplete) return;
@@ -388,7 +386,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setMobileTab('hexipedia');
   };
 
-  const isMobileLayout = typeof window !== 'undefined' && window.innerWidth <= 900;
+  const isMobileLayout = true;
 
   const isHexiLabLocked = tutorialLevel?.disableInventory ?? false;
 
@@ -443,7 +441,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     : '#370152ff';
 
   return (
-    <div className="game-root" style={{ backgroundColor }}>
+    <div
+      className="game-root mobile-forced"
+      style={{ backgroundColor: '#3a3a3a', ['--game-bg' as any]: backgroundColor }}
+    >
       {!isMobileLayout && (
         <div className="game-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', justifyContent: 'space-between' }}>

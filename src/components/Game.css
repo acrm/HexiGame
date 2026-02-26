@@ -9,7 +9,7 @@ html, body {
   width: 100vw;
   height: 100vh;
   max-height: 100vh;
-  background: #370152ff;
+  background: var(--game-bg, #370152ff);
   color: #fff;
   font-family: 'Roboto', sans-serif;
 }
@@ -98,6 +98,43 @@ html, body {
   display: none;
   background: #000;
   position: relative;
+}
+
+.game-root.mobile-forced {
+  flex-direction: column;
+  align-items: center;
+  height: calc(var(--vh, 1vh) * 100);
+  max-height: calc(var(--vh, 1vh) * 100);
+  overflow: hidden;
+  background: #3a3a3a;
+}
+
+.game-root.mobile-forced .game-panel {
+  display: none;
+}
+
+.game-root.mobile-forced .mobile-tab-bar {
+  display: flex;
+  width: 100%;
+  max-width: min(420px, calc(var(--vh, 1vh) * 100 * 9 / 16));
+  background: var(--game-bg, #370152ff);
+}
+
+.game-root.mobile-forced .game-main {
+  width: 100%;
+  max-width: min(420px, calc(var(--vh, 1vh) * 100 * 9 / 16));
+  background: var(--game-bg, #370152ff);
+}
+
+.game-root.mobile-forced .game-field-area {
+  width: 100%;
+}
+
+.game-root.mobile-forced .tutorial-widget-overlay {
+  left: 50%;
+  right: auto;
+  width: min(420px, calc(var(--vh, 1vh) * 100 * 9 / 16));
+  transform: translateX(-50%);
 }
 
 .mobile-tabs-container {

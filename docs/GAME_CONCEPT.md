@@ -135,7 +135,7 @@ The turtle serves as both the player's avatar and a navigation element:
 5. **Wiki/HexiPedia Button**: In-game reference for mechanics (under development).
 
 ### Control Schemes
-- **Desktop**: Arrow keys (move focus), Space (context action), Q/E (cycle hotbar), Tab (toggle inventory).
+- **Desktop**: Temporarily disabled; mobile UI is shown on all devices.
 - **Mobile**: Swipe to move focus, tap ACT button, on-screen hotbar selection, tap to toggle grids.
 
 ### Accessibility

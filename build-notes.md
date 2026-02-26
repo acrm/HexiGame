@@ -361,3 +361,9 @@
 - 2026w08-0.5 — Remove deprecated turtle color-shift mechanic
 
 - 2026w09-0.1 — Remove scoring logic and references
+
+- 2026w09-0.2 — Force mobile UI and play win sound on task completion
+
+- 2026w09-0.3 — Center forced mobile layout on wide screens
+
+- 2026w09-0.4 — Constrain forced mobile layout width and gray gutters
