@@ -158,7 +158,7 @@ export function renderTemplateOverlay(
         ctx.globalAlpha = opacity;
         drawTemplateHex(ctx, screenX, screenY, HEX_SIZE * scale, fillColor, strokeColor, 2);
         ctx.fillStyle = textColor;
-        ctx.font = `${Math.max(9, Math.floor(HEX_SIZE * scale * 0.9))}px sans-serif`;
+        ctx.font = `${Math.max(5, Math.floor(HEX_SIZE * scale * 0.5))}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(textValue, screenX, screenY);
@@ -169,7 +169,7 @@ export function renderTemplateOverlay(
       ctx.globalAlpha = opacity;
       drawTemplateHex(ctx, screenX, screenY, HEX_SIZE * scale, fillColor, strokeColor, 2);
       ctx.fillStyle = textColor;
-      ctx.font = `${Math.max(9, Math.floor(HEX_SIZE * scale * 0.9))}px sans-serif`;
+      ctx.font = `${Math.max(5, Math.floor(HEX_SIZE * scale * 0.5))}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(textValue, screenX, screenY);

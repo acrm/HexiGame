@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Params, GameState, Axial, computeBreadcrumbs } from '../logic/pureLogic';
 import { renderTemplateOverlay } from './TemplateRenderer';
+import ColorPaletteWidget from './ColorPaletteWidget';
 
 const HEX_SIZE = 10; // pixels
 const GRID_STROKE_COLOR = '#635572ff';
@@ -822,8 +823,14 @@ export const GameField: React.FC<GameFieldProps> = ({
   }, [onSetCursor, onCellClickDown, onCellClickUp, onCellDrag]);
 
   return (
-    <div ref={canvasContainerRef} className="game-field">
+    <div ref={canvasContainerRef} className="game-field" style={{ position: 'relative' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
+      <ColorPaletteWidget
+        colorPalette={params.ColorPalette}
+        focusColorIndex={
+          gameState.grid.get(`${gameState.focus.q},${gameState.focus.r}`)?.colorIndex ?? params.PlayerBaseColorIndex
+        }
+      />
     </div>
   );
 };
