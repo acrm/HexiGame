@@ -349,3 +349,13 @@
 - 2026w07-0.12 — Split session statistics into separate rows: time and ticks
 
 - 2026w07-0.13 — Persist session state across page reloads: save tick count and tutorial progress
+
+- 2026w08-0.1 — Add game designer role instructions
+
+- 2026w08-0.2 — Sync game designer role instructions
+
+- 2026w08-0.3 — Add comprehensive game design concept document
+
+- 2026w08-0.4 — Add game design concept document
+
+- 2026w08-0.5 — Remove deprecated turtle color-shift mechanic

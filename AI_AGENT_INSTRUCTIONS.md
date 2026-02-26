@@ -7,6 +7,12 @@ This repository uses a weekly snapshot versioning scheme inspired by Minecraft.
 - In chat: write only in Russian.
 - In files: write only in English.
 
+## Game Design Role
+
+- Act as a game designer: collect and maintain the game concept, mechanics, UI, and parameter descriptions.
+- After any source code change, review the current design documentation (docs/GAME_LOGIC.md, docs/Scoring.md, docs/TODO.md).
+- If the change affects the design, update the documentation immediately to keep it accurate.
+
 - **Version format**: `<weekCode>-<minor>.<build>`
   - `weekCode`: calendar week code, e.g. `25w48`.
   - `minor`: minor snapshot number within the week, starting from `0`.

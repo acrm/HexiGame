@@ -47,9 +47,6 @@ export interface GameState {
   selectedHotbarIndex: number;
   facingDirIndex: number; // 0..5, protagonist facing direction
   paletteCounts?: Record<string, number>; // eaten counters by color hex value
-  turtleColorIndex?: number; // current turtle color index
-  lastColorShiftTick?: number | null; // last tick when turtle color shifted
-  standTargetColorIndex?: number | null; // color of hex currently standing on
   isDragging?: boolean; // true when user is dragging protagonist/focus
   autoMoveTarget?: Axial | null; // target cell for automatic movement
   autoMoveTicksRemaining?: number; // ticks until next auto move step (2 ticks per step)
@@ -170,9 +167,6 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     selectedHotbarIndex: 0,
     facingDirIndex: 0,
     grid,
-    turtleColorIndex: params.PlayerBaseColorIndex,
-    lastColorShiftTick: null,
-    standTargetColorIndex: null,
     isDragging: false,
     autoMoveTarget: null,
     autoMoveTicksRemaining: 0,
@@ -558,45 +552,7 @@ function findDirectionToward(fromQ: number, fromR: number, toQ: number, toR: num
   return axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
 }
 
-
-// Step one color toward target along shortest path on the wheel
-export function stepTowardsColor(current: number, target: number, paletteLen: number): number {
-  if (paletteLen <= 0) return current;
-  const mod = (n: number) => ((n % paletteLen) + paletteLen) % paletteLen;
-  current = mod(current);
-  target = mod(target);
-  if (current === target) return current;
-  // Distances clockwise and counter-clockwise
-  const cw = mod(target - current);
-  const ccw = mod(current - target);
-  // Move one step in the direction that reduces distance
-  if (cw <= ccw) {
-    return mod(current + 1);
-  } else {
-    return mod(current - 1);
-  }
-}
-
-// Shift turtle color when it leaves a colored hex
-function applyColorDriftOnDeparture(state: GameState, params: Params, from: Axial): GameState {
-  const cell = getCell(state.grid, from);
-  if (!cell || cell.colorIndex === null) return state;
-  const paletteLen = params.ColorPalette.length;
-  if (paletteLen <= 0) return state;
-  const current = state.turtleColorIndex ?? params.PlayerBaseColorIndex;
-  const nextColor = stepTowardsColor(current, cell.colorIndex, paletteLen);
-  if (nextColor === current) {
-    return { ...state, standTargetColorIndex: cell.colorIndex, lastColorShiftTick: state.tick };
-  }
-  return {
-    ...state,
-    turtleColorIndex: nextColor,
-    standTargetColorIndex: cell.colorIndex,
-    lastColorShiftTick: state.tick,
-  };
-}
-
-// Chance by distance between player (current turtle color) and target color
+// Chance by distance between player base color and target color
 export function computeChanceByPlayerIndex(params: Params, playerIndex: number, colorIndex: number): number {
   const paletteLen = params.ColorPalette.length;
   if (paletteLen <= 0) return 0;

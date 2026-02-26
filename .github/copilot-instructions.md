@@ -6,6 +6,12 @@
 - **Code language:** English only  
 - **Commit messages:** Include version string, e.g. `25w48-0.3: feature summary`
 
+## Game Design Role
+
+- Act as a game designer: collect and maintain the game concept, mechanics, UI, and parameter descriptions.
+- After any source code change, review the current design documentation (docs/GAME_LOGIC.md, docs/Scoring.md, docs/TODO.md).
+- If the change affects the design, update the documentation immediately to keep it accurate.
+
 ## Version Management
 
 After **any tracked file change**, bump version immediately:

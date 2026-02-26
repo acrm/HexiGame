@@ -7,7 +7,6 @@ interface PaletteClusterProps {
   eatenCounts: Record<string, number>;
   hoverColorIndex: number | null;
   chance: number | null;
-  turtleColorIndex?: number;
 }
 
 const PaletteCluster: React.FC<PaletteClusterProps> = ({
@@ -17,7 +16,6 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
   eatenCounts,
   hoverColorIndex,
   chance,
-  turtleColorIndex,
 }) => {
   const uniformHexSize = 40; // px, box size per hex (width/height of SVG)
   const hexRadius = uniformHexSize / 2; // px, actual hex radius for spacing
@@ -46,7 +44,6 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
         const color = colorPalette[colorIdx];
         const cnt = eatenCounts[color] || 0;
         const isHover = colorIdx === hoverColorIndex;
-        const isTurtleColor = turtleColorIndex !== undefined && colorIdx === turtleColorIndex;
 
         return (
           <svg
@@ -71,8 +68,8 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
                 return `${px},${py}`;
               }).join(' ')}
               fill={color}
-              stroke={isTurtleColor ? '#00FF00' : isHover ? '#FFFFFF' : '#BBBBBB'}
-              strokeWidth={isTurtleColor ? 0.18 : 0.12}
+              stroke={isHover ? '#FFFFFF' : '#BBBBBB'}
+              strokeWidth={0.12}
             />
             <text
               x={0}

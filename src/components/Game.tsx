@@ -459,7 +459,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               eatenCounts={eatenCounts}
               hoverColorIndex={hoverColorIndex}
               chance={null}
-              turtleColorIndex={gameState.turtleColorIndex}
             />
           </div>
           <ControlsDesktop />

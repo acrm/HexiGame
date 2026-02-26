@@ -421,8 +421,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         const INV_TURTLE_MARGIN_HEX = -6;  // vertical gap below grid in hex units
 
         const invBgShellColor = '#570546ff'; 
-        const turtleColorIndex = (gameState as any).turtleColorIndex ?? params.PlayerBaseColorIndex;
-        const baseColor = params.ColorPalette[turtleColorIndex] || '#FFFFFF';
+        const baseColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#FFFFFF';
 
         // Position turtle just below bottom of inventory grid
         const pivotX = centerX;
@@ -600,8 +599,7 @@ export const GameField: React.FC<GameFieldProps> = ({
             }
           }
           const tailIndex = (headIndex + 3) % 6;
-          const turtleColorIndex = (gameState as any).turtleColorIndex ?? params.PlayerBaseColorIndex;
-          const baseColor = params.ColorPalette[turtleColorIndex] || '#FFFFFF';
+          const baseColor = params.ColorPalette[params.PlayerBaseColorIndex] || '#FFFFFF';
 
           for (let i = 0; i < smallCenters.length; i++) {
             if (i === tailIndex) continue;
