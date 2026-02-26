@@ -46,3 +46,26 @@ Whenever you, as an AI agent, finish a task that involves **any change to tracke
   - Example: `25w48-0.3: adjust mobile joystick visuals`.
 
 Always run the appropriate bump command **after** your code changes are applied and before suggesting a commit message.
+
+## Git commit workflow
+
+**Standard process for any task with file changes:**
+
+1. Apply all code changes
+2. Run version bump: `npm run bump:build -- --desc "Description"`
+3. Stage and commit immediately:
+   ```bash
+   git add -A && git commit -m "<version>: <description from bump>"
+   ```
+
+**For critical bug fixes** (game doesn't render, major visual corruption, etc.):
+
+If the fix requires multiple attempts and you've already committed once:
+1. Apply the corrective changes
+2. Run version bump: `npm run bump:build -- --desc "Fix details"`
+3. Squash into previous commit with new version:
+   ```bash
+   git add -A && git reset --soft HEAD~1 && git commit -m "<new version>: <original functional description>"
+   ```
+
+This preserves the original feature/bugfix description while updating the version number.

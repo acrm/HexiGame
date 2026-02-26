@@ -33,6 +33,24 @@ npm run bump:build -- --desc "msg"  # Bump build version
 npm run bump:minor -- --desc "msg"  # Bump minor version
 ```
 
+## Git Commit Workflow
+
+**For any task with file changes:**
+
+1. Apply code changes
+2. Bump version: `npm run bump:build -- --desc "Description"`
+3. Commit with version in message:
+   ```bash
+   git add -A && git commit -m "<version>: <description>"
+   ```
+
+**For critical bug fixes** (game broken/unrendered):
+- If already committed, use squash commit to preserve original description:
+  ```bash
+  git add -A && git reset --soft HEAD~1 && git commit -m "<new version>: <original description>"
+  ```
+- This updates version while keeping functional description unchanged
+
 ## Key Documentation
 
 Refer to these files for project details — do not cite their content, only link:

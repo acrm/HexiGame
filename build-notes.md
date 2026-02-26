@@ -369,3 +369,5 @@
 - 2026w09-0.4 — Constrain forced mobile layout width and gray gutters
 
 - 2026w09-0.5 — Fix JSX structure in HexiPedia: remove extra closing div
+
+- 2026w09-0.6 — Document git commit workflow and critical bug squash process
