@@ -183,15 +183,90 @@ PaletteDistance = |cell.colorIndex - PlayerBaseColorIndex|
 ```
 
 ---
-## 6. Not Implemented (Scope Notes)
+## 6. Build Template System
+
+### Overview
+The build template system allows players to create spatial color patterns following predefined templates. Templates guide players through visual overlays that move with the player or remain fixed once anchored.
+
+### Template Data Structure
+Each template (`BuildTemplate`) contains:
+- **Metadata**: id, name, description, difficulty level
+- **Anchor Cell**: Starting reference point (relative coordinates)
+- **Cell List**: Array of template cells with:
+  - Relative coordinates (q, r)
+  - Relative color (-50 to +50, percentage offset from base color)
+  - `null` for cells that should remain empty
+
+### Relative Color System
+Colors are specified as percentages from the base color:
+- **0%**: Same as anchor (base color)
+- **±25%**: Quarter-step around the palette
+- **±50%**: Opposite/antagonist color (half-step)
+
+Formula for absolute color:
+```
+absoluteColorIndex = (baseColorIndex + round(relativeColor/100 × paletteSize) + paletteSize) % paletteSize
+```
+
+### Template Lifecycle
+
+#### 1. **Activation**
+Player selects a template. Template enters "flickering mode":
+- Attaches to player's focus position
+- Rotates with player's facing direction
+- Opacity oscillates (0.2–0.6) at ~0.5s period
+
+#### 2. **Anchoring**
+When player places first hex matching the template:
+- Base color inferred from placed hex
+- Template anchors to that position
+- Rotation locked to current facing direction
+- Template transitions to validation mode
+
+#### 3. **Validation**
+For each cell in anchored template:
+- **Correct**: Cell matches expected color → white stroke, positive sound
+- **Wrong**: Cell has wrong color → black stroke, negative sound
+- **Empty**: Cell awaits filling → semi-transparent preview
+
+#### 4. **Completion**
+When all template cells correctly filled:
+- Template completion event fires
+- Fanfare sound plays
+- Recorded in `completedTemplates` set
+- Can remove hexes to reset to flickering mode
+
+### State Variables in `GameState`
+```typescript
+activeTemplate?: {
+  templateId: string;
+  anchoredAt?: {
+    q: number; r: number;
+    baseColorIndex: number;
+    rotation: number;  // 0–5
+  } | null;
+  hasErrors: boolean;
+  filledCells: Set<string>;  // "q,r" format
+  completedAtTick?: number;
+}
+completedTemplates?: Set<string>;
+```
+
+### Audio Feedback
+- **Cell Correct**: UI tone on match
+- **Cell Wrong**: Retro click on mismatch
+- **Template Completed**: Fanfare sound
+
+---
+## 8. Not Implemented (Scope Notes)
 Still absent: delivery targets, objectives, progression, end conditions, obstacles beyond occupied cells, persistence.
 
 ---
-## 7. Summary
+## 9. Summary
 The prototype’s gameplay centers on probabilistic single-color capture and spatial transport constrained by empty adjacency. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate.
 
 ---
-## 8. Potential Future Parameters (Extensions)
+## 10. Potential Future Parameters (Extensions)
 - `MultipleCarryAllowed` (bool)
 - `TransportLeavesTrail` (bool, whether previous cell retains color instead of clearing)
 - `CaptureChanceMinClamp` (percent)

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Params, GameState, Axial, computeBreadcrumbs } from '../logic/pureLogic';
+import { renderTemplateOverlay } from './TemplateRenderer';
 
 const HEX_SIZE = 10; // pixels
 const GRID_STROKE_COLOR = '#635572ff';
@@ -741,6 +742,9 @@ export const GameField: React.FC<GameFieldProps> = ({
         frameData.frames = 0;
         frameData.last = now;
       }
+
+      // Render template overlay if active
+      renderTemplateOverlay(ctx, gameState, params, centerX, centerY, gameState.tick, scale);
 
       ctx.save();
       ctx.fillStyle = '#ffffff';

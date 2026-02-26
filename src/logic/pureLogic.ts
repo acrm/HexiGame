@@ -1,6 +1,16 @@
 // Pure, functional game logic for the Color Cell prototype
 // No DOM/Canvas, immutable updates, tick-based timing (12 ticks/sec)
 
+import type { ActiveTemplateState } from '../templates/templateTypes';
+import {
+  validateTemplate,
+  isTemplateCompleted,
+  isTemplateEmpty,
+  determineTemplateAnchor,
+} from '../templates/templateLogic';
+import { getTemplateById } from '../templates/templateLibrary';
+import type { BuildTemplate } from '../templates/templateTypes';
+
 // ---------- Types ----------
 export type Axial = { q: number; r: number };
 
@@ -59,6 +69,10 @@ export interface GameState {
     completedAtTick?: number;   // Tick when the level completed
   };
   tutorialInteractionMode?: 'desktop' | 'mobile'; // Control mode for hints
+  
+  // Build Template system
+  activeTemplate?: ActiveTemplateState | null;
+  completedTemplates?: Set<string>;  // IDs of completed templates
 }
 
 export type RNG = () => number; // returns float in [0,1)
@@ -100,6 +114,11 @@ export function keyOf(q: number, r: number): string {
 
 export function keyOfAxial(p: Axial): string {
   return keyOf(p.q, p.r);
+}
+
+// Alias for compatibility with template system
+export function axialToKey(p: Axial): string {
+  return keyOfAxial(p);
 }
 
 export function axialInDisk(radius: number, q: number, r: number): boolean {
@@ -465,11 +484,19 @@ export function eatToHotbar(state: GameState, params: Params): GameState {
     }
   }
 
-  return {
+  const nextState = {
     ...state,
     grid: nextGridFinal,
     hotbarSlots: nextSlots,
   };
+
+  // Update template state if grid changed
+  if (nextState.activeTemplate && nextGridFinal !== state.grid) {
+    const { state: updatedState } = updateTemplateState(nextState, params);
+    return updatedState;
+  }
+
+  return nextState;
 }
 
 // ---------- Context Action (instant, no mode needed) ----------
@@ -548,40 +575,40 @@ export function exchangeWithHotbarSlot(state: GameState, params: Params, slotIdx
   const focusHasHex = focusCell.colorIndex !== null;
   const slotHasHex = slotValue !== null && slotValue !== undefined;
 
+  let nextState = state;
+
   // If slot is empty and focus has hex: absorb to slot
   if (!slotHasHex && focusHasHex) {
     const nextSlots = [...state.hotbarSlots];
     nextSlots[slotIdx] = focusCell.colorIndex;
     const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex: null }]);
-    return {
+    nextState = {
       ...state,
       hotbarSlots: nextSlots,
       grid: nextGrid,
       selectedHotbarIndex: slotIdx,
     };
   }
-
   // If slot has hex and focus is empty: take from slot
-  if (slotHasHex && !focusHasHex) {
+  else if (slotHasHex && !focusHasHex) {
     const nextSlots = [...state.hotbarSlots];
     const colorIndex = slotValue as number;
     nextSlots[slotIdx] = null;
     const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex }]);
-    return {
+    nextState = {
       ...state,
       hotbarSlots: nextSlots,
       grid: nextGrid,
       selectedHotbarIndex: slotIdx,
     };
   }
-
   // If both have hex: exchange
-  if (slotHasHex && focusHasHex) {
+  else if (slotHasHex && focusHasHex) {
     const nextSlots = [...state.hotbarSlots];
     const temp = focusCell.colorIndex;
     nextSlots[slotIdx] = temp;
     const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex: slotValue as number }]);
-    return {
+    nextState = {
       ...state,
       hotbarSlots: nextSlots,
       grid: nextGrid,
@@ -589,7 +616,13 @@ export function exchangeWithHotbarSlot(state: GameState, params: Params, slotIdx
     };
   }
 
-  return state;
+  // Update template state if grid changed
+  if (nextState !== state && nextState.activeTemplate) {
+    const { state: updatedState } = updateTemplateState(nextState, params);
+    return updatedState;
+  }
+
+  return nextState;
 }
 
 function performHotbarTransfer(state: GameState, params: Params): GameState {
@@ -602,32 +635,39 @@ function performHotbarTransfer(state: GameState, params: Params): GameState {
   const focusHasHex = focusCell.colorIndex !== null;
   const slotHasHex = slotValue !== null && slotValue !== undefined;
 
+  let nextState = state;
+
   // Move from focus to hotbar if slot empty and focus has hex
   if (!slotHasHex && focusHasHex) {
     const nextSlots = [...state.hotbarSlots];
     nextSlots[slotIdx] = focusCell.colorIndex;
     const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex: null }]);
-    return {
+    nextState = {
       ...state,
       hotbarSlots: nextSlots,
       grid: nextGrid,
     };
   }
-
   // Move from hotbar to focus if slot filled and focus empty
-  if (slotHasHex && !focusHasHex) {
+  else if (slotHasHex && !focusHasHex) {
     const nextSlots = [...state.hotbarSlots];
     const colorIndex = slotValue as number;
     nextSlots[slotIdx] = null;
     const nextGrid = updateCells(state.grid, [{ ...focusCell, colorIndex }]);
-    return {
+    nextState = {
       ...state,
       hotbarSlots: nextSlots,
       grid: nextGrid,
     };
   }
 
-  return state;
+  // Update template state if grid changed
+  if (nextState !== state && nextState.activeTemplate) {
+    const { state: updatedState } = updateTemplateState(nextState, params);
+    return updatedState;
+  }
+
+  return nextState;
 }
 
 // Compute greedy shortest path from from->to (list of cells excluding start, including destination)
@@ -655,6 +695,161 @@ export function computeBreadcrumbs(state: GameState, params: Params): Axial[] {
   const start = { q: state.protagonist.q + headDir.q, r: state.protagonist.r + headDir.r };
   if (!axialInDisk(params.GridRadius, start.q, start.r)) return [];
   return computeShortestPath(start, state.focus, params);
+}
+
+// ---------- Build Template System ----------
+
+/**
+ * Activate a build template (enters flickering mode, attached to focus)
+ */
+export function activateTemplate(state: GameState, templateId: string): GameState {
+  const template = getTemplateById(templateId);
+  if (!template) return state;
+  
+  return {
+    ...state,
+    activeTemplate: {
+      templateId,
+      anchoredAt: null, // Starts in flickering mode
+      hasErrors: false,
+      filledCells: new Set(),
+    },
+    completedTemplates: state.completedTemplates || new Set(),
+  };
+}
+
+/**
+ * Deactivate current template
+ */
+export function deactivateTemplate(state: GameState): GameState {
+  return {
+    ...state,
+    activeTemplate: null,
+  };
+}
+
+/**
+ * Update template state after a hex is placed or removed
+ * Should be called after any grid modification
+ */
+export function updateTemplateState(
+  state: GameState,
+  params: Params
+): { state: GameState; event?: 'cell_correct' | 'cell_wrong' | 'template_completed' } {
+  if (!state.activeTemplate) return { state };
+  
+  const template = getTemplateById(state.activeTemplate.templateId);
+  if (!template) return { state };
+  
+  let nextState = { ...state };
+  let event: 'cell_correct' | 'cell_wrong' | 'template_completed' | undefined;
+  
+  // If not yet anchored, check if we should anchor
+  if (!state.activeTemplate.anchoredAt) {
+    // Check if a hex was placed at focus position
+    const focusCell = getCell(state.grid, state.focus);
+    if (focusCell && focusCell.colorIndex !== null) {
+      // Try to anchor the template
+      const anchor = determineTemplateAnchor(
+        template,
+        state.focus,
+        focusCell.colorIndex,
+        state.focus,
+        state.facingDirIndex
+      );
+      
+      if (anchor) {
+        // Template is now anchored
+        nextState = {
+          ...nextState,
+          activeTemplate: {
+            ...state.activeTemplate,
+            anchoredAt: {
+              q: anchor.anchorPos.q,
+              r: anchor.anchorPos.r,
+              baseColorIndex: anchor.baseColorIndex,
+              rotation: state.facingDirIndex,
+            },
+            filledCells: new Set([axialToKey(state.focus)]),
+          },
+        };
+        event = 'cell_correct';
+      }
+    }
+  } else {
+    // Template is anchored, validate it
+    const validation = validateTemplate(
+      template,
+      state.activeTemplate.anchoredAt,
+      state.activeTemplate.anchoredAt.baseColorIndex,
+      state.activeTemplate.anchoredAt.rotation,
+      state.grid,
+      params.ColorPalette.length
+    );
+    
+    const previousErrors = state.activeTemplate.hasErrors;
+    const previousFilledCount = state.activeTemplate.filledCells.size;
+    const newFilledCount = validation.correctCells.length;
+    
+    // Check if template should reset to flickering (all cells empty)
+    if (isTemplateEmpty(
+      template,
+      state.activeTemplate.anchoredAt,
+      state.activeTemplate.anchoredAt.rotation,
+      state.grid
+    )) {
+      nextState = {
+        ...nextState,
+        activeTemplate: {
+          ...state.activeTemplate,
+          anchoredAt: null,
+          hasErrors: false,
+          filledCells: new Set(),
+        },
+      };
+    } else {
+      // Update template state with validation results
+      nextState = {
+        ...nextState,
+        activeTemplate: {
+          ...state.activeTemplate,
+          hasErrors: validation.hasErrors,
+          filledCells: new Set(validation.correctCells),
+        },
+      };
+      
+      // Determine event
+      if (newFilledCount > previousFilledCount) {
+        event = validation.hasErrors ? 'cell_wrong' : 'cell_correct';
+      } else if (!previousErrors && validation.hasErrors) {
+        event = 'cell_wrong';
+      }
+      
+      // Check if completed
+      if (isTemplateCompleted(
+        template,
+        state.activeTemplate.anchoredAt,
+        state.activeTemplate.anchoredAt.baseColorIndex,
+        state.activeTemplate.anchoredAt.rotation,
+        state.grid,
+        params.ColorPalette.length
+      )) {
+        const completedTemplates = new Set(state.completedTemplates || []);
+        completedTemplates.add(template.id);
+        nextState = {
+          ...nextState,
+          activeTemplate: {
+            ...nextState.activeTemplate!,
+            completedAtTick: state.tick,
+          },
+          completedTemplates,
+        };
+        event = 'template_completed';
+      }
+    }
+  }
+  
+  return { state: nextState, event };
 }
 
 // ---------- Default Parameters (mirroring the doc) ----------

@@ -18,6 +18,8 @@ import {
   endDrag,
   dragMoveProtagonist,
   equalAxial,
+  activateTemplate,
+  deactivateTemplate,
 } from '../logic/pureLogic';
 import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
@@ -248,6 +250,33 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       saveSessionState(gameState);
     }
   }, [gameState, guestStarted]);
+
+  // Handle template audio feedback
+  const prevTemplateStateRef = useRef<GameState['activeTemplate']>(null);
+  useEffect(() => {
+    if (!gameState.activeTemplate || !prevTemplateStateRef.current) {
+      prevTemplateStateRef.current = gameState.activeTemplate;
+      return;
+    }
+
+    const prev = prevTemplateStateRef.current;
+    const curr = gameState.activeTemplate;
+
+    // Check for completion
+    if (!prev.completedAtTick && curr.completedAtTick) {
+      audioManager.templateCompleted();
+    }
+    // Check for error state change
+    else if (!prev.hasErrors && curr.hasErrors) {
+      audioManager.templateCellWrong();
+    }
+    // Check for correct cell fill
+    else if (prev.filledCells.size < curr.filledCells.size && !curr.hasErrors) {
+      audioManager.templateCellCorrect();
+    }
+
+    prevTemplateStateRef.current = curr;
+  }, [gameState.activeTemplate]);
 
   // Signal game ready to SDK (LoadingAPI.ready for Yandex) - call as soon as loaded
   useEffect(() => {
@@ -498,6 +527,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               tutorialLevel={tutorialLevel}
               onSwitchTab={(tab) => {
                 if (tab === 'heximap') setMobileTab('heximap');
+              }}
+              onActivateTemplate={(templateId) => {
+                if (templateId === '') {
+                  setGameState(prev => deactivateTemplate(prev));
+                } else {
+                  setGameState(prev => activateTemplate(prev, templateId));
+                }
               }}
             />
           ) : (

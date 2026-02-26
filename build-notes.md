@@ -367,3 +367,5 @@
 - 2026w09-0.3 — Center forced mobile layout on wide screens
 
 - 2026w09-0.4 — Constrain forced mobile layout width and gray gutters
+
+- 2026w09-0.5 — Fix JSX structure in HexiPedia: remove extra closing div

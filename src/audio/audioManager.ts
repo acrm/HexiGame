@@ -144,6 +144,26 @@ class AudioManager {
     audio.play().catch(() => {});
   }
 
+  // Template system sounds
+  templateCellCorrect() {
+    // Play a pleasant confirmation sound
+    if (!this.soundEnabled) return;
+    this.playSound('audio/mixkit-game-user-interface-tone-2570.wav');
+  }
+
+  templateCellWrong() {
+    // Play a negative feedback sound
+    if (!this.soundEnabled) return;
+    this.playSound('audio/mixkit-video-game-retro-click-237.wav');
+  }
+
+  templateCompleted() {
+    // Play a celebration/fanfare sound (currently using a positive sound)
+    // TODO: Add actual fanfare sound file
+    if (!this.soundEnabled) return;
+    this.playSound('audio/mixkit-game-click-1114.wav');
+  }
+
   // Legacy compatibility methods
   setVolume(volume: number) {
     this.setMusicVolume(volume);

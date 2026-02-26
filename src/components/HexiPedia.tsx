@@ -4,6 +4,7 @@ import { TutorialLevel, getHintForMode, axialToKey } from '../tutorial/tutorialS
 import { t } from '../ui/i18n';
 import { getAllTutorialLevels } from '../tutorial/tutorialLevels';
 import { audioManager } from '../audio/audioManager';
+import { ALL_TEMPLATES } from '../templates/templateLibrary';
 import './HexiPedia.css';
 
 interface HexiPediaProps {
@@ -11,6 +12,7 @@ interface HexiPediaProps {
   interactionMode: 'desktop' | 'mobile';
   tutorialLevel: TutorialLevel | null;
   onSwitchTab?: (tab: string) => void;
+  onActivateTemplate?: (templateId: string) => void;
 }
 
 export const HexiPedia: React.FC<HexiPediaProps> = ({
@@ -18,6 +20,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   interactionMode,
   tutorialLevel,
   onSwitchTab,
+  onActivateTemplate,
 }) => {
   const [expandedLevelId, setExpandedLevelId] = useState<string | null>(
     tutorialLevel?.id ?? null
@@ -138,6 +141,47 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                 <span className="hexipedia-stat-label">{t('stats.sessionTicks')}</span>
                 <span className="hexipedia-stat-value">{sessionDuration}</span>
               </div>
+            </div>
+          </div>
+
+
+          <div className="hexipedia-templates-section">
+            <div className="hexipedia-section-title">Build Templates</div>
+            <div className="hexipedia-templates-list">
+              <label className="hexipedia-template-radio">
+                <input
+                  type="radio"
+                  name="active-template"
+                  value=""
+                  checked={!gameState.activeTemplate}
+                  onChange={() => {
+                    /* Deactivate template - handled by parent */
+                    onActivateTemplate?.('');
+                  }}
+                />
+                <span className="hexipedia-template-name">None</span>
+              </label>
+              
+              {ALL_TEMPLATES.map(template => {
+                const isCompleted = gameState.completedTemplates?.has(template.id) ?? false;
+                const isActive = gameState.activeTemplate?.templateId === template.id;
+                
+                return (
+                  <label key={template.id} className="hexipedia-template-radio">
+                    <input
+                      type="radio"
+                      name="active-template"
+                      value={template.id}
+                      checked={isActive}
+                      onChange={() => onActivateTemplate?.(template.id)}
+                    />
+                    <span className="hexipedia-template-name">{template.name.en}</span>
+                    <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
+                      {isCompleted ? '✓' : ''}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>
