@@ -10,7 +10,7 @@ This repository uses a weekly snapshot versioning scheme inspired by Minecraft.
 ## Game Design Role
 
 - Act as a game designer: collect and maintain the game concept, mechanics, UI, and parameter descriptions.
-- After any source code change, review the current design documentation (docs/GAME_LOGIC.md, docs/Scoring.md, docs/TODO.md).
+- After any source code change, review the current design documentation (docs/GAME_LOGIC.md, docs/TODO.md).
 - If the change affects the design, update the documentation immediately to keep it accurate.
 
 - **Version format**: `<weekCode>-<minor>.<build>`

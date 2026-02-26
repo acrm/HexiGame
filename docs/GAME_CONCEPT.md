@@ -23,7 +23,7 @@ The game emphasizes **thoughtful planning, spatial reasoning, and risk assessmen
    Limited inventory forces the player to decide which colors to collect and where to place them for optimal outcomes.
 
 3. **Emergent Complexity**  
-   Simple rules (collect, place, shift colors) lead to deep strategic possibilities, especially when combined with spatial adjacency scoring.
+   Simple rules (collect, place, reposition) lead to deep strategic possibilities through spatial planning.
 
 4. **Visual Clarity**  
    Clean hex-grid presentation, unambiguous color palette, and minimalist UI keep focus on the puzzle.
@@ -41,7 +41,7 @@ Explore Grid → Identify Colored Hex
               ↓
           Place Hex from Hotbar
               ↓
-      (Repeat, optimizing color adjacency)
+        (Repeat, refining spatial patterns)
 ```
 
 ### Meta-Progression (Potential)
@@ -57,7 +57,7 @@ Explore Grid → Identify Colored Hex
 - **Hexagonal Grid**: A finite disk of hexagonal cells (default radius: 15 cells).
 - **Color Palette**: 8 distinct hues arranged in a cyclical spectrum (e.g., warm oranges → cool purples).
 - **Empty Cells**: Traversable spaces where the player can place collected tiles.
-- **Colored Cells**: Pre-placed or player-placed tiles that can be collected or scored.
+- **Colored Cells**: Pre-placed or player-placed tiles that can be collected or repositioned.
 
 ### Visual Style
 - Flat, pastel color scheme with subtle borders
@@ -113,32 +113,15 @@ The turtle serves as both the player's avatar and a navigation element:
 
 ---
 
-## Scoring & Goals
+## Goals & Progression
 
-### Adjacency Metric (Current Implementation)
-For each color in the palette, the game counts how many hexes of that color have **at least one neighbor of the same color**:
-```
-adjacentCount[color] = # of cells of that color with ≥1 same-color neighbor
-```
-- This metric is displayed in the **palette cluster UI** (a small hex wheel showing all colors).
-- **Goal**: Maximize adjacency counts by placing colors next to matching neighbors.
+### Current State
+- **Open-Ended**: No hard win/lose; the game is a sandbox focused on experimentation and pattern-building.
 
-### Potential Scoring Extensions
-1. **Cluster Scoring**  
-   Award points for size and compactness of contiguous same-color regions.
-
-2. **Hue-Affinity Bonus**  
-   Colors closer to the player's base color (orange) are easier to work with, creating strategic tradeoffs.
-
-3. **Pattern Challenges**  
-   Specific spatial patterns (e.g., a ring of one color, a checkerboard) yield bonus points.
-
-4. **Timed Sessions**  
-   5-minute timer; final score based on adjacency or cluster metrics at time-out.
-
-### Win/Lose Conditions
-- **Current**: No hard win/lose; the game is open-ended sandbox exploration.
-- **Potential**: Tutorial levels with specific goals (visit targets, build a cluster of size N, etc.).
+### Potential Extensions
+- **Tutorial Objectives**: Step-by-step goals that teach movement, collection, and placement.
+- **Pattern Challenges**: Curated tasks like "build a line of 3" or "fill a ring" without numeric metrics.
+- **Timed Sessions**: Optional time-limited modes focused on completing objectives.
 
 ---
 
@@ -147,7 +130,7 @@ adjacentCount[color] = # of cells of that color with ≥1 same-color neighbor
 ### HUD Elements
 1. **HexiMap** (World/Inventory Grid): The main canvas showing the hex grid and the turtle.
 2. **Hotbar**: 6 slots displayed as a row of small hexes at the bottom center.
-3. **Palette Cluster**: A circular arrangement of colored hexes (one per palette color) showing adjacency counts.
+3. **Palette Cluster**: A circular arrangement of colored hexes (one per palette color) for palette reference and hover feedback.
 4. **Settings Button**: Access controls info, volume, language toggle.
 5. **Wiki/HexiPedia Button**: In-game reference for mechanics (under development).
 
@@ -179,8 +162,8 @@ A multi-level guided experience teaching core mechanics step-by-step:
    *Teaches: Transfer mechanic.*
 
 4. **Level 4: Building Patterns** (Placeholder)  
-   Goal: Create a cluster of 3 adjacent hexes of the same color.  
-   *Teaches: Strategic placement, adjacency scoring.*
+   Goal: Create a simple 3-hex pattern (line or triangle).  
+   *Teaches: Strategic placement and spatial planning.*
 
 ### Tutorial Features
 - **Overlay UI**: Semi-transparent guide showing objective, hint, and progress.
@@ -203,7 +186,7 @@ A multi-level guided experience teaching core mechanics step-by-step:
 ### Visual Aesthetics
 - **Color Palette**: Warm-to-cool gradient (oranges → purples) to visually encode color distance.
 - **Animation**: Minimal; turtle and focus move smoothly with ~100ms transitions.
-- **Particle Effects**: Optional sparkles or glows when adjacency milestones are reached.
+- **Particle Effects**: Optional sparkles or glows when key actions succeed.
 
 ---
 
@@ -245,9 +228,9 @@ A multi-level guided experience teaching core mechanics step-by-step:
    *Problem*: Managing six hotbar slots + a separate inventory grid can overwhelm new players.  
    *Solution*: Tutorial gradually introduces these systems; inventory can be disabled in early levels.
 
-2. **Scoring Clarity**  
-   *Problem*: Adjacency metric is abstract; players may not intuitively connect actions to score changes.  
-   *Solution*: Real-time visual feedback on palette cluster; consider in-game "scoring preview" hints.
+2. **Feedback Clarity**  
+   *Problem*: Goals can feel vague without clear feedback on progress.  
+   *Solution*: Real-time visual cues and lightweight objective trackers.
 
 3. **Endgame Definition**  
    *Problem*: Open-ended sandbox can feel aimless without clear goals.  
@@ -269,11 +252,11 @@ A multi-level guided experience teaching core mechanics step-by-step:
 
 ### Content Additions
 - **Level Packs**: Curated puzzles with specific pattern goals or move limits.
-- **Daily Challenges**: Procedurally generated grids with leaderboard scoring.
+- **Daily Challenges**: Procedurally generated grids with completion time or objective rankings.
 - **Seasonal Palettes**: New color schemes tied to themes (autumn, ocean, neon).
 
 ### Multiplayer (Aspirational)
-- **Asynchronous**: Share custom puzzles; compete for best score.
+- **Asynchronous**: Share custom puzzles; compete for fastest completion or cleanest layouts.
 - **Turn-Based**: Two turtles on the same grid; collaborative pattern-building.
 
 ### Narrative Layer (Optional)
@@ -320,7 +303,7 @@ A multi-level guided experience teaching core mechanics step-by-step:
 
 **HexiGame** is a thoughtful, accessible puzzle experience that emphasizes spatial reasoning, strategic resource management, and emergent pattern discovery. Its minimalist presentation and calm pacing position it as a meditative counterpoint to action-heavy games, while its hex-grid mechanics offer depth for players seeking optimization challenges.
 
-The modular technical architecture and clear separation of logic/rendering ensure the game can scale with new mechanics, content, and platforms. Tutorial scaffolding and accessibility features lower the barrier to entry, while the adjacency scoring system provides a clear (yet expandable) success metric.
+The modular technical architecture and clear separation of logic/rendering ensure the game can scale with new mechanics, content, and platforms. Tutorial scaffolding and accessibility features lower the barrier to entry, while objectives provide direction without relying on numeric totals.
 
 This document serves as the foundational design reference for ongoing development, ensuring all contributors share a unified vision of HexiGame's core identity and long-term potential.
 
@@ -328,4 +311,4 @@ This document serves as the foundational design reference for ongoing developmen
 
 **Document Prepared By:** AI Game Design Agent  
 **For Discussion With:** Game designers, developers, and stakeholders  
-**Next Steps:** Review, iterate on scoring mechanics, refine tutorial flow, plan Level 2–4 implementations.
+**Next Steps:** Review, iterate on objective design, refine tutorial flow, plan Level 2–4 implementations.

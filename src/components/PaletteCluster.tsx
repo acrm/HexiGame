@@ -4,7 +4,6 @@ interface PaletteClusterProps {
   colorPalette: readonly string[];
   playerBaseColorIndex: number;
   antagonistIndex: number;
-  eatenCounts: Record<string, number>;
   hoverColorIndex: number | null;
   chance: number | null;
 }
@@ -13,7 +12,6 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
   colorPalette,
   playerBaseColorIndex,
   antagonistIndex,
-  eatenCounts,
   hoverColorIndex,
   chance,
 }) => {
@@ -42,7 +40,6 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
           y: sqrt3 * (r + q / 2) * hexRadius,
         };
         const color = colorPalette[colorIdx];
-        const cnt = eatenCounts[color] || 0;
         const isHover = colorIdx === hoverColorIndex;
 
         return (
@@ -71,16 +68,6 @@ const PaletteCluster: React.FC<PaletteClusterProps> = ({
               stroke={isHover ? '#FFFFFF' : '#BBBBBB'}
               strokeWidth={0.12}
             />
-            <text
-              x={0}
-              y={0.1}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize="0.9"
-              fill="#FFFFFF"
-            >
-              {cnt}
-            </text>
           </svg>
         );
       })}

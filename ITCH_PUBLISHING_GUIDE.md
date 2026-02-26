@@ -93,7 +93,7 @@ Click **Embed options** for the uploaded file:
 Upload 3-5 screenshots:
 1. Starting game view
 2. Mid-game with colored tiles
-3. Scoring moment
+3. Pattern highlight moment
 4. UI overview
 5. Color palette
 

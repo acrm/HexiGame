@@ -1,15 +1,15 @@
 # Hexi — Hexagonal Color Puzzle Game
 
-A minimalist puzzle game where you navigate a hexagonal grid, capturing colored tiles and strategically placing them to score points.
+A minimalist puzzle game where you navigate a hexagonal grid, capture colored tiles, and arrange them into pleasing spatial patterns.
 
 ## About the Game
 
-**Hexi** is a browser-based puzzle game that challenges your strategic thinking and color matching skills. Navigate a beautiful hexagonal grid, capture colored tiles, and create scoring combinations within a time limit.
+**Hexi** is a browser-based puzzle game that challenges your strategic thinking and color matching skills. Navigate a beautiful hexagonal grid, capture colored tiles, and plan placements within a focused session.
 
 ### Key Features
 
 - 🎨 **Unique Color Mechanics**: Capture tiles based on color distance from your base color, with varying success rates
-- 🎲 **Risk & Reward**: Harder-to-capture colors yield higher scores
+- 🎲 **Risk & Reward**: Harder-to-capture colors have lower success chances
 - ⏱️ **Time Challenge**: 5-minute sessions test your decision-making speed
 - 🖼️ **Clean Minimalist Design**: Focus on gameplay without distractions
 - 🎮 **Simple Controls**: Just arrow keys and spacebar
@@ -18,18 +18,13 @@ A minimalist puzzle game where you navigate a hexagonal grid, capturing colored 
 
 1. **Move** using arrow keys to navigate the hexagonal grid
 2. **Capture** colored tiles by holding Space for 0.5 seconds
-3. **Place** captured tiles into empty cells for scoring opportunities
-4. **Score** by creating adjacent clusters of matching colors
-5. **Strategy**: Tiles closer to your base color are easier to capture but score less
+3. **Place** captured tiles into empty cells to build patterns
+4. **Refine** your layout by repositioning tiles
+5. **Strategy**: Tiles closer to your base color are easier to capture
 
 ### Gameplay Mechanics
 
 - **Capture Chance**: Decreases by 20% for each color step away from your base (orange)
-- **Scoring System**: 
-  - Base score: 1 point per adjacent tile of the same color
-  - Color multiplier: Higher for colors further from your base
-  - Final score = base × multiplier
-
 - **Movement**: While carrying a tile, you can only move to empty cells
 - **Cooldown**: Failed capture attempts trigger a 3-second cooldown
 

@@ -184,7 +184,7 @@ PaletteDistance = |cell.colorIndex - PlayerBaseColorIndex|
 
 ---
 ## 6. Not Implemented (Scope Notes)
-Still absent: scoring, delivery targets, progression, end conditions, obstacles beyond occupied cells, persistence.
+Still absent: delivery targets, objectives, progression, end conditions, obstacles beyond occupied cells, persistence.
 
 ---
 ## 7. Summary
@@ -195,7 +195,6 @@ The prototype’s gameplay centers on probabilistic single-color capture and spa
 - `MultipleCarryAllowed` (bool)
 - `TransportLeavesTrail` (bool, whether previous cell retains color instead of clearing)
 - `CaptureChanceMinClamp` (percent)
-- `DeliverZoneRadius` (int) for scoring expansions
 - `MaxSimultaneousFlashes` (int)
 
 These can be added without altering core logic structure.

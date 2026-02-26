@@ -13,7 +13,6 @@ import {
   eatToHotbar,
   exchangeWithHotbarSlot,
   hoveredCellActive,
-  computeAdjacentSameColorCounts,
   performContextAction,
   startDrag,
   endDrag,
@@ -354,9 +353,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
 
-  const adjacentCountByColor = computeAdjacentSameColorCounts(gameState, mergedParams);
-  const eatenCounts: Record<string, number> = gameState.paletteCounts || {};
-
   const tutorialLevel = useMemo(() => {
     return tutorialLevelId ? getTutorialLevel(tutorialLevelId) : null;
   }, [tutorialLevelId]);
@@ -456,7 +452,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               colorPalette={mergedParams.ColorPalette}
               playerBaseColorIndex={mergedParams.PlayerBaseColorIndex}
               antagonistIndex={antagonistIndex}
-              eatenCounts={eatenCounts}
               hoverColorIndex={hoverColorIndex}
               chance={null}
             />

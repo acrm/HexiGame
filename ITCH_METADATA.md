@@ -5,7 +5,7 @@ This file contains recommended metadata for publishing on itch.io.
 ## Basic Information
 
 **Project Name**: Hexi  
-**Short Description**: Navigate a hexagonal grid, capture colored tiles, and create scoring combinations in this minimalist puzzle game.  
+**Short Description**: Navigate a hexagonal grid, capture colored tiles, and build spatial patterns in this minimalist puzzle game.  
 **Classification**: Game  
 **Genre**: Puzzle  
 **Made with**: React, TypeScript, Vite
@@ -93,18 +93,18 @@ Recommended tags (in order of relevance):
 - **Content Ideas**:
   1. Starting game view with empty grid
   2. Mid-game with colored tiles and cursor
-  3. Scoring moment with cluster highlight
-  4. UI showing timer and score
+  3. Mid-game with clustered tiles
+  4. UI showing timer and hotbar
   5. Color palette visualization
 
 ### Optional: Video/GIF
 - Short gameplay clip (15-30 seconds)
-- Shows capture mechanic and scoring
+- Shows capture and placement mechanics
 
 ## Description Sections
 
 ### Short Description (max ~140 chars)
-"Navigate a hexagonal grid, capture colored tiles, and create scoring combinations in this minimalist puzzle game."
+"Navigate a hexagonal grid, capture colored tiles, and build spatial patterns in this minimalist puzzle game."
 
 ### Full Description
 Use content from `ITCH_DESCRIPTION.md` and format with Markdown:

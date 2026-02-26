@@ -359,3 +359,5 @@
 - 2026w08-0.4 — Add game design concept document
 
 - 2026w08-0.5 — Remove deprecated turtle color-shift mechanic
+
+- 2026w09-0.1 — Remove scoring logic and references
