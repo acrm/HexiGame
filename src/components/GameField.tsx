@@ -128,6 +128,7 @@ interface GameFieldProps {
   tutorialTargetCells?: Axial[];
   visitedTutorialCells?: Set<string>;
   hideHotbar?: boolean;
+  paletteTopOffset?: number;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -150,6 +151,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   tutorialTargetCells = [],
   visitedTutorialCells = new Set(),
   hideHotbar = false,
+  paletteTopOffset = 8,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -830,6 +832,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         focusColorIndex={
           gameState.grid.get(`${gameState.focus.q},${gameState.focus.r}`)?.colorIndex ?? params.PlayerBaseColorIndex
         }
+        topOffset={paletteTopOffset}
       />
     </div>
   );

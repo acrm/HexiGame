@@ -2,6 +2,9 @@
 
 import type { BuildTemplate } from './templateTypes';
 
+// Anchor convention: (0,0) is the edge cell closest to the turtle.
+// Templates are authored for turtle facing up; rotation keeps them oriented to the head.
+
 /**
  * Simple ring: 7 hexes of the same color forming a ring with center
  * Difficulty: Easy
@@ -20,15 +23,15 @@ export const TEMPLATE_RING_R1: BuildTemplate = {
   difficulty: 'easy',
   anchorCell: { q: 0, r: 0 },
   cells: [
-    // Center (anchor)
+    // Anchor edge (closest to turtle)
     { q: 0, r: 0, relativeColor: 0 },
     // Ring around center
-    { q: 0, r: -1, relativeColor: 0 },   // North
-    { q: 1, r: -1, relativeColor: 0 },   // North-East
-    { q: 1, r: 0, relativeColor: 0 },    // South-East
-    { q: 0, r: 1, relativeColor: 0 },    // South
-    { q: -1, r: 1, relativeColor: 0 },   // South-West
-    { q: -1, r: 0, relativeColor: 0 },   // North-West
+    { q: 0, r: -1, relativeColor: 0 },   // Center
+    { q: 0, r: -2, relativeColor: 0 },   // North
+    { q: 1, r: -2, relativeColor: 0 },   // North-East
+    { q: 1, r: -1, relativeColor: 0 },   // South-East
+    { q: -1, r: 0, relativeColor: 0 },   // South-West
+    { q: -1, r: -1, relativeColor: 0 },  // North-West
   ],
   hints: {
     en: [
@@ -61,15 +64,16 @@ export const TEMPLATE_FLOWER: BuildTemplate = {
   difficulty: 'medium',
   anchorCell: { q: 0, r: 0 },
   cells: [
-    // Center
+    // Anchor edge (closest to turtle)
     { q: 0, r: 0, relativeColor: 0 },
+    // Center
+    { q: 0, r: -1, relativeColor: 0 },
     // Alternating petals: base color and +25% (2 steps ahead)
-    { q: 0, r: -1, relativeColor: 25 },
-    { q: 1, r: -1, relativeColor: 0 },
-    { q: 1, r: 0, relativeColor: 25 },
-    { q: 0, r: 1, relativeColor: 0 },
-    { q: -1, r: 1, relativeColor: 25 },
-    { q: -1, r: 0, relativeColor: 0 },
+    { q: 0, r: -2, relativeColor: 25 },
+    { q: 1, r: -2, relativeColor: 0 },
+    { q: 1, r: -1, relativeColor: 25 },
+    { q: -1, r: 0, relativeColor: 25 },
+    { q: -1, r: -1, relativeColor: 0 },
   ],
   hints: {
     en: [
@@ -100,9 +104,9 @@ export const TEMPLATE_TRIANGLE: BuildTemplate = {
   difficulty: 'easy',
   anchorCell: { q: 0, r: 0 },
   cells: [
-    { q: 0, r: 0, relativeColor: 0 },
-    { q: 1, r: 0, relativeColor: 12.5 },  // +1 step
-    { q: 0, r: 1, relativeColor: 25 },    // +2 steps
+    { q: 0, r: 0, relativeColor: 25 },    // Anchor edge
+    { q: 0, r: -1, relativeColor: 0 },
+    { q: 1, r: -1, relativeColor: 12.5 }, // +1 step
   ],
   hints: {
     en: [
@@ -133,17 +137,18 @@ export const TEMPLATE_YIN_YANG: BuildTemplate = {
   difficulty: 'hard',
   anchorCell: { q: 0, r: 0 },
   cells: [
+    // Anchor edge (closest to turtle)
+    { q: 0, r: 0, relativeColor: -25 },
     // Center
-    { q: 0, r: 0, relativeColor: 0 },
+    { q: 0, r: -1, relativeColor: 0 },
     // Left side (base color)
+    { q: -1, r: -1, relativeColor: 0 },
     { q: -1, r: 0, relativeColor: 0 },
-    { q: -1, r: 1, relativeColor: 0 },
     // Right side (opposite color, +50% = 4 steps)
+    { q: 1, r: -2, relativeColor: 50 },
     { q: 1, r: -1, relativeColor: 50 },
-    { q: 1, r: 0, relativeColor: 50 },
-    // Top and bottom
-    { q: 0, r: -1, relativeColor: 25 },
-    { q: 0, r: 1, relativeColor: -25 },
+    // Top
+    { q: 0, r: -2, relativeColor: 25 },
   ],
   hints: {
     en: [
@@ -174,13 +179,14 @@ export const TEMPLATE_HEXAGON: BuildTemplate = {
   difficulty: 'medium',
   anchorCell: { q: 0, r: 0 },
   cells: [
+    // Anchor edge (closest to turtle)
+    { q: 0, r: 0, relativeColor: 25 },      // South (anchor)
     // Ring cells only, alternating colors
-    { q: 0, r: -1, relativeColor: 0 },      // North (base)
-    { q: 1, r: -1, relativeColor: 25 },     // NE (+2 steps)
-    { q: 1, r: 0, relativeColor: 0 },       // SE (base)
-    { q: 0, r: 1, relativeColor: 25 },      // SW (+2 steps)
-    { q: -1, r: 1, relativeColor: 0 },      // W (base)
-    { q: -1, r: 0, relativeColor: 25 },     // NW (+2 steps)
+    { q: 0, r: -2, relativeColor: 0 },      // North (base)
+    { q: 1, r: -2, relativeColor: 25 },     // NE (+2 steps)
+    { q: 1, r: -1, relativeColor: 0 },      // SE (base)
+    { q: -1, r: 0, relativeColor: 0 },      // W (base)
+    { q: -1, r: -1, relativeColor: 25 },    // NW (+2 steps)
   ],
   hints: {
     en: [
@@ -213,27 +219,28 @@ export const TEMPLATE_STAR: BuildTemplate = {
   difficulty: 'medium',
   anchorCell: { q: 0, r: 0 },
   cells: [
+    // Anchor edge (closest to turtle)
+    { q: 0, r: 0, relativeColor: 25 },
     // Center
-    { q: 0, r: 0, relativeColor: 0 },
+    { q: 0, r: -2, relativeColor: 0 },
     // Six rays (immediate neighbors + one layer out)
     // Ray 1: North
-    { q: 0, r: -1, relativeColor: 0 },
-    { q: 0, r: -2, relativeColor: 25 },
+    { q: 0, r: -3, relativeColor: 0 },
+    { q: 0, r: -4, relativeColor: 25 },
     // Ray 2: NE
-    { q: 1, r: -1, relativeColor: 0 },
-    { q: 2, r: -2, relativeColor: 25 },
+    { q: 1, r: -3, relativeColor: 0 },
+    { q: 2, r: -4, relativeColor: 25 },
     // Ray 3: SE
-    { q: 1, r: 0, relativeColor: 0 },
-    { q: 2, r: 0, relativeColor: 25 },
+    { q: 1, r: -2, relativeColor: 0 },
+    { q: 2, r: -2, relativeColor: 25 },
     // Ray 4: South
-    { q: 0, r: 1, relativeColor: 0 },
-    { q: 0, r: 2, relativeColor: 25 },
+    { q: 0, r: -1, relativeColor: 0 },
     // Ray 5: SW
-    { q: -1, r: 1, relativeColor: 0 },
-    { q: -2, r: 2, relativeColor: 25 },
-    // Ray 6: NW
-    { q: -1, r: 0, relativeColor: 0 },
+    { q: -1, r: -1, relativeColor: 0 },
     { q: -2, r: 0, relativeColor: 25 },
+    // Ray 6: NW
+    { q: -1, r: -2, relativeColor: 0 },
+    { q: -2, r: -2, relativeColor: 25 },
   ],
   hints: {
     en: [
@@ -267,15 +274,15 @@ export const TEMPLATE_RAINBOW_SPIRAL: BuildTemplate = {
   anchorCell: { q: 0, r: 0 },
   cells: [
     // Spiral starting from center and wrapping clockwise
-    { q: 0, r: 0, relativeColor: 0 },      // Center: 0°
-    { q: 0, r: -1, relativeColor: 8.33 },  // N: 12.5% (1/8 palette)
-    { q: 1, r: -1, relativeColor: 16.67 }, // NE: 25% (2/8)
-    { q: 1, r: 0, relativeColor: 25 },     // E: 37.5% (3/8)
-    { q: 1, r: 1, relativeColor: 33.33 },  // SE: 50% (4/8) - opposite
-    { q: 0, r: 1, relativeColor: 25 },     // S: 37.5% (continue back)
-    { q: -1, r: 1, relativeColor: 16.67 }, // SW: 25%
-    { q: -1, r: 0, relativeColor: 8.33 },  // W: 12.5%
-    { q: -1, r: -1, relativeColor: 0 },    // NW: 0° (back to start)
+    { q: 0, r: 0, relativeColor: 25 },     // Anchor edge
+    { q: 0, r: -1, relativeColor: 0 },     // Center: 0°
+    { q: 0, r: -2, relativeColor: 8.33 },  // N: 12.5% (1/8 palette)
+    { q: 1, r: -2, relativeColor: 16.67 }, // NE: 25% (2/8)
+    { q: 1, r: -1, relativeColor: 25 },    // E: 37.5% (3/8)
+    { q: 1, r: 0, relativeColor: 33.33 },  // SE: 50% (4/8) - opposite
+    { q: -1, r: 0, relativeColor: 16.67 }, // SW: 25%
+    { q: -1, r: -1, relativeColor: 8.33 }, // W: 12.5%
+    { q: -1, r: -2, relativeColor: 0 },    // NW: 0° (back to start)
   ],
   hints: {
     en: [
@@ -310,13 +317,13 @@ export const TEMPLATE_CROSS: BuildTemplate = {
   difficulty: 'easy',
   anchorCell: { q: 0, r: 0 },
   cells: [
-    // Center
+    // Anchor edge (closest to turtle)
     { q: 0, r: 0, relativeColor: 0 },
     // Four cardinal directions
-    { q: 0, r: -1, relativeColor: 0 },     // North
-    { q: 1, r: 0, relativeColor: 0 },      // East
-    { q: 0, r: 1, relativeColor: 0 },      // South
-    { q: -1, r: 0, relativeColor: 0 },     // West
+    { q: 0, r: -1, relativeColor: 0 },     // Center
+    { q: 0, r: -2, relativeColor: 0 },     // North
+    { q: 1, r: -1, relativeColor: 0 },     // East
+    { q: -1, r: -1, relativeColor: 0 },    // West
   ],
   hints: {
     en: [

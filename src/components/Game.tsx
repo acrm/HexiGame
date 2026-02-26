@@ -671,6 +671,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     ? (mobileTab === 'heximap' ? ColorScheme.outside.background : mobileTab === 'hexilab' ? ColorScheme.inside.background : '#2f2f2f')
     : '#370152ff';
 
+  const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && tutorialLevel ? 92 : 8;
+
   return (
     <div
       className="game-root mobile-forced"
@@ -842,6 +844,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 setGameState(prev => exchangeWithHotbarSlot(prev, mergedParams, slotIdx));
               }}
               isLeftHanded={isLeftHanded}
+              paletteTopOffset={paletteTopOffset}
               tutorialTargetCells={
                 tutorialLevel && (!isMobileLayout || mobileTab === 'heximap')
                   ? (tutorialLevel.targetCells ?? [])

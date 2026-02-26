@@ -381,3 +381,7 @@
 - 2026w09-0.10 — Persist full session state, fix HexiPedia layout/scrolling, align tab backgrounds, and enforce tutorial restrictions on switch
 
 - 2026w09-0.11 — Render hotbar on desktop, fix mobile widget alignment, and show template offsets as text
+
+- 2026w09-0.12 — Add color palette widget and reduce template text size
+
+- 2026w09-0.13 — Fix palette widget layout, shift template anchors, and persist music playback

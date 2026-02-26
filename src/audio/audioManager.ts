@@ -5,6 +5,8 @@ const MUSIC_TRACKS = [
   'audio/Starfog Caravan.mp3',
 ];
 
+const MUSIC_STATE_KEY = 'hexigame.music.state';
+
 const SOUND_EFFECTS = [
 //   'audio/mixkit-cinematic-whoosh-stutter-787.wav',
 //   'audio/mixkit-epic-orchestra-transition-2290.wav',
@@ -24,6 +26,8 @@ class AudioManager {
   private musicVolume: number = 0.5;
   private musicInitialized: boolean = false;
   private currentTrackIndex: number = 0;
+  private pendingMusicTime: number | null = null;
+  private lastPersistedSecond: number = -1;
   
   private soundEnabled: boolean = true;
   private soundVolume: number = 0.6;
@@ -31,7 +35,13 @@ class AudioManager {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.shuffleTracks();
+      const savedState = this.loadSavedMusicState();
+      if (savedState) {
+        this.currentTrackIndex = savedState.trackIndex;
+        this.pendingMusicTime = savedState.time;
+      } else {
+        this.shuffleTracks();
+      }
       this.loadNextTrack();
       
       // Pre-load sound effects pool
@@ -58,11 +68,15 @@ class AudioManager {
     if (this.musicAudio) {
       this.musicAudio.pause();
       this.musicAudio.removeEventListener('ended', this.handleTrackEnd);
+      this.musicAudio.removeEventListener('timeupdate', this.handleTimeUpdate);
+      this.musicAudio.removeEventListener('loadedmetadata', this.handleMetadataLoaded);
     }
     
     this.musicAudio = new Audio(MUSIC_TRACKS[this.currentTrackIndex]);
     this.musicAudio.volume = this.musicVolume;
     this.musicAudio.addEventListener('ended', this.handleTrackEnd);
+    this.musicAudio.addEventListener('timeupdate', this.handleTimeUpdate);
+    this.musicAudio.addEventListener('loadedmetadata', this.handleMetadataLoaded);
     
     if (this.musicInitialized && this.musicEnabled) {
       this.musicAudio.play().catch(() => {});
@@ -71,7 +85,53 @@ class AudioManager {
 
   private handleTrackEnd = () => {
     this.currentTrackIndex = (this.currentTrackIndex + 1) % MUSIC_TRACKS.length;
+    this.pendingMusicTime = 0;
+    this.persistMusicState(0);
     this.loadNextTrack();
+  }
+
+  private handleMetadataLoaded = () => {
+    if (!this.musicAudio || this.pendingMusicTime === null) return;
+    const safeTime = Math.min(
+      Math.max(this.pendingMusicTime, 0),
+      Math.max(0, this.musicAudio.duration - 0.25)
+    );
+    this.musicAudio.currentTime = safeTime;
+    this.pendingMusicTime = null;
+  }
+
+  private handleTimeUpdate = () => {
+    if (!this.musicAudio) return;
+    const currentSecond = Math.floor(this.musicAudio.currentTime);
+    if (currentSecond === this.lastPersistedSecond) return;
+    this.persistMusicState(currentSecond);
+  }
+
+  private persistMusicState(timeOverride?: number) {
+    if (typeof window === 'undefined') return;
+    try {
+      const time = timeOverride ?? this.musicAudio?.currentTime ?? 0;
+      this.lastPersistedSecond = Math.floor(time);
+      localStorage.setItem(MUSIC_STATE_KEY, JSON.stringify({
+        trackIndex: this.currentTrackIndex,
+        time,
+      }));
+    } catch (err) {
+      // Ignore storage errors
+    }
+  }
+
+  private loadSavedMusicState(): { trackIndex: number; time: number } | null {
+    try {
+      const raw = localStorage.getItem(MUSIC_STATE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { trackIndex?: number; time?: number };
+      if (typeof parsed.trackIndex !== 'number' || typeof parsed.time !== 'number') return null;
+      if (parsed.trackIndex < 0 || parsed.trackIndex >= MUSIC_TRACKS.length) return null;
+      return { trackIndex: parsed.trackIndex, time: Math.max(0, parsed.time) };
+    } catch (err) {
+      return null;
+    }
   }
 
   setMusicVolume(volume: number) {
@@ -87,6 +147,7 @@ class AudioManager {
       if (enabled) {
         this.playMusic();
       } else {
+        this.persistMusicState();
         this.pauseMusic();
       }
     }
