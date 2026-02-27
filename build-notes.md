@@ -389,3 +389,5 @@
 - 2026w09-0.14 — Fix palette widget to keep color order constant and reduce font size
 
 - 2026w09-0.15 — Fix palette widget: center on player color, show minus signs, fix template validation display
+
+- 2026w09-0.16 — Fix template: anchor 0% cell at focus, use focus color as base in flickering mode

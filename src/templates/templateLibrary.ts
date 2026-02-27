@@ -104,9 +104,9 @@ export const TEMPLATE_TRIANGLE: BuildTemplate = {
   difficulty: 'easy',
   anchorCell: { q: 0, r: 0 },
   cells: [
-    { q: 0, r: 0, relativeColor: 25 },    // Anchor edge
-    { q: 0, r: -1, relativeColor: 0 },
-    { q: 1, r: -1, relativeColor: 12.5 }, // +1 step
+    { q: 0, r: 0, relativeColor: 0 },     // Anchor at focus (0%)
+    { q: 0, r: 1, relativeColor: 25 },    // Away from turtle
+    { q: 1, r: 0, relativeColor: 12.5 },  // +1 step
   ],
   hints: {
     en: [

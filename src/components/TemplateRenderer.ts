@@ -1,6 +1,6 @@
 // Helper functions for rendering build templates on canvas
 
-import { GameState, Params, Axial } from '../logic/pureLogic';
+import { GameState, Params, Axial, getCell } from '../logic/pureLogic';
 import { getTemplateById } from '../templates/templateLibrary';
 import { getTemplateCellsWithWorldPos, validateTemplate } from '../templates/templateLogic';
 
@@ -82,7 +82,7 @@ export function renderTemplateOverlay(
   // Determine anchor position based on template state
   let anchorPos: Axial;
   let rotation: number;
-  let baseColorIndex: number | undefined;
+  let baseColorIndex: number;
 
   if (state.activeTemplate.anchoredAt) {
     // Template is anchored
@@ -93,13 +93,16 @@ export function renderTemplateOverlay(
     // Template is in flickering mode (attached to focus)
     anchorPos = state.focus;
     rotation = state.facingDirIndex;
+    // Base color is the color of the cell at focus position
+    const focusCell = getCell(state.grid, state.focus);
+    baseColorIndex = focusCell?.colorIndex ?? params.PlayerBaseColorIndex;
   }
 
   // Get all template cells with world positions
   const cells = getTemplateCellsWithWorldPos(
     template,
     anchorPos,
-    baseColorIndex ?? 0,
+    baseColorIndex,
     rotation,
     params.ColorPalette.length
   );
@@ -109,7 +112,7 @@ export function renderTemplateOverlay(
     const validation = validateTemplate(
       template,
       anchorPos,
-      baseColorIndex ?? 0,
+      baseColorIndex,
       rotation,
       state.grid,
       params.ColorPalette.length
