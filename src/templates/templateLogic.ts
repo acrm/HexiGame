@@ -212,29 +212,15 @@ export function determineTemplateAnchor(
   focusPos: Axial,
   rotation: number
 ): { anchorPos: Axial; baseColorIndex: number } | null {
-  // Find which template cell was filled
-  for (const cell of template.cells) {
-    if (cell.relativeColor === null) continue; // Skip empty cells
-    
-    const expectedWorldPos = getTemplateCellWorldPos(
-      cell,
-      focusPos,
-      rotation
-    );
-    
-    if (expectedWorldPos.q === placedHexPos.q && expectedWorldPos.r === placedHexPos.r) {
-      // This is the cell that was filled
-      // Calculate base color from the relative color of this cell
-      const paletteSize = 8;
-      const offset = Math.round((cell.relativeColor / 100) * paletteSize);
-      const baseColorIndex = (placedColorIndex - offset + paletteSize * 10) % paletteSize;
-      
-      return {
-        anchorPos: focusPos,
-        baseColorIndex,
-      };
-    }
+  // Template anchors only when hex is placed at focus (where anchor cell is)
+  // Anchor cell MUST be at { q: 0, r: 0 } with relativeColor: 0
+  if (placedHexPos.q !== focusPos.q || placedHexPos.r !== focusPos.r) {
+    return null; // Only anchor when placing on focus
   }
   
-  return null; // Placed hex doesn't match any template cell
+  // Anchor at focus, base color is the placed color
+  return {
+    anchorPos: focusPos,
+    baseColorIndex: placedColorIndex,
+  };
 }

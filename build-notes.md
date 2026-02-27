@@ -395,3 +395,5 @@
 - 2026w09-0.17 — Widget: remove gaps for solid bar, larger font; Template: anchor at bottom to avoid turtle overlap
 
 - 2026w09-0.18 — Fix template flickering: ensure 0% cell always at focus position
+
+- 2026w09-0.19 — Fix all templates: anchor cell (0,0) always has 0%, simplify anchoring logic
