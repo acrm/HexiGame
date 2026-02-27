@@ -2,7 +2,7 @@
 
 import { GameState, Params, Axial, getCell } from '../logic/pureLogic';
 import { getTemplateById } from '../templates/templateLibrary';
-import { getTemplateCellsWithWorldPos, validateTemplate } from '../templates/templateLogic';
+import { getTemplateCellsWithWorldPos, validateTemplate, rotateAxial } from '../templates/templateLogic';
 
 const HEX_SIZE = 10; // Match GameField's HEX_SIZE
 
@@ -91,11 +91,27 @@ export function renderTemplateOverlay(
     baseColorIndex = state.activeTemplate.anchoredAt.baseColorIndex;
   } else {
     // Template is in flickering mode (attached to focus)
-    anchorPos = state.focus;
     rotation = state.facingDirIndex;
     // Base color is the color of the cell at focus position
     const focusCell = getCell(state.grid, state.focus);
     baseColorIndex = focusCell?.colorIndex ?? params.PlayerBaseColorIndex;
+    
+    // Find the cell with relativeColor: 0 (base color cell)
+    const baseCellTemplate = template.cells.find(c => c.relativeColor === 0);
+    if (baseCellTemplate) {
+      // Calculate anchorPos so that the 0% cell lands on focus
+      const rotatedBaseCell = rotateAxial(
+        { q: baseCellTemplate.q, r: baseCellTemplate.r },
+        rotation
+      );
+      anchorPos = {
+        q: state.focus.q - rotatedBaseCell.q,
+        r: state.focus.r - rotatedBaseCell.r,
+      };
+    } else {
+      // Fallback: use focus as anchor if no 0% cell exists
+      anchorPos = state.focus;
+    }
   }
 
   // Get all template cells with world positions
