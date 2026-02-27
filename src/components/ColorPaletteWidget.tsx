@@ -3,6 +3,7 @@ import React from 'react';
 interface ColorPaletteWidgetProps {
   colorPalette: readonly string[];
   focusColorIndex: number;
+  playerBaseColorIndex: number;
   topOffset?: number;
 }
 
@@ -24,17 +25,29 @@ function calculateRelativePercent(
 
 function formatPercent(percent: number): string {
   if (percent === 0) return '0%';
-  const sign = percent > 0 ? '+' : '';
-  const rounded = percent % 1 === 0 ? Math.abs(percent).toString() : Math.abs(percent).toFixed(1).replace(/\.0$/, '');
+  if (Math.abs(percent) === 50) return '±50%';
+  const sign = percent > 0 ? '+' : '-';
+  const absValue = Math.abs(percent);
+  const rounded = absValue % 1 === 0 ? absValue.toString() : absValue.toFixed(1).replace(/\.0$/, '');
   return `${sign}${rounded}%`;
 }
 
 const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   colorPalette,
   focusColorIndex,
+  playerBaseColorIndex,
   topOffset = 8,
 }) => {
   const paletteSize = colorPalette.length;
+  const antagonistIndex = (playerBaseColorIndex + paletteSize / 2) % paletteSize;
+
+  // Build display order: antagonist, then cycle to base color in center, then back to antagonist
+  // For 8 colors with base=0, antagonist=4: display order is [4,5,6,7,0,1,2,3,4]
+  const displayOrder: number[] = [];
+  for (let i = 0; i < paletteSize + 1; i++) {
+    const colorIndex = (antagonistIndex + i) % paletteSize;
+    displayOrder.push(colorIndex);
+  }
 
   return (
     <div style={{
@@ -51,7 +64,8 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
       borderRadius: 4,
       zIndex: 50,
     }}>
-      {colorPalette.map((color, colorIndex) => {
+      {displayOrder.map((colorIndex, displayIndex) => {
+        const color = colorPalette[colorIndex];
         const percent = calculateRelativePercent(colorIndex, focusColorIndex, paletteSize);
         const isFocusColor = colorIndex === focusColorIndex;
         const borderColor = isFocusColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
@@ -59,7 +73,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
 
         return (
           <div
-            key={colorIndex}
+            key={`${displayIndex}-${colorIndex}`}
             style={{
               flex: 1,
               display: 'flex',

@@ -832,6 +832,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         focusColorIndex={
           gameState.grid.get(`${gameState.focus.q},${gameState.focus.r}`)?.colorIndex ?? params.PlayerBaseColorIndex
         }
+        playerBaseColorIndex={params.PlayerBaseColorIndex}
         topOffset={paletteTopOffset}
       />
     </div>

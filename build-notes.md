@@ -387,3 +387,5 @@
 - 2026w09-0.13 — Fix palette widget layout, shift template anchors, and persist music playback
 
 - 2026w09-0.14 — Fix palette widget to keep color order constant and reduce font size
+
+- 2026w09-0.15 — Fix palette widget: center on player color, show minus signs, fix template validation display

@@ -150,11 +150,11 @@ export function renderTemplateOverlay(
       : '';
 
     if (state.activeTemplate.anchoredAt) {
-      if (isCorrectlyFilled) {
+      if (isCorrectlyFilled && !isIncorrect) {
         // Cell is correctly filled - don't draw overlay (let actual hex show)
         continue;
       } else {
-        // Cell needs to be filled - show template preview
+        // Cell needs to be filled or is incorrect - show template preview
         ctx.globalAlpha = opacity;
         drawTemplateHex(ctx, screenX, screenY, HEX_SIZE * scale, fillColor, strokeColor, 2);
         ctx.fillStyle = textColor;
