@@ -7,26 +7,19 @@ interface ColorPaletteWidgetProps {
 }
 
 /**
- * Calculate relative color percentage based on distance from focus color
- * in a cyclic palette
+ * Calculate relative percentage of a color from focus color
  */
-function getRelativeOffsets(paletteSize: number): number[] {
-  const half = paletteSize / 2;
-  const step = 100 / paletteSize;
-  const offsets: number[] = [];
-  for (let i = -half; i <= half; i++) {
-    offsets.push(i * step);
-  }
-  return offsets;
-}
-
-function getColorIndexFromOffset(
+function calculateRelativePercent(
+  colorIndex: number,
   focusColorIndex: number,
-  offsetPercent: number,
   paletteSize: number
 ): number {
-  const offsetSteps = Math.round((offsetPercent / 100) * paletteSize);
-  return (focusColorIndex + offsetSteps + paletteSize) % paletteSize;
+  let distance = colorIndex - focusColorIndex;
+  // Normalize to -paletteSize/2 ... paletteSize/2
+  while (distance > paletteSize / 2) distance -= paletteSize;
+  while (distance <= -paletteSize / 2) distance += paletteSize;
+  // Convert to percentage (paletteSize/2 steps = 50%)
+  return (distance * 100) / paletteSize;
 }
 
 function formatPercent(percent: number): string {
@@ -42,7 +35,6 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   topOffset = 8,
 }) => {
   const paletteSize = colorPalette.length;
-  const offsets = getRelativeOffsets(paletteSize);
 
   return (
     <div style={{
@@ -59,16 +51,15 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
       borderRadius: 4,
       zIndex: 50,
     }}>
-      {offsets.map((percent, offsetIndex) => {
-        const colorIndex = getColorIndexFromOffset(focusColorIndex, percent, paletteSize);
-        const color = colorPalette[colorIndex];
-        const isFocusColor = percent === 0;
+      {colorPalette.map((color, colorIndex) => {
+        const percent = calculateRelativePercent(colorIndex, focusColorIndex, paletteSize);
+        const isFocusColor = colorIndex === focusColorIndex;
         const borderColor = isFocusColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
         const borderWidth = isFocusColor ? 2 : 1;
 
         return (
           <div
-            key={`${offsetIndex}-${colorIndex}`}
+            key={colorIndex}
             style={{
               flex: 1,
               display: 'flex',
@@ -83,13 +74,9 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
           >
             <div
               style={{
-                fontSize: '10px',
+                fontSize: '8px',
                 fontWeight: 'bold',
-                color: Math.max(
-                  parseInt(color.slice(1, 3), 16),
-                  parseInt(color.slice(3, 5), 16),
-                  parseInt(color.slice(5, 7), 16)
-                ) > 128 ? '#000000' : '#FFFFFF',
+                color: '#FFFFFF',
                 textShadow: '0 0 2px rgba(0,0,0,0.5)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',

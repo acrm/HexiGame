@@ -385,3 +385,5 @@
 - 2026w09-0.12 — Add color palette widget and reduce template text size
 
 - 2026w09-0.13 — Fix palette widget layout, shift template anchors, and persist music playback
+
+- 2026w09-0.14 — Fix palette widget to keep color order constant and reduce font size
