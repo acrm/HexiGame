@@ -508,122 +508,758 @@ if (!cell) {
 
 ## 6. Migration Strategy
 
-### 6.1. Incremental Approach
+### 6.1. Test Facade Pattern (Recommended)
+
+**Problem Statement:**
+
+При масштабном рефакторинге возникает **диlemma тестирования**:
+
+- **Без тестов**: Рефакторинг может сломать функциональность незаметно
+- **С тестами на текущую реализацию**: Придётся переписывать тесты при изменении интерфейсов
+- **Переписывание тестов**: Риск внести ошибки в саму логику тестов
+
+**Proposed Solution: Test Facade Pattern**
+
+```
+┌─────────────────────────────────────┐
+│  Tests (Stable, Implementation-     │
+│  Agnostic)                          │
+└──────────────┬──────────────────────┘
+               │
+               ↓
+┌─────────────────────────────────────┐
+│  Test Facade (Stable Public API)    │
+│  - execCommand(cmd)                 │
+│  - getGameState()                   │
+│  - assertInvariant(condition)       │
+└──────────────┬──────────────────────┘
+               │ (Internal adapter layer)
+               ↓
+┌─────────────────────────────────────┐
+│  Current Implementation             │
+│  (pureLogic.ts, Game.tsx, etc.)     │
+│  ← Can be freely refactored         │
+└─────────────────────────────────────┘
+```
+
+#### 6.1.1. Facade Design
+
+**Core Concept:** Фасад предоставляет **стабильный API для тестов**, который не зависит от внутренней реализации.
+
+**Example Implementation:**
+
+```typescript
+// tests/facade/GameTestFacade.ts
+
+/**
+ * Test Facade для HexiGame.
+ * Скрывает детали реализации (pureLogic, React components),
+ * предоставляя высокоуровневый API для тестов.
+ */
+export class GameTestFacade {
+  private state: GameState;
+  private params: Params;
+  private rng: RNG;
+
+  constructor(config?: Partial<TestConfig>) {
+    this.params = { ...DefaultParams, ...config?.params };
+    this.rng = config?.seed 
+      ? mulberry32(config.seed) 
+      : mulberry32(12345); // Детерминированный seed для тестов
+    this.state = createInitialState(this.params, this.rng);
+  }
+
+  // === Command API (Input) ===
+  
+  /** Переместить курсор/протагониста */
+  move(direction: 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right'): void {
+    const dirMap = {
+      'up': 0, 'up-right': 1, 'right': 2,
+      'down': 3, 'down-left': 4, 'left': 5
+    };
+    this.state = attemptMoveByDeltaOnActive(this.state, dirMap[direction], this.params);
+  }
+
+  /** Переместить в конкретную клетку */
+  moveTo(q: number, r: number): void {
+    this.state = attemptMoveTo(this.state, { q, r }, this.params);
+  }
+
+  /** Нажать Space (захват/сброс) */
+  pressSpace(): void {
+    this.state = performContextAction(this.state, this.params, this.rng);
+  }
+
+  /** Удержание Space (для захвата) */
+  holdSpace(ticks: number): void {
+    // Эмуляция удержания через несколько тиков
+    for (let i = 0; i < ticks; i++) {
+      this.state = logicTick(this.state, this.params, this.rng);
+    }
+    this.pressSpace();
+  }
+
+  /** Съесть гекс в hotbar */
+  eat(): void {
+    this.state = eatToHotbar(this.state, this.params);
+  }
+
+  /** Продвинуть время на N тиков */
+  tick(count: number = 1): void {
+    for (let i = 0; i < count; i++) {
+      this.state = logicTick(this.state, this.params, this.rng);
+    }
+  }
+
+  /** Активировать шаблон */
+  activateTemplate(templateId: string): void {
+    this.state = activateTemplate(this.state, templateId);
+  }
+
+  // === Query API (Output) ===
+
+  /** Получить позицию курсора */
+  getCursorPosition(): { q: number; r: number } {
+    return { ...this.state.focus };
+  }
+
+  /** Получить позицию протагониста */
+  getProtagonistPosition(): { q: number; r: number } {
+    return { ...this.state.protagonist };
+  }
+
+  /** Получить цвет клетки */
+  getCellColor(q: number, r: number): number | null {
+    const cell = getCell(this.state.grid, { q, r });
+    return cell?.colorIndex ?? null;
+  }
+
+  /** Проверить, переносится ли гекс */
+  isCarrying(): boolean {
+    return hoveredCellActive(this.state, this.params)?.isCarrying ?? false;
+  }
+
+  /** Получить содержимое hotbar */
+  getHotbar(): Array<number | null> {
+    return [...this.state.hotbarSlots];
+  }
+
+  /** Получить шанс захвата текущей клетки */
+  getCaptureChance(): number | null {
+    const hovered = hoveredCellActive(this.state, this.params);
+    return hovered?.captureChancePercent ?? null;
+  }
+
+  /** Проверить завершение шаблона */
+  isTemplateCompleted(templateId: string): boolean {
+    return this.state.completedTemplates?.has(templateId) ?? false;
+  }
+
+  /** Проверить завершение уровня туториала */
+  isTutorialLevelCompleted(levelId: string): boolean {
+    return this.state.tutorialCompletedLevelIds?.has(levelId) ?? false;
+  }
+
+  // === Assertion Helpers ===
+
+  /** Проверить инвариант: сумма гексов сохраняется */
+  assertColorConservation(): void {
+    // Подсчёт всех гексов в мире + hotbar + inventory
+    const worldColors = Array.from(this.state.grid.values())
+      .filter(c => c.colorIndex !== null).length;
+    const hotbarColors = this.state.hotbarSlots.filter(c => c !== null).length;
+    const invColors = Array.from(this.state.inventoryGrid.values())
+      .filter(c => c.colorIndex !== null).length;
+    
+    const total = worldColors + hotbarColors + invColors;
+    
+    // Инвариант должен быть неизменным (в играх без генерации)
+    if (!this.initialColorCount) {
+      this.initialColorCount = total;
+    } else if (this.initialColorCount !== total) {
+      throw new Error(
+        `Color conservation violated: initial=${this.initialColorCount}, current=${total}`
+      );
+    }
+  }
+
+  private initialColorCount?: number;
+
+  // === Internal State (for advanced tests) ===
+
+  /** Получить полное состояние (для snapshot тестов) */
+  getState(): Readonly<GameState> {
+    return this.state;
+  }
+
+  /** Установить состояние (для setup сложных сценариев) */
+  setState(state: GameState): void {
+    this.state = state;
+  }
+}
+
+// Конфигурация для тестов
+interface TestConfig {
+  params?: Partial<Params>;
+  seed?: number;
+  initialState?: GameState;
+}
+```
+
+#### 6.1.2. Test Examples
+
+**Example 1: Movement Test**
+
+```typescript
+// tests/game/movement.test.ts
+import { describe, it, expect } from 'vitest';
+import { GameTestFacade } from '../facade/GameTestFacade';
+
+describe('Movement System', () => {
+  it('should move protagonist in specified direction', () => {
+    const game = new GameTestFacade({ seed: 42 });
+    
+    const initialPos = game.getProtagonistPosition();
+    
+    game.move('up');
+    
+    const newPos = game.getProtagonistPosition();
+    expect(newPos.q).toBe(initialPos.q);
+    expect(newPos.r).toBe(initialPos.r - 1);
+  });
+
+  it('should not move outside grid bounds', () => {
+    const game = new GameTestFacade({ 
+      seed: 42,
+      params: { GridRadius: 5 }
+    });
+    
+    // Двигаться к краю
+    for (let i = 0; i < 10; i++) {
+      game.move('up');
+    }
+    
+    const pos = game.getProtagonistPosition();
+    const s = -pos.q - pos.r;
+    expect(Math.abs(pos.q)).toBeLessThanOrEqual(5);
+    expect(Math.abs(pos.r)).toBeLessThanOrEqual(5);
+    expect(Math.abs(s)).toBeLessThanOrEqual(5);
+  });
+});
+```
+
+**Example 2: Capture Mechanics Test**
+
+```typescript
+// tests/game/capture.test.ts
+describe('Capture System', () => {
+  it('should capture colored hex with 100% chance at base color', () => {
+    const game = new GameTestFacade({ seed: 123 });
+    
+    // Найти гекс с базовым цветом (PlayerBaseColorIndex = 0)
+    // Переместиться к нему
+    game.moveTo(2, 1); // Предположим, там есть цвет #0
+    
+    // Захват: удержание Space
+    game.holdSpace(6); // CaptureHoldDurationTicks = 6
+    
+    expect(game.isCarrying()).toBe(true);
+    expect(game.getCellColor(2, 1)).toBe(null); // Клетка теперь пустая
+  });
+
+  it('should respect capture cooldown after failure', () => {
+    const game = new GameTestFacade({ seed: 999 }); // Seed с гарантированным failure
+    
+    game.moveTo(3, 2); // Далёкий цвет (низкий шанс)
+    game.holdSpace(6);
+    
+    expect(game.isCarrying()).toBe(false); // Неудача
+    
+    // Попытка сразу снова → должна быть заблокирована
+    game.holdSpace(6);
+    expect(game.isCarrying()).toBe(false);
+    
+    // Подождать cooldown (36 тиков)
+    game.tick(36);
+    game.holdSpace(6);
+    // Теперь попытка должна быть обработана (может снова провалиться, но не игнорироваться)
+  });
+});
+```
+
+**Example 3: Build Template Test**
+
+```typescript
+// tests/game/templates.test.ts
+describe('Build Template System', () => {
+  it('should complete Simple Ring template', () => {
+    const game = new GameTestFacade({ seed: 555 });
+    
+    game.activateTemplate('ring_r1');
+    
+    // Разместить 7 гексов одного цвета в форме кольца
+    // (детальная логика зависит от реализации - это пример высокоуровневого теста)
+    
+    // Проверить завершение
+    expect(game.isTemplateCompleted('ring_r1')).toBe(true);
+  });
+});
+```
+
+**Example 4: Invariant Test**
+
+```typescript
+// tests/game/invariants.test.ts
+describe('Game Invariants', () => {
+  it('should preserve total hex count during gameplay', () => {
+    const game = new GameTestFacade({ seed: 777 });
+    
+    // Базовый подсчёт
+    game.assertColorConservation(); // Устанавливает начальное значение
+    
+    // Выполнить серию операций
+    game.eat();
+    game.assertColorConservation();
+    
+    game.move('down');
+    game.pressSpace(); // Положить гекс
+    game.assertColorConservation();
+    
+    game.tick(100); // Прошло время
+    game.assertColorConservation(); // Должно остаться неизменным
+  });
+});
+```
+
+#### 6.1.3. Facade Advantages ✅
+
+1. **Stable Test API**
+   - Тесты не ломаются при рефакторинге внутренностей
+   - Фасад адаптируется к новой реализации, тесты остаются неизменными
+
+2. **Implementation Agnostic**
+   - Тесты описывают **что делает игра**, а не **как**
+   - Можно переписать `pureLogic.ts` → `gameLogic/`, фасад останется прежним
+
+3. **Clear Test Intent**
+   - `game.move('up')` понятнее, чем `attemptMoveByDeltaOnActive(state, 0, params)`
+   - Тесты читаются как спецификация поведения
+
+4. **Deterministic Testing**
+   - Фиксированный seed → воспроизводимые результаты
+   - Нет зависимости от времени/random (если seed контролируется)
+
+5. **Easy Setup**
+   - Helpers для сложных сценариев (например, `setupGridWithPattern()`)
+   - Меньше boilerplate в тестах
+
+6. **Refactoring Safety Net**
+   - Фасад выступает как "контракт" игры
+   - Если тесты проходят → функциональность сохранена
+
+#### 6.1.4. Facade Disadvantages ⚠️
+
+1. **Extra Abstraction Layer**
+   - Дополнительный код для поддержки (`GameTestFacade` ~200–300 строк)
+   - Нужно обновлять фасад при добавлении новых фич
+
+2. **Hidden Implementation Details**
+   - Тесты не видят low-level проблемы (например, inefficient внутренние циклы)
+   - Нужны дополнительные unit-тесты для внутренних модулей
+
+3. **Learning Curve**
+   - Новые разработчики должны понять и фасад, и реальную реализацию
+   - Риск "двойной истины" (фасад != реальный код)
+
+4. **Maintenance Overhead**
+   - Если фасад сломался, все тесты падают
+   - Нужна дисциплина: обновлять фасад синхронно с API
+
+5. **Partial Coverage**
+   - Фасад может не покрывать все edge-cases (например, прямой доступ к `GameState.tick`)
+   - Требует design решений: что экспонировать, а что скрыть
+
+6. **False Sense of Security**
+   - Тесты могут проходить, но фасад содержит баги в адаптере
+   - Нужны тесты на сам фасад (мета-тесты)
+
+#### 6.1.5. Mitigation Strategies
+
+**Для недостатков 1–2 (Overhead):**
+- Генерировать фасад частично через code generation (например, из TypeScript типов)
+- Использовать adapter pattern только для часто меняющихся частей
+
+**Для недостатка 3 (Learning Curve):**
+- Документировать фасад с примерами (живая документация через тесты)
+- CI pipeline проверяет sync между фасадом и реализацией
+
+**Для недостатка 4 (Maintenance):**
+- Type-safe фасад: TypeScript гарантирует совместимость
+- Regression tests: тестировать фасад отдельно
+
+**Для недостатка 6 (False Security):**
+- **Golden Tests**: Записать output текущей реализации, сравнивать после рефакторинга
+- **Property-Based Testing**: QuickCheck-style тесты на инварианты
+
+#### 6.1.6. Implementation Roadmap
+
+**Phase 1: Design Facade API (Week 1)**
+- [ ] Определить публичный API фасада (commands + queries)
+- [ ] Написать TypeScript интерфейс `IGameTestFacade`
+- [ ] Создать stub implementation (все методы — `throw new Error('Not implemented')`)
+
+**Phase 2: Implement Facade Adapter (Week 2)**
+- [ ] Реализовать адаптер для текущей `pureLogic.ts`
+- [ ] Написать smoke test: проверить базовые сценарии
+- [ ] Зафиксировать golden snapshots (сериализованные GameState после операций)
+
+**Phase 3: Write Comprehensive Tests (Week 3)**
+- [ ] Movement tests (~10 сценариев)
+- [ ] Capture tests (~15 сценариев, включая probabilities)
+- [ ] Inventory/Hotbar tests (~8 сценариев)
+- [ ] Template tests (~6 шаблонов × 2 сценария)
+- [ ] Tutorial tests (~4 уровня)
+- [ ] Invariant tests (~5 глобальных правил)
+
+**Phase 4: Refactor with Confidence (Weeks 4–6)**
+- [ ] Начать рефакторинг `pureLogic.ts` → `gameLogic/`
+- [ ] **Не трогать тесты**, только адаптировать фасад внутри
+- [ ] После каждого модуля: запускать `npm test`, проверять golden snapshots
+- [ ] Если тест упал → либо фасад неправильно адаптирован, либо регрессия
+
+**Phase 5: Cleanup (Week 7)**
+- [ ] Удалить старый `pureLogic.ts`
+- [ ] Упростить фасад (убрать временные adapters)
+- [ ] Финальная проверка: все тесты проходят, coverage >70%
+
+### 6.2. Incremental Approach
 
 **Не переписывать всё сразу** — риск сломать рабочую версию.
 
-**Preferred Strategy:** Feature-by-feature migration.
+**Preferred Strategy:** Test Facade + Feature-by-feature migration.
 
-#### Step 1: Dual Architecture (Временно)
+#### Step 1: Create Test Facade
 ```
 src/
 ├── logic/
-│   └── pureLogic.ts          # Старая логика (deprecated, но работает)
-├── gameLogic/                 # Новая логика (постепенно заполняется)
+│   └── pureLogic.ts          # Текущая реализация
+├── components/
+│   └── Game.tsx
+└── tests/
+    └── facade/
+        └── GameTestFacade.ts # Стабильный тестовый API
+```
+
+**Actions:**
+- Спроектировать фасад API (commands, queries, assertions)
+- Реализовать adapter для текущей `pureLogic.ts`
+- Написать smoke tests для проверки фасада
+
+#### Step 2: Write Comprehensive Tests
+```
+tests/
+├── facade/
+│   ├── GameTestFacade.ts
+│   └── GameTestFacade.test.ts  # Тесты на сам фасад
+├── game/
+│   ├── movement.test.ts
+│   ├── capture.test.ts
+│   ├── inventory.test.ts
+│   ├── templates.test.ts
+│   └── tutorial.test.ts
+└── snapshots/
+    └── golden/                 # Golden snapshots для регрессий
+```
+
+**Coverage Target:** 70%+ критической логики (movement, capture, inventory).
+
+#### Step 3: Dual Architecture (Временно)
+```
+src/
+├── logic/
+│   └── pureLogic.ts          # Старая логика (deprecated)
+├── gameLogic/                 # Новая логика (рефакторинг)
 │   ├── core/
 │   ├── systems/
 │   └── ...
-├── components/
-│   └── Game.tsx              # Использует СТАРУЮ логику
-└── ui/components/
-    └── GameNew.tsx           # Использует НОВУЮ логику (для тестирования)
+└── tests/
+    └── facade/
+        └── GameTestFacade.ts # Адаптирован к gameLogic/ внутри
 ```
 
-#### Step 2: Feature Toggles
-```typescript
-// src/config.ts
-export const USE_NEW_ARCHITECTURE = import.meta.env.VITE_NEW_ARCH === 'true';
+**Process:**
+1. Рефакторить модуль (например, `movement.ts`)
+2. Обновить **только фасад** (заменить импорты `pureLogic` → `gameLogic`)
+3. Запустить тесты → если проходят, продолжить
+4. Если упали → либо баг в рефакторинге, либо баг в фасаде
 
-// ui/index.tsx
-const GameComponent = USE_NEW_ARCHITECTURE ? GameNew : Game;
-```
+#### Step 4: Progressive Migration Per System
 
-#### Step 3: Parallel Testing
-- Запускать старую и новую версии параллельно
-- Сравнивать состояния (snapshot тесты)
-- Когда новая версия 100% совместима → удалить старую
+**Module-by-Module:**
+- ✅ Week 1: `gameLogic/core/` (types, grid utils)
+- ✅ Week 2: `gameLogic/systems/movement.ts`
+- ✅ Week 3: `gameLogic/systems/capture.ts`
+- ✅ Week 4: `gameLogic/systems/inventory.ts`
+- ✅ Week 5: `gameLogic/systems/template.ts`
+- ✅ Week 6: `appLogic/sessionReducer.ts`
 
-#### Step 4: Complete Migration
-- Удалить `pureLogic.ts`, старые хуки
-- Переименовать `ui/components/GameNew.tsx` → `Game.tsx`
-- Обновить документацию
+**Key Principle:** Тесты НЕ меняются, только фасад адаптируется.
 
-**Total Timeline:** 3–4 недели при неполной занятости (2–3 часа/день).
+#### Step 5: Complete Migration
+- Удалить `pureLogic.ts` (все функции мигрированы)
+- Упростить фасад (убрать adapter overheads)
+- Финальная проверка: все тесты зелёные, coverage report
 
-### 6.2. Risk Mitigation
+**Total Timeline:** 6–7 недель при неполной занятости (2–3 часа/день).
+
+### 6.3. Risk Mitigation with Test Facade
 
 **Risks:**
 
 1. **Breaking Changes**: Новые механики несовместимы с сохранёнными сессиями.
-   - *Solution*: Версионирование `GameState`, миграции.
+   - *Solution*: Версионирование `GameState`, миграции. Тесты покрывают backward compatibility.
 
 2. **Performance Regression**: Новая архитектура медленнее.
-   - *Solution*: Benchmarks до/после, профилирование.
+   - *Solution*: Benchmarks до/после. Фасад позволяет легко сравнивать производительность (A/B testing).
 
 3. **Scope Creep**: Рефакторинг затягивается, feature development останавливается.
-   - *Solution*: Time-box для каждой фазы, приоритизация Priority 1 задач.
+   - *Solution*: Time-box для каждой фазы. Фасад позволяет рефакторить параллельно с разработкой (тесты защищают от регрессий).
+
+4. **Facade Becomes Obsolete**: Фасад устарел после завершения рефакторинга.
+   - *Solution*: Оставить фасад как **основной тестовый API**. Он ценен не только для миграции, но и для будущих рефакторингов.
+
+5. **Facade Contains Bugs**: Адаптер в фасаде содержит ошибки, скрывающие реальные проблемы.
+   - *Solution*: **Golden Tests**. Записать snapshots текущей реализации, сравнивать после каждогоизменения.
+
+**Golden Testing Strategy:**
+
+```typescript
+// tests/golden/golden.test.ts
+import { readFileSync, writeFileSync } from 'fs';
+import { GameTestFacade } from '../facade/GameTestFacade';
+
+describe('Golden Tests (Regression Prevention)', () => {
+  it('should produce identical state after standard scenario', () => {
+    const game = new GameTestFacade({ seed: 42 });
+    
+    // Выполнить фиксированный сценарий
+    game.move('up');
+    game.move('right');
+    game.eat();
+    game.tick(10);
+    
+    const finalState = game.getState();
+    const serialized = JSON.stringify(finalState, null, 2);
+    
+    // При первом запуске: записать golden snapshot
+    const goldenPath = './tests/snapshots/golden/standard-scenario.json';
+    if (!fs.existsSync(goldenPath)) {
+      writeFileSync(goldenPath, serialized);
+      console.warn('Golden snapshot created. Review and commit it.');
+      return;
+    }
+    
+    // При последующих запусках: сравнить с golden
+    const golden = readFileSync(goldenPath, 'utf-8');
+    expect(serialized).toBe(golden);
+  });
+});
+```
+
+**Benefits:**
+- Любое отклонение в поведении → тест падает
+- Ревью diff'а показывает, что изменилось
+- Защита от "тихих" регрессий (например, изменение вероятности захвата)
+
+### 6.4. Comparison: Test Facade vs Direct Testing
+
+| Критерий | Test Facade | Direct Testing |
+|----------|-------------|----------------|
+| **Стабильность тестов** | ✅ Высокая (API не меняется) | ❌ Низкая (тесты ломаются при рефакторинге) |
+| **Читаемость** | ✅ `game.move('up')` | ⚠️ `attemptMoveByDeltaOnActive(s, 0, p)` |
+| **Изоляция от деталей** | ✅ Тесты не знают о `pureLogic.ts` | ❌ Тесты завязаны на конкретные функции |
+| **Overhead** | ⚠️ +300 строк фасада | ✅ Нет дополнительного кода |
+| **Поддержка** | ⚠️ Нужно синхронизировать с API | ✅ Тесты напрямую вызывают код |
+| **Рефакторинг-friendly** | ✅ Максимальная защита | ❌ Тесты блокируют рефакторинг |
+| **Edge-case coverage** | ⚠️ Зависит от дизайна фасада | ✅ Прямой доступ ко всем деталям |
+
+**Recommendation:**  
+**Hybrid Approach** — использовать фасад для **integration tests** (сценарии игры), но оставить **unit tests** для критических модулей (capture probability, grid algorithms).
+
+```
+tests/
+├── integration/           # Через GameTestFacade
+│   ├── gameplay.test.ts
+│   └── templates.test.ts
+└── unit/                  # Прямые тесты
+    ├── capture.test.ts    # Тестируют captureChance() напрямую
+    └── grid.test.ts       # Тестируют hexToPixel(), axialDistance()
+```
 
 ---
 
-## 7. Actionable Next Steps
+## 7. Test Facade: Conclusion & Recommendation
+
+### 7.1. Verdict
+
+**Test Facade Pattern — оптимальная стратегия для HexiGame** по следующим причинам:
+
+✅ **Защита от регрессий**: Текущая функциональность фиксируется тестами **до** рефакторинга  
+✅ **Стабильность**: Тесты не ломаются при изменении внутренней реализации  
+✅ **Документация**: Фасад служит живой спецификацией игровой логики  
+✅ **Parallel Development**: Можно добавлять новые фичи, пока идёт рефакторинг  
+✅ **Long-Term Value**: Фасад остаётся полезным после завершения миграции
+
+⚠️ **Trade-offs**:
+- Требует дисциплины (синхронизация фасада с API)
+- Overhead ~300 строк кода
+- Риск "двойной истины" (фасад vs реальность)
+
+**Mitigation**: Golden tests + hybrid approach (facade для integration, прямые тесты для unit).
+
+### 7.2. Recommended Timeline
+
+**Оптимистичный сценарий** (2–3 часа/день):
+
+| Неделя | Milestone | Deliverable |
+|--------|-----------|-------------|
+| 1 | Design Facade API | `GameTestFacade.ts` (interface + stub) |
+| 2 | Implement Adapter | Facade работает с текущим `pureLogic.ts` |
+| 3 | Write Tests | 40+ тестов (movement, capture, inventory, templates) |
+| 4 | Golden Snapshots | 10 golden scenarios, regression baseline |
+| 5–6 | Refactor Core | `gameLogic/core/`, `systems/movement`, `systems/capture` |
+| 7 | Refactor Advanced | `systems/inventory`, `systems/template` |
+| 8 | Session Layer | `appLogic/sessionReducer.ts`, `viewModel.ts` |
+| 9 | UI Integration | `ui/components/Game.tsx` uses new architecture |
+| 10 | Cleanup | Delete `pureLogic.ts`, simplify facade, final tests |
+
+**Pessimistic сценарий** (+50% time): 15 недель (~4 месяца).
+
+### 7.3. Success Criteria
+
+Рефакторинг считается завершённым, когда:
+
+- ✅ Все тесты проходят (100% pass rate)
+- ✅ Coverage ≥ 70% для `gameLogic/`
+- ✅ Golden tests показывают 100% соответствие
+- ✅ Производительность не ухудшилась (benchmark)
+- ✅ `pureLogic.ts` удалён из кодовой базы
+- ✅ Новые фичи добавляются через новую архитектуру
+- ✅ Документация обновлена (GAME_LOGIC.md ссылается на `gameLogic/`)
+
+---
+
+## 8. Actionable Next Steps
 
 ### Immediate (This Week)
 
 1. **Review `refactor-notes.md`** ✅ (уже сделано в этом документе)
 2. **Create `docs/GAME_ARCHITECT.md`** ✅ (этот документ)
-3. **Decide**: Завершить рефакторинг ИЛИ заморозить и развивать на текущей базе?
-   - Если **Завершить**: Начать с Priority 1, Step 1 (создать `gameLogic/core/`)
-   - Если **Заморозить**: Удалить `refactor-notes.md`, документировать текущую архитектуру как финальную
+3. **Decide on Test Facade Strategy** 🔥 **НОВОЕ**
+   - [ ] Обсудить плюсы/минусы Test Facade
+   - [ ] Выбрать: Facade-First ИЛИ Direct Testing
+   - [ ] **Рекомендация**: Facade-First для HexiGame (см. секцию 7.1)
 
-### Short-Term (Next 2 Weeks)
+### Short-Term (Next 2 Weeks) — **Test Facade Route** 🎯
 
-**Option A: Complete Refactor Route**
-- [ ] Implement `gameLogic/core/` (types, grid, params)
-- [ ] Migrate movement system to `gameLogic/systems/movement.ts`
-- [ ] Create `appLogic/sessionReducer.ts` stub
-- [ ] Test dual architecture with feature toggle
+**Week 1: Design Facade**
+- [ ] Создать `tests/facade/GameTestFacade.ts` (interface)
+- [ ] Определить Command API (~10 методов: move, eat, pressSpace, etc.)
+- [ ] Определить Query API (~15 методов: getPosition, getCellColor, etc.)
+- [ ] Определить Assertion API (~5 методов: assertColorConservation, etc.)
+- [ ] Stub implementation (все методы → `throw new Error('Not implemented')`)
 
-**Option B: Improve Current Architecture**
-- [ ] Split `GameField.tsx` на 3 файла (Renderer, InputHandler, Component)
-- [ ] Extract `Game.tsx` HUD в отдельный компонент
-- [ ] Add JSDoc для ключевых функций `pureLogic.ts`
-- [ ] Setup Vitest, написать первые тесты для capture logic
+**Week 2: Implement Adapter**
+- [ ] Реализовать adapter для текущего `pureLogic.ts`
+- [ ] Написать smoke tests (5–10 базовых сценариев)
+- [ ] Setup Vitest + test infrastructure
+- [ ] Создать первый golden snapshot
 
-### Mid-Term (Next Month)
+### Mid-Term (Weeks 3–4) — **Comprehensive Testing**
 
-- [ ] Implement EventBus для audio/analytics
-- [ ] Add Zod schemas для Params и Build Templates
-- [ ] Create modding guide (`docs/MODDING.md`)
-- [ ] Performance profiling: измерить baseline FPS
+- [ ] Movement tests (~10 сценариев)
+- [ ] Capture tests (~15 сценариев: success, failure, cooldown, probabilities)
+- [ ] Inventory/Hotbar tests (~8 сценариев)
+- [ ] Template tests (~6 шаблонов)
+- [ ] Tutorial tests (~4 уровня)
+- [ ] Invariant tests (~5 глобальных правил)
+- [ ] **Target**: 40+ integration tests, coverage ≥ 60%
 
-### Long-Term (Next Quarter)
+### Mid-Term (Weeks 5–7) — **Core Refactoring**
 
-- [ ] Complete migration to three-layer architecture
-- [ ] Achieve 70%+ test coverage
-- [ ] Mobile app prototype (React Native)
-- [ ] Community mod contest (если modding готов)
+- [ ] Create `src/gameLogic/core/` (types, grid, params)
+- [ ] Migrate movement → `gameLogic/systems/movement.ts`
+- [ ] Migrate capture → `gameLogic/systems/capture.ts`
+- [ ] Update facade adapter (switch imports from `pureLogic` → `gameLogic`)
+- [ ] Verify: all tests still pass ✅
+
+### Long-Term (Weeks 8–10) — **Advanced Systems & Cleanup**
+
+- [ ] Migrate inventory → `gameLogic/systems/inventory.ts`
+- [ ] Migrate templates → `gameLogic/systems/template.ts`
+- [ ] Create `appLogic/sessionReducer.ts`
+- [ ] Create `appLogic/viewModel.ts`
+- [ ] Update UI: `ui/components/Game.tsx` uses new architecture
+- [ ] Delete `src/logic/pureLogic.ts` 🎉
+- [ ] Simplify facade (remove temporary adapters)
+- [ ] Final test run: 100% pass, coverage ≥ 70%
+
+### Post-Refactoring (Week 11+)
+
+- [ ] Performance profiling: compare old vs new
+- [ ] Add EventBus для audio/analytics (Priority 3)
+- [ ] Add Zod schemas для Params (Priority 5)
+- [ ] Update GAME_LOGIC.md (ссылки на `gameLogic/`)
+- [ ] Write modding guide (`docs/MODDING.md`)
 
 ---
 
-## 8. Conclusion
+## 9. Conclusion
 
 HexiGame имеет **солидный фундамент** с чистой функциональной логикой и модульными системами. Основные проблемы — **монолитные файлы** и **незавершённый рефакторинг**.
 
 **Ключевые решения:**
 
-1. **Завершить трёхслойную архитектуру** — критично для масштабируемости.
-2. **Разбить большие файлы** — улучшит поддерживаемость.
-3. **Добавить тесты** — защитит от регрессий при рефакторинге.
-4. **Внедрить EventBus** — упростит интеграцию новых систем.
+1. ✅ **Test Facade Pattern** — защищает от регрессий при рефакторинге
+2. ✅ **Hybrid Testing** — Integration tests (facade) + Unit tests (прямые)
+3. ✅ **Golden Snapshots** — фиксируют текущее поведение для сравнения
+4. ✅ **Incremental Migration** — модуль за модулем, тесты как safety net
 
-**Выбор стратегии зависит от приоритетов:**
-- **Если важна скорость разработки новых фич** → Option B (улучшить текущую архитектуру, отложить большой рефакторинг).
-- **Если важна долгосрочная поддержка** → Option A (завершить рефакторинг сейчас, потом развивать на чистой базе).
+**Стратегия рефакторинга:**
 
-Рекомендация автора документа: **Option A** (завершить рефакторинг), т.к. `refactor-notes.md` уже описывает plan, и откладывание приведёт к углублению техдолга.
+- **Phase 1** (Weeks 1–2): Создать Test Facade, написать тесты на текущую реализацию
+- **Phase 2** (Weeks 3–4): Comprehensive test coverage (40+ тестов)
+- **Phase 3** (Weeks 5–10): Пошаговый рефакторинг с адаптацией фасада
+- **Phase 4** (Week 11+): Cleanup, performance optimization, новые фичи
+
+**Почему Test Facade оптимален для HexiGame:**
+
+✅ **Большой монолит** (`pureLogic.ts` 876 строк) → фасад скрывает сложность  
+✅ **Незавершённый рефакторинг** → тесты защищают от повторного отката  
+✅ **Функциональный код** → легко тестировать через фасад (pure functions)  
+✅ **Долгосрочная ценность** → фасад остаётся как тестовый API навсегда  
+
+**Альтернативная стратегия** (если нет времени на фасад):
+
+- Написать прямые unit-tests на критические функции (`captureChance`, `attemptMove`)
+- Разбить `pureLogic.ts` на модули постепенно
+- Переписывать тесты по мере рефакторинга
+
+**⚠️ Риски альтернативы**:
+- Тесты придётся переписывать многократно
+- Высокий риск внести баги в тесты при переписывании
+- Нет гарантии, что поведение не изменилось
+
+**Рекомендация автора документа:**  
+**Test Facade First** → потратить 2 недели на фасад и тесты, потом 6–8 недель на безопасный рефакторинг с полной уверенностью в стабильности.
+
+**Альтернатива** (без фасада) → 3–4 недели рефакторинга, но с риском регрессий и необходимостью ручного тестирования каждого изменения.
+
+**ROI Test Facade**: 2 недели investment → экономия 4–6 недель на debugging + долгосрочная ценность (~300 строк reusable тестового API).
 
 ---
 
 **Document Prepared By:** AI Architecture Agent  
 **For Review By:** Lead Developer, Technical Stakeholders  
-**Next Action:** Обсудить выбор стратегии (Option A vs Option B), утвердить roadmap
+**Next Action:** Approve Test Facade strategy → Start Week 1 (Design Facade API)  
+**Updated:** February 27, 2026 — Added comprehensive Test Facade analysis
