@@ -55,13 +55,9 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
       top: topOffset,
       left: '50%',
       transform: 'translateX(-50%)',
-      width: 'calc(100% - 16px)',
+      width: '100%',
       maxWidth: 520,
       display: 'flex',
-      gap: 2,
-      padding: 8,
-      background: 'rgba(0, 0, 0, 0.4)',
-      borderRadius: 4,
       zIndex: 50,
     }}>
       {displayOrder.map((colorIndex, displayIndex) => {
@@ -79,23 +75,20 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              padding: '4px 2px',
+              justifyContent: 'center',
               background: color,
-              border: `${borderWidth}px solid ${borderColor}`,
-              borderRadius: 2,
               minWidth: 0,
+              minHeight: 24,
+              position: 'relative',
             }}
           >
             <div
               style={{
-                fontSize: '8px',
+                fontSize: '11px',
                 fontWeight: 'bold',
                 color: '#FFFFFF',
-                textShadow: '0 0 2px rgba(0,0,0,0.5)',
+                textShadow: '0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)',
                 whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                width: '100%',
                 textAlign: 'center',
               }}
             >

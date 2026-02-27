@@ -391,3 +391,5 @@
 - 2026w09-0.15 — Fix palette widget: center on player color, show minus signs, fix template validation display
 
 - 2026w09-0.16 — Fix template: anchor 0% cell at focus, use focus color as base in flickering mode
+
+- 2026w09-0.17 — Widget: remove gaps for solid bar, larger font; Template: anchor at bottom to avoid turtle overlap
