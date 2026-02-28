@@ -1,9 +1,16 @@
+.tutorial-progress-container {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  margin: 8px 8px;
+  gap: 0;
+}
+
 .tutorial-progress-widget {
+  flex: 1;
   background: #333333;
   border: 1px solid #555555;
   padding: 8px 12px;
-  margin: 8px 8px;
-  width: calc(100% - 16px);
   box-sizing: border-box;
   text-align: left;
   cursor: default;
@@ -23,6 +30,23 @@
   cursor: pointer;
   background: #3a3a3a;
   border-color: #666666;
+}
+
+.tutorial-info-button {
+  background: #333333;
+  border: 1px solid #555555;
+  border-left: none;
+  padding: 8px 10px;
+  color: #88ccff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.tutorial-info-button:hover {
+  background: #3a3a3a;
+  color: #aaddff;
 }
 
 .tutorial-progress-row {
@@ -59,6 +83,57 @@
   font-size: 12px;
   color: #999999;
   font-weight: 600;
+}
+
+.tutorial-info-bubble {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 200;
+  background: #2a2a2a;
+  border: 1px solid #555555;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  width: 300px;
+  max-width: calc(100vw - 32px);
+}
+
+.tutorial-info-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: #999999;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.2s;
+}
+
+.tutorial-info-close:hover {
+  color: #cccccc;
+}
+
+.tutorial-info-content {
+  padding-right: 20px;
+}
+
+.tutorial-info-title {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.tutorial-info-hint {
+  color: #cccccc;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .tutorial-control-hint {

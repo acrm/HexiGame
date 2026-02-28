@@ -403,3 +403,5 @@
 - 2026w09-0.20.b — Add HSV palette, turtle outline param, fix minus sign, update template % for 6 colors, start HexiPedia improvements
 
 - 2026w09-0.21 — Replace ColorPaletteHues array with startHue and hueStep parameters
+
+- 2026w09-0.22 — Add info button and bubble styling to TutorialProgressWidget
