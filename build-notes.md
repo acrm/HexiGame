@@ -417,3 +417,5 @@
 - 2026w09-0.27 — Fix HexiPedia scrolling, task hint binding, and palette widget alignment
 
 - 2026w09-0.28 — Add AppTestFacade and appLogic tests covering UI interactions
+
+- 2026w09-0.29 — Fix hotbar slot hit-test and auto-resume music after reload

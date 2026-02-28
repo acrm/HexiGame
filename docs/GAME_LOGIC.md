@@ -355,6 +355,11 @@ Defined in `src/templates/templateLogic.ts`:
   - Info bubble popup always shows hint text for the currently active tutorial task
   - Positioned in-game, allowing context-aware task information without tab switching
 
+### 8.1.1 Input reliability
+- **Hotbar hit-testing**:
+  - Mobile hotbar click/tap detection uses the same geometry values as hotbar rendering
+  - Prevents neighbor-slot activation when tapping lower ring cells
+
 ### 8.2 HexiPedia (Information Hub)
 - **Section Management**:
   - Three collapsible sections: Tasks, Stats, Build Templates
@@ -396,6 +401,12 @@ Defined in `src/templates/templateLogic.ts`:
 - **Tutorial Progress**: Tracks visited target cells per level (in-session)
 - **Completed Templates**: Persists across sessions (set of completed template IDs)
 - **Tutorial Level State**: Current level + completion status maintained in GameState
+
+### 8.5 Audio resume behavior
+- **Music state persistence**:
+  - Track index and playback time are stored in local storage
+  - After page reload, music retries playback on first user interaction automatically
+  - No settings toggle required to resume from saved position
 
 ---
 ## 9. Not Implemented (Scope Notes)

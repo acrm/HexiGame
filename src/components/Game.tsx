@@ -324,6 +324,28 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     }
   }, [guestStarted, musicEnabled]);
 
+  // Retry music resume on first user interaction after page reload
+  useEffect(() => {
+    if (!guestStarted || !musicEnabled) return;
+
+    const resumeOnInteraction = () => {
+      audioManager.playMusic();
+      window.removeEventListener('pointerdown', resumeOnInteraction);
+      window.removeEventListener('keydown', resumeOnInteraction);
+      window.removeEventListener('touchstart', resumeOnInteraction);
+    };
+
+    window.addEventListener('pointerdown', resumeOnInteraction, { passive: true, once: true });
+    window.addEventListener('keydown', resumeOnInteraction, { once: true });
+    window.addEventListener('touchstart', resumeOnInteraction, { passive: true, once: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', resumeOnInteraction);
+      window.removeEventListener('keydown', resumeOnInteraction);
+      window.removeEventListener('touchstart', resumeOnInteraction);
+    };
+  }, [guestStarted, musicEnabled]);
+
   // Force mobile interaction mode (desktop temporarily disabled)
   useEffect(() => {
     setInteractionMode('mobile');

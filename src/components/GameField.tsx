@@ -8,6 +8,17 @@ const GRID_STROKE_COLOR = '#635572ff';
 const HOTBAR_HEX_SIZE = 30;
 const HOTBAR_RING_RADIUS_MULT = 1.7;
 
+function getHotbarGeometry(canvas: HTMLCanvasElement, isLeftHanded: boolean) {
+  const margin = 90;
+  const inward = canvas.width * 0.03;
+  const baseY = canvas.height - margin;
+  const centerX = isLeftHanded ? margin + inward : canvas.width - margin - inward;
+  const centerY = baseY;
+  const hexSize = HOTBAR_HEX_SIZE;
+  const ringRadius = hexSize * HOTBAR_RING_RADIUS_MULT;
+  return { centerX, centerY, hexSize, ringRadius };
+}
+
 // Helper: axial -> pixel (pointy-top)
 function hexToPixel(q: number, r: number) {
   const x = HEX_SIZE * 1.5 * q;
@@ -195,13 +206,12 @@ export const GameField: React.FC<GameFieldProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return null;
 
-    const margin = 64;
-    const inward = canvas.width * 0.10;
-    const baseY = canvas.height - margin;
-    const hotbarCenterX = isLeftHanded ? margin + inward : canvas.width - margin - inward;
-    const hotbarCenterY = baseY;
-    const hotbarHexSize = HOTBAR_HEX_SIZE;
-    const hotbarRingRadius = hotbarHexSize * HOTBAR_RING_RADIUS_MULT;
+    const {
+      centerX: hotbarCenterX,
+      centerY: hotbarCenterY,
+      hexSize: hotbarHexSize,
+      ringRadius: hotbarRingRadius,
+    } = getHotbarGeometry(canvas, isLeftHanded);
 
     // Check distance to each slot
     for (let slotIndex = 0; slotIndex < 6; slotIndex++) {
@@ -238,13 +248,11 @@ export const GameField: React.FC<GameFieldProps> = ({
           continue;
         }
 
-        const margin = 64;
-        const inward = currentCanvas.width * 0.10;
-        const baseY = currentCanvas.height - margin;
-        const hotbarCenterX = isLeftHanded ? margin + inward : currentCanvas.width - margin - inward;
-        const capCenterX = hotbarCenterX;
-        const capCenterY = baseY;
-        const capRadius = HOTBAR_HEX_SIZE;
+        const {
+          centerX: capCenterX,
+          centerY: capCenterY,
+          hexSize: capRadius,
+        } = getHotbarGeometry(currentCanvas, isLeftHanded);
 
         const showAct = !isInventory; // ACT always available in world
         let consumed = false;
@@ -661,13 +669,12 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       // Hotbar ring (mirrored based on handedness) - 6 slots with ACT in center
       if (!isInventory && !hideHotbar) {
-        const margin = 90;
-        const inward = canvas.width * 0.03;
-        const baseY = canvas.height - margin;
-        const hotbarCenterX = isLeftHanded ? margin + inward : canvas.width - margin - inward;
-        const hotbarCenterY = baseY;
-        const hotbarHexSize = HOTBAR_HEX_SIZE;
-        const hotbarRingRadius = hotbarHexSize * HOTBAR_RING_RADIUS_MULT;
+        const {
+          centerX: hotbarCenterX,
+          centerY: hotbarCenterY,
+          hexSize: hotbarHexSize,
+          ringRadius: hotbarRingRadius,
+        } = getHotbarGeometry(canvas, isLeftHanded);
 
         // Determine ACT button text based on focus cell
         const focusKey = `${gameState.focus.q},${gameState.focus.r}`;
