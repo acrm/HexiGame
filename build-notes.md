@@ -415,3 +415,5 @@
 - 2026w09-0.26 — Fix UI: move control hint to info button, unify section panels, auto-resume music
 
 - 2026w09-0.27 — Fix HexiPedia scrolling, task hint binding, and palette widget alignment
+
+- 2026w09-0.28 — Add AppTestFacade and appLogic tests covering UI interactions
