@@ -116,205 +116,320 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
           aria-label="Filter sections"
         />
       </div>
+      <div className="hexipedia-scrollable-content">
       {tutorialLevel || allLevels.length > 0 ? (
         <div>
-          {isSectionVisible(t('tutorial.tasksTitle')) && (
-            <div className="hexipedia-accordion-list">
-              <div className="hexipedia-accordion-header">{t('tutorial.tasksTitle')}</div>
-              {allLevels.map(level => {
-                const isCurrent = tutorialLevelId === level.id;
-                const isCompleted = completedLevelIds.has(level.id) || (isCurrent && isTutorialTaskComplete);
-                const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode);
-                const levelTargetCells = isCurrent ? targetCells : (level.targetCells ?? []);
-                const levelVisited = isCurrent ? visitedCount : 0;
+          {sectionOrder.map(sectionId => {
+            const isCollapsed = collapsedSections.has(sectionId);
+            const canMoveUp = sectionOrder.indexOf(sectionId) > 0;
+            const canMoveDown = sectionOrder.indexOf(sectionId) < sectionOrder.length - 1;
 
-                return (
-                  <div key={level.id} className="hexipedia-accordion-item">
-                    <div className="hexipedia-accordion-title" onClick={() => toggleSection(level.id)}>
-                      <span className={`hexipedia-task-checkbox ${isCompleted ? 'checked' : ''}`}>
-                        {isCompleted ? '✓' : ''}
-                      </span>
-                      <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
-                        {level.objective}
-                      </span>
-                      <div className="hexipedia-task-actions">
-                        {!isCompleted ? (
-                          <button
-                            className={`hexipedia-task-action ${isCurrent ? 'active' : ''}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              audioManager.playRandomSound();
-                              if (!isCurrent) onSelectTutorialLevel?.(level.id);
-                            }}
-                            disabled={isCurrent}
-                          >
-                            {isCurrent ? 'Current' : 'Activate'}
-                          </button>
-                        ) : (
-                          <button
-                            className="hexipedia-task-action restart"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              audioManager.playRandomSound();
-                              onRestartTutorialLevel?.(level.id);
-                            }}
-                          >
-                            Restart
-                          </button>
-                        )}
-                      </div>
+            // Tasks section
+            if (sectionId === 'tasks' && isSectionVisible(t('tutorial.tasksTitle'))) {
+              return (
+                <div key="tasks" className="hexipedia-section-wrapper">
+                  <div className="hexipedia-section-header-container">
+                    <div 
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
+                      onClick={() => toggleSectionCollapse('tasks')}
+                    >
+                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-title">{t('tutorial.tasksTitle')}</span>
                     </div>
-                    {expandedLevelId === level.id && (
-                      <div className="hexipedia-accordion-content">
-                        <div className="hexipedia-section">
-                          <div className="hexipedia-section-title">{t('tutorial.hint')}</div>
-                          <div className="hexipedia-text">
-                            {hintText.includes('HexiMap') ? (
-                              <>
-                                {hintText.split('HexiMap')[0]}
-                                <span 
-                                  className="hexipedia-link"
-                                  onClick={() => {
-                                    audioManager.playRandomSound();
-                                    onSwitchTab?.('heximap');
-                                  }}
-                                >
-                                  HexiMap
-                                </span>
-                                {hintText.split('HexiMap')[1]}
-                              </>
-                            ) : (
-                              hintText
+                    <div className="hexipedia-section-controls">
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionUp('tasks')}
+                        disabled={!canMoveUp}
+                        title="Move up"
+                        aria-label="Move up"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionDown('tasks')}
+                        disabled={!canMoveDown}
+                        title="Move down"
+                        aria-label="Move down"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                  {!isCollapsed && (
+                    <div className="hexipedia-accordion-list">
+                      {allLevels.map(level => {
+                        const isCurrent = tutorialLevelId === level.id;
+                        const isCompleted = completedLevelIds.has(level.id) || (isCurrent && isTutorialTaskComplete);
+                        const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode);
+                        const levelTargetCells = isCurrent ? targetCells : (level.targetCells ?? []);
+                        const levelVisited = isCurrent ? visitedCount : 0;
+
+                        return (
+                          <div key={level.id} className="hexipedia-accordion-item">
+                            <div className="hexipedia-accordion-title" onClick={() => toggleSection(level.id)}>
+                              <span className={`hexipedia-task-checkbox ${isCompleted ? 'checked' : ''}`}>
+                                {isCompleted ? '✓' : ''}
+                              </span>
+                              <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
+                                {level.objective}
+                              </span>
+                              <div className="hexipedia-task-actions">
+                                {!isCompleted ? (
+                                  <button
+                                    className={`hexipedia-task-action ${isCurrent ? 'active' : ''}`}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      audioManager.playRandomSound();
+                                      if (!isCurrent) onSelectTutorialLevel?.(level.id);
+                                    }}
+                                    disabled={isCurrent}
+                                  >
+                                    {isCurrent ? 'Current' : 'Activate'}
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="hexipedia-task-action restart"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      audioManager.playRandomSound();
+                                      onRestartTutorialLevel?.(level.id);
+                                    }}
+                                  >
+                                    Restart
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {expandedLevelId === level.id && (
+                              <div className="hexipedia-accordion-content">
+                                <div className="hexipedia-section">
+                                  <div className="hexipedia-section-title">{t('tutorial.hint')}</div>
+                                  <div className="hexipedia-text">
+                                    {hintText.includes('HexiMap') ? (
+                                      <>
+                                        {hintText.split('HexiMap')[0]}
+                                        <span 
+                                          className="hexipedia-link"
+                                          onClick={() => {
+                                            audioManager.playRandomSound();
+                                            onSwitchTab?.('heximap');
+                                          }}
+                                        >
+                                          HexiMap
+                                        </span>
+                                        {hintText.split('HexiMap')[1]}
+                                      </>
+                                    ) : (
+                                      hintText
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="hexipedia-section">
+                                  <div className="hexipedia-section-title">{t('tutorial.progress')}</div>
+                                  <div className="hexipedia-text">{levelVisited} / {levelTargetCells.length}</div>
+                                </div>
+                              </div>
                             )}
                           </div>
-                        </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
 
-                        <div className="hexipedia-section">
-                          <div className="hexipedia-section-title">{t('tutorial.progress')}</div>
-                          <div className="hexipedia-text">{levelVisited} / {levelTargetCells.length}</div>
+            // Stats section
+            if (sectionId === 'stats' && isSectionVisible(t('stats.title'))) {
+              return (
+                <div key="stats" className="hexipedia-section-wrapper">
+                  <div className="hexipedia-section-header-container">
+                    <div 
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
+                      onClick={() => toggleSectionCollapse('stats')}
+                    >
+                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-title">{t('stats.title')}</span>
+                    </div>
+                    <div className="hexipedia-section-controls">
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionUp('stats')}
+                        disabled={!canMoveUp}
+                        title="Move up"
+                        aria-label="Move up"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionDown('stats')}
+                        disabled={!canMoveDown}
+                        title="Move down"
+                        aria-label="Move down"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                  {!isCollapsed && (
+                    <div className="hexipedia-stats-section">
+                      <div className="hexipedia-stats-content">
+                        <div className="hexipedia-stat-row">
+                          <span className="hexipedia-stat-label">{t('stats.sessionTime')}</span>
+                          <span className="hexipedia-stat-value">{formatSessionTime(sessionDuration)}</span>
+                        </div>
+                        <div className="hexipedia-stat-row">
+                          <span className="hexipedia-stat-label">{t('stats.sessionTicks')}</span>
+                          <span className="hexipedia-stat-value">{sessionDuration}</span>
                         </div>
                       </div>
-                    )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Templates section
+            if (sectionId === 'templates' && isSectionVisible('Build Templates')) {
+              return (
+                <div key="templates" className="hexipedia-section-wrapper">
+                  <div className="hexipedia-section-header-container">
+                    <div 
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
+                      onClick={() => toggleSectionCollapse('templates')}
+                    >
+                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-title">Build Templates</span>
+                    </div>
+                    <div className="hexipedia-section-controls">
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionUp('templates')}
+                        disabled={!canMoveUp}
+                        title="Move up"
+                        aria-label="Move up"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionDown('templates')}
+                        disabled={!canMoveDown}
+                        title="Move down"
+                        aria-label="Move down"
+                      >
+                        ▼
+                      </button>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-
-          {isSectionVisible(t('stats.title')) && (
-            <div className="hexipedia-stats-section">
-              <div className="hexipedia-stats-header">{t('stats.title')}</div>
-              <div className="hexipedia-stats-content">
-                <div className="hexipedia-stat-row">
-                  <span className="hexipedia-stat-label">{t('stats.sessionTime')}</span>
-                  <span className="hexipedia-stat-value">{formatSessionTime(sessionDuration)}</span>
-                </div>
-                <div className="hexipedia-stat-row">
-                  <span className="hexipedia-stat-label">{t('stats.sessionTicks')}</span>
-                  <span className="hexipedia-stat-value">{sessionDuration}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isSectionVisible('Build Templates') && (
-            <div className="hexipedia-templates-section">
-              <div className="hexipedia-section-title">Build Templates</div>
-              <div className="hexipedia-templates-list">
-                <label className="hexipedia-template-radio">
-                  <input
-                    type="radio"
-                    name="active-template"
-                    value=""
-                    checked={!gameState.activeTemplate}
-                    onChange={() => {
-                      audioManager.playRandomSound();
-                      onActivateTemplate?.('');
-                    }}
-                  />
-                  <span className="hexipedia-template-name">None</span>
-                </label>
-                
-                {ALL_TEMPLATES.map(template => {
-                  const isCompleted = gameState.completedTemplates?.has(template.id) ?? false;
-                  const isActive = gameState.activeTemplate?.templateId === template.id;
-                  const isExpanded = expandedTemplateId === template.id;
-                  
-                  return (
-                    <div key={template.id} className="hexipedia-template-item">
-                      <div className="hexipedia-template-row">
+                  {!isCollapsed && (
+                    <div className="hexipedia-templates-section">
+                      <div className="hexipedia-templates-list">
                         <label className="hexipedia-template-radio">
                           <input
                             type="radio"
                             name="active-template"
-                            value={template.id}
-                            checked={isActive}
+                            value=""
+                            checked={!gameState.activeTemplate}
                             onChange={() => {
                               audioManager.playRandomSound();
-                              onActivateTemplate?.(template.id);
+                              onActivateTemplate?.('');
                             }}
                           />
-                          <span className="hexipedia-template-name">{template.name.en}</span>
-                          <span className={`hexipedia-template-difficulty ${template.difficulty}`}>
-                            {template.difficulty === 'easy' && '●'}
-                            {template.difficulty === 'medium' && '●●'}
-                            {template.difficulty === 'hard' && '●●●'}
-                          </span>
-                          <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
-                            {isCompleted ? '✓' : ''}
-                          </span>
+                          <span className="hexipedia-template-name">None</span>
                         </label>
                         
-                        <button
-                          className={`hexipedia-template-expand ${isExpanded ? 'expanded' : ''}`}
-                          onClick={() => {
-                            audioManager.playRandomSound();
-                            setExpandedTemplateId(isExpanded ? null : template.id);
-                          }}
-                          aria-label="Show template details"
-                        >
-                          ▼
-                        </button>
-                      </div>
+                        {ALL_TEMPLATES.map(template => {
+                          const isCompleted = gameState.completedTemplates?.has(template.id) ?? false;
+                          const isActive = gameState.activeTemplate?.templateId === template.id;
+                          const isExpanded = expandedTemplateId === template.id;
+                          
+                          return (
+                            <div key={template.id} className="hexipedia-template-item">
+                              <div className="hexipedia-template-row">
+                                <label className="hexipedia-template-radio">
+                                  <input
+                                    type="radio"
+                                    name="active-template"
+                                    value={template.id}
+                                    checked={isActive}
+                                    onChange={() => {
+                                      audioManager.playRandomSound();
+                                      onActivateTemplate?.(template.id);
+                                    }}
+                                  />
+                                  <span className="hexipedia-template-name">{template.name.en}</span>
+                                  <span className={`hexipedia-template-difficulty ${template.difficulty}`}>
+                                    {template.difficulty === 'easy' && '●'}
+                                    {template.difficulty === 'medium' && '●●'}
+                                    {template.difficulty === 'hard' && '●●●'}
+                                  </span>
+                                  <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
+                                    {isCompleted ? '✓' : ''}
+                                  </span>
+                                </label>
+                                
+                                <button
+                                  className={`hexipedia-template-expand ${isExpanded ? 'expanded' : ''}`}
+                                  onClick={() => {
+                                    audioManager.playRandomSound();
+                                    setExpandedTemplateId(isExpanded ? null : template.id);
+                                  }}
+                                  aria-label="Show template details"
+                                >
+                                  ▼
+                                </button>
+                              </div>
 
-                      {isExpanded && (
-                        <div className="hexipedia-template-details">
-                          {template.description && (
-                            <div className="hexipedia-template-description">
-                              <span className="hexipedia-detail-label">Description:</span>
-                              <span className="hexipedia-detail-text">{template.description.en}</span>
+                              {isExpanded && (
+                                <div className="hexipedia-template-details">
+                                  {template.description && (
+                                    <div className="hexipedia-template-description">
+                                      <span className="hexipedia-detail-label">Description:</span>
+                                      <span className="hexipedia-detail-text">{template.description.en}</span>
+                                    </div>
+                                  )}
+                                  
+                                  {template.hints && template.hints.en && template.hints.en.length > 0 && (
+                                    <div className="hexipedia-template-hints">
+                                      <span className="hexipedia-detail-label">Hints:</span>
+                                      <ul className="hexipedia-hints-list">
+                                        {template.hints.en.map((hint, idx) => (
+                                          <li key={idx} className="hexipedia-hint-item">{hint}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  
+                                  <div className="hexipedia-template-cells">
+                                    <span className="hexipedia-detail-label">Cells:</span>
+                                    <span className="hexipedia-detail-text">{template.cells.length}</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          
-                          {template.hints && template.hints.en && template.hints.en.length > 0 && (
-                            <div className="hexipedia-template-hints">
-                              <span className="hexipedia-detail-label">Hints:</span>
-                              <ul className="hexipedia-hints-list">
-                                {template.hints.en.map((hint, idx) => (
-                                  <li key={idx} className="hexipedia-hint-item">{hint}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          
-                          <div className="hexipedia-template-cells">
-                            <span className="hexipedia-detail-label">Cells:</span>
-                            <span className="hexipedia-detail-text">{template.cells.length}</span>
-                          </div>
-                        </div>
-                      )}
+                          );
+                        })}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                  )}
+                </div>
+              );
+            }
+
+            return null;
+          })}
         </div>
       ) : (
         <div className="hexipedia-panel">
           <div className="hexipedia-text">{t('tutorial.noActiveTask')}</div>
         </div>
       )}
+      </div>
     </div>
   );
 };

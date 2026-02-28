@@ -13,8 +13,12 @@ Frame-based constants from the original prototype are converted to tick-based va
 |-----------|---------|-------------|
 | `GridRadius` | 15 | Axial hex disk radius (all cells with |q|,|r|,|s| ≤ radius). |
 | `InitialColorProbability` | 0.20 | Probability a cell starts with a color. |
-| `ColorPalette` | 8 colors: [ #FF8000, #CC6600, #996600, #666600, #660099, #9933FF, #CC66FF, #FF99FF] | Ordered list defining palette indices. |
-| `PlayerBaseColorIndex` | 0 | Index in `ColorPalette` used as the player's reference color. |
+| `ColorPaletteStartHue` | 350 | Starting hue angle (0–359) for HSV palette generation. |
+| `ColorPaletteHueStep` | 60 | Hue step between colors (generates 6 colors by default). |
+| `ColorSaturation` | 40 | Saturation value (0–100) for all colors in palette. |
+| `ColorValue` | 60 | Value/brightness (0–100) for all colors in palette. |
+| `TurtleOutlineColor` | #FFFFFF | Color used for template outline (cursor, grid visualization). |
+| `PlayerBaseColorIndex` | 0 | Index in generated `ColorPalette` used as the player's reference color. |
 | `TimerInitialSeconds` | 300 | Starting session duration (informational only). |
 | `CaptureHoldDurationTicks` | 6 | Minimum continuous Space hold to attempt capture (≈0.5s). |
 | `CaptureFailureCooldownTicks` | 36 | Cooldown after failed capture attempt (≈3s). |
@@ -343,20 +347,73 @@ Defined in `src/templates/templateLogic.ts`:
 - **Future: User-Created Templates**: Architecture supports dynamic template definition
 
 ---
-## 8. Not Implemented (Scope Notes)
-Still absent: delivery targets, objectives, progression, end conditions, obstacles beyond occupied cells, persistence.
+## 8. User Interface & UX (v0.22–0.26)
+
+### 8.1 Tutorial System enhancements
+- **TutorialProgressWidget**: Displays tutorial level progress (visited cells / target cells)
+  - Info button (ℹ) provides quick access to task objective and hints
+  - Info bubble popup always shows hint text for the currently active tutorial task
+  - Positioned in-game, allowing context-aware task information without tab switching
+
+### 8.2 HexiPedia (Information Hub)
+- **Section Management**:
+  - Three collapsible sections: Tasks, Stats, Build Templates
+  - Each section can be collapsed with toggle arrow (▼/▶)
+  - Section order customizable with up/down arrows (▲/▼)
+  - Section selector remains fixed; all section content below it scrolls as one area
+  - Collapsible sections persist in component state during session
+
+- **Task List**:
+  - Shows all tutorial levels with completion status (✓)
+  - Display format: checkpoint + name + action button
+  - Current level highlighted; completed levels show restart option
+  - Expandable task details show objective, hints, and progress
+
+- **Statistics**:
+  - Session time (MM:SS format for readability)
+  - Session tick count (raw game ticks)
+  - Real-time updates as game progresses
+
+- **Build Templates**:
+  - Radio button selection for active template
+  - Template metadata: name, difficulty (●●●), completion status (✓)
+  - Expandable details with description, hints, and cell count
+
+### 8.3 ColorPaletteWidget (Palette Visualization)
+- **Display**: 9-cell color bar showing entire palette
+  - Ordered from antagonist color through player base (center) back to antagonist
+  - Each cell displays relative percentage from current focus color
+  - Format: `±XX%` (e.g., `+50%`, `-33.33%`, `0%`)
+  - Focus color (player base) highlighted with bright border
+
+- **Styling**:
+  - Consistent with HexiPedia widget aesthetic
+  - Framed with border, background, and shadow
+  - Positioned directly below tutorial progress widget when tutorial is active
+  - Uses the same content width as the tutorial progress widget
+
+### 8.4 Session Persistence
+- **Tutorial Progress**: Tracks visited target cells per level (in-session)
+- **Completed Templates**: Persists across sessions (set of completed template IDs)
+- **Tutorial Level State**: Current level + completion status maintained in GameState
 
 ---
-## 9. Summary
-The prototype's gameplay centers on probabilistic single-color capture and spatial transport constrained by empty adjacency. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate. Template system adds creative spatial pattern challenges as optional gameplay layer.
+## 9. Not Implemented (Scope Notes)
+Still absent: delivery targets, objectives, progression, end conditions, obstacles beyond occupied cells, persistence (beyond templates/tutorial).
 
 ---
-## 10. Potential Future Parameters (Extensions)
+## 10. Summary
+The prototype's gameplay centers on probabilistic single-color capture and spatial transport constrained by empty adjacency. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate. Template system adds creative spatial pattern challenges as optional gameplay layer. UI/UX layer provides accessible tutorial progression and information lookup without interrupting core gameplay.
+
+---
+## 11. Potential Future Parameters (Extensions)
 - `MultipleCarryAllowed` (bool)
 - `TransportLeavesTrail` (bool, whether previous cell retains color instead of clearing)
 - `CaptureChanceMinClamp` (percent)
 - `MaxSimultaneousFlashes` (int)
 - `TemplateHintRevealCost` (int, ticks spent to unlock hints)
+- `TutorialSystemLocalization` (language selection for UI/hints)
+- `HexiPediaSectionDefaults` (initial collapse state, custom section order)
 - `TemplateRotationAllowed` (bool, can player modify template orientation after anchoring)
 
 These can be added without altering core logic structure.

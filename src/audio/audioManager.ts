@@ -78,8 +78,12 @@ class AudioManager {
     this.musicAudio.addEventListener('timeupdate', this.handleTimeUpdate);
     this.musicAudio.addEventListener('loadedmetadata', this.handleMetadataLoaded);
     
-    if (this.musicInitialized && this.musicEnabled) {
-      this.musicAudio.play().catch(() => {});
+    // Auto-play if music is enabled (restored from saved state or user preference)
+    if (this.musicEnabled) {
+      this.musicAudio.play().catch(() => {
+        // Autoplay blocked - will retry on user interaction
+      });
+      this.musicInitialized = true;
     }
   }
 

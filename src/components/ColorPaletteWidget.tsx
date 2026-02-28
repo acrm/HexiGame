@@ -50,53 +50,68 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   }
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: topOffset,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: '100%',
-      maxWidth: 520,
-      display: 'flex',
-      zIndex: 50,
-    }}>
-      {displayOrder.map((colorIndex, displayIndex) => {
-        const color = colorPalette[colorIndex];
-        const percent = calculateRelativePercent(colorIndex, focusColorIndex, paletteSize);
-        const isFocusColor = colorIndex === focusColorIndex;
-        const borderColor = isFocusColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
-        const borderWidth = isFocusColor ? 2 : 1;
+    <div
+      style={{
+        position: 'absolute',
+        top: topOffset,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100% - 16px)',
+        background: '#333333',
+        border: '1px solid #555555',
+        borderRadius: '4px',
+        padding: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        zIndex: 50,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          width: '100%',
+        }}
+      >
+        {displayOrder.map((colorIndex, displayIndex) => {
+          const color = colorPalette[colorIndex];
+          const percent = calculateRelativePercent(colorIndex, focusColorIndex, paletteSize);
+          const isFocusColor = colorIndex === focusColorIndex;
+          const borderColor = isFocusColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+          const borderWidth = isFocusColor ? 2 : 1;
 
-        return (
-          <div
-            key={`${displayIndex}-${colorIndex}`}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: color,
-              minWidth: 0,
-              minHeight: 24,
-              position: 'relative',
-            }}
-          >
+          return (
             <div
+              key={`${displayIndex}-${colorIndex}`}
               style={{
-                fontSize: '11px',
-                fontWeight: 'bold',
-                color: '#FFFFFF',
-                textShadow: '0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)',
-                whiteSpace: 'nowrap',
-                textAlign: 'center',
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: color,
+                minWidth: 0,
+                minHeight: 24,
+                position: 'relative',
               }}
             >
-              {formatPercent(percent)}
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  color: '#FFFFFF',
+                  textShadow: '0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                }}
+              >
+                {formatPercent(percent)}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };

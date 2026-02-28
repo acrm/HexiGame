@@ -404,4 +404,16 @@
 
 - 2026w09-0.21 — Replace ColorPaletteHues array with startHue and hueStep parameters
 
-- 2026w09-0.22 — Add AppTestFacade and appLogic tests covering UI interactions
+- 2026w09-0.22 — Add info button and bubble styling to TutorialProgressWidget
+
+- 2026w09-0.23 — Add HexiPedia section collapse and reorder controls
+
+- 2026w09-0.24 — Style ColorPaletteWidget with HexiPedia frame styling
+
+- 2026w09-0.25 — Update documentation with UI/UX improvements v0.22-0.24
+
+- 2026w09-0.26 — Fix UI: move control hint to info button, unify section panels, auto-resume music
+
+- 2026w09-0.27 — Fix HexiPedia scrolling, task hint binding, and palette widget alignment
+
+- 2026w09-0.28 — Add AppTestFacade and appLogic tests covering UI interactions
