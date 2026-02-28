@@ -9,7 +9,9 @@
  */
 
 import { PureLogicAdapter } from './PureLogicAdapter';
+import { AppLogicAdapter } from './AppLogicAdapter';
 import type { FacadeParams, GameTestFacade } from './GameTestFacade';
+import type { AppTestFacade } from './AppTestFacade';
 
 // ── Direction constants ──────────────────────────────────────────────────────
 // Matches axialDirections order in pureLogic.ts:
@@ -47,6 +49,18 @@ export const denseParams: FacadeParams = {
  */
 export function createFacade(params: FacadeParams = emptyParams, seed = 42): GameTestFacade {
   const facade = new PureLogicAdapter();
+  facade.init(params, seed);
+  return facade;
+}
+
+/**
+ * Creates and initializes an AppLogicAdapter for testing application-level logic
+ * (keyboard shortcuts, settings, mobile tab management, guest start flow).
+ * @param params   Additional params (merged with emptyParams by default).
+ * @param seed     Seed for deterministic RNG (default 42).
+ */
+export function createAppFacade(params: FacadeParams = emptyParams, seed = 42): AppTestFacade {
+  const facade = new AppLogicAdapter();
   facade.init(params, seed);
   return facade;
 }

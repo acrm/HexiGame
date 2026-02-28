@@ -62,8 +62,8 @@ function buildParams(fp: FacadeParams = {}): Params {
 // ─── Adapter Class ────────────────────────────────────────────────────────────
 
 export class PureLogicAdapter implements GameTestFacade {
-  private state!: GameState;
-  private params!: Params;
+  protected state!: GameState;
+  protected params!: Params;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
