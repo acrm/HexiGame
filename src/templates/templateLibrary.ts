@@ -68,11 +68,11 @@ export const TEMPLATE_FLOWER: BuildTemplate = {
     { q: 0, r: 0, relativeColor: 0 },
     // Center
     { q: 0, r: -1, relativeColor: 0 },
-    // Alternating petals: base color and +25% (2 steps ahead)
-    { q: 0, r: -2, relativeColor: 25 },
+    // Alternating petals: base color and +33.33% (2 steps ahead)
+    { q: 0, r: -2, relativeColor: 33.33 },
     { q: 1, r: -2, relativeColor: 0 },
-    { q: 1, r: -1, relativeColor: 25 },
-    { q: -1, r: 0, relativeColor: 25 },
+    { q: 1, r: -1, relativeColor: 33.33 },
+    { q: -1, r: 0, relativeColor: 33.33 },
     { q: -1, r: -1, relativeColor: 0 },
   ],
   hints: {
@@ -105,8 +105,8 @@ export const TEMPLATE_TRIANGLE: BuildTemplate = {
   anchorCell: { q: 0, r: 0 },
   cells: [
     { q: 0, r: 0, relativeColor: 0 },     // Anchor at focus (0%) - bottom edge
-    { q: 0, r: -1, relativeColor: 25 },   // Away from turtle (upward)
-    { q: 1, r: -1, relativeColor: 12.5 }, // +1 step (upward-right)
+    { q: 0, r: -1, relativeColor: 33.33 },   // Away from turtle (upward)
+    { q: 1, r: -1, relativeColor: 16.67 }, // +1 step (upward-right)
   ],
   hints: {
     en: [
@@ -140,13 +140,13 @@ export const TEMPLATE_YIN_YANG: BuildTemplate = {
     // Anchor at focus (0%)
     { q: 0, r: 0, relativeColor: 0 },
     // Center
-    { q: 0, r: -1, relativeColor: 25 },
+    { q: 0, r: -1, relativeColor: 33.33 },
     // Left side (base color)
-    { q: -1, r: -1, relativeColor: 25 },
-    { q: -1, r: 0, relativeColor: 25 },
-    // Right side (opposite color, +50% = 4 steps)
-    { q: 1, r: -2, relativeColor: -25 },
-    { q: 1, r: -1, relativeColor: -25 },
+    { q: -1, r: -1, relativeColor: 33.33 },
+    { q: -1, r: 0, relativeColor: 33.33 },
+    // Right side (opposite color, ±50% = 3 steps)
+    { q: 1, r: -2, relativeColor: -33.33 },
+    { q: 1, r: -1, relativeColor: -33.33 },
     // Top
     { q: 0, r: -2, relativeColor: 50 },
   ],
@@ -182,10 +182,10 @@ export const TEMPLATE_HEXAGON: BuildTemplate = {
     // Anchor at focus (0%)
     { q: 0, r: 0, relativeColor: 0 },
     // Ring cells only, alternating colors
-    { q: 0, r: -2, relativeColor: -25 },    // North
+    { q: 0, r: -2, relativeColor: -33.33 },    // North
     { q: 1, r: -2, relativeColor: 0 },      // NE
-    { q: 1, r: -1, relativeColor: -25 },    // SE
-    { q: -1, r: 0, relativeColor: -25 },    // W
+    { q: 1, r: -1, relativeColor: -33.33 },    // SE
+    { q: -1, r: 0, relativeColor: -33.33 },    // W
     { q: -1, r: -1, relativeColor: 0 },     // NW
   ],
   hints: {
@@ -222,24 +222,24 @@ export const TEMPLATE_STAR: BuildTemplate = {
     // Anchor at focus (0%)
     { q: 0, r: 0, relativeColor: 0 },
     // Center
-    { q: 0, r: -2, relativeColor: -25 },
+    { q: 0, r: -2, relativeColor: -33.33 },
     // Six rays (immediate neighbors + one layer out)
     // Ray 1: North
-    { q: 0, r: -3, relativeColor: -25 },
+    { q: 0, r: -3, relativeColor: -33.33 },
     { q: 0, r: -4, relativeColor: 0 },
     // Ray 2: NE
-    { q: 1, r: -3, relativeColor: -25 },
+    { q: 1, r: -3, relativeColor: -33.33 },
     { q: 2, r: -4, relativeColor: 0 },
     // Ray 3: SE
-    { q: 1, r: -2, relativeColor: -25 },
+    { q: 1, r: -2, relativeColor: -33.33 },
     { q: 2, r: -2, relativeColor: 0 },
     // Ray 4: South
-    { q: 0, r: -1, relativeColor: -25 },
+    { q: 0, r: -1, relativeColor: -33.33 },
     // Ray 5: SW
-    { q: -1, r: -1, relativeColor: -25 },
+    { q: -1, r: -1, relativeColor: -33.33 },
     { q: -2, r: 0, relativeColor: 0 },
     // Ray 6: NW
-    { q: -1, r: -2, relativeColor: -25 },
+    { q: -1, r: -2, relativeColor: -33.33 },
     { q: -2, r: -2, relativeColor: 0 },
   ],
   hints: {
@@ -273,16 +273,16 @@ export const TEMPLATE_RAINBOW_SPIRAL: BuildTemplate = {
   difficulty: 'hard',
   anchorCell: { q: 0, r: 0 },
   cells: [
-    // Spiral starting from anchor (0%) and wrapping clockwise
+    // Spiral from anchor through all 6 colors + extra cells
     { q: 0, r: 0, relativeColor: 0 },      // Anchor at focus
-    { q: 0, r: -1, relativeColor: -25 },   // Center
-    { q: 0, r: -2, relativeColor: -16.67 },// N
-    { q: 1, r: -2, relativeColor: -8.33 }, // NE
-    { q: 1, r: -1, relativeColor: 0 },     // E
-    { q: 1, r: 0, relativeColor: 8.33 },   // SE
-    { q: -1, r: 0, relativeColor: -8.33 }, // SW
-    { q: -1, r: -1, relativeColor: -16.67 },// W
-    { q: -1, r: -2, relativeColor: -25 },  // NW
+    { q: 0, r: -1, relativeColor: -33.33 },   // 2 steps back
+    { q: 0, r: -2, relativeColor: -16.67 },// 1 step back
+    { q: 1, r: -2, relativeColor: 0 }, // back to 0
+    { q: 1, r: -1, relativeColor: 16.67 },     // 1 step forward
+    { q: 1, r: 0, relativeColor: 33.33 },   // 2 steps forward
+    { q: -1, r: 0, relativeColor: 50 }, // opposite (3 steps)
+    { q: -1, r: -1, relativeColor: -33.33 },// 2 steps back
+    { q: -1, r: -2, relativeColor: -16.67 },  // 1 step back
   ],
   hints: {
     en: [

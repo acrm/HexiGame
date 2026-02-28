@@ -48,7 +48,7 @@ function hexToPixel(q: number, r: number) {
 
 function formatRelativeColor(relativeColor: number): string {
   if (relativeColor === 0) return '0%';
-  const sign = relativeColor > 0 ? '+' : '';
+  const sign = relativeColor > 0 ? '+' : (relativeColor < 0 ? '-' : '');
   const rounded = Math.abs(relativeColor) % 1 === 0
     ? Math.abs(relativeColor).toString()
     : Math.abs(relativeColor).toFixed(1).replace(/\.0$/, '');

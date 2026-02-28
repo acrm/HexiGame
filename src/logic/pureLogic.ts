@@ -30,7 +30,11 @@ export interface FlashState {
 export interface Params {
   GridRadius: number;
   InitialColorProbability: number; // 0..1
-  ColorPalette: string[];
+  ColorPaletteHues: number[]; // Hue values 0-360
+  ColorSaturation: number; // 0-100%
+  ColorValue: number; // 0-100%
+  ColorPalette: string[]; // Computed from HSV
+  TurtleOutlineColor: string;
   PlayerBaseColorIndex: number;
   TimerInitialSeconds: number;
   CaptureHoldDurationTicks: number;
@@ -854,13 +858,40 @@ export function updateTemplateState(
   return { state: nextState, event };
 }
 
+// Helper to convert HSV to RGB hex
+function hsvToHex(h: number, s: number, v: number): string {
+  s = s / 100;
+  v = v / 100;
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else { r = c; g = 0; b = x; }
+  const toHex = (n: number) => {
+    const hex = Math.round((n + m) * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 // ---------- Default Parameters (mirroring the doc) ----------
+const paletteHues = [55, 110, 175, 240, 290, 350]; // 6 colors evenly spaced
+const saturation = 70;
+const value = 85;
+
 export const DefaultParams: Params = {
   GridRadius: 5,
   InitialColorProbability: 0.30,
-  ColorPalette: [
-    "#FF8000","#CC6600","#996600","#666600","#660099","#9933FF","#CC66FF","#FF99FF"
-  ],
+  ColorPaletteHues: paletteHues,
+  ColorSaturation: saturation,
+  ColorValue: value,
+  ColorPalette: paletteHues.map(h => hsvToHex(h, saturation, value)),
+  TurtleOutlineColor: '#FFFFFF',
   PlayerBaseColorIndex: 0,
   TimerInitialSeconds: 300,
   CaptureHoldDurationTicks: 6,

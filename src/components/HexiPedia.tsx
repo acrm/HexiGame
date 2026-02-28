@@ -37,6 +37,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   const [expandedLevelId, setExpandedLevelId] = useState<string | null>(
     tutorialLevel?.id ?? null
   );
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [sectionOrder, setSectionOrder] = useState(['tasks', 'stats', 'templates']);
   const progress = gameState.tutorialProgress;
   const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode) : '';
   const fullHint = hint ? `${hint} ${t('tutorial.followFocusNote')}` : t('tutorial.followFocusNote');
@@ -50,6 +52,34 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
       setExpandedLevelId(null);
     } else {
       setExpandedLevelId(sectionId);
+    }
+  };
+
+  const toggleSectionCollapse = (sectionId: string) => {
+    const newSet = new Set(collapsedSections);
+    if (newSet.has(sectionId)) {
+      newSet.delete(sectionId);
+    } else {
+      newSet.add(sectionId);
+    }
+    setCollapsedSections(newSet);
+  };
+
+  const moveSectionUp = (sectionId: string) => {
+    const idx = sectionOrder.indexOf(sectionId);
+    if (idx > 0) {
+      const newOrder = [...sectionOrder];
+      [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+      setSectionOrder(newOrder);
+    }
+  };
+
+  const moveSectionDown = (sectionId: string) => {
+    const idx = sectionOrder.indexOf(sectionId);
+    if (idx < sectionOrder.length - 1) {
+      const newOrder = [...sectionOrder];
+      [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+      setSectionOrder(newOrder);
     }
   };
 

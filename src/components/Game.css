@@ -174,7 +174,7 @@ html, body {
 }
 
 .mobile-tab:nth-child(3) {
-  background: #333333;
+  background: #2a2a2a;
 }
 
 .mobile-tab.active {
@@ -195,7 +195,7 @@ html, body {
 }
 
 .mobile-tab:nth-child(3).active {
-  background: #444444;
+  background: #333333;
 }
 
 .mobile-tab.active {
