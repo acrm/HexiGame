@@ -71,10 +71,10 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           <div className="tutorial-info-content">
             <div className="tutorial-info-title">{level.objective}</div>
             <div className="tutorial-info-hint">{level.hints.desktop || level.hints.mobile}</div>
+            <div className="tutorial-info-hint" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #444444' }}>{t('tutorial.controlHint')}</div>
           </div>
         </div>
       )}
-      <div className="tutorial-control-hint">{t('tutorial.controlHint')}</div>
     </>
   );
 };

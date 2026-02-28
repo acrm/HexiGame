@@ -65,15 +65,16 @@
   margin-top: 12px;
 }
 
+.hexipedia-section-wrapper {
+  background: #333333;
+  border: 1px solid #555555;
+  margin: 8px;
+}
+
 .hexipedia-section-header-container {
   display: flex;
   align-items: stretch;
   background: #333333;
-  border: 1px solid #555555;
-  border-bottom: 1px solid #444444;
-  margin-top: 8px;
-  margin-left: 8px;
-  margin-right: 8px;
 }
 
 .hexipedia-section-header {
@@ -89,6 +90,7 @@
   gap: 8px;
   user-select: none;
   transition: background 0.2s, color 0.2s;
+  border-bottom: 1px solid #444444;
 }
 
 .hexipedia-section-header:hover {
@@ -98,6 +100,7 @@
 
 .hexipedia-section-header.collapsed {
   color: #aaaaaa;
+  border-bottom: none;
 }
 
 .hexipedia-section-toggle {
@@ -268,10 +271,8 @@
 }
 
 .hexipedia-stats-section {
-  margin-top: 16px;
-  background: #333333;
-  border: 1px solid #555555;
   padding: 12px 16px;
+  border-top: 1px solid #444444;
 }
 
 .hexipedia-stats-header {
@@ -307,10 +308,8 @@
 }
 
 .hexipedia-templates-section {
-  margin-top: 16px;
-  background: #333333;
-  border: 1px solid #555555;
   padding: 12px 16px;
+  border-top: 1px solid #444444;
 }
 
 .hexipedia-templates-list {

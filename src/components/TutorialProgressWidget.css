@@ -135,15 +135,3 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
-
-.tutorial-control-hint {
-  background: #333333;
-  border: 1px solid #555555;
-  border-top: none;
-  padding: 8px 12px;
-  margin: 0 8px 8px 8px;
-  text-align: center;
-  font-size: 11px;
-  color: #999999;
-  line-height: 1.3;
-}

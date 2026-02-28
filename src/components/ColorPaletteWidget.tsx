@@ -57,7 +57,6 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
         left: '50%',
         transform: 'translateX(-50%)',
         width: 'calc(100% - 16px)',
-        maxWidth: 508,
         background: '#333333',
         border: '1px solid #555555',
         borderRadius: '4px',

@@ -411,3 +411,5 @@
 - 2026w09-0.24 — Style ColorPaletteWidget with HexiPedia frame styling
 
 - 2026w09-0.25 — Update documentation with UI/UX improvements v0.22-0.24
+
+- 2026w09-0.26 — Fix UI: move control hint to info button, unify section panels, auto-resume music

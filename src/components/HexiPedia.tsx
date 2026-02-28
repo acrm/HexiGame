@@ -126,7 +126,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
             // Tasks section
             if (sectionId === 'tasks' && isSectionVisible(t('tutorial.tasksTitle'))) {
               return (
-                <div key="tasks">
+                <div key="tasks" className="hexipedia-section-wrapper">
                   <div className="hexipedia-section-header-container">
                     <div 
                       className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
@@ -244,7 +244,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
             // Stats section
             if (sectionId === 'stats' && isSectionVisible(t('stats.title'))) {
               return (
-                <div key="stats">
+                <div key="stats" className="hexipedia-section-wrapper">
                   <div className="hexipedia-section-header-container">
                     <div 
                       className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
@@ -295,7 +295,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
             // Templates section
             if (sectionId === 'templates' && isSectionVisible('Build Templates')) {
               return (
-                <div key="templates">
+                <div key="templates" className="hexipedia-section-wrapper">
                   <div className="hexipedia-section-header-container">
                     <div 
                       className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
