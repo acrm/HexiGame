@@ -890,11 +890,11 @@ function generatePaletteHues(startHue: number, hueStep: number, colorCount: numb
 }
 
 // ---------- Default Parameters (mirroring the doc) ----------
-const paletteStartHue = 350;
+const paletteStartHue = 30;
 const paletteHueStep = 60;
 const colorCount = 6;
-const saturation = 40;
-const value = 60;
+const saturation = 70;
+const value = 80;
 const paletteHues = generatePaletteHues(paletteStartHue, paletteHueStep, colorCount);
 
 export const DefaultParams: Params = {
