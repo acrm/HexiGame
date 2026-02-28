@@ -1,5 +1,5 @@
 /**
- * inventory.test.ts — тесты инвентаря (хотбара) и операций eat/exchange.
+ * inventory.test.ts — tests for inventory (hotbar) and eat/exchange operations.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -8,11 +8,11 @@ import type { GameTestFacade } from './facade/GameTestFacade.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/** Настраивает фасад с цветным hex под фокусом (q=0, r=-1) и пустым хотбаром. */
+/** Sets up facade with colored hex under focus (q=0, r=-1) and empty hotbar. */
 function setupColoredFocus(colorIndex = 2): GameTestFacade {
   const g = createFacade(emptyParams);
-  // Протагонист (0,0), фокус изначально (0,-1) — direction UP
-  g.moveFocusDirection(DIR_UP); // убедиться что смотрим вверх
+  // Protagonist (0,0), focus initially (0,-1) — direction UP
+  g.moveFocusDirection(DIR_UP); // ensure we're looking up
   const focus = g.getFocusPosition();
   g.setCell(focus, colorIndex);
   return g;
@@ -20,56 +20,56 @@ function setupColoredFocus(colorIndex = 2): GameTestFacade {
 
 // ── Eat to hotbar ──────────────────────────────────────────────────────────
 
-describe('Поедание hex в хотбар (eat)', () => {
-  it('после pressAction hex из фокуса попадает в первый свободный слот', () => {
+describe('Eating hex to hotbar (eat)', () => {
+  it('after pressAction hex from focus goes to first free slot', () => {
     const g = setupColoredFocus(2);
     const totalBefore = g.getTotalColorCount();
     g.pressAction();
     const slots = g.getHotbarSlots();
-    // Один из слотов должен содержать colorIndex=2
+    // One of the slots should contain colorIndex=2
     expect(slots).toContain(2);
-    // Инвариант: общее число цветов не изменилось
+    // Invariant: total color count did not change
     expect(g.getTotalColorCount()).toBe(totalBefore);
   });
 
-  it('ячейка фокуса становится пустой после поедания', () => {
+  it('focus cell becomes empty after eating', () => {
     const g = setupColoredFocus(3);
     g.pressAction();
     expect(g.getFocusCell()?.colorIndex).toBeNull();
   });
 
-  it('pressAction на пустой ячейке не меняет хотбар', () => {
+  it('pressAction on empty cell does not change hotbar', () => {
     const g = createFacade(emptyParams);
     const slotsBefore = g.getHotbarSlots();
     g.pressAction();
     expect(g.getHotbarSlots()).toEqual(slotsBefore);
   });
 
-  it('при полном хотбаре выбранный слот заменяется (обмен)', () => {
+  it('with full hotbar selected slot is replaced (exchange)', () => {
     const g = createFacade(emptyParams);
-    // Заполнить все слоты
+    // Fill all slots
     for (let i = 0; i < 6; i++) g.setHotbarSlot(i, i);
-    // Поместить новый цвет в фокус
+    // Place new color in focus
     g.moveFocusDirection(DIR_UP);
     const focus = g.getFocusPosition();
     g.setCell(focus, 7);
     g.selectHotbarSlot(0);
     const totalBefore = g.getTotalColorCount();
     g.pressAction();
-    // Инвариант: цветов не появилось и не исчезло
+    // Invariant: colors neither appeared nor disappeared
     expect(g.getTotalColorCount()).toBe(totalBefore);
   });
 
-  it('инвариант сохранения цветов при поедании нескольких hex', () => {
+  it('color conservation invariant when eating multiple hexes', () => {
     const g = createFacade(emptyParams);
-    // Расставить 3 цветных hex
+    // Place 3 colored hexes
     g.setCell({ q: 0, r: -1 }, 1);
     g.setCell({ q: 1, r: -1 }, 2);
     g.setCell({ q: -1, r: 0 }, 3);
     const totalBefore = g.getTotalColorCount();
 
-    // Съедаем первый
-    g.moveFocusDirection(DIR_UP); // фокус -> (0,-1)
+    // Eat the first one
+    g.moveFocusDirection(DIR_UP); // focus -> (0,-1)
     g.pressAction();
 
     expect(g.getTotalColorCount()).toBe(totalBefore);
@@ -78,8 +78,8 @@ describe('Поедание hex в хотбар (eat)', () => {
 
 // ── Exchange with slot ─────────────────────────────────────────────────────
 
-describe('Обмен hex со слотом хотбара (exchangeWithSlot)', () => {
-  it('absorb: пустой слот + hex в фокусе — hex уходит в слот', () => {
+describe('Exchange hex with hotbar slot (exchangeWithSlot)', () => {
+  it('absorb: empty slot + hex in focus — hex goes to slot', () => {
     const g = setupColoredFocus(5);
     const totalBefore = g.getTotalColorCount();
     g.exchangeWithSlot(2);
@@ -88,10 +88,10 @@ describe('Обмен hex со слотом хотбара (exchangeWithSlot)', (
     expect(g.getTotalColorCount()).toBe(totalBefore);
   });
 
-  it('take: hex в слоте + пустой фокус — hex приходит в фокус', () => {
+  it('take: hex in slot + empty focus — hex comes to focus', () => {
     const g = createFacade(emptyParams);
     g.setHotbarSlot(1, 4);
-    // Фокус пустой
+    // Focus is empty
     const totalBefore = g.getTotalColorCount();
     g.exchangeWithSlot(1);
     expect(g.getHotbarSlots()[1]).toBeNull();
@@ -99,7 +99,7 @@ describe('Обмен hex со слотом хотбара (exchangeWithSlot)', (
     expect(g.getTotalColorCount()).toBe(totalBefore);
   });
 
-  it('exchange: hex и в слоте и в фокусе — меняются местами', () => {
+  it('exchange: hex both in slot and focus — swap places', () => {
     const g = setupColoredFocus(1); // focus colorIndex=1
     g.setHotbarSlot(3, 6);
     const totalBefore = g.getTotalColorCount();
@@ -109,14 +109,14 @@ describe('Обмен hex со слотом хотбара (exchangeWithSlot)', (
     expect(g.getTotalColorCount()).toBe(totalBefore);
   });
 
-  it('ничего не происходит если оба (слот и фокус) пустые', () => {
+  it('nothing happens if both (slot and focus) are empty', () => {
     const g = createFacade(emptyParams);
     const slotsBefore = [...g.getHotbarSlots()];
     g.exchangeWithSlot(0);
     expect(g.getHotbarSlots()).toEqual(slotsBefore);
   });
 
-  it('индекс за пределами 0–5 игнорируется', () => {
+  it('index outside 0–5 is ignored', () => {
     const g = setupColoredFocus(2);
     const totalBefore = g.getTotalColorCount();
     g.exchangeWithSlot(10);
@@ -126,14 +126,14 @@ describe('Обмен hex со слотом хотбара (exchangeWithSlot)', (
 
 // ── Select hotbar slot ─────────────────────────────────────────────────────
 
-describe('Выбор слота хотбара', () => {
-  it('selectHotbarSlot меняет selectedHotbarIndex', () => {
+describe('Hotbar slot selection', () => {
+  it('selectHotbarSlot changes selectedHotbarIndex', () => {
     const g = createFacade(emptyParams);
     g.selectHotbarSlot(3);
     expect(g.getSelectedHotbarIndex()).toBe(3);
   });
 
-  it('selectedHotbarIndex = 0 по умолчанию', () => {
+  it('selectedHotbarIndex = 0 by default', () => {
     const g = createFacade(emptyParams);
     expect(g.getSelectedHotbarIndex()).toBe(0);
   });

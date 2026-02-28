@@ -1,5 +1,5 @@
 /**
- * movement.test.ts — тесты перемещения фокуса и протагониста.
+ * movement.test.ts — tests for focus and protagonist movement.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -15,51 +15,51 @@ import {
 } from './facade/testHelpers.js';
 import type { GameTestFacade } from './facade/GameTestFacade.js';
 
-describe('Движение фокуса по delta', () => {
+describe('Focus movement by delta', () => {
   let g: GameTestFacade;
 
   beforeEach(() => {
     g = createFacade(emptyParams);
   });
 
-  it('фокус перемещается вниз (dq=0, dr=+1) от текущей позиции', () => {
-    // Начальный фокус: (0, -1) — прямо перед протагонистом (направление UP)
+  it('focus moves down (dq=0, dr=+1) from current position', () => {
+    // Initial focus: (0, -1) — directly in front of protagonist (UP direction)
     const before = g.getFocusPosition();
-    // Смещаем фокус по одному из 6 направлений
+    // Move focus in one of 6 directions
     g.moveFocusDelta(0, 1); // down
     const after = g.getFocusPosition();
-    // Фокус должен измениться
+    // Focus should change
     expect(after).not.toEqual(before);
   });
 
-  it('moveFocusDelta игнорирует не-смежный delta', () => {
+  it('moveFocusDelta ignores non-adjacent delta', () => {
     const before = g.getFocusPosition();
-    // (2, 0) — не единичный hex-шаг
+    // (2, 0) — not a unit hex step
     g.moveFocusDelta(2, 0);
     expect(g.getFocusPosition()).toEqual(before);
   });
 
-  it('moveFocusDirection меняет направление взгляда', () => {
+  it('moveFocusDirection changes facing direction', () => {
     g.moveFocusDirection(DIR_DOWN);
     expect(g.getFacingDirection()).toBe(DIR_DOWN);
   });
 
-  it('moveFocusDirection нормализует dir > 5', () => {
+  it('moveFocusDirection normalizes dir > 5', () => {
     g.moveFocusDirection(6); // 6 % 6 = 0 = UP
     expect(g.getFacingDirection()).toBe(DIR_UP);
   });
 
-  it('moveFocusDirection нормализует отрицательный dir', () => {
-    g.moveFocusDirection(-1); // должен стать 5 (UP_LEFT)
+  it('moveFocusDirection normalizes negative dir', () => {
+    g.moveFocusDirection(-1); // should become 5 (UP_LEFT)
     expect(g.getFacingDirection()).toBe(DIR_UP_LEFT);
   });
 
-  it('фокус всегда смежен с протагонистом после обычного движения', () => {
+  it('focus is always adjacent to protagonist after regular movement', () => {
     for (const dir of [DIR_UP, DIR_DOWN, DIR_UP_RIGHT, DIR_DOWN_LEFT, DIR_UP_LEFT, DIR_DOWN_RIGHT]) {
       g.moveFocusDirection(dir);
       const prot = g.getProtagonistPosition();
       const focus = g.getFocusPosition();
-      // hex-distance должна быть равна 1
+      // hex-distance should be 1
       const dist = (Math.abs(focus.q - prot.q) + Math.abs(focus.r - prot.r) +
         Math.abs((-focus.q - focus.r) - (-prot.q - prot.r))) / 2;
       expect(dist).toBe(1);
@@ -67,39 +67,39 @@ describe('Движение фокуса по delta', () => {
   });
 });
 
-describe('Авто-движение к цели', () => {
-  it('moveToTarget активирует авто-движение', () => {
+describe('Auto-move to target', () => {
+  it('moveToTarget activates auto-move', () => {
     const g = createFacade(emptyParams);
     g.moveToTarget({ q: 3, r: 0 });
     expect(g.isAutoMoving()).toBe(true);
   });
 
-  it('после достаточного числа тиков протагонист приближается к цели', () => {
+  it('after sufficient ticks protagonist approaches target', () => {
     const g = createFacade(emptyParams);
-    // Стартуем из (0,0), идём к (3, 0)
+    // Start from (0,0), move to (3, 0)
     g.moveToTarget({ q: 3, r: 0 });
-    // Каждые 2 тика = 1 шаг, 3 шага = 6 тиков + запас
+    // Every 2 ticks = 1 step, 3 steps = 6 ticks + margin
     g.tick(20);
     expect(g.isAutoMoving()).toBe(false);
   });
 
-  it('moveToTarget за пределами сетки игнорируется', () => {
+  it('moveToTarget outside grid is ignored', () => {
     const g = createFacade({ ...emptyParams, gridRadius: 3 });
     g.moveToTarget({ q: 10, r: 10 }); // outside radius=3
     expect(g.isAutoMoving()).toBe(false);
   });
 
-  it('протагонист остаётся на месте без авто-движения при тиках', () => {
+  it('protagonist stays in place without auto-move during ticks', () => {
     const g = createFacade(emptyParams);
     const before = g.getProtagonistPosition();
     g.tick(10);
-    // Без autoMove протагонист не движется
+    // Without autoMove protagonist does not move
     expect(g.getProtagonistPosition()).toEqual(before);
   });
 });
 
-describe('Поворот направления взгляда', () => {
-  it('все 6 направлений корректно устанавливаются', () => {
+describe('Facing direction rotation', () => {
+  it('all 6 directions are set correctly', () => {
     const g = createFacade(emptyParams);
     for (let d = 0; d < 6; d++) {
       g.moveFocusDirection(d);

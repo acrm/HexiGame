@@ -1,8 +1,8 @@
 /**
- * invariants.test.ts — глобальные инварианты игровой логики.
+ * invariants.test.ts — global game logic invariants.
  *
- * Эти тесты покрывают фундаментальные правила, которые ДОЛЖНЫ выполняться
- * независимо от рефакторинга.
+ * These tests cover fundamental rules that MUST hold
+ * regardless of refactoring.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -10,22 +10,22 @@ import { createFacade, emptyParams, denseParams, DIR_UP, DIR_DOWN } from './faca
 
 // ── Инвариант 1: сохранение числа цветов ──────────────────────────────────
 
-describe('Инвариант: сохранение цветов', () => {
-  it('общее число цветов не меняется за 60 тиков (пустая сетка)', () => {
+describe('Invariant: color conservation', () => {
+  it('total color count does not change over 60 ticks (empty grid)', () => {
     const g = createFacade(emptyParams);
     const before = g.getTotalColorCount();
     g.tick(60);
     expect(g.getTotalColorCount()).toBe(before);
   });
 
-  it('общее число цветов не меняется за 60 тиков (плотная сетка)', () => {
+  it('total color count does not change over 60 ticks (dense grid)', () => {
     const g = createFacade(denseParams);
     const before = g.getTotalColorCount();
     g.tick(60);
     expect(g.getTotalColorCount()).toBe(before);
   });
 
-  it('поедание hex сохраняет общее число цветов', () => {
+  it('eating hex preserves total color count', () => {
     const g = createFacade(emptyParams);
     g.moveFocusDirection(DIR_UP);
     g.setCell(g.getFocusPosition(), 1);
@@ -34,7 +34,7 @@ describe('Инвариант: сохранение цветов', () => {
     g.assertColorConservation(before);
   });
 
-  it('обмен со слотом сохраняет общее число цветов', () => {
+  it('exchange with slot preserves total color count', () => {
     const g = createFacade(emptyParams);
     g.moveFocusDirection(DIR_UP);
     g.setCell(g.getFocusPosition(), 2);
@@ -44,9 +44,9 @@ describe('Инвариант: сохранение цветов', () => {
     g.assertColorConservation(before);
   });
 
-  it('последовательность eat + move + eat сохраняет цвета', () => {
+  it('sequence eat + move + eat preserves colors', () => {
     const g = createFacade(emptyParams);
-    // Расставить цвета
+    // Place colors
     g.setCell({ q: 0, r: -1 }, 1);
     g.setCell({ q: 0, r: 1 }, 3);
     const before = g.getTotalColorCount();
@@ -62,23 +62,23 @@ describe('Инвариант: сохранение цветов', () => {
 
 // ── Инвариант 2: таймер ───────────────────────────────────────────────────
 
-describe('Инвариант: таймер', () => {
-  it('таймер убывает строго на 1 с каждые tickRate тиков', () => {
+describe('Invariant: timer', () => {
+  it('timer decreases strictly by 1 every tickRate ticks', () => {
     const tickRate = 12;
     const initial = 300;
     const g = createFacade({ ...emptyParams, tickRate, timerInitialSeconds: initial });
 
-    g.tick(tickRate * 5); // 5 секунд
+    g.tick(tickRate * 5); // 5 seconds
     expect(g.getRemainingSeconds()).toBe(initial - 5);
   });
 
-  it('таймер не уходит ниже 0', () => {
+  it('timer does not go below 0', () => {
     const g = createFacade({ ...emptyParams, tickRate: 12, timerInitialSeconds: 1 });
-    g.tick(100); // намного больше чем нужно
+    g.tick(100); // much more than needed
     expect(g.getRemainingSeconds()).toBeGreaterThanOrEqual(0);
   });
 
-  it('начальные секунды из параметров сохраняются', () => {
+  it('initial seconds from params are preserved', () => {
     const g = createFacade({ ...emptyParams, timerInitialSeconds: 120 });
     expect(g.getRemainingSeconds()).toBe(120);
   });
@@ -86,19 +86,19 @@ describe('Инвариант: таймер', () => {
 
 // ── Инвариант 3: фокус всегда смежен с протагонистом ─────────────────────
 
-describe('Инвариант: фокус смежен с протагонистом', () => {
+describe('Invariant: focus is adjacent to protagonist', () => {
   function hexDistance(aq: number, ar: number, bq: number, br: number): number {
     return (Math.abs(aq - bq) + Math.abs(ar - br) + Math.abs((-aq - ar) - (-bq - br))) / 2;
   }
 
-  it('фокус и протагонист находятся на расстоянии 1 при инициализации', () => {
+  it('focus and protagonist are at distance 1 at initialization', () => {
     const g = createFacade(emptyParams);
     const p = g.getProtagonistPosition();
     const f = g.getFocusPosition();
     expect(hexDistance(p.q, p.r, f.q, f.r)).toBe(1);
   });
 
-  it('фокус остаётся смежным после смены направления', () => {
+  it('focus remains adjacent after direction change', () => {
     const g = createFacade(emptyParams);
     for (let d = 0; d < 6; d++) {
       g.moveFocusDirection(d);
@@ -108,7 +108,7 @@ describe('Инвариант: фокус смежен с протагонист�
     }
   });
 
-  it('фокус остаётся смежным после тиков симуляции', () => {
+  it('focus remains adjacent after simulation ticks', () => {
     const g = createFacade(emptyParams);
     g.tick(24);
     const p = g.getProtagonistPosition();
@@ -119,8 +119,8 @@ describe('Инвариант: фокус смежен с протагонист�
 
 // ── Инвариант 4: тик увеличивается монотонно ──────────────────────────────
 
-describe('Инвариант: монотонный рост тика', () => {
-  it('тик увеличивается на 1 при каждом вызове tick()', () => {
+describe('Invariant: monotonic tick growth', () => {
+  it('tick increases by 1 on each tick() call', () => {
     const g = createFacade(emptyParams);
     for (let i = 1; i <= 10; i++) {
       g.tick();
@@ -128,7 +128,7 @@ describe('Инвариант: монотонный рост тика', () => {
     }
   });
 
-  it('tick(n) увеличивает тик ровно на n', () => {
+  it('tick(n) increases tick by exactly n', () => {
     const g = createFacade(emptyParams);
     g.tick(37);
     expect(g.getTick()).toBe(37);
@@ -137,8 +137,8 @@ describe('Инвариант: монотонный рост тика', () => {
 
 // ── Инвариант 5: протагонист остаётся внутри сетки ───────────────────────
 
-describe('Инвариант: границы сетки', () => {
-  it('protagonist не выходит за radius при авто-движении к центру', () => {
+describe('Invariant: grid boundaries', () => {
+  it('protagonist does not go beyond radius during auto-move to center', () => {
     const radius = 3;
     const g = createFacade({ ...emptyParams, gridRadius: radius });
     g.moveToTarget({ q: 0, r: 0 });
