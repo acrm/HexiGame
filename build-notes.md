@@ -409,3 +409,5 @@
 - 2026w09-0.23 — Add HexiPedia section collapse and reorder controls
 
 - 2026w09-0.24 — Style ColorPaletteWidget with HexiPedia frame styling
+
+- 2026w09-0.25 — Update documentation with UI/UX improvements v0.22-0.24
