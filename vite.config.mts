@@ -5,6 +5,20 @@ import path from 'path';
 
 // Vite config: dev uses root, build uses relative asset paths
 export default defineConfig(({ mode }) => {
+  // Test-only config (vitest runs without mode, so mode may be undefined)
+  if ((mode as string | undefined) === 'test' || process.env.VITEST) {
+    return {
+      plugins: [react()],
+      test: {
+        environment: 'node',
+        include: ['tests/**/*.test.ts'],
+        coverage: {
+          provider: 'v8',
+          include: ['src/logic/**', 'src/templates/**', 'src/tutorial/**'],
+        },
+      },
+    } as Parameters<typeof defineConfig>[0];
+  }
   const integrationImpl = mode === 'yandex'
     ? path.resolve(__dirname, 'src/appLogic/integration.yandex.ts')
     : path.resolve(__dirname, 'src/appLogic/integration.null.ts');

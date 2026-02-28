@@ -397,3 +397,5 @@
 - 2026w09-0.18 — Fix template flickering: ensure 0% cell always at focus position
 
 - 2026w09-0.19 — Fix all templates: anchor cell (0,0) always has 0%, simplify anchoring logic
+
+- 2026w09-0.20 — Add test facade and 50 tests covering smoke, movement, inventory, and invariants

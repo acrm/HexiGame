@@ -1,6 +1,6 @@
 {
   "name": "hexigame",
-  "version": "2026w09-0.19",
+  "version": "2026w09-0.20",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,10 @@
     "bump:minor": "node scripts/update-version.js --minor",
     "preview": "vite preview",
     "preview:yandex": "vite preview --mode yandex",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.2.9",
@@ -25,7 +28,9 @@
     "@types/react-dom": "^18.3.7",
     "@types/ysdk": "^1.2.0",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "typescript": "^5.4.0",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^4.0.18"
   }
 }
