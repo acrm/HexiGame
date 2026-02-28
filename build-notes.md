@@ -399,3 +399,5 @@
 - 2026w09-0.19 — Fix all templates: anchor cell (0,0) always has 0%, simplify anchoring logic
 
 - 2026w09-0.20 — Add HSV palette, turtle outline param, fix minus sign, update template % for 6 colors, start HexiPedia improvements
+
+- 2026w09-0.21 — Replace ColorPaletteHues array with startHue and hueStep parameters

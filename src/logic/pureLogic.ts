@@ -30,7 +30,8 @@ export interface FlashState {
 export interface Params {
   GridRadius: number;
   InitialColorProbability: number; // 0..1
-  ColorPaletteHues: number[]; // Hue values 0-360
+  ColorPaletteStartHue: number; // Starting hue 0-360
+  ColorPaletteHueStep: number; // Step between hues in degrees
   ColorSaturation: number; // 0-100%
   ColorValue: number; // 0-100%
   ColorPalette: string[]; // Computed from HSV
@@ -879,15 +880,28 @@ function hsvToHex(h: number, s: number, v: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+// Helper to generate palette hues
+function generatePaletteHues(startHue: number, hueStep: number, colorCount: number): number[] {
+  const hues: number[] = [];
+  for (let i = 0; i < colorCount; i++) {
+    hues.push((startHue + i * hueStep) % 360);
+  }
+  return hues;
+}
+
 // ---------- Default Parameters (mirroring the doc) ----------
-const paletteHues = [55, 110, 175, 240, 290, 350]; // 6 colors evenly spaced
-const saturation = 70;
-const value = 85;
+const paletteStartHue = 350;
+const paletteHueStep = 60;
+const colorCount = 6;
+const saturation = 40;
+const value = 60;
+const paletteHues = generatePaletteHues(paletteStartHue, paletteHueStep, colorCount);
 
 export const DefaultParams: Params = {
   GridRadius: 5,
   InitialColorProbability: 0.30,
-  ColorPaletteHues: paletteHues,
+  ColorPaletteStartHue: paletteStartHue,
+  ColorPaletteHueStep: paletteHueStep,
   ColorSaturation: saturation,
   ColorValue: value,
   ColorPalette: paletteHues.map(h => hsvToHex(h, saturation, value)),
