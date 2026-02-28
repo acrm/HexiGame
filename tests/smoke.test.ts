@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createFacade, emptyParams, denseParams, DIR_DOWN, DIR_UP } from './facade/testHelpers.js';
-import type { GameTestFacade } from './facade/GameTestFacade.js';
+import { createFacade, emptyParams, denseParams, DIR_DOWN, DIR_UP } from './facade/testHelpers';
+import type { GameTestFacade } from './facade/GameTestFacade';
 
 describe('Smoke — initialization', () => {
   let g: GameTestFacade;
@@ -24,10 +24,12 @@ describe('Smoke — initialization', () => {
 
   it('focus starts in adjacent cell (direction 0 = up: q=0,r=-1)', () => {
     const focus = g.getFocusPosition();
-    // Direction 0 = up: dq=0, dr=-1
+    // Direction 0 = up: dq=0, dr=-1; axial hex distance must be 1
     const pos = g.getProtagonistPosition();
-    const dist = Math.abs(focus.q - pos.q) + Math.abs(focus.r - pos.r);
-    expect(dist).toBeGreaterThan(0);
+    const dq = focus.q - pos.q;
+    const dr = focus.r - pos.r;
+    const hexDist = (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
+    expect(hexDist).toBe(1);
   });
 
   it('hotbar is initially empty', () => {

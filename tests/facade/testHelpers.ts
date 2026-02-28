@@ -8,8 +8,8 @@
  *  - DIR_*            — константы индексов направлений
  */
 
-import { PureLogicAdapter } from './PureLogicAdapter.js';
-import type { FacadeParams, GameTestFacade } from './GameTestFacade.js';
+import { PureLogicAdapter } from './PureLogicAdapter';
+import type { FacadeParams, GameTestFacade } from './GameTestFacade';
 
 // ── Direction constants ──────────────────────────────────────────────────────
 // Matches axialDirections order in pureLogic.ts:

@@ -12,8 +12,8 @@ import {
   DIR_DOWN_LEFT,
   DIR_UP_LEFT,
   DIR_DOWN_RIGHT,
-} from './facade/testHelpers.js';
-import type { GameTestFacade } from './facade/GameTestFacade.js';
+} from './facade/testHelpers';
+import type { GameTestFacade } from './facade/GameTestFacade';
 
 describe('Focus movement by delta', () => {
   let g: GameTestFacade;

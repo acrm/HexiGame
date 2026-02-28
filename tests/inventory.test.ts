@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createFacade, emptyParams, DIR_UP } from './facade/testHelpers.js';
-import type { GameTestFacade } from './facade/GameTestFacade.js';
+import { createFacade, emptyParams, DIR_UP } from './facade/testHelpers';
+import type { GameTestFacade } from './facade/GameTestFacade';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

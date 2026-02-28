@@ -21,14 +21,14 @@ import {
   type GameState,
   type Params,
   type Axial,
-} from '../../src/logic/pureLogic.js';
+} from '../../src/logic/pureLogic';
 
 import type {
   GameTestFacade,
   FacadeParams,
   Position,
   CellInfo,
-} from './GameTestFacade.js';
+} from './GameTestFacade';
 
 import { expect } from 'vitest';
 

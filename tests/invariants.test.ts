@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createFacade, emptyParams, denseParams, DIR_UP, DIR_DOWN } from './facade/testHelpers.js';
+import { createFacade, emptyParams, denseParams, DIR_UP, DIR_DOWN } from './facade/testHelpers';
 
 // ── Инвариант 1: сохранение числа цветов ──────────────────────────────────
 
