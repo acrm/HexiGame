@@ -47,8 +47,8 @@ describe('Smoke — initialization', () => {
   it('all cells colored with denseParams (probability=1)', () => {
     const dense = createFacade(denseParams);
     const colored = dense.getColoredCells();
-    // radius=5: 3*5^2 + 3*5 + 1 = 91 cells
-    expect(colored.length).toBe(91);
+    // initial generation uses double radius: r=10 -> 3*10^2 + 3*10 + 1 = 331 cells
+    expect(colored.length).toBe(331);
   });
 });
 

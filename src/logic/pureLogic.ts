@@ -65,6 +65,7 @@ export interface GameState {
   autoMoveTarget?: Axial | null; // target cell for automatic movement
   autoMoveTicksRemaining?: number; // ticks until next auto move step (2 ticks per step)
   autoFocusTarget?: Axial | null; // destination focus cell to highlight while moving
+  worldViewCenter?: Axial; // center of visible world window
   
   // Tutorial system
   tutorialLevelId?: string | null; // Current tutorial level ID, null if no tutorial
@@ -122,6 +123,13 @@ export function keyOfAxial(p: Axial): string {
   return keyOf(p.q, p.r);
 }
 
+export function axialDistance(a: Axial, b: Axial): number {
+  const dq = a.q - b.q;
+  const dr = a.r - b.r;
+  const ds = -dq - dr;
+  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(ds));
+}
+
 // Alias for compatibility with template system
 export function axialToKey(p: Axial): string {
   return keyOfAxial(p);
@@ -149,10 +157,60 @@ export function updateCells(grid: Grid, cells: Cell[]): Grid {
   return next;
 }
 
+function ensureGeneratedAround(state: GameState, params: Params, rng?: RNG): GameState {
+  const center = state.protagonist;
+  const radius = Math.max(1, params.GridRadius * 2);
+  const paletteLen = params.ColorPalette.length;
+  if (paletteLen <= 0) return state;
+
+  const random = rng ?? Math.random;
+  const toAdd: Cell[] = [];
+
+  for (let q = center.q - radius; q <= center.q + radius; q++) {
+    for (let r = center.r - radius; r <= center.r + radius; r++) {
+      const p = { q, r };
+      if (axialDistance(center, p) > radius) continue;
+      const key = keyOf(q, r);
+      if (state.grid.has(key)) continue;
+      const colorIndex = random() < params.InitialColorProbability
+        ? Math.floor(random() * paletteLen)
+        : null;
+      toAdd.push({ q, r, colorIndex });
+    }
+  }
+
+  if (toAdd.length === 0) return state;
+  return { ...state, grid: updateCells(state.grid, toAdd) };
+}
+
+function updateWorldViewCenter(state: GameState, params: Params): GameState {
+  const currentCenter = state.worldViewCenter ?? state.protagonist;
+  const maxOffset = Math.max(1, Math.floor(params.GridRadius / 2));
+  const dist = axialDistance(currentCenter, state.protagonist);
+
+  if (dist <= maxOffset) {
+    if (!state.worldViewCenter) {
+      return { ...state, worldViewCenter: { ...currentCenter } };
+    }
+    return state;
+  }
+
+  const steps = dist - maxOffset;
+  let center = { ...currentCenter };
+  for (let i = 0; i < steps; i++) {
+    const dirIndex = findDirectionToward(center.q, center.r, state.protagonist.q, state.protagonist.r);
+    if (dirIndex === null) break;
+    const dir = axialDirections[dirIndex];
+    center = { q: center.q + dir.q, r: center.r + dir.r };
+  }
+
+  return { ...state, worldViewCenter: center };
+}
+
 // ---------- Initialization ----------
 export function generateGrid(params: Params, rng: RNG): Grid {
   const g: Grid = new Map();
-  const radius = params.GridRadius;
+  const radius = params.GridRadius * 2;
   const paletteLen = params.ColorPalette.length;
   for (let q = -radius; q <= radius; q++) {
     for (let r = -radius; r <= radius; r++) {
@@ -195,6 +253,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     autoMoveTarget: null,
     autoMoveTicksRemaining: 0,
     autoFocusTarget: null,
+    worldViewCenter: { ...start },
     tutorialCompletedLevelIds: new Set(),
   };
 }
@@ -259,7 +318,6 @@ export function updateFocusPosition(state: GameState): GameState {
 
 // Start automatic movement to target cell (focus will land on target)
 export function startAutoMove(state: GameState, target: Axial, params: Params): GameState {
-  if (!axialInDisk(params.GridRadius, target.q, target.r)) return state;
   if (state.isDragging) return state; // Don't start auto move during drag
   
   // Calculate where protagonist needs to be so that focus lands on target
@@ -272,7 +330,6 @@ export function startAutoMove(state: GameState, target: Axial, params: Params): 
     const dir = axialDirections[dirIdx];
     // If focus is at target, protagonist is one step back (opposite direction)
     const candidatePos = { q: target.q - dir.q, r: target.r - dir.r };
-    if (!axialInDisk(params.GridRadius, candidatePos.q, candidatePos.r)) continue;
     
     const dist = Math.abs(state.protagonist.q - candidatePos.q) + 
                  Math.abs(state.protagonist.r - candidatePos.r) +
@@ -314,18 +371,17 @@ export function dragMoveProtagonist(state: GameState, params: Params, dq: number
   if (dist !== 2) return state; // Not a single hex step
   
   const newPos = { q: state.protagonist.q + dq, r: state.protagonist.r + dr };
-  if (!axialInDisk(params.GridRadius, newPos.q, newPos.r)) return state;
-  
   const newFocus = { q: state.focus.q + dq, r: state.focus.r + dr };
-  if (!axialInDisk(params.GridRadius, newFocus.q, newFocus.r)) return state;
   
   // Update facing direction based on movement
   const dirIndex = axialDirections.findIndex(d => d.q === dq && d.r === dr);
   if (dirIndex !== -1) {
-    return { ...state, protagonist: newPos, focus: newFocus, facingDirIndex: dirIndex };
+    const moved = { ...state, protagonist: newPos, focus: newFocus, facingDirIndex: dirIndex };
+    return updateWorldViewCenter(ensureGeneratedAround(moved, params), params);
   }
   
-  return { ...state, protagonist: newPos, focus: newFocus };
+  const moved = { ...state, protagonist: newPos, focus: newFocus };
+  return updateWorldViewCenter(ensureGeneratedAround(moved, params), params);
 }
 
 
@@ -358,15 +414,9 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
         if (dirIndex !== null) {
           const dir = axialDirections[dirIndex];
           const newPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
-          if (axialInDisk(params.GridRadius, newPos.q, newPos.r)) {
-            next = { ...next, protagonist: newPos, facingDirIndex: dirIndex, autoMoveTicksRemaining: 2 };
-            // Keep focus always ahead of turtle even during auto-move
-            next = updateFocusPosition(next);
-          } else {
-            // Can't move further, stop
-            next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0 };
-            next = updateFocusPosition(next);
-          }
+          next = { ...next, protagonist: newPos, facingDirIndex: dirIndex, autoMoveTicksRemaining: 2 };
+          // Keep focus always ahead of turtle even during auto-move
+          next = updateFocusPosition(next);
         } else {
           // Already at target
           next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0 };
@@ -393,6 +443,9 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   if (!next.isDragging) {
     next = updateFocusPosition(next);
   }
+
+  next = ensureGeneratedAround(next, params, rng);
+  next = updateWorldViewCenter(next, params);
 
   return next;
 }
@@ -426,16 +479,13 @@ export function attemptMoveByDeltaOnActive(state: GameState, params: Params, dq:
 
 // Start auto-move to target position (focus will be placed on target)
 export function attemptMoveTo(state: GameState, params: Params, target: Axial): GameState {
-  if (!axialInDisk(params.GridRadius, target.q, target.r)) return state;
-  const targetCell = getCell(state.grid, target);
-  if (!targetCell) return state; // outside generated grid
   // Start automatic movement to target
   return startAutoMove(state, target, params);
 }
 
 export function attemptMoveToOnActive(state: GameState, params: Params, target: Axial): GameState {
-  if (!axialInDisk(params.GridRadius, target.q, target.r)) return state;
   const usingInventory = state.activeField === 'inventory';
+  if (usingInventory && !axialInDisk(3, target.q, target.r)) return state;
   const grid = usingInventory ? state.inventoryGrid : state.grid;
   const targetCell = getCell(grid, target);
   if (!targetCell) return state;
@@ -681,14 +731,13 @@ function performHotbarTransfer(state: GameState, params: Params): GameState {
 export function computeShortestPath(from: Axial, to: Axial, params: Params): Axial[] {
   const path: Axial[] = [];
   let cur = { q: from.q, r: from.r };
-  const maxSteps = params.GridRadius * 2 + 2; // safe guard
+  const maxSteps = axialDistance(from, to) + 2; // safe guard
   for (let i = 0; i < maxSteps; i++) {
     if (cur.q === to.q && cur.r === to.r) break;
     const dirIndex = findDirectionToward(cur.q, cur.r, to.q, to.r);
     if (dirIndex == null) break;
     const dir = axialDirections[dirIndex];
     const next = { q: cur.q + dir.q, r: cur.r + dir.r };
-    if (!axialInDisk(params.GridRadius, next.q, next.r)) break;
     path.push(next);
     cur = next;
   }
@@ -700,7 +749,6 @@ export function computeBreadcrumbs(state: GameState, params: Params): Axial[] {
   if (state.protagonist.q === state.focus.q && state.protagonist.r === state.focus.r) return [];
   const headDir = axialDirections[state.facingDirIndex];
   const start = { q: state.protagonist.q + headDir.q, r: state.protagonist.r + headDir.r };
-  if (!axialInDisk(params.GridRadius, start.q, start.r)) return [];
   return computeShortestPath(start, state.focus, params);
 }
 

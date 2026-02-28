@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Params, GameState, Axial, computeBreadcrumbs } from '../logic/pureLogic';
+import { Params, GameState, Axial, computeBreadcrumbs, axialDistance } from '../logic/pureLogic';
 import { renderTemplateOverlay } from './TemplateRenderer';
 import ColorPaletteWidget from './ColorPaletteWidget';
 
@@ -329,42 +329,53 @@ export const GameField: React.FC<GameFieldProps> = ({
       const availableWidth = container.clientWidth;
       const availableHeight = container.clientHeight;
 
-      // Compute world bounds for consistent cell scaling across views
+      const worldViewCenter = gameState.worldViewCenter ?? gameState.protagonist;
+      const visibleRadius = Math.max(1, params.GridRadius);
+      const worldVisibleCells = Array.from(gameState.grid.values()).filter(
+        cell => axialDistance({ q: cell.q, r: cell.r }, worldViewCenter) <= visibleRadius,
+      );
+
+      // Fixed logical world window (radius R) for stable camera scale in infinite world mode
       let worldMinX = Infinity;
       let worldMaxX = -Infinity;
       let worldMinY = Infinity;
       let worldMaxY = -Infinity;
-      for (const cell of gameState.grid.values()) {
-        const pos = hexToPixel(cell.q, cell.r);
-        const x = pos.x;
-        const y = pos.y;
-        const halfW = HEX_SIZE * 1.0;
-        const halfH = HEX_SIZE * Math.sqrt(3) * 0.5;
-        worldMinX = Math.min(worldMinX, x - halfW);
-        worldMaxX = Math.max(worldMaxX, x + halfW);
-        worldMinY = Math.min(worldMinY, y - halfH);
-        worldMaxY = Math.max(worldMaxY, y + halfH);
+      for (let q = -visibleRadius; q <= visibleRadius; q++) {
+        for (let r = -visibleRadius; r <= visibleRadius; r++) {
+          if (axialDistance({ q: 0, r: 0 }, { q, r }) > visibleRadius) continue;
+          const pos = hexToPixel(q, r);
+          const x = pos.x;
+          const y = pos.y;
+          const halfW = HEX_SIZE * 1.0;
+          const halfH = HEX_SIZE * Math.sqrt(3) * 0.5;
+          worldMinX = Math.min(worldMinX, x - halfW);
+          worldMaxX = Math.max(worldMaxX, x + halfW);
+          worldMinY = Math.min(worldMinY, y - halfH);
+          worldMaxY = Math.max(worldMaxY, y + halfH);
+        }
       }
 
       const worldLogicalWidth = worldMaxX - worldMinX;
       const worldLogicalHeight = worldMaxY - worldMinY;
 
-      // Compute active grid bounds (world or inventory) for centering
-      const activeBoundsGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
+      // Compute active grid bounds for inventory; world uses camera center instead
+      const activeBoundsGrid = isInventory ? gameState.inventoryGrid : null;
       let activeMinX = Infinity;
       let activeMaxX = -Infinity;
       let activeMinY = Infinity;
       let activeMaxY = -Infinity;
-      for (const cell of activeBoundsGrid.values()) {
-        const pos = hexToPixel(cell.q, cell.r);
-        const x = pos.x;
-        const y = pos.y;
-        const halfW = HEX_SIZE * 1.0;
-        const halfH = HEX_SIZE * Math.sqrt(3) * 0.5;
-        activeMinX = Math.min(activeMinX, x - halfW);
-        activeMaxX = Math.max(activeMaxX, x + halfW);
-        activeMinY = Math.min(activeMinY, y - halfH);
-        activeMaxY = Math.max(activeMaxY, y + halfH);
+      if (activeBoundsGrid) {
+        for (const cell of activeBoundsGrid.values()) {
+          const pos = hexToPixel(cell.q, cell.r);
+          const x = pos.x;
+          const y = pos.y;
+          const halfW = HEX_SIZE * 1.0;
+          const halfH = HEX_SIZE * Math.sqrt(3) * 0.5;
+          activeMinX = Math.min(activeMinX, x - halfW);
+          activeMaxX = Math.max(activeMaxX, x + halfW);
+          activeMinY = Math.min(activeMinY, y - halfH);
+          activeMaxY = Math.max(activeMaxY, y + halfH);
+        }
       }
 
       const padding = 12; // keep a thin margin so hexes are never cut off
@@ -382,9 +393,13 @@ export const GameField: React.FC<GameFieldProps> = ({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 
-      const centerX = canvas.width / 2 - ((activeMinX + activeMaxX) / 2) * scale;
+      const centerX = isInventory
+        ? canvas.width / 2 - ((activeMinX + activeMaxX) / 2) * scale
+        : canvas.width / 2 - hexToPixel(worldViewCenter.q, worldViewCenter.r).x * scale;
       // Always center vertically for both world and inventory
-      const centerY = canvas.height / 2 - ((activeMinY + activeMaxY) / 2) * scale;
+      const centerY = isInventory
+        ? canvas.height / 2 - ((activeMinY + activeMaxY) / 2) * scale
+        : canvas.height / 2 - hexToPixel(worldViewCenter.q, worldViewCenter.r).y * scale;
       scaleRef.current = scale;
       centerXRef.current = centerX;
       centerYRef.current = centerY;
@@ -496,8 +511,7 @@ export const GameField: React.FC<GameFieldProps> = ({
         }
       } else {
         // World mode: draw normal grid
-        const activeGrid = gameState.grid;
-        for (const cell of activeGrid.values()) {
+        for (const cell of worldVisibleCells) {
           const pos = hexToPixel(cell.q, cell.r);
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
@@ -508,11 +522,11 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       // Draw grid corner dots (for world or inventory) AFTER turtle/background so dots stay visible
       {
-        const activeGrid = isInventory ? gameState.inventoryGrid : gameState.grid;
+        const activeGridValues = isInventory ? Array.from(gameState.inventoryGrid.values()) : worldVisibleCells;
         ctx.fillStyle = GRID_STROKE_COLOR;
         const dotRadius = 1.2 * scale;
         const seenVertices = new Set<string>();
-        const emptyCells = Array.from(activeGrid.values()).filter(c => c.colorIndex === null);
+        const emptyCells = activeGridValues.filter(c => c.colorIndex === null);
         for (const cell of emptyCells) {
           const pos = hexToPixel(cell.q, cell.r);
           const baseX = centerX + pos.x * scale;
@@ -526,7 +540,7 @@ export const GameField: React.FC<GameFieldProps> = ({
             if (seenVertices.has(key)) continue;
 
             let allEmpty = true;
-            for (const other of activeGrid.values()) {
+            for (const other of activeGridValues) {
               const otherPos = hexToPixel(other.q, other.r);
               const ox = centerX + otherPos.x * scale;
               const oy = centerY + otherPos.y * scale;

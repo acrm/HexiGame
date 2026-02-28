@@ -11,7 +11,7 @@ Frame-based constants from the original prototype are converted to tick-based va
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `GridRadius` | 15 | Axial hex disk radius (all cells with |q|,|r|,|s| ≤ radius). |
+| `GridRadius` | 15 | Radius of the visible world window and movement threshold logic. |
 | `InitialColorProbability` | 0.20 | Probability a cell starts with a color. |
 | `ColorPaletteStartHue` | 350 | Starting hue angle (0–359) for HSV palette generation. |
 | `ColorPaletteHueStep` | 60 | Hue step between colors (generates 6 colors by default). |
@@ -39,6 +39,18 @@ CaptureChancePercent = max(0, ChanceBasePercent - ChancePenaltyPerPaletteDistanc
 
 ---
 ## 2. Pure Game Logic (Tick-Based, Engine-Agnostic)
+
+### 2.0 Infinite world model
+- World is procedurally generated and unbounded.
+- At initialization, cells are generated in a disk of radius `2 * GridRadius` around start `(0,0)`.
+- During gameplay, on movement ticks, all coordinates in a disk of radius `2 * GridRadius` around protagonist are checked; missing cells are generated lazily.
+- Cell generation keeps the same probability model (`InitialColorProbability`) and palette mapping.
+
+### 2.0.1 Moving visible window (camera bounds)
+- Visible world window radius is `GridRadius`.
+- The window has a center (`worldViewCenter`) that starts at protagonist position.
+- If protagonist approaches a boundary so that remaining distance to edge is `GridRadius / 2` or less, the window center shifts in protagonist direction.
+- This keeps protagonist inside inner safety area while allowing continuous infinite traversal.
 
 ### 2.1 Entities & State
 - `Cell`: `{ q, r, colorIndex | null }`.

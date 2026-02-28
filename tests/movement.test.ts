@@ -83,10 +83,10 @@ describe('Auto-move to target', () => {
     expect(g.isAutoMoving()).toBe(false);
   });
 
-  it('moveToTarget outside grid is ignored', () => {
+  it('moveToTarget far from center is allowed in infinite world', () => {
     const g = createFacade({ ...emptyParams, gridRadius: 3 });
-    g.moveToTarget({ q: 10, r: 10 }); // outside radius=3
-    expect(g.isAutoMoving()).toBe(false);
+    g.moveToTarget({ q: 10, r: 10 });
+    expect(g.isAutoMoving()).toBe(true);
   });
 
   it('protagonist stays in place without auto-move during ticks', () => {
