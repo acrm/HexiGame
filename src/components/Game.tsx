@@ -656,7 +656,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     if (!level?.targetCells || level.targetCells.length === 0) return;
 
     const focusKey = axialToKey(gameState.focus);
-    if (!tutorialTargetKeys.includes(focusKey)) return;
+    
+    // Re-compute target keys from the level directly (don't rely on memoized value)
+    const targetKeys = level.targetCells.map(axialToKey);
+    if (!targetKeys.includes(focusKey)) return;
 
     if (gameState.tutorialProgress.visitedTargetKeys.has(focusKey)) return;
 
@@ -676,7 +679,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         },
       };
     });
-  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialLevelId, tutorialTargetKeys, isMobileLayout, mobileTab]);
+  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialLevelId, isMobileLayout, mobileTab]);
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;

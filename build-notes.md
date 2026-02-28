@@ -421,3 +421,5 @@
 - 2026w09-0.29 — Fix hotbar slot hit-test and auto-resume music after reload
 
 - 2026w09-0.30 — Implement infinite world generation and moving visible window
+
+- 2026w09-0.31 — Fix tutorial cell visit registration logic
