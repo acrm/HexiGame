@@ -347,12 +347,12 @@ Defined in `src/templates/templateLogic.ts`:
 - **Future: User-Created Templates**: Architecture supports dynamic template definition
 
 ---
-## 8. User Interface & UX (v0.22–0.24)
+## 8. User Interface & UX (v0.22–0.26)
 
 ### 8.1 Tutorial System enhancements
 - **TutorialProgressWidget**: Displays tutorial level progress (visited cells / target cells)
   - Info button (ℹ) provides quick access to task objective and hints
-  - Info bubble popup shows task objective and interaction-mode-specific hints (desktop/mobile)
+  - Info bubble popup always shows hint text for the currently active tutorial task
   - Positioned in-game, allowing context-aware task information without tab switching
 
 ### 8.2 HexiPedia (Information Hub)
@@ -360,6 +360,7 @@ Defined in `src/templates/templateLogic.ts`:
   - Three collapsible sections: Tasks, Stats, Build Templates
   - Each section can be collapsed with toggle arrow (▼/▶)
   - Section order customizable with up/down arrows (▲/▼)
+  - Section selector remains fixed; all section content below it scrolls as one area
   - Collapsible sections persist in component state during session
 
 - **Task List**:
@@ -388,8 +389,8 @@ Defined in `src/templates/templateLogic.ts`:
 - **Styling**:
   - Consistent with HexiPedia widget aesthetic
   - Framed with border, background, and shadow
-  - Positioned centered and above other UI elements
-  - Responsive width with max-width constraint
+  - Positioned directly below tutorial progress widget when tutorial is active
+  - Uses the same content width as the tutorial progress widget
 
 ### 8.4 Session Persistence
 - **Tutorial Progress**: Tracks visited target cells per level (in-session)

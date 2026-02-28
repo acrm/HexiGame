@@ -116,6 +116,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
           aria-label="Filter sections"
         />
       </div>
+      <div className="hexipedia-scrollable-content">
       {tutorialLevel || allLevels.length > 0 ? (
         <div>
           {sectionOrder.map(sectionId => {
@@ -428,6 +429,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
           <div className="hexipedia-text">{t('tutorial.noActiveTask')}</div>
         </div>
       )}
+      </div>
     </div>
   );
 };

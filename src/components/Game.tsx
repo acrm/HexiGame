@@ -35,7 +35,7 @@ import Mascot from './Mascot';
 import { ColorScheme } from '../ui/colorScheme';
 import TutorialProgressWidget from './TutorialProgressWidget';
 import { getTutorialLevel, getNextTutorialLevel } from '../tutorial/tutorialLevels';
-import { axialToKey } from '../tutorial/tutorialState';
+import { axialToKey, getHintForMode } from '../tutorial/tutorialState';
 
 // Session persistence helpers
 const SESSION_STORAGE_KEY = 'hexigame.session.state';
@@ -671,7 +671,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     ? (mobileTab === 'heximap' ? ColorScheme.outside.background : mobileTab === 'hexilab' ? ColorScheme.inside.background : '#2f2f2f')
     : '#370152ff';
 
-  const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && tutorialLevel ? 92 : 8;
+  const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && tutorialLevel ? 56 : 8;
+  const currentTutorialHint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode) : '';
 
   return (
     <div
@@ -861,6 +862,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         <div className="tutorial-widget-overlay">
           <TutorialProgressWidget
             level={tutorialLevel}
+            hintText={currentTutorialHint}
             visitedCount={visitedTargetCount}
             totalCount={tutorialTargetKeys.length}
             isComplete={isTutorialTaskComplete}

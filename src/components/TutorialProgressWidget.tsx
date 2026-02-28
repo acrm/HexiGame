@@ -5,6 +5,7 @@ import './TutorialProgressWidget.css';
 
 interface TutorialProgressWidgetProps {
   level: TutorialLevel;
+  hintText: string;
   visitedCount: number;
   totalCount: number;
   isComplete: boolean;
@@ -14,6 +15,7 @@ interface TutorialProgressWidgetProps {
 
 export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   level,
+  hintText,
   visitedCount,
   totalCount,
   isComplete,
@@ -70,8 +72,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           </button>
           <div className="tutorial-info-content">
             <div className="tutorial-info-title">{level.objective}</div>
-            <div className="tutorial-info-hint">{level.hints.desktop || level.hints.mobile}</div>
-            <div className="tutorial-info-hint" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #444444' }}>{t('tutorial.controlHint')}</div>
+            <div className="tutorial-info-hint">{hintText}</div>
           </div>
         </div>
       )}
