@@ -405,3 +405,5 @@
 - 2026w09-0.21 — Replace ColorPaletteHues array with startHue and hueStep parameters
 
 - 2026w09-0.22 — Add info button and bubble styling to TutorialProgressWidget
+
+- 2026w09-0.23 — Add HexiPedia section collapse and reorder controls
