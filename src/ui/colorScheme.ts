@@ -16,9 +16,9 @@
 export const ColorScheme = {
   // Outside tab (World) - Purple based
   outside: {
-    active: '#4d0073',      // Dark purple (screen background)
+    active: '#00264C',      // Dark purple (screen background)
     inactive: '#2b0041',    // Even darker purple
-    background: '#4d0073',  // Screen background color
+    background: '#00264C',  // Screen background color
   },
   
   // Inside tab (Inventory) - Orange based

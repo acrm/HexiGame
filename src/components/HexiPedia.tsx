@@ -589,11 +589,12 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                   {!isCollapsed && (
                     <div className="hexipedia-colors-section">
                       <svg className="hexipedia-color-wheel" viewBox="0 0 300 300" width="200" height="200">
-                        {/* Draw color wheel as segments */}
-                        {params.ColorPalette.map((color, idx) => {
-                          const totalColors = params.ColorPalette.length;
-                          const startAngle = (idx * 360 / totalColors - 90) * (Math.PI / 180);
-                          const endAngle = ((idx + 1) * 360 / totalColors - 90) * (Math.PI / 180);
+                        {/* Draw full spectrum color wheel as thin segments */}
+                        {Array.from({ length: 120 }).map((_, idx) => {
+                          const segmentSize = 3; // degrees per segment
+                          const hue = (idx * segmentSize) % 360;
+                          const startAngle = (idx * segmentSize - 90) * (Math.PI / 180);
+                          const endAngle = ((idx + 1) * segmentSize - 90) * (Math.PI / 180);
                           const innerRadius = 60;
                           const outerRadius = 120;
                           
@@ -607,6 +608,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           const y4 = 150 + innerRadius * Math.sin(endAngle);
                           
                           const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+                          const color = `hsl(${hue}, 100%, 50%)`;
                           
                           const pathD = `
                             M ${x1} ${y1}
@@ -622,14 +624,12 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                               key={idx}
                               d={pathD}
                               fill={color}
-                              stroke="#333333"
-                              strokeWidth="0.5"
-                              opacity="0.8"
+                              stroke="none"
                             />
                           );
                         })}
                         
-                        {/* Game colors as circles on the wheel */}
+                        {/* Game colors as larger circles on the wheel */}
                         {params.ColorPalette.map((color, idx) => {
                           // Map color to angle (0-360 degrees)
                           const hue = (params.ColorPaletteStartHue + idx * params.ColorPaletteHueStep) % 360;
@@ -643,7 +643,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                               key={`dot-${idx}`}
                               cx={x}
                               cy={y}
-                              r="6"
+                              r="10"
                               fill={color}
                               stroke="#ffffff"
                               strokeWidth="2"
