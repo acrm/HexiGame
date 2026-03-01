@@ -600,15 +600,24 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                     <div className="hexipedia-colors-section">
                       {/* Widget visibility toggle */}
                       <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <input
-                            type="checkbox"
-                            checked={showColorWidget}
-                            onChange={(e) => onToggleColorWidget?.(e.target.checked)}
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <span style={{ fontSize: '14px', color: '#CCCCCC' }}>Показать виджет на игровом поле</span>
-                        </label>
+                        <button
+                          onClick={() => onToggleColorWidget?.(!showColorWidget)}
+                          style={{
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: showColorWidget ? '#4CAF50' : '#555555',
+                            border: '1px solid #777777',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            color: '#FFFFFF',
+                            fontSize: '14px',
+                          }}
+                        >
+                          <span style={{ fontSize: '16px' }}>{showColorWidget ? '👁️' : '⊘'}</span>
+                          <span>Виджет</span>
+                        </button>
                       </div>
 
                       <svg className="hexipedia-color-wheel" viewBox="0 0 300 300" width="200" height="200">
@@ -625,11 +634,12 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           </linearGradient>
                         </defs>
 
-                        {/* Gradient ring using path for conical effect */}
-                        {Array.from({ length: 360 }).map((_, idx) => {
-                          const hue = idx;
-                          const startAngle = (idx - 90) * (Math.PI / 180);
-                          const endAngle = (idx + 1 - 90) * (Math.PI / 180);
+                        {/* Gradient ring using path segments (60 segments x 6° each for smooth gradient without moiré) */}
+                        {Array.from({ length: 60 }).map((_, idx) => {
+                          const segmentDegrees = 6;
+                          const hue = (idx * segmentDegrees) % 360;
+                          const startAngle = (idx * segmentDegrees - 90) * (Math.PI / 180);
+                          const endAngle = ((idx + 1) * segmentDegrees - 90) * (Math.PI / 180);
                           const innerRadius = 60;
                           const outerRadius = 120;
 
@@ -668,6 +678,25 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           const x = 150 + radius * Math.cos(angle);
                           const y = 150 + radius * Math.sin(angle);
                           const isSelected = idx === selectedColorIndex;
+                          
+                          // Calculate percentage with proper distance and sign
+                          const refIndex = selectedColorIndex ?? params.PlayerBaseColorIndex;
+                          const paletteSize = params.ColorPalette.length;
+                          let distance = idx - refIndex;
+                          // Normalize to shortest path around the palette
+                          while (distance > paletteSize / 2) distance -= paletteSize;
+                          while (distance <= -paletteSize / 2) distance += paletteSize;
+                          const percent = (distance * 100) / paletteSize;
+                          
+                          // Format: +/- with max 1 decimal place
+                          let percentStr;
+                          if (percent === 0) {
+                            percentStr = '0';
+                          } else {
+                            const absPercent = Math.abs(percent);
+                            const rounded = absPercent % 1 === 0 ? absPercent.toFixed(0) : absPercent.toFixed(1);
+                            percentStr = `${percent > 0 ? '+' : '-'}${rounded}`;
+                          }
 
                           return (
                             <g key={`dot-${idx}`}>
@@ -689,14 +718,14 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 style={{
-                                  fontSize: '10px',
+                                  fontSize: '9px',
                                   fontWeight: 'bold',
                                   fill: '#FFFFFF',
                                   textShadow: '0 0 2px rgba(0,0,0,0.8)',
                                   pointerEvents: 'none',
                                 }}
                               >
-                                {isSelected ? '0%' : `${Math.abs(idx - (selectedColorIndex ?? params.PlayerBaseColorIndex)) * 100 / params.ColorPalette.length}%`}
+                                {percentStr}
                               </text>
                             </g>
                           );
