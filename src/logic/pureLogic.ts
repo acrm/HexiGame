@@ -208,15 +208,21 @@ function ensureGeneratedAround(state: GameState, params: Params, rng?: RNG): Gam
 }
 
 function updateWorldViewCenter(state: GameState, params: Params): GameState {
-  // Camera center is positioned ahead of protagonist so turtle is 3 cells from rear edge
-  // For radius R, protagonist should be R-3 cells ahead of center (toward facing direction)
-  const forwardDir = axialDirections[state.facingDirIndex];
-  const offset = Math.max(0, params.GridRadius - 3);
+  // Determine camera target
+  let targetCenter: Axial;
   
-  const targetCenter = {
-    q: state.protagonist.q + forwardDir.q * offset,
-    r: state.protagonist.r + forwardDir.r * offset,
-  };
+  if (state.autoFocusTarget) {
+    // When moving to a target, camera aims at the target cell itself (independent movement)
+    targetCenter = state.autoFocusTarget;
+  } else {
+    // Normal mode: camera positioned ahead of protagonist so turtle is 3 cells from rear edge
+    const forwardDir = axialDirections[state.facingDirIndex];
+    const offset = Math.max(0, params.GridRadius - 3);
+    targetCenter = {
+      q: state.protagonist.q + forwardDir.q * offset,
+      r: state.protagonist.r + forwardDir.r * offset,
+    };
+  }
 
   const currentCenter = state.worldViewCenter ?? targetCenter;
   const dist = axialDistance(currentCenter, targetCenter);
@@ -1007,5 +1013,5 @@ export const DefaultParams: Params = {
   CarryFlickerOnFraction: 0.5,
   CarryingMoveRequiresEmpty: true,
   GameTickRate: 12,
-  CameraLagTicks: 4, // Camera moves 1 cell every 4 ticks (protagonist moves every 2 ticks)
+  CameraLagTicks: 0, // Camera moves 1 cell every 4 ticks (protagonist moves every 2 ticks)
 };

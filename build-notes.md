@@ -433,3 +433,5 @@
 - 2026w10-0.4 — Fix final approach direction and add camera lag (1 cell per 4 ticks)
 
 - 2026w10-0.5 — Fix auto-move focus target logic, add camera lag param
+
+- 2026w10-0.6 — Independent camera and turtle movement to target
