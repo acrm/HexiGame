@@ -423,3 +423,5 @@
 - 2026w09-0.30 — Implement infinite world generation and moving visible window
 
 - 2026w09-0.31 — Fix tutorial cell visit registration logic
+
+- 2026w10-0.1 — Camera follows protagonist with asymmetric offset for better forward view

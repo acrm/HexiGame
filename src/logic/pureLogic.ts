@@ -184,25 +184,16 @@ function ensureGeneratedAround(state: GameState, params: Params, rng?: RNG): Gam
 }
 
 function updateWorldViewCenter(state: GameState, params: Params): GameState {
-  const currentCenter = state.worldViewCenter ?? state.protagonist;
-  const maxOffset = Math.max(1, Math.floor(params.GridRadius / 2));
-  const dist = axialDistance(currentCenter, state.protagonist);
-
-  if (dist <= maxOffset) {
-    if (!state.worldViewCenter) {
-      return { ...state, worldViewCenter: { ...currentCenter } };
-    }
-    return state;
-  }
-
-  const steps = dist - maxOffset;
-  let center = { ...currentCenter };
-  for (let i = 0; i < steps; i++) {
-    const dirIndex = findDirectionToward(center.q, center.r, state.protagonist.q, state.protagonist.r);
-    if (dirIndex === null) break;
-    const dir = axialDirections[dirIndex];
-    center = { q: center.q + dir.q, r: center.r + dir.r };
-  }
+  // Camera center is positioned behind protagonist at distance GridRadius/3
+  // so that protagonist is 1/3 from rear edge and has maximum view ahead
+  const behindDirIndex = (state.facingDirIndex + 3) % 6; // opposite to facing direction
+  const behindDir = axialDirections[behindDirIndex];
+  const offset = Math.max(1, Math.floor(params.GridRadius / 3));
+  
+  const center = {
+    q: state.protagonist.q + behindDir.q * offset,
+    r: state.protagonist.r + behindDir.r * offset,
+  };
 
   return { ...state, worldViewCenter: center };
 }
@@ -237,6 +228,17 @@ export function createInitialState(params: Params, rng: RNG): GameState {
   }
   const start: Axial = { q: 0, r: 0 };
   const startFocus = addAxial(start, axialDirections[0]); // focus starts ahead of protagonist
+  
+  // Initial camera center: behind protagonist at GridRadius/3 distance (facingDirIndex=0, so behind is index 3)
+  const initialFacingDirIndex = 0;
+  const behindDirIndex = (initialFacingDirIndex + 3) % 6;
+  const behindDir = axialDirections[behindDirIndex];
+  const cameraOffset = Math.max(1, Math.floor(params.GridRadius / 3));
+  const initialViewCenter = {
+    q: start.q + behindDir.q * cameraOffset,
+    r: start.r + behindDir.r * cameraOffset,
+  };
+  
   return {
     tick: 0,
     remainingSeconds: params.TimerInitialSeconds,
@@ -247,13 +249,13 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     activeField: 'world',
     hotbarSlots: [null, null, null, null, null, null],
     selectedHotbarIndex: 0,
-    facingDirIndex: 0,
+    facingDirIndex: initialFacingDirIndex,
     grid,
     isDragging: false,
     autoMoveTarget: null,
     autoMoveTicksRemaining: 0,
     autoFocusTarget: null,
-    worldViewCenter: { ...start },
+    worldViewCenter: initialViewCenter,
     tutorialCompletedLevelIds: new Set(),
   };
 }
@@ -456,7 +458,7 @@ export function attemptMoveByDirectionIndex(state: GameState, params: Params, di
   if (state.isDragging || state.autoMoveTarget) return state;
   const normIndex = ((dirIndex % 6) + 6) % 6;
   const next = { ...state, facingDirIndex: normIndex };
-  return updateFocusPosition(next);
+  return updateWorldViewCenter(updateFocusPosition(next), params);
 }
 
 // Rotate protagonist by delta direction (updates focus automatically)
@@ -469,7 +471,7 @@ export function attemptMoveByDelta(state: GameState, params: Params, dq: number,
   );
   if (matchedIndex === -1) return state;
   const nextState: GameState = { ...state, facingDirIndex: matchedIndex };
-  return updateFocusPosition(nextState);
+  return updateWorldViewCenter(updateFocusPosition(nextState), params);
 }
 
 export function attemptMoveByDeltaOnActive(state: GameState, params: Params, dq: number, dr: number): GameState {
