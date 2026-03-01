@@ -2,20 +2,22 @@ import React from 'react';
 
 interface ColorPaletteWidgetProps {
   colorPalette: readonly string[];
-  focusColorIndex: number;
+  selectedColorIndex: number;
   playerBaseColorIndex: number;
   topOffset?: number;
+  onColorSelect?: (index: number) => void;
+  onNavigateToPalette?: () => void;
 }
 
 /**
- * Calculate relative percentage of a color from focus color
+ * Calculate relative percentage of a color from selected color
  */
 function calculateRelativePercent(
   colorIndex: number,
-  focusColorIndex: number,
+  selectedColorIndex: number,
   paletteSize: number
 ): number {
-  let distance = colorIndex - focusColorIndex;
+  let distance = colorIndex - selectedColorIndex;
   // Normalize to -paletteSize/2 ... paletteSize/2
   while (distance > paletteSize / 2) distance -= paletteSize;
   while (distance <= -paletteSize / 2) distance += paletteSize;
@@ -34,9 +36,11 @@ function formatPercent(percent: number): string {
 
 const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   colorPalette,
-  focusColorIndex,
+  selectedColorIndex,
   playerBaseColorIndex,
   topOffset = 8,
+  onColorSelect,
+  onNavigateToPalette,
 }) => {
   const paletteSize = colorPalette.length;
   const antagonistIndex = (playerBaseColorIndex + paletteSize / 2) % paletteSize;
@@ -62,7 +66,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
         borderRadius: '4px',
         padding: '8px',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         gap: '6px',
         zIndex: 50,
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -76,14 +80,15 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
       >
         {displayOrder.map((colorIndex, displayIndex) => {
           const color = colorPalette[colorIndex];
-          const percent = calculateRelativePercent(colorIndex, focusColorIndex, paletteSize);
-          const isFocusColor = colorIndex === focusColorIndex;
-          const borderColor = isFocusColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
-          const borderWidth = isFocusColor ? 2 : 1;
+          const percent = calculateRelativePercent(colorIndex, selectedColorIndex, paletteSize);
+          const isSelectedColor = colorIndex === selectedColorIndex;
+          const borderColor = isSelectedColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+          const borderWidth = isSelectedColor ? 2 : 1;
 
           return (
             <div
               key={`${displayIndex}-${colorIndex}`}
+              onClick={() => onColorSelect?.(colorIndex)}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -94,6 +99,9 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
                 minWidth: 0,
                 minHeight: 24,
                 position: 'relative',
+                cursor: onColorSelect ? 'pointer' : 'default',
+                border: `${borderWidth}px solid ${borderColor}`,
+                boxSizing: 'border-box',
               }}
             >
               <div
@@ -112,6 +120,27 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
           );
         })}
       </div>
+      {onNavigateToPalette && (
+        <button
+          onClick={onNavigateToPalette}
+          style={{
+            background: '#444444',
+            border: '1px solid #666666',
+            borderRadius: '4px',
+            color: '#FFFFFF',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            padding: '4px 8px',
+            cursor: 'pointer',
+            minWidth: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          »
+        </button>
+      )}
     </div>
   );
 };

@@ -155,6 +155,10 @@ interface GameFieldProps {
   visitedTutorialCells?: Set<string>;
   hideHotbar?: boolean;
   paletteTopOffset?: number;
+  selectedColorIndex?: number;
+  onColorSelect?: (index: number) => void;
+  onNavigateToPalette?: () => void;
+  showColorWidget?: boolean;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -178,6 +182,10 @@ export const GameField: React.FC<GameFieldProps> = ({
   visitedTutorialCells = new Set(),
   hideHotbar = false,
   paletteTopOffset = 8,
+  selectedColorIndex,
+  onColorSelect,
+  onNavigateToPalette,
+  showColorWidget = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -877,14 +885,16 @@ export const GameField: React.FC<GameFieldProps> = ({
   return (
     <div ref={canvasContainerRef} className="game-field" style={{ position: 'relative' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
-      <ColorPaletteWidget
-        colorPalette={params.ColorPalette}
-        focusColorIndex={
-          gameState.grid.get(`${gameState.focus.q},${gameState.focus.r}`)?.colorIndex ?? params.PlayerBaseColorIndex
-        }
-        playerBaseColorIndex={params.PlayerBaseColorIndex}
-        topOffset={paletteTopOffset}
-      />
+      {showColorWidget && (
+        <ColorPaletteWidget
+          colorPalette={params.ColorPalette}
+          selectedColorIndex={selectedColorIndex ?? params.PlayerBaseColorIndex}
+          playerBaseColorIndex={params.PlayerBaseColorIndex}
+          topOffset={paletteTopOffset}
+          onColorSelect={onColorSelect}
+          onNavigateToPalette={onNavigateToPalette}
+        />
+      )}
     </div>
   );
 };

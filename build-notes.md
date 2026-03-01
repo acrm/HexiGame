@@ -453,3 +453,5 @@
 - 2026w10-0.14 — Thinner focus/path edges, drawn on top of all cells
 
 - 2026w10-0.15 — Unique session IDs, update existing records instead of creating duplicates
+
+- 2026w10-0.16 — Manual color selection, continuous gradient wheel, widget toggle, color % labels

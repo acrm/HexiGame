@@ -32,6 +32,10 @@ interface HexiPediaProps {
   onClearSessionHistory?: () => void;
   onSwitchTab?: (tab: string) => void;
   onActivateTemplate?: (templateId: string) => void;
+  selectedColorIndex?: number;
+  onColorSelect?: (index: number) => void;
+  showColorWidget?: boolean;
+  onToggleColorWidget?: (visible: boolean) => void;
 }
 
 export const HexiPedia: React.FC<HexiPediaProps> = ({
@@ -51,6 +55,10 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   onClearSessionHistory,
   onSwitchTab,
   onActivateTemplate,
+  selectedColorIndex,
+  onColorSelect,
+  showColorWidget = true,
+  onToggleColorWidget,
 }) => {
   const [sectionFilter, setSectionFilter] = useState('');
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
@@ -588,16 +596,41 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                   </div>
                   {!isCollapsed && (
                     <div className="hexipedia-colors-section">
+                      {/* Widget visibility toggle */}
+                      <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <input
+                            type="checkbox"
+                            checked={showColorWidget}
+                            onChange={(e) => onToggleColorWidget?.(e.target.checked)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: '14px', color: '#CCCCCC' }}>Показать виджет на игровом поле</span>
+                        </label>
+                      </div>
+
                       <svg className="hexipedia-color-wheel" viewBox="0 0 300 300" width="200" height="200">
-                        {/* Draw full spectrum color wheel as thin segments */}
-                        {Array.from({ length: 120 }).map((_, idx) => {
-                          const segmentSize = 3; // degrees per segment
-                          const hue = (idx * segmentSize) % 360;
-                          const startAngle = (idx * segmentSize - 90) * (Math.PI / 180);
-                          const endAngle = ((idx + 1) * segmentSize - 90) * (Math.PI / 180);
+                        <defs>
+                          {/* Conical gradient from 0° to 360° */}
+                          <linearGradient id="colorWheel" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="hsl(0, 100%, 50%)" />
+                            <stop offset="16.67%" stopColor="hsl(60, 100%, 50%)" />
+                            <stop offset="33.33%" stopColor="hsl(120, 100%, 50%)" />
+                            <stop offset="50%" stopColor="hsl(180, 100%, 50%)" />
+                            <stop offset="66.67%" stopColor="hsl(240, 100%, 50%)" />
+                            <stop offset="83.33%" stopColor="hsl(300, 100%, 50%)" />
+                            <stop offset="100%" stopColor="hsl(0, 100%, 50%)" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Gradient ring using path for conical effect */}
+                        {Array.from({ length: 360 }).map((_, idx) => {
+                          const hue = idx;
+                          const startAngle = (idx - 90) * (Math.PI / 180);
+                          const endAngle = (idx + 1 - 90) * (Math.PI / 180);
                           const innerRadius = 60;
                           const outerRadius = 120;
-                          
+
                           const x1 = 150 + innerRadius * Math.cos(startAngle);
                           const y1 = 150 + innerRadius * Math.sin(startAngle);
                           const x2 = 150 + outerRadius * Math.cos(startAngle);
@@ -606,10 +639,10 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           const y3 = 150 + outerRadius * Math.sin(endAngle);
                           const x4 = 150 + innerRadius * Math.cos(endAngle);
                           const y4 = 150 + innerRadius * Math.sin(endAngle);
-                          
-                          const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+
+                          const largeArc = 0;
                           const color = `hsl(${hue}, 100%, 50%)`;
-                          
+
                           const pathD = `
                             M ${x1} ${y1}
                             L ${x2} ${y2}
@@ -618,18 +651,13 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1} ${y1}
                             Z
                           `;
-                          
+
                           return (
-                            <path
-                              key={idx}
-                              d={pathD}
-                              fill={color}
-                              stroke="none"
-                            />
+                            <path key={idx} d={pathD} fill={color} stroke="none" />
                           );
                         })}
-                        
-                        {/* Game colors as larger circles on the wheel */}
+
+                        {/* Game colors as larger, clickable circles on the wheel */}
                         {params.ColorPalette.map((color, idx) => {
                           // Map color to angle (0-360 degrees)
                           const hue = (params.ColorPaletteStartHue + idx * params.ColorPaletteHueStep) % 360;
@@ -637,29 +665,55 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           const radius = 90;
                           const x = 150 + radius * Math.cos(angle);
                           const y = 150 + radius * Math.sin(angle);
-                          
+                          const isSelected = idx === selectedColorIndex;
+
                           return (
-                            <circle
-                              key={`dot-${idx}`}
-                              cx={x}
-                              cy={y}
-                              r="10"
-                              fill={color}
-                              stroke="#ffffff"
-                              strokeWidth="2"
-                            />
+                            <g key={`dot-${idx}`}>
+                              {/* Larger circle for clickability */}
+                              <circle
+                                cx={x}
+                                cy={y}
+                                r="16"
+                                fill={color}
+                                stroke={isSelected ? '#FFFFFF' : '#AAAAAA'}
+                                strokeWidth={isSelected ? '3' : '2'}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => onColorSelect?.(idx)}
+                              />
+                              {/* Percentage label */}
+                              <text
+                                x={x}
+                                y={y}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 'bold',
+                                  fill: '#FFFFFF',
+                                  textShadow: '0 0 2px rgba(0,0,0,0.8)',
+                                  pointerEvents: 'none',
+                                }}
+                              >
+                                {isSelected ? '0%' : `${Math.abs(idx - (selectedColorIndex ?? params.PlayerBaseColorIndex)) * 100 / params.ColorPalette.length}%`}
+                              </text>
+                            </g>
                           );
                         })}
-                        
+
                         {/* Center circle */}
                         <circle cx="150" cy="150" r="15" fill="#333333" stroke="#666666" strokeWidth="1" />
                       </svg>
-                      
+
                       <div className="hexipedia-colors-list">
                         {params.ColorPalette.map((color, idx) => (
-                          <div key={idx} className="hexipedia-color-item">
+                          <div 
+                            key={idx}
+                            className="hexipedia-color-item"
+                            onClick={() => onColorSelect?.(idx)}
+                            style={{ cursor: 'pointer' }}
+                          >
                             <div className="hexipedia-color-swatch" style={{ backgroundColor: color }}></div>
-                            <span className="hexipedia-color-name">Color {idx + 1}</span>
+                            <span className="hexipedia-color-name">{`Color ${idx + 1}${idx === selectedColorIndex ? ' (selected)' : ''}`}</span>
                             <span className="hexipedia-color-value">{color}</span>
                           </div>
                         ))}

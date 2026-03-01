@@ -434,6 +434,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return saved !== null ? saved === 'true' : true; // Default true
   });
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [selectedColorIndex, setSelectedColorIndex] = useState<number>(() => {
+    const saved = localStorage.getItem('hexigame.selectedColorIndex');
+    return saved ? parseInt(saved, 10) : mergedParams.PlayerBaseColorIndex;
+  });
+  const [showColorWidget, setShowColorWidget] = useState(() => {
+    const saved = localStorage.getItem('hexigame.showColorWidget');
+    return saved !== null ? saved === 'true' : true; // Default visible
+  });
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
     const savedLevelId = initialSessionStateRef.current?.gameState?.tutorialLevelId;
     if (savedLevelId !== undefined) return savedLevelId ?? null;
@@ -639,6 +647,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       integration.onGameplayStop();
     }
   }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen]);
+
+  // Save selected color index
+  useEffect(() => {
+    localStorage.setItem('hexigame.selectedColorIndex', String(selectedColorIndex));
+  }, [selectedColorIndex]);
+
+  // Save color widget visibility
+  useEffect(() => {
+    localStorage.setItem('hexigame.showColorWidget', String(showColorWidget));
+  }, [showColorWidget]);
 
   // Keyboard input handlers
   useEffect(() => {
@@ -946,6 +964,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                   setGameState(prev => activateTemplate(prev, templateId));
                 }
               }}
+              selectedColorIndex={selectedColorIndex}
+              onColorSelect={(index) => setSelectedColorIndex(index)}
+              showColorWidget={showColorWidget}
+              onToggleColorWidget={(visible) => setShowColorWidget(visible)}
             />
           ) : (
             <GameField
@@ -1054,6 +1076,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               }
               visitedTutorialCells={gameState.tutorialProgress?.visitedTargetKeys ?? new Set()}
               hideHotbar={tutorialLevel?.hideHotbar ?? false}
+              selectedColorIndex={selectedColorIndex}
+              onColorSelect={(index) => setSelectedColorIndex(index)}
+              onNavigateToPalette={() => {
+                if (isMobileLayout) {
+                  setMobileTab('hexipedia');
+                }
+                // TODO: Open HexiPedia and navigate to Colors section
+              }}
+              showColorWidget={showColorWidget}
             />
           )}
         </div>
