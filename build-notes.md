@@ -447,3 +447,5 @@
 - 2026w10-0.11 — Add auto-move path visualization and frozen target focus
 
 - 2026w10-0.12 — Update GAME_LOGIC documentation for auto-move and path visualization
+
+- 2026w10-0.13 — Remove rotation and flicker from target focus, align path dots with grid thickness

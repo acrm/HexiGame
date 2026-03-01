@@ -62,21 +62,12 @@ function computeFlickerAlpha(tickCount: number, period: number = 8): number {
   return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
 }
 
-// Draw frozen focus with three rotating edges (static faces, flicker effect)
-function drawFrozenFocus(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number, color: string) {
-  const currentEdge = computeEdgeIndexForFocusCell(tickCount, 6);
-  const edge1 = currentEdge;
-  const edge2 = (currentEdge + 2) % 6;
-  const edge3 = (currentEdge + 4) % 6;
-  
-  const alpha = computeFlickerAlpha(tickCount, 8);
-  ctx.globalAlpha = 0.4 + alpha * 0.6; // Flicker between 0.4 and 1.0
-  
-  drawEdgeHighlight(ctx, centerX, centerY, edge1, size, color);
-  drawEdgeHighlight(ctx, centerX, centerY, edge2, size, color);
-  drawEdgeHighlight(ctx, centerX, centerY, edge3, size, color);
-  
-  ctx.globalAlpha = 1.0;
+// Draw frozen focus with three static edges (no rotation, no flicker)
+function drawFrozenFocus(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, color: string) {
+  // Draw 3 evenly spaced static edges: 0, 2, 4
+  drawEdgeHighlight(ctx, centerX, centerY, 0, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, 2, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, 4, size, color);
 }
 
 // Draw two opposite rotating edges (edges 0 and 3 at cycle start)
@@ -453,21 +444,17 @@ export const GameField: React.FC<GameFieldProps> = ({
         drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
       }
 
-      // Draw path markers (mflickering white dots on intermediate path cells)
+      // Draw path markers (white dots on intermediate path cells, same size as grid dots)
       if (!isInventory && gameState.autoMovePath && gameState.autoMovePath.length > 0) {
-        gameState.autoMovePath.forEach((pathCell, idx) => {
+        ctx.fillStyle = '#FFFFFF';
+        const pathDotRadius = 1.2 * scale;
+        gameState.autoMovePath.forEach((pathCell) => {
           const pos = hexToPixel(pathCell.q, pathCell.r);
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
-          
-          const dotRadius = 2.5 * scale;
-          const alpha = computeFlickerAlpha(gameState.tick + idx * 2, 8);
-          ctx.globalAlpha = 0.3 + alpha * 0.7;
-          ctx.fillStyle = '#FFFFFF';
           ctx.beginPath();
-          ctx.arc(scaledX, scaledY, dotRadius, 0, Math.PI * 2);
+          ctx.arc(scaledX, scaledY, pathDotRadius, 0, Math.PI * 2);
           ctx.fill();
-          ctx.globalAlpha = 1.0;
         });
       }
 
@@ -476,8 +463,8 @@ export const GameField: React.FC<GameFieldProps> = ({
         const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
-        // Draw frozen focus with three flashing edges
-        drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
+        // Draw frozen focus with three static edges
+        drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF');
       }
 
       // In inventory mode: draw turtle background first, then inventoryGrid naturally
