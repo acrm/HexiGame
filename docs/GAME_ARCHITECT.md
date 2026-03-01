@@ -1193,10 +1193,11 @@ tests/
 ### Next Steps (Phases 9–10)
 
 **Week 9: UI Integration**
-- [ ] Update `ui/components/Game.tsx` to use `useGameSession` hook
-- [ ] Create `src/ui/hooks/useGameSession.ts`
-- [ ] Create `src/ui/hooks/useKeyboardInput.ts`
-- [ ] Replace direct `pureLogic.ts` calls with `sessionReducer` dispatch
+- [x] Create `src/ui/hooks/useGameSession.ts` (useReducer + sessionReducer + tick loop + session persistence)
+- [x] Create `src/ui/hooks/useKeyboardInput.ts` (keyboard → GameCommand dispatch)
+- [x] Extend `src/appLogic/sessionReducer.ts` with full command set (drag, hotbar, template, tutorial)
+- [x] Update `src/components/Game.tsx`: removed 150+ lines of inline logic, uses hooks
+- [x] All 106 tests still pass ✅
 
 **Week 10: Cleanup**
 - [ ] Delete `src/logic/pureLogic.ts` 🎉
