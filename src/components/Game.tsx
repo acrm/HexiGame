@@ -292,6 +292,29 @@ function loadSessionHistory(): SessionHistoryRecord[] {
   }
 }
 
+function deleteSessionHistoryRecord(recordId: string) {
+  try {
+    let history: SessionHistoryRecord[] = [];
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    if (saved) {
+      history = JSON.parse(saved);
+    }
+    
+    history = history.filter(r => r.id !== recordId);
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn('Failed to delete session history record:', e);
+  }
+}
+
+function clearSessionHistory() {
+  try {
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify([]));
+  } catch (e) {
+    console.warn('Failed to clear session history:', e);
+  }
+}
+
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
   const initialSessionStateRef = useRef(loadSessionState());
@@ -357,6 +380,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   });
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryRecord[]>(() => loadSessionHistory());
   const [lastSessionSaveTick, setLastSessionSaveTick] = useState(0);
+  const [trackSessionHistory, setTrackSessionHistory] = useState(() => {
+    const saved = localStorage.getItem('hexigame.trackSessionHistory');
+    return saved !== null ? saved === 'true' : true; // Default true
+  });
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
     const savedLevelId = initialSessionStateRef.current?.gameState?.tutorialLevelId;
     if (savedLevelId !== undefined) return savedLevelId ?? null;
@@ -493,15 +520,26 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     if (guestStarted) {
       saveSessionState(gameState, { mobileTab });
       
-      // Save session history every 360 ticks (~30 seconds) or on significant progress
-      const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
-      if (ticksSinceLastSave >= 360) {
-        saveSessionHistoryRecord(gameState.tick);
-        setLastSessionSaveTick(gameState.tick);
-        setSessionHistory(loadSessionHistory());
+      // Save session history every 360 ticks (~30 seconds) if enabled
+      if (trackSessionHistory) {
+        const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
+        if (ticksSinceLastSave >= 360) {
+          saveSessionHistoryRecord(gameState.tick);
+          setLastSessionSaveTick(gameState.tick);
+          setSessionHistory(loadSessionHistory());
+        }
       }
     }
-  }, [gameState, guestStarted, mobileTab, lastSessionSaveTick]);
+  }, [gameState, guestStarted, mobileTab, lastSessionSaveTick, trackSessionHistory]);
+
+  // Save track session history setting
+  useEffect(() => {
+    try {
+      localStorage.setItem('hexigame.trackSessionHistory', String(trackSessionHistory));
+    } catch (e) {
+      console.warn('Failed to save track session history setting:', e);
+    }
+  }, [trackSessionHistory]);
 
   // Handle template audio feedback
   const prevTemplateStateRef = useRef<GameState['activeTemplate']>(null);
@@ -828,16 +866,28 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           {isMobileLayout && mobileTab === 'hexipedia' ? (
             <HexiPedia
               gameState={gameState}
+              params={mergedParams}
               interactionMode={interactionMode}
               tutorialLevel={tutorialLevel}
               tutorialLevelId={tutorialLevelId}
               isTutorialTaskComplete={isTutorialTaskComplete}
               completedTutorialLevelIds={completedTutorialLevelIds}
               sessionHistory={sessionHistory}
+              trackSessionHistory={trackSessionHistory}
               onSelectTutorialLevel={handleSelectTutorialLevel}
               onRestartTutorialLevel={handleRestartTutorialLevel}
+              onToggleTrackHistory={(enabled) => setTrackSessionHistory(enabled)}
+              onDeleteSessionRecord={(recordId) => {
+                deleteSessionHistoryRecord(recordId);
+                setSessionHistory(loadSessionHistory());
+              }}
+              onClearSessionHistory={() => {
+                clearSessionHistory();
+                setSessionHistory([]);
+              }}
               onSwitchTab={(tab) => {
                 if (tab === 'heximap') setMobileTab('heximap');
+                if (tab === 'colors') setMobileTab('hexipedia'); // Keep in hexipedia but focus on colors
               }}
               onActivateTemplate={(templateId) => {
                 if (templateId === '') {

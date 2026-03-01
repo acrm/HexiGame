@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GameState } from '../logic/pureLogic';
+import { GameState, Params } from '../logic/pureLogic';
 import { TutorialLevel, getHintForMode, axialToKey } from '../tutorial/tutorialState';
 import { t } from '../ui/i18n';
 import { getAllTutorialLevels } from '../tutorial/tutorialLevels';
@@ -17,28 +17,38 @@ interface SessionHistoryRecord {
 
 interface HexiPediaProps {
   gameState: GameState;
+  params: Params;
   interactionMode: 'desktop' | 'mobile';
   tutorialLevel: TutorialLevel | null;
   tutorialLevelId?: string | null;
   isTutorialTaskComplete?: boolean;
   completedTutorialLevelIds?: Set<string>;
   sessionHistory?: SessionHistoryRecord[];
+  trackSessionHistory?: boolean;
   onSelectTutorialLevel?: (levelId: string) => void;
   onRestartTutorialLevel?: (levelId: string) => void;
+  onToggleTrackHistory?: (enabled: boolean) => void;
+  onDeleteSessionRecord?: (recordId: string) => void;
+  onClearSessionHistory?: () => void;
   onSwitchTab?: (tab: string) => void;
   onActivateTemplate?: (templateId: string) => void;
 }
 
 export const HexiPedia: React.FC<HexiPediaProps> = ({
   gameState,
+  params,
   interactionMode,
   tutorialLevel,
   tutorialLevelId,
   isTutorialTaskComplete = false,
   completedTutorialLevelIds,
   sessionHistory = [],
+  trackSessionHistory = true,
   onSelectTutorialLevel,
   onRestartTutorialLevel,
+  onToggleTrackHistory,
+  onDeleteSessionRecord,
+  onClearSessionHistory,
   onSwitchTab,
   onActivateTemplate,
 }) => {
@@ -48,7 +58,9 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     tutorialLevel?.id ?? null
   );
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [sectionOrder, setSectionOrder] = useState(['tasks', 'stats', 'templates']);
+  const [sectionOrder, setSectionOrder] = useState(['tasks', 'stats', 'templates', 'colors']);
+  const [deleteConfirmRecordId, setDeleteConfirmRecordId] = useState<string | null>(null);
+  const [deleteConfirmAll, setDeleteConfirmAll] = useState(false);
   const progress = gameState.tutorialProgress;
   const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode) : '';
   const fullHint = hint ? `${hint} ${t('tutorial.followFocusNote')}` : t('tutorial.followFocusNote');
@@ -298,11 +310,53 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                         </div>
                         
                         {/* Session History Subsection */}
-                        {sessionHistory.length > 0 && (
-                          <div className="hexipedia-history-subsection">
+                        <div className="hexipedia-history-subsection">
+                          <div className="hexipedia-history-header">
                             <div className="hexipedia-history-title">История сессий</div>
+                            <label className="hexipedia-history-toggle">
+                              <input 
+                                type="checkbox" 
+                                checked={trackSessionHistory}
+                                onChange={(e) => onToggleTrackHistory?.(e.target.checked)}
+                              />
+                              <span>Вести историю</span>
+                            </label>
+                          </div>
+                          
+                          {sessionHistory.length > 0 && (
+                            <div className="hexipedia-history-controls">
+                              <button
+                                className="hexipedia-history-clear-btn"
+                                onClick={() => setDeleteConfirmAll(true)}
+                              >
+                                Удалить всё
+                              </button>
+                              {deleteConfirmAll && (
+                                <div className="hexipedia-delete-confirm">
+                                  <span>Удалить все записи?</span>
+                                  <button
+                                    className="hexipedia-confirm-yes"
+                                    onClick={() => {
+                                      onClearSessionHistory?.();
+                                      setDeleteConfirmAll(false);
+                                    }}
+                                  >
+                                    Да
+                                  </button>
+                                  <button
+                                    className="hexipedia-confirm-no"
+                                    onClick={() => setDeleteConfirmAll(false)}
+                                  >
+                                    Нет
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {sessionHistory.length > 0 ? (
                             <div className="hexipedia-history-list">
-                              {sessionHistory.slice(0, 10).map((record) => {
+                              {sessionHistory.slice(0, 20).map((record) => {
                                 const startDate = new Date(record.startTime);
                                 const endDate = new Date(record.endTime);
                                 const dateStr = startDate.toLocaleDateString('ru-RU', { 
@@ -318,22 +372,52 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                   minute: '2-digit' 
                                 });
                                 
+                                const showConfirm = deleteConfirmRecordId === record.id;
+                                
                                 return (
                                   <div key={record.id} className="hexipedia-history-item">
-                                    <div className="hexipedia-history-date">{dateStr}</div>
-                                    <div className="hexipedia-history-time">
-                                      {startTimeStr} — {endTimeStr}
-                                    </div>
-                                    <div className="hexipedia-history-stats">
+                                    <span className="hexipedia-history-info">
+                                      {dateStr} {startTimeStr}—{endTimeStr}
+                                      {' '}
                                       <span className="hexipedia-history-duration">{record.gameTime}</span>
+                                      {' '}
                                       <span className="hexipedia-history-ticks">({record.gameTicks}т)</span>
-                                    </div>
+                                    </span>
+                                    {!showConfirm ? (
+                                      <button
+                                        className="hexipedia-history-delete-btn"
+                                        onClick={() => setDeleteConfirmRecordId(record.id)}
+                                        title="Удалить"
+                                      >
+                                        ✕
+                                      </button>
+                                    ) : (
+                                      <div className="hexipedia-delete-confirm-inline">
+                                        <button
+                                          className="hexipedia-confirm-yes"
+                                          onClick={() => {
+                                            onDeleteSessionRecord?.(record.id);
+                                            setDeleteConfirmRecordId(null);
+                                          }}
+                                        >
+                                          Да
+                                        </button>
+                                        <button
+                                          className="hexipedia-confirm-no"
+                                          onClick={() => setDeleteConfirmRecordId(null)}
+                                        >
+                                          Нет
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
                             </div>
-                          </div>
-                        )}
+                          ) : (
+                            <div className="hexipedia-history-empty">Нет сохраненных сессий</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -462,6 +546,123 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Colors section
+            if (sectionId === 'colors' && isSectionVisible('Цвета')) {
+              return (
+                <div key="colors" className="hexipedia-section-wrapper">
+                  <div className="hexipedia-section-header-container">
+                    <div 
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
+                      onClick={() => toggleSectionCollapse('colors')}
+                    >
+                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-title">Цвета</span>
+                    </div>
+                    <div className="hexipedia-section-controls">
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionUp('colors')}
+                        disabled={!canMoveUp}
+                        title="Move up"
+                        aria-label="Move up"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        className="hexipedia-section-move"
+                        onClick={() => moveSectionDown('colors')}
+                        disabled={!canMoveDown}
+                        title="Move down"
+                        aria-label="Move down"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                  {!isCollapsed && (
+                    <div className="hexipedia-colors-section">
+                      <svg className="hexipedia-color-wheel" viewBox="0 0 300 300" width="200" height="200">
+                        {/* Draw color wheel as segments */}
+                        {params.ColorPalette.map((color, idx) => {
+                          const totalColors = params.ColorPalette.length;
+                          const startAngle = (idx * 360 / totalColors - 90) * (Math.PI / 180);
+                          const endAngle = ((idx + 1) * 360 / totalColors - 90) * (Math.PI / 180);
+                          const innerRadius = 60;
+                          const outerRadius = 120;
+                          
+                          const x1 = 150 + innerRadius * Math.cos(startAngle);
+                          const y1 = 150 + innerRadius * Math.sin(startAngle);
+                          const x2 = 150 + outerRadius * Math.cos(startAngle);
+                          const y2 = 150 + outerRadius * Math.sin(startAngle);
+                          const x3 = 150 + outerRadius * Math.cos(endAngle);
+                          const y3 = 150 + outerRadius * Math.sin(endAngle);
+                          const x4 = 150 + innerRadius * Math.cos(endAngle);
+                          const y4 = 150 + innerRadius * Math.sin(endAngle);
+                          
+                          const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+                          
+                          const pathD = `
+                            M ${x1} ${y1}
+                            L ${x2} ${y2}
+                            A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x3} ${y3}
+                            L ${x4} ${y4}
+                            A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1} ${y1}
+                            Z
+                          `;
+                          
+                          return (
+                            <path
+                              key={idx}
+                              d={pathD}
+                              fill={color}
+                              stroke="#333333"
+                              strokeWidth="0.5"
+                              opacity="0.8"
+                            />
+                          );
+                        })}
+                        
+                        {/* Game colors as circles on the wheel */}
+                        {params.ColorPalette.map((color, idx) => {
+                          // Map color to angle (0-360 degrees)
+                          const hue = (params.ColorPaletteStartHue + idx * params.ColorPaletteHueStep) % 360;
+                          const angle = (hue - 90) * (Math.PI / 180); // -90 to start from top
+                          const radius = 90;
+                          const x = 150 + radius * Math.cos(angle);
+                          const y = 150 + radius * Math.sin(angle);
+                          
+                          return (
+                            <circle
+                              key={`dot-${idx}`}
+                              cx={x}
+                              cy={y}
+                              r="6"
+                              fill={color}
+                              stroke="#ffffff"
+                              strokeWidth="2"
+                            />
+                          );
+                        })}
+                        
+                        {/* Center circle */}
+                        <circle cx="150" cy="150" r="15" fill="#333333" stroke="#666666" strokeWidth="1" />
+                      </svg>
+                      
+                      <div className="hexipedia-colors-list">
+                        {params.ColorPalette.map((color, idx) => (
+                          <div key={idx} className="hexipedia-color-item">
+                            <div className="hexipedia-color-swatch" style={{ backgroundColor: color }}></div>
+                            <span className="hexipedia-color-name">Color {idx + 1}</span>
+                            <span className="hexipedia-color-value">{color}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

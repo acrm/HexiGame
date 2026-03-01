@@ -437,3 +437,5 @@
 - 2026w10-0.6 — Independent camera and turtle movement to target
 
 - 2026w10-0.7 — Add session history to HexiPedia stats
+
+- 2026w10-0.8 — Style scrollbars, redesign session history, add colors section
