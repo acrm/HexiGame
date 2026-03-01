@@ -95,7 +95,7 @@ function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, cente
   ctx.moveTo(p1[0], p1[1]);
   ctx.lineTo(p2[0], p2[1]);
   ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 1;
   ctx.stroke();
 }
 
@@ -434,39 +434,6 @@ export const GameField: React.FC<GameFieldProps> = ({
       const isTurtleMoving = !isInventory && autoMoveTarget &&
           (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r);
 
-      // Draw focus cell with rotating opposite faces ONLY if not moving
-      if (!isInventory && !isTurtleMoving) {
-        const pos = hexToPixel(focusCell.q, focusCell.r);
-        const scaledX = centerX + pos.x * scale;
-        const scaledY = centerY + pos.y * scale;
-        
-        // Use game tick for animation (12 ticks/sec, 1 edge every 4 ticks)
-        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
-      }
-
-      // Draw path markers (white dots on intermediate path cells, same size as grid dots)
-      if (!isInventory && gameState.autoMovePath && gameState.autoMovePath.length > 0) {
-        ctx.fillStyle = '#FFFFFF';
-        const pathDotRadius = 1.2 * scale;
-        gameState.autoMovePath.forEach((pathCell) => {
-          const pos = hexToPixel(pathCell.q, pathCell.r);
-          const scaledX = centerX + pos.x * scale;
-          const scaledY = centerY + pos.y * scale;
-          ctx.beginPath();
-          ctx.arc(scaledX, scaledY, pathDotRadius, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      }
-
-      // Draw auto-move target (cursor) with frozen focus when moving
-      if (!isInventory && gameState.autoFocusTarget) {
-        const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
-        const scaledX = centerX + pos.x * scale;
-        const scaledY = centerY + pos.y * scale;
-        // Draw frozen focus with three static edges
-        drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF');
-      }
-
       // In inventory mode: draw turtle background first, then inventoryGrid naturally
       if (isInventory) {
         // Inventory Turtle: centered below the grid, drawn under all cells
@@ -788,6 +755,40 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       // Render template overlay if active
       renderTemplateOverlay(ctx, gameState, params, centerX, centerY, gameState.tick, scale);
+
+      // === DRAW FOCUS AND PATH MARKERS ON TOP OF EVERYTHING ===
+      // Draw focus cell with rotating opposite faces ONLY if not moving
+      if (!isInventory && !isTurtleMoving) {
+        const pos = hexToPixel(focusCell.q, focusCell.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        
+        // Use game tick for animation (12 ticks/sec, 1 edge every 4 ticks)
+        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
+      }
+
+      // Draw path markers (white dots on intermediate path cells, same size as grid dots)
+      if (!isInventory && gameState.autoMovePath && gameState.autoMovePath.length > 0) {
+        ctx.fillStyle = '#FFFFFF';
+        const pathDotRadius = 0.8 * scale;
+        gameState.autoMovePath.forEach((pathCell) => {
+          const pos = hexToPixel(pathCell.q, pathCell.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+          ctx.beginPath();
+          ctx.arc(scaledX, scaledY, pathDotRadius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      // Draw auto-move target (cursor) with frozen focus when moving
+      if (!isInventory && gameState.autoFocusTarget) {
+        const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        // Draw frozen focus with three static edges
+        drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF');
+      }
 
       ctx.save();
       ctx.fillStyle = '#ffffff';
