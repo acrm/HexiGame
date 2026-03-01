@@ -55,6 +55,30 @@ function computeEdgeIndexForFocusCell(tickCount: number, edgesPerCycle = 6) {
   return Math.floor(phase * edgesPerCycle) % edgesPerCycle;
 }
 
+// Compute flicker alpha (oscillates 0..1 with period)
+function computeFlickerAlpha(tickCount: number, period: number = 8): number {
+  const phase = (tickCount % period) / period;
+  // Flicker: 0 to 1 to 0 over period
+  return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+}
+
+// Draw frozen focus with three rotating edges (static faces, flicker effect)
+function drawFrozenFocus(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number, color: string) {
+  const currentEdge = computeEdgeIndexForFocusCell(tickCount, 6);
+  const edge1 = currentEdge;
+  const edge2 = (currentEdge + 2) % 6;
+  const edge3 = (currentEdge + 4) % 6;
+  
+  const alpha = computeFlickerAlpha(tickCount, 8);
+  ctx.globalAlpha = 0.4 + alpha * 0.6; // Flicker between 0.4 and 1.0
+  
+  drawEdgeHighlight(ctx, centerX, centerY, edge1, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, edge2, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, edge3, size, color);
+  
+  ctx.globalAlpha = 1.0;
+}
+
 // Draw two opposite rotating edges (edges 0 and 3 at cycle start)
 function drawRotatingOppositeFaces(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number, color: string) {
   const currentEdge = computeEdgeIndexForFocusCell(tickCount, 6);
@@ -429,14 +453,31 @@ export const GameField: React.FC<GameFieldProps> = ({
         drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
       }
 
-      // Draw auto-move target (cursor) with rotating edges 2x faster when moving
-      if (!isInventory && gameState.autoFocusTarget && autoMoveTarget &&
-          (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r)) {
+      // Draw path markers (mflickering white dots on intermediate path cells)
+      if (!isInventory && gameState.autoMovePath && gameState.autoMovePath.length > 0) {
+        gameState.autoMovePath.forEach((pathCell, idx) => {
+          const pos = hexToPixel(pathCell.q, pathCell.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+          
+          const dotRadius = 2.5 * scale;
+          const alpha = computeFlickerAlpha(gameState.tick + idx * 2, 8);
+          ctx.globalAlpha = 0.3 + alpha * 0.7;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(scaledX, scaledY, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1.0;
+        });
+      }
+
+      // Draw auto-move target (cursor) with frozen focus when moving
+      if (!isInventory && gameState.autoFocusTarget) {
         const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
         const scaledX = centerX + pos.x * scale;
         const scaledY = centerY + pos.y * scale;
-        // 2x faster: multiply tick by 2 for 2x rotation speed
-        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick * 2, '#FFFFFF');
+        // Draw frozen focus with three flashing edges
+        drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
       }
 
       // In inventory mode: draw turtle background first, then inventoryGrid naturally

@@ -443,3 +443,5 @@
 - 2026w10-0.9 — Colors: full spectrum wheel with larger game color markers, list moved below
 
 - 2026w10-0.10 — Fix focus landing on target during auto-move
+
+- 2026w10-0.11 — Add auto-move path visualization and frozen target focus

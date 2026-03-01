@@ -66,6 +66,7 @@ export interface GameState {
   autoMoveTarget?: Axial | null; // target cell for automatic movement
   autoMoveTicksRemaining?: number; // ticks until next auto move step (2 ticks per step)
   autoFocusTarget?: Axial | null; // destination focus cell to highlight while moving
+  autoMovePath?: Axial[]; // path cells excluding protagonist, used for visualization
   autoMoveTargetDir?: number | null; // direction index protagonist should face when reaching autoMoveTarget
   worldViewCenter?: Axial; // center of visible world window
   cameraLastMoveTick?: number; // last tick when camera moved (for lag effect)
@@ -179,6 +180,27 @@ function findDirectionToward(fromQ: number, fromR: number, toQ: number, toR: num
   
   if (!bestDir) return null;
   return axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
+}
+
+// Compute path from source to target using greedy pathfinding
+function computePath(from: Axial, to: Axial, maxSteps: number = 100): Axial[] {
+  const path: Axial[] = [];
+  let current = { ...from };
+  let steps = 0;
+  
+  while (steps < maxSteps) {
+    if (current.q === to.q && current.r === to.r) break;
+    
+    const dirIndex = findDirectionToward(current.q, current.r, to.q, to.r);
+    if (dirIndex === null) break;
+    
+    const dir = axialDirections[dirIndex];
+    current = { q: current.q + dir.q, r: current.r + dir.r };
+    path.push({ ...current });
+    steps++;
+  }
+  
+  return path;
 }
 
 function ensureGeneratedAround(state: GameState, params: Params, rng?: RNG): GameState {
@@ -382,18 +404,22 @@ export function startAutoMove(state: GameState, target: Axial, params: Params): 
   
   // Target is where the FOCUS should end up
   // Move protagonist adjacent to that target, then face it
+  // Compute path for visualization
+  const path = computePath(state.protagonist, target);
+  
   return {
     ...state,
     autoFocusTarget: { ...target },
     autoMoveTarget: null, // Unused now - we move toward autoFocusTarget instead
     autoMoveTicksRemaining: 0,
     autoMoveTargetDir: null, // Will be determined on arrival
+    autoMovePath: path,
   };
 }
 
 // Start drag mode - protagonist and focus move together
 export function startDrag(state: GameState): GameState {
-  return { ...state, isDragging: true, autoMoveTarget: null };
+  return { ...state, isDragging: true, autoMoveTarget: null, autoFocusTarget: null, autoMovePath: undefined };
 }
 
 // End drag mode - return to normal
@@ -450,10 +476,10 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
           // Face the target and stop moving
           next = { ...next, facingDirIndex: dirIndex };
           next = updateFocusPosition(next);
-          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
         } else {
           // Should never happen, but clean up if it does
-          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
         }
       } else if (distToFocusTarget > 1) {
         // Move one step closer to the focus target
@@ -464,14 +490,22 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
           const newPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
           next = { ...next, protagonist: newPos, facingDirIndex: dirIndex, autoMoveTicksRemaining: 2 };
           next = updateFocusPosition(next);
+          
+          // Remove current position from path if it's at the front
+          if (next.autoMovePath && next.autoMovePath.length > 0) {
+            const firstPath = next.autoMovePath[0];
+            if (firstPath.q === newPos.q && firstPath.r === newPos.r) {
+              next = { ...next, autoMovePath: next.autoMovePath.slice(1) };
+            }
+          }
         } else {
           // Can't move closer - stop
-          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
         }
       } else {
         // distToFocusTarget === 0 means protagonist is ON the focus target (shouldn't happen)
         // Just clean up
-        next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
+        next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
       }
     } else {
       // Count down
