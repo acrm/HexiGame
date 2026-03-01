@@ -455,3 +455,5 @@
 - 2026w10-0.15 — Unique session IDs, update existing records instead of creating duplicates
 
 - 2026w10-0.16 — Manual color selection, continuous gradient wheel, widget toggle, color % labels
+
+- 2026w10-0.17 — Fix session time tracking - show game duration from guest start

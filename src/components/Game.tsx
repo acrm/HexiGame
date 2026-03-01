@@ -434,6 +434,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return saved !== null ? saved === 'true' : true; // Default true
   });
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionStartTick, setCurrentSessionStartTick] = useState<number>(0);
   const [selectedColorIndex, setSelectedColorIndex] = useState<number>(() => {
     const saved = localStorage.getItem('hexigame.selectedColorIndex');
     return saved ? parseInt(saved, 10) : mergedParams.PlayerBaseColorIndex;
@@ -968,6 +969,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               onColorSelect={(index) => setSelectedColorIndex(index)}
               showColorWidget={showColorWidget}
               onToggleColorWidget={(visible) => setShowColorWidget(visible)}
+              currentSessionStartTick={currentSessionStartTick}
             />
           ) : (
             <GameField
@@ -1114,6 +1116,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             setCurrentSessionId(newSession.id);
             addSessionToHistory(newSession);
             setSessionHistory(loadSessionHistory());
+            setCurrentSessionStartTick(0); // Start tick tracking from 0
           }
           
           audioManager.playRandomSound();
@@ -1132,6 +1135,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             localStorage.removeItem(SESSION_STORAGE_KEY);
             setGuestStarted(false);
             setCurrentSessionId(null); // End current session
+            setCurrentSessionStartTick(0); // Reset session tick tracking
             setTutorialLevelId('tutorial_1_movement');
             setMobileTab('hexipedia');
             // Reset game state to initial

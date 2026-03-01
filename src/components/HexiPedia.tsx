@@ -36,6 +36,7 @@ interface HexiPediaProps {
   onColorSelect?: (index: number) => void;
   showColorWidget?: boolean;
   onToggleColorWidget?: (visible: boolean) => void;
+  currentSessionStartTick?: number;
 }
 
 export const HexiPedia: React.FC<HexiPediaProps> = ({
@@ -59,6 +60,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   onColorSelect,
   showColorWidget = true,
   onToggleColorWidget,
+  currentSessionStartTick = 0,
 }) => {
   const [sectionFilter, setSectionFilter] = useState('');
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
-  const sessionDuration = progress?.startTick !== undefined ? gameState.tick - progress.startTick : 0;
+  const sessionDuration = gameState.tick - currentSessionStartTick;
 
   return (
     <div className="hexipedia-root">
