@@ -431,3 +431,5 @@
 - 2026w10-0.3 — Improve path planning for straighter approach and add camera lag for smoother movement
 
 - 2026w10-0.4 — Fix final approach direction and add camera lag (1 cell per 4 ticks)
+
+- 2026w10-0.5 — Fix auto-move focus target logic, add camera lag param

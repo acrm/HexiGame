@@ -189,7 +189,7 @@ export class PureLogicAdapter implements GameTestFacade {
   }
 
   isAutoMoving(): boolean {
-    return !!this.state.autoMoveTarget;
+    return !!this.state.autoFocusTarget;
   }
 
   // ── Assertions ─────────────────────────────────────────────────────────────

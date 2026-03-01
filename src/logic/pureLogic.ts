@@ -47,6 +47,7 @@ export interface Params {
   CarryFlickerOnFraction: number; // 0..1
   CarryingMoveRequiresEmpty: boolean; // should be true
   GameTickRate: number; // ticks per second, e.g. 12
+  CameraLagTicks: number; // ticks between camera movements (creates lag effect)
 }
 
 export interface GameState {
@@ -225,11 +226,11 @@ function updateWorldViewCenter(state: GameState, params: Params): GameState {
     return state.worldViewCenter ? state : { ...state, worldViewCenter: currentCenter, cameraLastMoveTick: state.tick };
   }
   
-  // Lagged camera: move only once every 4 ticks (turtle moves every 2 ticks)
+  // Lagged camera: move only once every CameraLagTicks ticks (protagonist moves every 2 ticks)
   const lastMoveTick = state.cameraLastMoveTick ?? 0;
   const ticksSinceLastMove = state.tick - lastMoveTick;
   
-  if (ticksSinceLastMove < 4) {
+  if (ticksSinceLastMove < params.CameraLagTicks) {
     // Not time to move yet - keep current position
     return state;
   }
@@ -373,47 +374,14 @@ export function updateFocusPosition(state: GameState): GameState {
 export function startAutoMove(state: GameState, target: Axial, params: Params): GameState {
   if (state.isDragging) return state; // Don't start auto move during drag
   
-  // Calculate where protagonist needs to be so that focus lands on target
-  // We need to find adjacent cell to target that's in the direction we'll face
-  // Prefer direction that aligns with final approach to minimize turns near target
-  let bestProtagonistPos: Axial | null = null;
-  let bestDir = 0;
-  let minCost = Infinity;
-  
-  for (let dirIdx = 0; dirIdx < 6; dirIdx++) {
-    const dir = axialDirections[dirIdx];
-    // If focus is at target, protagonist is one step back (opposite direction)
-    const candidatePos = { q: target.q - dir.q, r: target.r - dir.r };
-    
-    const dist = axialDistance(state.protagonist, candidatePos);
-    
-    // Count turns needed for straight-line approach
-    const dq = candidatePos.q - state.protagonist.q;
-    const dr = candidatePos.r - state.protagonist.r;
-    const ds = -dq - dr;
-    
-    // Prefer path where we can move in one or two directions (fewer turns)
-    const axisChanges = (dq !== 0 ? 1 : 0) + (dr !== 0 ? 1 : 0) + (ds !== 0 ? 1 : 0);
-    
-    // Cost = distance + penalty for axis changes (prefer straighter paths)
-    const cost = dist * 10 + axisChanges * 5;
-    
-    if (cost < minCost) {
-      minCost = cost;
-      bestProtagonistPos = candidatePos;
-      bestDir = dirIdx;
-    }
-  }
-  
-  if (!bestProtagonistPos) return state;
-  
+  // Target is where the FOCUS should end up
+  // Move protagonist adjacent to that target, then face it
   return {
     ...state,
-    autoMoveTarget: bestProtagonistPos,
-    autoMoveTicksRemaining: 0,
-    facingDirIndex: bestDir,
     autoFocusTarget: { ...target },
-    autoMoveTargetDir: bestDir,
+    autoMoveTarget: null, // Unused now - we move toward autoFocusTarget instead
+    autoMoveTicksRemaining: 0,
+    autoMoveTargetDir: null, // Will be determined on arrival
   };
 }
 
@@ -460,44 +428,44 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
   }
 
   // Auto-movement logic: move 1 cell every 2 ticks
-  if (next.autoMoveTarget && !next.isDragging) {
+  if (next.autoFocusTarget && !next.isDragging) {
     if (next.autoMoveTicksRemaining === undefined || next.autoMoveTicksRemaining <= 0) {
-      // Time to move
-      if (next.protagonist.q === next.autoMoveTarget.q && next.protagonist.r === next.autoMoveTarget.r) {
-        // Reached target: direction already set during last step, just clean up
-        next = updateFocusPosition(next); // place focus in front of head (at destination)
-        next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0, autoFocusTarget: null, autoMoveTargetDir: null };
-      } else {
-        // Move one step toward target
-        const distToTarget = axialDistance(next.protagonist, next.autoMoveTarget);
-        let dirIndex: number | null = null;
+      // Check if we're adjacent to the focus target
+      const distToFocusTarget = axialDistance(next.protagonist, next.autoFocusTarget);
+      
+      if (distToFocusTarget === 1) {
+        // We're adjacent - find the direction that makes focus land on target
+        const dirIndex = axialDirections.findIndex(
+          d => next.protagonist.q + d.q === next.autoFocusTarget!.q && 
+               next.protagonist.r + d.r === next.autoFocusTarget!.r
+        );
         
-        // If we're 1 step away from target, use the pre-planned final direction
-        if (distToTarget === 1 && next.autoMoveTargetDir !== null && next.autoMoveTargetDir !== undefined) {
-          // Verify this direction actually leads to target
-          const dir = axialDirections[next.autoMoveTargetDir];
-          const testPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
-          if (testPos.q === next.autoMoveTarget.q && testPos.r === next.autoMoveTarget.r) {
-            dirIndex = next.autoMoveTargetDir;
-          }
+        if (dirIndex !== -1) {
+          // Face the target and stop moving
+          next = { ...next, facingDirIndex: dirIndex };
+          next = updateFocusPosition(next);
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
+        } else {
+          // Should never happen, but clean up if it does
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
         }
-        
-        // Otherwise use greedy pathfinding
-        if (dirIndex === null) {
-          dirIndex = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoMoveTarget.q, next.autoMoveTarget.r);
-        }
+      } else if (distToFocusTarget > 1) {
+        // Move one step closer to the focus target
+        const dirIndex = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoFocusTarget.q, next.autoFocusTarget.r);
         
         if (dirIndex !== null) {
           const dir = axialDirections[dirIndex];
           const newPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
           next = { ...next, protagonist: newPos, facingDirIndex: dirIndex, autoMoveTicksRemaining: 2 };
-          // Keep focus always ahead of turtle even during auto-move
           next = updateFocusPosition(next);
         } else {
-          // Already at target
-          next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0, autoMoveTargetDir: null };
-          next = updateFocusPosition(next);
+          // Can't move closer - stop
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
         }
+      } else {
+        // distToFocusTarget === 0 means protagonist is ON the focus target (shouldn't happen)
+        // Just clean up
+        next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null };
       }
     } else {
       // Count down
@@ -1039,4 +1007,5 @@ export const DefaultParams: Params = {
   CarryFlickerOnFraction: 0.5,
   CarryingMoveRequiresEmpty: true,
   GameTickRate: 12,
+  CameraLagTicks: 4, // Camera moves 1 cell every 4 ticks (protagonist moves every 2 ticks)
 };
