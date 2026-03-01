@@ -489,8 +489,9 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = { ...next, remainingSeconds: next.remainingSeconds - 1 };
   }
 
-  // Always keep focus updated when not dragging
-  if (!next.isDragging) {
+  // Always keep focus updated when not dragging and not auto-moving
+  // (auto-move logic already handles focus updates)
+  if (!next.isDragging && !next.autoFocusTarget) {
     next = updateFocusPosition(next);
   }
 

@@ -441,3 +441,5 @@
 - 2026w10-0.8 — Style scrollbars, redesign session history, add colors section
 
 - 2026w10-0.9 — Colors: full spectrum wheel with larger game color markers, list moved below
+
+- 2026w10-0.10 — Fix focus landing on target during auto-move
