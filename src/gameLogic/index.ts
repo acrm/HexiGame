@@ -1,20 +1,12 @@
-// Pure, functional game logic for the Color Cell prototype
-// Re-exports everything from the gameLogic module for backwards compatibility.
+// Core types
+export type { Axial, Cell, Grid, FlashState, RNG, GameState } from './core/types';
 
-export type {
-  Axial,
-  Cell,
-  Grid,
-  FlashState,
-  RNG,
-  GameState,
-} from '../gameLogic';
+// Params
+export type { Params } from './core/params';
+export { mulberry32, DefaultParams } from './core/params';
 
-export type { Params } from '../gameLogic';
-
+// Grid helpers
 export {
-  mulberry32,
-  DefaultParams,
   axialDirections,
   addAxial,
   equalAxial,
@@ -26,9 +18,18 @@ export {
   getCell,
   setCell,
   updateCells,
+  findDirectionToward,
+  ensureGeneratedAround,
+  updateWorldViewCenter,
   generateGrid,
   createInitialState,
-  tick,
+} from './core/grid';
+
+// Tick
+export { tick } from './core/tick';
+
+// Movement
+export {
   rotateFacing,
   updateFocusPosition,
   startAutoMove,
@@ -42,6 +43,10 @@ export {
   attemptMoveToOnActive,
   computeShortestPath,
   computeBreadcrumbs,
+} from './systems/movement';
+
+// Capture
+export {
   paletteDistance,
   computeCaptureChancePercent,
   hoveredCell,
@@ -50,10 +55,18 @@ export {
   computeChanceByPlayerIndex,
   beginAction,
   handleActionRelease,
+} from './systems/capture';
+
+// Template
+export {
   activateTemplate,
   deactivateTemplate,
   updateTemplateState,
+} from './systems/template';
+
+// Inventory
+export {
   eatToHotbar,
   exchangeWithHotbarSlot,
   performContextAction,
-} from '../gameLogic';
+} from './systems/inventory';

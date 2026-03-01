@@ -21,7 +21,7 @@ import {
   type GameState,
   type Params,
   type Axial,
-} from '../../src/logic/pureLogic';
+} from '../../src/gameLogic';
 
 import type {
   GameTestFacade,
