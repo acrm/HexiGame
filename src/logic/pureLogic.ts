@@ -1048,5 +1048,5 @@ export const DefaultParams: Params = {
   CarryFlickerOnFraction: 0.5,
   CarryingMoveRequiresEmpty: true,
   GameTickRate: 12,
-  CameraLagTicks: 0, // Camera moves 1 cell every 4 ticks (protagonist moves every 2 ticks)
+  CameraLagTicks: 2, // Camera moves 1 cell every 4 ticks (protagonist moves every 2 ticks)
 };

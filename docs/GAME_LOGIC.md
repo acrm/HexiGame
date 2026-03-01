@@ -423,6 +423,13 @@ Defined in `src/templates/templateLogic.ts`:
   - Uses the same content width as the tutorial progress widget
 
 ### 8.4 Session Persistence
+- **Session History Tracking**:
+  - Each game session is assigned a unique ID on guest start
+  - Session = time from guest start to session reset (new game)
+  - Session records track: startTime, endTime, gameTicks, gameTime (MM:SS)
+  - Auto-saves every 360 ticks (~30 seconds) via updating existing session record
+  - History stores last 20 sessions in localStorage
+  - User can toggle session tracking in settings
 - **Tutorial Progress**: Tracks visited target cells per level (in-session)
 - **Completed Templates**: Persists across sessions (set of completed template IDs)
 - **Tutorial Level State**: Current level + completion status maintained in GameState

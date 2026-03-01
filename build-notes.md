@@ -451,3 +451,5 @@
 - 2026w10-0.13 — Remove rotation and flicker from target focus, align path dots with grid thickness
 
 - 2026w10-0.14 — Thinner focus/path edges, drawn on top of all cells
+
+- 2026w10-0.15 — Unique session IDs, update existing records instead of creating duplicates

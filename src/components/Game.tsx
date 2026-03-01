@@ -253,7 +253,21 @@ function formatGameTime(ticks: number): string {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 }
 
-function saveSessionHistoryRecord(ticks: number) {
+// Create a new session record
+function createNewSession(): SessionHistoryRecord {
+  const now = Date.now();
+  const sessionId = `session_${now}_${Math.random().toString(36).substr(2, 9)}`;
+  return {
+    id: sessionId,
+    startTime: now,
+    endTime: now,
+    gameTicks: 0,
+    gameTime: '0:00',
+  };
+}
+
+// Update existing session or create new if not found
+function saveSessionHistoryRecord(sessionId: string, ticks: number) {
   try {
     let history: SessionHistoryRecord[] = [];
     const saved = localStorage.getItem(SESSION_HISTORY_KEY);
@@ -262,23 +276,58 @@ function saveSessionHistoryRecord(ticks: number) {
     }
     
     const now = Date.now();
-    const record: SessionHistoryRecord = {
-      id: `session_${now}`,
-      startTime: now - (ticks * 1000 / 12), // Estimate start time from ticks duration
-      endTime: now,
-      gameTicks: ticks,
-      gameTime: formatGameTime(ticks),
-    };
+    const existingIndex = history.findIndex((r) => r.id === sessionId);
+    
+    if (existingIndex !== -1) {
+      // Update existing record
+      history[existingIndex] = {
+        ...history[existingIndex],
+        endTime: now,
+        gameTicks: ticks,
+        gameTime: formatGameTime(ticks),
+      };
+    } else {
+      // Create new record (shouldn't happen normally, but for safety)
+      const record: SessionHistoryRecord = {
+        id: sessionId,
+        startTime: now - (ticks * 1000 / 12),
+        endTime: now,
+        gameTicks: ticks,
+        gameTime: formatGameTime(ticks),
+      };
+      history.unshift(record);
+      
+      // Keep last 20 sessions
+      if (history.length > 20) {
+        history = history.slice(0, 20);
+      }
+    }
+    
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn('Failed to save session history:', e);
+  }
+}
+
+// Add new session to history
+function addSessionToHistory(session: SessionHistoryRecord) {
+  try {
+    let history: SessionHistoryRecord[] = [];
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    if (saved) {
+      history = JSON.parse(saved);
+    }
+    
+    history.unshift(session);
     
     // Keep last 20 sessions
-    history.unshift(record);
     if (history.length > 20) {
       history = history.slice(0, 20);
     }
     
     localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
   } catch (e) {
-    console.warn('Failed to save session history:', e);
+    console.warn('Failed to add session to history:', e);
   }
 }
 
@@ -384,6 +433,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = localStorage.getItem('hexigame.trackSessionHistory');
     return saved !== null ? saved === 'true' : true; // Default true
   });
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
     const savedLevelId = initialSessionStateRef.current?.gameState?.tutorialLevelId;
     if (savedLevelId !== undefined) return savedLevelId ?? null;
@@ -521,16 +571,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       saveSessionState(gameState, { mobileTab });
       
       // Save session history every 360 ticks (~30 seconds) if enabled
-      if (trackSessionHistory) {
+      if (trackSessionHistory && currentSessionId) {
         const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
         if (ticksSinceLastSave >= 360) {
-          saveSessionHistoryRecord(gameState.tick);
+          saveSessionHistoryRecord(currentSessionId, gameState.tick);
           setLastSessionSaveTick(gameState.tick);
           setSessionHistory(loadSessionHistory());
         }
       }
     }
-  }, [gameState, guestStarted, mobileTab, lastSessionSaveTick, trackSessionHistory]);
+  }, [gameState, guestStarted, mobileTab, lastSessionSaveTick, trackSessionHistory, currentSessionId]);
 
   // Save track session history setting
   useEffect(() => {
@@ -1026,6 +1076,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         <GuestStart onStart={() => {
           localStorage.setItem('hexigame.guest.started', '1');
           setGuestStarted(true);
+          
+          // Create new session
+          if (trackSessionHistory) {
+            const newSession = createNewSession();
+            setCurrentSessionId(newSession.id);
+            addSessionToHistory(newSession);
+            setSessionHistory(loadSessionHistory());
+          }
+          
           audioManager.playRandomSound();
           // Play music immediately on user interaction (required for mobile autoplay policy)
           if (musicEnabled) {
@@ -1041,6 +1100,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             localStorage.removeItem('hexigame.tutorial.started');
             localStorage.removeItem(SESSION_STORAGE_KEY);
             setGuestStarted(false);
+            setCurrentSessionId(null); // End current session
             setTutorialLevelId('tutorial_1_movement');
             setMobileTab('hexipedia');
             // Reset game state to initial
