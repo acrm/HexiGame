@@ -157,6 +157,27 @@ export function updateCells(grid: Grid, cells: Cell[]): Grid {
   return next;
 }
 
+// Find direction index pointing toward target; null if at target
+function findDirectionToward(fromQ: number, fromR: number, toQ: number, toR: number): number | null {
+  if (fromQ === toQ && fromR === toR) return null;
+  
+  let bestDir: Axial | null = null;
+  let bestDist = Infinity;
+  
+  for (const dir of axialDirections) {
+    const nq = fromQ + dir.q;
+    const nr = fromR + dir.r;
+    const dist = Math.abs(toQ - nq) + Math.abs(toR - nr) + Math.abs(-toQ - toR + nq + nr);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestDir = dir;
+    }
+  }
+  
+  if (!bestDir) return null;
+  return axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
+}
+
 function ensureGeneratedAround(state: GameState, params: Params, rng?: RNG): GameState {
   const center = state.protagonist;
   const radius = Math.max(1, params.GridRadius * 2);
@@ -184,18 +205,42 @@ function ensureGeneratedAround(state: GameState, params: Params, rng?: RNG): Gam
 }
 
 function updateWorldViewCenter(state: GameState, params: Params): GameState {
-  // Camera center is positioned behind protagonist at distance GridRadius/3
-  // so that protagonist is 1/3 from rear edge and has maximum view ahead
-  const behindDirIndex = (state.facingDirIndex + 3) % 6; // opposite to facing direction
-  const behindDir = axialDirections[behindDirIndex];
-  const offset = Math.max(1, Math.floor(params.GridRadius / 3));
+  // Camera center is positioned ahead of protagonist so turtle is 3 cells from rear edge
+  // For radius R, protagonist should be R-3 cells ahead of center (toward facing direction)
+  const forwardDir = axialDirections[state.facingDirIndex];
+  const offset = Math.max(0, params.GridRadius - 3);
   
-  const center = {
-    q: state.protagonist.q + behindDir.q * offset,
-    r: state.protagonist.r + behindDir.r * offset,
+  const targetCenter = {
+    q: state.protagonist.q + forwardDir.q * offset,
+    r: state.protagonist.r + forwardDir.r * offset,
   };
 
-  return { ...state, worldViewCenter: center };
+  const currentCenter = state.worldViewCenter ?? targetCenter;
+  
+  // Smooth camera movement: max 1 cell per tick
+  const dist = axialDistance(currentCenter, targetCenter);
+  if (dist === 0) {
+    return state.worldViewCenter ? state : { ...state, worldViewCenter: targetCenter };
+  }
+  
+  if (dist === 1) {
+    // Move directly to target (1 cell away)
+    return { ...state, worldViewCenter: targetCenter };
+  }
+  
+  // Move 1 step toward target
+  const dirIndex = findDirectionToward(currentCenter.q, currentCenter.r, targetCenter.q, targetCenter.r);
+  if (dirIndex === null) {
+    return { ...state, worldViewCenter: targetCenter };
+  }
+  
+  const dir = axialDirections[dirIndex];
+  const newCenter = {
+    q: currentCenter.q + dir.q,
+    r: currentCenter.r + dir.r,
+  };
+
+  return { ...state, worldViewCenter: newCenter };
 }
 
 // ---------- Initialization ----------
@@ -229,14 +274,13 @@ export function createInitialState(params: Params, rng: RNG): GameState {
   const start: Axial = { q: 0, r: 0 };
   const startFocus = addAxial(start, axialDirections[0]); // focus starts ahead of protagonist
   
-  // Initial camera center: behind protagonist at GridRadius/3 distance (facingDirIndex=0, so behind is index 3)
+  // Initial camera center: ahead of protagonist so turtle is 3 cells from rear edge
   const initialFacingDirIndex = 0;
-  const behindDirIndex = (initialFacingDirIndex + 3) % 6;
-  const behindDir = axialDirections[behindDirIndex];
-  const cameraOffset = Math.max(1, Math.floor(params.GridRadius / 3));
+  const forwardDir = axialDirections[initialFacingDirIndex];
+  const cameraOffset = Math.max(0, params.GridRadius - 3);
   const initialViewCenter = {
-    q: start.q + behindDir.q * cameraOffset,
-    r: start.r + behindDir.r * cameraOffset,
+    q: start.q + forwardDir.q * cameraOffset,
+    r: start.r + forwardDir.r * cameraOffset,
   };
   
   return {
@@ -576,27 +620,6 @@ export function performContextAction(state: GameState, params: Params): GameStat
   }
   
   return state;
-}
-
-// Find direction index pointing toward target; null if at target
-function findDirectionToward(fromQ: number, fromR: number, toQ: number, toR: number): number | null {
-  if (fromQ === toQ && fromR === toR) return null;
-  
-  let bestDir: Axial | null = null;
-  let bestDist = Infinity;
-  
-  for (const dir of axialDirections) {
-    const nq = fromQ + dir.q;
-    const nr = fromR + dir.r;
-    const dist = Math.abs(toQ - nq) + Math.abs(toR - nr) + Math.abs(-toQ - toR + nq + nr);
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestDir = dir;
-    }
-  }
-  
-  if (!bestDir) return null;
-  return axialDirections.findIndex(d => d.q === bestDir!.q && d.r === bestDir!.r);
 }
 
 // Chance by distance between player base color and target color
