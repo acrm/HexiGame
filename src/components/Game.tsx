@@ -4,22 +4,7 @@ import {
   DefaultParams,
   Params,
   GameState,
-  RNG,
-  mulberry32,
-  createInitialState,
-  tick as logicTick,
-  attemptMoveByDeltaOnActive,
-  attemptMoveTo,
-  eatToHotbar,
-  exchangeWithHotbarSlot,
-  hoveredCellActive,
-  performContextAction,
-  startDrag,
-  endDrag,
-  dragMoveProtagonist,
   equalAxial,
-  activateTemplate,
-  deactivateTemplate,
 } from '../logic/pureLogic';
 import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
@@ -36,9 +21,10 @@ import { ColorScheme } from '../ui/colorScheme';
 import TutorialProgressWidget from './TutorialProgressWidget';
 import { getTutorialLevel, getNextTutorialLevel } from '../tutorial/tutorialLevels';
 import { axialToKey, getHintForMode } from '../tutorial/tutorialState';
+import { hoveredCellActive } from '../gameLogic/systems/capture';
+import { useGameSession } from '../ui/hooks/useGameSession';
+import { useKeyboardInput } from '../ui/hooks/useKeyboardInput';
 
-// Session persistence helpers
-const SESSION_STORAGE_KEY = 'hexigame.session.state';
 const SESSION_HISTORY_KEY = 'hexigame.session.history';
 
 type SessionHistoryRecord = {
@@ -49,201 +35,6 @@ type SessionHistoryRecord = {
   gameTime: string; // MM:SS format
 };
 
-type SerializedCell = { q: number; r: number; colorIndex: number | null };
-type SerializedActiveTemplate = {
-  templateId: string;
-  anchoredAt: {
-    q: number;
-    r: number;
-    baseColorIndex: number;
-    rotation: number;
-  } | null;
-  hasErrors: boolean;
-  filledCells: string[];
-  completedAtTick?: number;
-};
-
-type SerializedTutorialProgress = {
-  visitedTargetKeys: string[];
-  startTick: number;
-  completedAtTick?: number;
-};
-
-type SerializedGameState = {
-  tick?: number;
-  remainingSeconds?: number;
-  focus?: { q: number; r: number };
-  protagonist?: { q: number; r: number };
-  flash?: { type: 'success' | 'failure'; startedTick: number } | null;
-  grid?: SerializedCell[];
-  inventoryGrid?: SerializedCell[];
-  activeField?: 'world' | 'inventory';
-  hotbarSlots?: Array<number | null>;
-  selectedHotbarIndex?: number;
-  facingDirIndex?: number;
-  isDragging?: boolean;
-  autoMoveTarget?: { q: number; r: number } | null;
-  autoMoveTicksRemaining?: number;
-  autoFocusTarget?: { q: number; r: number } | null;
-  autoMoveTargetDir?: number | null;
-  worldViewCenter?: { q: number; r: number };
-  cameraLastMoveTick?: number;
-  activeTemplate?: SerializedActiveTemplate | null;
-  completedTemplates?: string[];
-  tutorialLevelId?: string | null;
-  tutorialProgress?: SerializedTutorialProgress;
-  tutorialInteractionMode?: 'desktop' | 'mobile';
-  tutorialCompletedLevelIds?: string[];
-};
-
-type SessionState = {
-  gameState: SerializedGameState;
-  ui?: {
-    mobileTab?: 'heximap' | 'hexilab' | 'hexipedia';
-  };
-};
-
-function serializeGrid(grid: Map<string, { q: number; r: number; colorIndex: number | null }>): SerializedCell[] {
-  return Array.from(grid.values()).map(cell => ({
-    q: cell.q,
-    r: cell.r,
-    colorIndex: cell.colorIndex,
-  }));
-}
-
-function deserializeGrid(cells: SerializedCell[] | undefined): Map<string, { q: number; r: number; colorIndex: number | null }> | undefined {
-  if (!cells) return undefined;
-  const next = new Map<string, { q: number; r: number; colorIndex: number | null }>();
-  for (const cell of cells) {
-    next.set(`${cell.q},${cell.r}`, { q: cell.q, r: cell.r, colorIndex: cell.colorIndex });
-  }
-  return next;
-}
-
-function serializeGameState(state: GameState): SerializedGameState {
-  return {
-    tick: state.tick,
-    remainingSeconds: state.remainingSeconds,
-    focus: state.focus,
-    protagonist: state.protagonist,
-    flash: state.flash,
-    grid: serializeGrid(state.grid),
-    inventoryGrid: serializeGrid(state.inventoryGrid),
-    activeField: state.activeField,
-    hotbarSlots: state.hotbarSlots,
-    selectedHotbarIndex: state.selectedHotbarIndex,
-    facingDirIndex: state.facingDirIndex,
-    isDragging: state.isDragging,
-    autoMoveTarget: state.autoMoveTarget,
-    autoMoveTicksRemaining: state.autoMoveTicksRemaining,
-    autoFocusTarget: state.autoFocusTarget,
-    autoMoveTargetDir: state.autoMoveTargetDir,
-    worldViewCenter: state.worldViewCenter,
-    cameraLastMoveTick: state.cameraLastMoveTick,
-    activeTemplate: state.activeTemplate ? {
-      templateId: state.activeTemplate.templateId,
-      anchoredAt: state.activeTemplate.anchoredAt,
-      hasErrors: state.activeTemplate.hasErrors,
-      filledCells: Array.from(state.activeTemplate.filledCells),
-      completedAtTick: state.activeTemplate.completedAtTick,
-    } : state.activeTemplate ?? null,
-    completedTemplates: Array.from(state.completedTemplates ?? []),
-    tutorialLevelId: state.tutorialLevelId ?? null,
-    tutorialProgress: state.tutorialProgress ? {
-      visitedTargetKeys: Array.from(state.tutorialProgress.visitedTargetKeys),
-      startTick: state.tutorialProgress.startTick,
-      completedAtTick: state.tutorialProgress.completedAtTick,
-    } : undefined,
-    tutorialInteractionMode: state.tutorialInteractionMode,
-    tutorialCompletedLevelIds: Array.from(state.tutorialCompletedLevelIds ?? []),
-  };
-}
-
-function deserializeGameState(serialized: SerializedGameState, fallback: GameState): GameState {
-  const grid = deserializeGrid(serialized.grid) ?? fallback.grid;
-  const inventoryGrid = deserializeGrid(serialized.inventoryGrid) ?? fallback.inventoryGrid;
-  const activeTemplate = serialized.activeTemplate === undefined
-    ? fallback.activeTemplate
-    : serialized.activeTemplate
-      ? {
-          ...serialized.activeTemplate,
-          filledCells: new Set(serialized.activeTemplate.filledCells ?? []),
-        }
-      : null;
-
-  return {
-    ...fallback,
-    tick: serialized.tick ?? fallback.tick,
-    remainingSeconds: serialized.remainingSeconds ?? fallback.remainingSeconds,
-    focus: serialized.focus ?? fallback.focus,
-    protagonist: serialized.protagonist ?? fallback.protagonist,
-    flash: serialized.flash ?? fallback.flash,
-    grid,
-    inventoryGrid,
-    activeField: serialized.activeField ?? fallback.activeField,
-    hotbarSlots: serialized.hotbarSlots ?? fallback.hotbarSlots,
-    selectedHotbarIndex: serialized.selectedHotbarIndex ?? fallback.selectedHotbarIndex,
-    facingDirIndex: serialized.facingDirIndex ?? fallback.facingDirIndex,
-    isDragging: serialized.isDragging ?? fallback.isDragging,
-    autoMoveTarget: serialized.autoMoveTarget ?? fallback.autoMoveTarget,
-    autoMoveTicksRemaining: serialized.autoMoveTicksRemaining ?? fallback.autoMoveTicksRemaining,
-    autoFocusTarget: serialized.autoFocusTarget ?? fallback.autoFocusTarget,
-    autoMoveTargetDir: serialized.autoMoveTargetDir ?? fallback.autoMoveTargetDir,
-    worldViewCenter: serialized.worldViewCenter ?? fallback.worldViewCenter,
-    cameraLastMoveTick: serialized.cameraLastMoveTick ?? fallback.cameraLastMoveTick,
-    activeTemplate,
-    completedTemplates: new Set(serialized.completedTemplates ?? Array.from(fallback.completedTemplates ?? [])),
-    tutorialLevelId: serialized.tutorialLevelId ?? fallback.tutorialLevelId,
-    tutorialProgress: serialized.tutorialProgress ? {
-      visitedTargetKeys: new Set(serialized.tutorialProgress.visitedTargetKeys),
-      startTick: serialized.tutorialProgress.startTick,
-      completedAtTick: serialized.tutorialProgress.completedAtTick,
-    } : fallback.tutorialProgress,
-    tutorialInteractionMode: serialized.tutorialInteractionMode ?? fallback.tutorialInteractionMode,
-    tutorialCompletedLevelIds: new Set(serialized.tutorialCompletedLevelIds ?? Array.from(fallback.tutorialCompletedLevelIds ?? [])),
-  };
-}
-
-function normalizeSessionState(raw: any): SessionState | null {
-  if (!raw) return null;
-  if (raw.gameState) return raw as SessionState;
-
-  const legacyProgress = raw.tutorialProgress;
-  const legacyGameState: SerializedGameState = {
-    tick: raw.tick,
-    tutorialLevelId: raw.tutorialLevelId,
-    tutorialCompletedLevelIds: raw.tutorialCompletedLevelIds,
-    tutorialProgress: legacyProgress ? {
-      visitedTargetKeys: legacyProgress.visitedTargetKeys ?? [],
-      startTick: legacyProgress.startTick ?? 0,
-      completedAtTick: legacyProgress.completedAtTick,
-    } : undefined,
-  };
-
-  return { gameState: legacyGameState, ui: raw.ui };
-}
-
-function saveSessionState(state: GameState, ui?: SessionState['ui']) {
-  try {
-    const serialized: SessionState = {
-      gameState: serializeGameState(state),
-      ui,
-    };
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(serialized));
-  } catch (e) {
-    console.warn('Failed to save session state:', e);
-  }
-}
-
-function loadSessionState(): SessionState | null {
-  try {
-    const saved = localStorage.getItem(SESSION_STORAGE_KEY);
-    return normalizeSessionState(saved ? JSON.parse(saved) : null);
-  } catch (e) {
-    console.warn('Failed to load session state:', e);
-    return null;
-  }
-}
 
 // Format ticks into MM:SS
 function formatGameTime(ticks: number): string {
@@ -366,29 +157,12 @@ function clearSessionHistory() {
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
-  const initialSessionStateRef = useRef(loadSessionState());
   const mergedParams: Params = { ...DefaultParams, ...(params || {}) };
-  const rngRef = useRef<RNG>(mulberry32(seed ?? Date.now()));
-  const [gameState, setGameState] = useState<GameState>(() => {
-    const guestStarted = !!localStorage.getItem('hexigame.guest.started');
-    const initialState = createInitialState(mergedParams, rngRef.current);
-    const initialSession = initialSessionStateRef.current;
-    
-    // If guest was already started (user returning after reload), restore session state
-    if (guestStarted && initialSession?.gameState) {
-      return deserializeGameState(initialSession.gameState, initialState);
-    }
-    
-    return initialState;
-  });
   const [fps, setFps] = useState(0);
-  const spaceIsDownRef = useRef(false);
   const mouseIsDownRef = useRef(false);
   const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
   const [isInventory, setIsInventory] = useState(false);
   const [mobileTab, setMobileTab] = useState<'heximap' | 'hexilab' | 'hexipedia'>(() => {
-    const savedTab = initialSessionStateRef.current?.ui?.mobileTab;
-    if (savedTab) return savedTab;
     const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
     return hasTutorialStarted ? 'heximap' : 'hexipedia';
   });
@@ -444,11 +218,29 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return saved !== null ? saved === 'true' : true; // Default visible
   });
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
-    const savedLevelId = initialSessionStateRef.current?.gameState?.tutorialLevelId;
-    if (savedLevelId !== undefined) return savedLevelId ?? null;
-    // Start mandatory tutorial on first session
     const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
     return hasTutorialStarted ? null : 'tutorial_1_movement';
+  });
+
+  // Game session (state + dispatch via sessionReducer)
+  const { gameState, dispatch, resetSession } = useGameSession({
+    params,
+    seed,
+    isPaused,
+    guestStarted,
+    mobileTab,
+  });
+
+  // Keyboard input (desktop mode only)
+  const isHexiLabLockedForKeyboard = useMemo(() => {
+    return tutorialLevelId ? (getTutorialLevel(tutorialLevelId)?.disableInventory ?? false) : false;
+  }, [tutorialLevelId]);
+
+  useKeyboardInput({
+    dispatch,
+    interactionMode,
+    isInventoryLocked: isHexiLabLockedForKeyboard,
+    hotbarSize: 6,
   });
 
   // Initialize audio manager with music settings
@@ -504,43 +296,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setInteractionMode('mobile');
   }, []);
 
-  // Tick loop (12 ticks/sec) - only runs after guest starts
+  // Sync tutorial level into gameState when tutorialLevelId changes
   useEffect(() => {
-    if (!guestStarted) return; // Don't start ticking until guest starts
-    const interval = setInterval(() => {
-      if (!isPaused) {
-        setGameState(prev => logicTick(prev, mergedParams, rngRef.current));
-      }
-    }, 1000 / mergedParams.GameTickRate);
-    return () => clearInterval(interval);
-  }, [mergedParams, isPaused, guestStarted]);
-
-  // Initialize tutorial in gameState when tutorial starts
-  useEffect(() => {
-    if (!tutorialLevelId) {
-      setGameState(prev => {
-        if (!prev.tutorialLevelId && !prev.tutorialProgress) return prev;
-        return {
-          ...prev,
-          tutorialLevelId: null,
-          tutorialProgress: undefined,
-          tutorialInteractionMode: interactionMode,
-        };
-      });
-      return;
-    }
-    setGameState(prev => {
-      if (prev.tutorialLevelId === tutorialLevelId) return prev;
-      return {
-        ...prev,
-        tutorialLevelId,
-        tutorialProgress: {
-          visitedTargetKeys: new Set(),
-          startTick: prev.tick,
-        },
-        tutorialInteractionMode: interactionMode,
-      };
-    });
+    dispatch({ type: 'SET_TUTORIAL_LEVEL', levelId: tutorialLevelId });
+    dispatch({ type: 'SET_TUTORIAL_INTERACTION_MODE', mode: interactionMode });
   }, [tutorialLevelId, interactionMode]);
 
   // Pause/resume on tab visibility change
@@ -574,22 +333,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     }
   }, [isSettingsOpen, guestStarted]);
 
-  // Persist game state changes to localStorage
+  // Save session history every 360 ticks (~30 seconds) if enabled
   useEffect(() => {
-    if (guestStarted) {
-      saveSessionState(gameState, { mobileTab });
-      
-      // Save session history every 360 ticks (~30 seconds) if enabled
-      if (trackSessionHistory && currentSessionId) {
-        const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
-        if (ticksSinceLastSave >= 360) {
-          saveSessionHistoryRecord(currentSessionId, gameState.tick);
-          setLastSessionSaveTick(gameState.tick);
-          setSessionHistory(loadSessionHistory());
-        }
-      }
+    if (!guestStarted || !trackSessionHistory || !currentSessionId) return;
+    const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
+    if (ticksSinceLastSave >= 360) {
+      saveSessionHistoryRecord(currentSessionId, gameState.tick);
+      setLastSessionSaveTick(gameState.tick);
+      setSessionHistory(loadSessionHistory());
     }
-  }, [gameState, guestStarted, mobileTab, lastSessionSaveTick, trackSessionHistory, currentSessionId]);
+  }, [gameState.tick, guestStarted, trackSessionHistory, currentSessionId, lastSessionSaveTick]);
 
   // Save track session history setting
   useEffect(() => {
@@ -659,68 +412,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     localStorage.setItem('hexigame.showColorWidget', String(showColorWidget));
   }, [showColorWidget]);
 
-  // Keyboard input handlers
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        if (isHexiLabLocked) return;
-        setIsInventory(v => !v);
-        setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
-        return;
-      }
-      if (e.key >= '1' && e.key <= '7') {
-        const idx = Number(e.key) - 1;
-        setGameState(prev => ({
-          ...prev,
-          selectedHotbarIndex: Math.max(0, Math.min(idx, (prev.hotbarSlots?.length ?? 7) - 1)),
-        }));
-        return;
-      }
-      if (e.code === 'Space') {
-        if (spaceIsDownRef.current) {
-          return; // already down
-        }
-        spaceIsDownRef.current = true;
-        setGameState(prev => performContextAction(prev, mergedParams));
-        return;
-      }
-      if (e.key === 'e' || e.key === 'E') {
-        setGameState(prev => eatToHotbar(prev, mergedParams));
-        return;
-      }
-      const moves: Record<string, [number, number]> = {
-        ArrowUp: [0, -1], w: [0, -1],
-        ArrowDown: [0, 1], s: [0, 1],
-        ArrowLeft: [-1, 0], a: [-1, 0],
-        ArrowRight: [1, 0], d: [1, 0],
-      };
-      const delta = moves[e.key as keyof typeof moves];
-      if (delta) {
-        const [dq, dr] = delta;
-        setGameState(prev => attemptMoveByDeltaOnActive(prev, mergedParams, dq, dr));
-      }
-    }
-
-    function handleKeyUp(e: KeyboardEvent) {
-      if (e.code === 'Space') {
-        if (!spaceIsDownRef.current) {
-          return;
-        }
-        spaceIsDownRef.current = false;
-        // Action already performed on keydown, just reset the flag
-      }
-    }
-    if (interactionMode === 'desktop') {
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('keyup', handleKeyUp);
-    }
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [mergedParams, interactionMode]);
-
   // Derived HUD data
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
@@ -745,21 +436,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const prevTutorialCompleteRef = useRef<boolean>(isTutorialTaskComplete);
 
   const completeTutorialLevel = (completedLevelId: string) => {
-    setGameState(prev => {
-      const completedSet = new Set(prev.tutorialCompletedLevelIds ?? []);
-      completedSet.add(completedLevelId);
-      const progress = prev.tutorialProgress;
-      const nextProgress = progress && !progress.completedAtTick
-        ? { ...progress, completedAtTick: prev.tick }
-        : progress;
-      return {
-        ...prev,
-        tutorialCompletedLevelIds: completedSet,
-        tutorialProgress: nextProgress,
-      };
-    });
-
     const nextLevel = getNextTutorialLevel(completedLevelId);
+    const nextLevelId = nextLevel ? nextLevel.id : null;
+    dispatch({ type: 'COMPLETE_TUTORIAL_LEVEL', levelId: completedLevelId, nextLevelId });
     if (nextLevel) {
       setTutorialLevelId(nextLevel.id);
     } else {
@@ -775,13 +454,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const handleRestartTutorialLevel = (levelId: string) => {
-    setGameState(prev => {
-      const completedSet = new Set(prev.tutorialCompletedLevelIds ?? []);
-      completedSet.delete(levelId);
-      return {
-        ...prev,
-        tutorialCompletedLevelIds: completedSet,
-      };
+    dispatch({
+      type: 'RESET_STATE',
+      newState: {
+        ...gameState,
+        tutorialCompletedLevelIds: (() => {
+          const s = new Set(gameState.tutorialCompletedLevelIds ?? []);
+          s.delete(levelId);
+          return s;
+        })(),
+      },
     });
     setTutorialLevelId(levelId);
     setMobileTab('hexipedia');
@@ -819,7 +501,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     if (!tutorialLevel?.disableInventory) return;
     setIsInventory(false);
-    setGameState(prev => ({ ...prev, activeField: 'world' }));
+    dispatch({ type: 'SET_ACTIVE_FIELD', field: 'world' });
     if (mobileTab === 'hexilab') {
       setMobileTab('heximap');
     }
@@ -845,19 +527,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     // Play service bell sound on target cell visit
     audioManager.playSound('audio/mixkit-service-bell-931.wav');
 
-    setGameState(prev => {
-      if (!prev.tutorialProgress) return prev;
-      if (prev.tutorialProgress.visitedTargetKeys.has(focusKey)) return prev;
-      const nextVisited = new Set(prev.tutorialProgress.visitedTargetKeys);
-      nextVisited.add(focusKey);
-      return {
-        ...prev,
-        tutorialProgress: {
-          ...prev.tutorialProgress,
-          visitedTargetKeys: nextVisited,
-        },
-      };
-    });
+    dispatch({ type: 'MARK_TUTORIAL_TARGET_VISITED', key: focusKey });
   }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialLevelId, isMobileLayout, mobileTab]);
 
   const paletteLen = mergedParams.ColorPalette.length;
@@ -868,7 +538,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     if (!isMobileLayout) return;
     const nextInventory = mobileTab === 'hexilab';
     setIsInventory(nextInventory);
-    setGameState(prev => ({ ...prev, activeField: mobileTab === 'hexilab' ? 'inventory' : 'world' }));
+    dispatch({ type: 'SET_ACTIVE_FIELD', field: mobileTab === 'hexilab' ? 'inventory' : 'world' });
   }, [isMobileLayout, mobileTab]);
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'hexilab' : isInventory;
@@ -960,9 +630,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               }}
               onActivateTemplate={(templateId) => {
                 if (templateId === '') {
-                  setGameState(prev => deactivateTemplate(prev));
+                  dispatch({ type: 'DEACTIVATE_TEMPLATE' });
                 } else {
-                  setGameState(prev => activateTemplate(prev, templateId));
+                  dispatch({ type: 'ACTIVATE_TEMPLATE', templateId });
                 }
               }}
               selectedColorIndex={selectedColorIndex}
@@ -986,88 +656,65 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 } else {
                   if (isHexiLabLocked) return;
                   setIsInventory(v => !v);
-                  setGameState(prev => ({ ...prev, activeField: !isInventory ? 'inventory' : 'world' }));
+                  dispatch({ type: 'TOGGLE_INVENTORY' });
                 }
               }}
               onCapture={() => {
                 audioManager.playRandomSound();
                 // Mobile press ACT -> perform instant context action
-                setGameState(prev => performContextAction(prev, mergedParams));
+                dispatch({ type: 'ACTION_PRESSED' });
               }}
               onRelease={() => {
                 // Mobile release ACT -> action already performed on press
               }}
               onEat={() => {
-                setGameState(prev => eatToHotbar(prev, mergedParams));
+                dispatch({ type: 'EAT_REQUESTED' });
               }}
               onSetCursor={(q, r) => {
                 audioManager.playRandomSound();
                 // Check if clicking on focus or protagonist - start drag
                 // Otherwise - start auto-move to target
-                setGameState(prev => {
-                  const clickedPos = { q, r };
-                  const isFocus = equalAxial(clickedPos, prev.focus);
-                  const isProtagonist = equalAxial(clickedPos, prev.protagonist);
-                  
-                  if (isFocus || isProtagonist) {
-                    // Start drag mode
-                    return startDrag(prev);
-                  } else {
-                    // Start auto-move to clicked cell
-                    return attemptMoveTo(prev, mergedParams, clickedPos);
-                  }
-                });
+                const clickedPos = { q, r };
+                const isFocusCell = equalAxial(clickedPos, gameState.focus);
+                const isProtagonistCell = equalAxial(clickedPos, gameState.protagonist);
+                if (isFocusCell || isProtagonistCell) {
+                  dispatch({ type: 'START_DRAG' });
+                } else {
+                  dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
+                }
               }}
               onCellClickDown={(q, r) => {
-                // Handle LMB click on cell
-                setGameState(prev => {
-                  if (mouseIsDownRef.current) return prev; // Already down
-                  mouseIsDownRef.current = true;
-                  
-                  const clickedPos = { q, r };
-                  const isFocus = equalAxial(clickedPos, prev.focus);
-                  
-                  // If clicking on focus cell and not moving: perform context action
-                  if (isFocus && !prev.isDragging && !prev.autoMoveTarget) {
-                    return performContextAction(prev, mergedParams);
-                  }
-                  
-                  const isProtagonist = equalAxial(clickedPos, prev.protagonist);
-                  
-                  if (isFocus || isProtagonist) {
-                    // Start drag mode
-                    return startDrag(prev);
-                  } else {
-                    // Start auto-move to clicked cell
-                    return attemptMoveTo(prev, mergedParams, clickedPos);
-                  }
-                });
+                if (mouseIsDownRef.current) return;
+                mouseIsDownRef.current = true;
+                const clickedPos = { q, r };
+                const isFocusCell = equalAxial(clickedPos, gameState.focus);
+                if (isFocusCell && !gameState.isDragging && !gameState.autoMoveTarget) {
+                  dispatch({ type: 'ACTION_PRESSED' });
+                  return;
+                }
+                const isProtagonistCell = equalAxial(clickedPos, gameState.protagonist);
+                if (isFocusCell || isProtagonistCell) {
+                  dispatch({ type: 'START_DRAG' });
+                } else {
+                  dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
+                }
               }}
-              onCellClickUp={(q, r) => {
-                // Handle LMB release on cell - end drag if was dragging
+              onCellClickUp={(_q, _r) => {
                 if (!mouseIsDownRef.current) return;
                 mouseIsDownRef.current = false;
-                setGameState(prev => {
-                  if (prev.isDragging) {
-                    return endDrag(prev);
-                  }
-                  return prev;
-                });
+                if (gameState.isDragging) {
+                  dispatch({ type: 'END_DRAG' });
+                }
               }}
               onCellDrag={(q, r) => {
-                // Handle drag - move protagonist if in drag mode
-                setGameState(prev => {
-                  if (!prev.isDragging) return prev;
-                  // Calculate delta from current position
-                  const dq = q - prev.protagonist.q;
-                  const dr = r - prev.protagonist.r;
-                  return dragMoveProtagonist(prev, mergedParams, dq, dr);
-                });
+                if (!gameState.isDragging) return;
+                const dq = q - gameState.protagonist.q;
+                const dr = r - gameState.protagonist.r;
+                dispatch({ type: 'DRAG_MOVE', dq, dr });
               }}
               onHotbarSlotClick={(slotIdx) => {
                 audioManager.playRandomSound();
-                // Handle hotbar slot click - exchange with slot
-                setGameState(prev => exchangeWithHotbarSlot(prev, mergedParams, slotIdx));
+                dispatch({ type: 'EXCHANGE_HOTBAR_SLOT', slotIndex: slotIdx });
               }}
               isLeftHanded={isLeftHanded}
               paletteTopOffset={paletteTopOffset}
@@ -1130,16 +777,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         <Settings 
           onClose={() => setIsSettingsOpen(false)}
           onResetSession={() => {
-            localStorage.removeItem('hexigame.guest.started');
-            localStorage.removeItem('hexigame.tutorial.started');
-            localStorage.removeItem(SESSION_STORAGE_KEY);
+            resetSession();
             setGuestStarted(false);
             setCurrentSessionId(null); // End current session
             setCurrentSessionStartTick(0); // Reset session tick tracking
             setTutorialLevelId('tutorial_1_movement');
             setMobileTab('hexipedia');
-            // Reset game state to initial
-            setGameState(createInitialState(mergedParams, rngRef.current));
           }}
           onShowMascot={() => {
             setIsSettingsOpen(false);
