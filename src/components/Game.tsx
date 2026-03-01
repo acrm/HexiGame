@@ -76,7 +76,9 @@ type SerializedGameState = {
   autoMoveTarget?: { q: number; r: number } | null;
   autoMoveTicksRemaining?: number;
   autoFocusTarget?: { q: number; r: number } | null;
+  autoMoveTargetDir?: number | null;
   worldViewCenter?: { q: number; r: number };
+  cameraLastMoveTick?: number;
   activeTemplate?: SerializedActiveTemplate | null;
   completedTemplates?: string[];
   tutorialLevelId?: string | null;
@@ -126,7 +128,9 @@ function serializeGameState(state: GameState): SerializedGameState {
     autoMoveTarget: state.autoMoveTarget,
     autoMoveTicksRemaining: state.autoMoveTicksRemaining,
     autoFocusTarget: state.autoFocusTarget,
+    autoMoveTargetDir: state.autoMoveTargetDir,
     worldViewCenter: state.worldViewCenter,
+    cameraLastMoveTick: state.cameraLastMoveTick,
     activeTemplate: state.activeTemplate ? {
       templateId: state.activeTemplate.templateId,
       anchoredAt: state.activeTemplate.anchoredAt,
@@ -175,7 +179,9 @@ function deserializeGameState(serialized: SerializedGameState, fallback: GameSta
     autoMoveTarget: serialized.autoMoveTarget ?? fallback.autoMoveTarget,
     autoMoveTicksRemaining: serialized.autoMoveTicksRemaining ?? fallback.autoMoveTicksRemaining,
     autoFocusTarget: serialized.autoFocusTarget ?? fallback.autoFocusTarget,
+    autoMoveTargetDir: serialized.autoMoveTargetDir ?? fallback.autoMoveTargetDir,
     worldViewCenter: serialized.worldViewCenter ?? fallback.worldViewCenter,
+    cameraLastMoveTick: serialized.cameraLastMoveTick ?? fallback.cameraLastMoveTick,
     activeTemplate,
     completedTemplates: new Set(serialized.completedTemplates ?? Array.from(fallback.completedTemplates ?? [])),
     tutorialLevelId: serialized.tutorialLevelId ?? fallback.tutorialLevelId,

@@ -65,7 +65,9 @@ export interface GameState {
   autoMoveTarget?: Axial | null; // target cell for automatic movement
   autoMoveTicksRemaining?: number; // ticks until next auto move step (2 ticks per step)
   autoFocusTarget?: Axial | null; // destination focus cell to highlight while moving
+  autoMoveTargetDir?: number | null; // direction index protagonist should face when reaching autoMoveTarget
   worldViewCenter?: Axial; // center of visible world window
+  cameraLastMoveTick?: number; // last tick when camera moved (for lag effect)
   
   // Tutorial system
   tutorialLevelId?: string | null; // Current tutorial level ID, null if no tutorial
@@ -216,17 +218,26 @@ function updateWorldViewCenter(state: GameState, params: Params): GameState {
   };
 
   const currentCenter = state.worldViewCenter ?? targetCenter;
-  
-  // Inertial camera: wait until distance > 2 to start moving (smooths short jerks)
   const dist = axialDistance(currentCenter, targetCenter);
-  if (dist <= 2) {
-    return state.worldViewCenter ? state : { ...state, worldViewCenter: currentCenter };
+  
+  // Camera at target - no movement needed
+  if (dist === 0) {
+    return state.worldViewCenter ? state : { ...state, worldViewCenter: currentCenter, cameraLastMoveTick: state.tick };
   }
   
-  // Smooth camera movement: max 1 cell per tick
+  // Lagged camera: move only once every 4 ticks (turtle moves every 2 ticks)
+  const lastMoveTick = state.cameraLastMoveTick ?? 0;
+  const ticksSinceLastMove = state.tick - lastMoveTick;
+  
+  if (ticksSinceLastMove < 4) {
+    // Not time to move yet - keep current position
+    return state;
+  }
+  
+  // Move 1 step toward target
   const dirIndex = findDirectionToward(currentCenter.q, currentCenter.r, targetCenter.q, targetCenter.r);
   if (dirIndex === null) {
-    return { ...state, worldViewCenter: targetCenter };
+    return { ...state, worldViewCenter: targetCenter, cameraLastMoveTick: state.tick };
   }
   
   const dir = axialDirections[dirIndex];
@@ -235,7 +246,7 @@ function updateWorldViewCenter(state: GameState, params: Params): GameState {
     r: currentCenter.r + dir.r,
   };
 
-  return { ...state, worldViewCenter: newCenter };
+  return { ...state, worldViewCenter: newCenter, cameraLastMoveTick: state.tick };
 }
 
 // ---------- Initialization ----------
@@ -295,6 +306,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     autoMoveTicksRemaining: 0,
     autoFocusTarget: null,
     worldViewCenter: initialViewCenter,
+    cameraLastMoveTick: 0,
     tutorialCompletedLevelIds: new Set(),
   };
 }
@@ -401,6 +413,7 @@ export function startAutoMove(state: GameState, target: Axial, params: Params): 
     autoMoveTicksRemaining: 0,
     facingDirIndex: bestDir,
     autoFocusTarget: { ...target },
+    autoMoveTargetDir: bestDir,
   };
 }
 
@@ -451,18 +464,29 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     if (next.autoMoveTicksRemaining === undefined || next.autoMoveTicksRemaining <= 0) {
       // Time to move
       if (next.protagonist.q === next.autoMoveTarget.q && next.protagonist.r === next.autoMoveTarget.r) {
-        // Reached target: align facing toward destination focus so focus lands exactly there
-        if (next.autoFocusTarget) {
-          const dirTowardFocus = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoFocusTarget.q, next.autoFocusTarget.r);
-          if (dirTowardFocus !== null) {
-            next = { ...next, facingDirIndex: dirTowardFocus };
-          }
-        }
+        // Reached target: direction already set during last step, just clean up
         next = updateFocusPosition(next); // place focus in front of head (at destination)
-        next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0, autoFocusTarget: null };
+        next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0, autoFocusTarget: null, autoMoveTargetDir: null };
       } else {
         // Move one step toward target
-        const dirIndex = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoMoveTarget.q, next.autoMoveTarget.r);
+        const distToTarget = axialDistance(next.protagonist, next.autoMoveTarget);
+        let dirIndex: number | null = null;
+        
+        // If we're 1 step away from target, use the pre-planned final direction
+        if (distToTarget === 1 && next.autoMoveTargetDir !== null && next.autoMoveTargetDir !== undefined) {
+          // Verify this direction actually leads to target
+          const dir = axialDirections[next.autoMoveTargetDir];
+          const testPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
+          if (testPos.q === next.autoMoveTarget.q && testPos.r === next.autoMoveTarget.r) {
+            dirIndex = next.autoMoveTargetDir;
+          }
+        }
+        
+        // Otherwise use greedy pathfinding
+        if (dirIndex === null) {
+          dirIndex = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoMoveTarget.q, next.autoMoveTarget.r);
+        }
+        
         if (dirIndex !== null) {
           const dir = axialDirections[dirIndex];
           const newPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
@@ -471,7 +495,7 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
           next = updateFocusPosition(next);
         } else {
           // Already at target
-          next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0 };
+          next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0, autoMoveTargetDir: null };
           next = updateFocusPosition(next);
         }
       }

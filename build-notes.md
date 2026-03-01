@@ -429,3 +429,5 @@
 - 2026w10-0.2 — Fix camera offset direction and add smooth movement (1 cell per tick)
 
 - 2026w10-0.3 — Improve path planning for straighter approach and add camera lag for smoother movement
+
+- 2026w10-0.4 — Fix final approach direction and add camera lag (1 cell per 4 ticks)
