@@ -15,6 +15,30 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Scrollbar styling */
+.hexipedia-scrollable-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.hexipedia-scrollable-content::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.hexipedia-scrollable-content::-webkit-scrollbar-thumb {
+  background: #555555;
+  border-radius: 4px;
+}
+
+.hexipedia-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: #666666;
+}
+
+/* Firefox scrollbar */
+.hexipedia-scrollable-content {
+  scrollbar-color: #555555 #2a2a2a;
+  scrollbar-width: thin;
+}
+
 .hexipedia-section-filter {
   position: sticky;
   top: 0;
@@ -307,6 +331,195 @@
   font-family: 'Courier New', monospace;
 }
 
+.hexipedia-history-subsection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #444444;
+}
+
+.hexipedia-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.hexipedia-history-title {
+  font-size: 11px;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+}
+
+.hexipedia-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #999999;
+  cursor: pointer;
+}
+
+.hexipedia-history-toggle input {
+  cursor: pointer;
+}
+
+.hexipedia-history-controls {
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+  position: relative;
+}
+
+.hexipedia-history-clear-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: #444444;
+  border: 1px solid #555555;
+  color: #cccccc;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.hexipedia-history-clear-btn:hover {
+  background: #555555;
+  color: #ffffff;
+}
+
+.hexipedia-delete-confirm {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+  color: #ff9999;
+}
+
+.hexipedia-confirm-yes,
+.hexipedia-confirm-no {
+  padding: 4px 8px;
+  font-size: 10px;
+  border: 1px solid #555555;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.hexipedia-confirm-yes {
+  background: #553333;
+  color: #ff9999;
+}
+
+.hexipedia-confirm-yes:hover {
+  background: #664444;
+}
+
+.hexipedia-confirm-no {
+  background: #444444;
+  color: #cccccc;
+}
+
+.hexipedia-confirm-no:hover {
+  background: #555555;
+}
+
+.hexipedia-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for history list */
+.hexipedia-history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hexipedia-history-list::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.hexipedia-history-list::-webkit-scrollbar-thumb {
+  background: #444444;
+  border-radius: 3px;
+}
+
+.hexipedia-history-list::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+.hexipedia-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #2a2a2a;
+  border: 1px solid #444444;
+  border-radius: 3px;
+  font-size: 11px;
+  transition: background 0.2s;
+}
+
+.hexipedia-history-item:hover {
+  background: #313131;
+}
+
+.hexipedia-history-info {
+  flex: 1;
+  color: #cccccc;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.hexipedia-history-duration {
+  color: #aaddff;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.hexipedia-history-ticks {
+  color: #777777;
+  font-size: 10px;
+}
+
+.hexipedia-history-delete-btn {
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid #555555;
+  color: #999999;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 2px;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.hexipedia-history-delete-btn:hover {
+  background: #553333;
+  color: #ff9999;
+  border-color: #666666;
+}
+
+.hexipedia-delete-confirm-inline {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.hexipedia-history-empty {
+  padding: 12px;
+  text-align: center;
+  color: #666666;
+  font-size: 11px;
+  background: #2a2a2a;
+  border: 1px solid #444444;
+  border-radius: 3px;
+}
+
 .hexipedia-templates-section {
   padding: 12px 16px;
   border-top: 1px solid #444444;
@@ -452,6 +665,78 @@
   color: #bbbbbb;
   margin-bottom: 3px;
   font-size: 12px;
+}
+
+.hexipedia-colors-section {
+  padding: 16px;
+  border-top: 1px solid #444444;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.hexipedia-color-wheel {
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+}
+
+.hexipedia-colors-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for colors list */
+.hexipedia-colors-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hexipedia-colors-list::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.hexipedia-colors-list::-webkit-scrollbar-thumb {
+  background: #444444;
+  border-radius: 3px;
+}
+
+.hexipedia-colors-list::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+.hexipedia-color-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: #2a2a2a;
+  border: 1px solid #444444;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.hexipedia-color-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #666666;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.hexipedia-color-name {
+  color: #cccccc;
+  min-width: 50px;
+}
+
+.hexipedia-color-value {
+  color: #999999;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
 }
 
 @media (max-width: 600px) {

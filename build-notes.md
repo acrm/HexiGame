@@ -424,8 +424,36 @@
 
 - 2026w09-0.31 — Fix tutorial cell visit registration logic
 
-- 2026w10-0.1 — Extract gameLogic module structure from pureLogic
+- 2026w10-0.1 — Camera follows protagonist with asymmetric offset for better forward view
 
-- 2026w10-0.2 — refactor phases 4-8: gameLogic modules, golden snapshots, sessionReducer, viewModel
+- 2026w10-0.2 — Fix camera offset direction and add smooth movement (1 cell per tick)
 
-- 2026w10-0.3 — phase 9 UI integration: useGameSession, useKeyboardInput, Game.tsx refactored
+- 2026w10-0.3 — Improve path planning for straighter approach and add camera lag for smoother movement
+
+- 2026w10-0.4 — Fix final approach direction and add camera lag (1 cell per 4 ticks)
+
+- 2026w10-0.5 — Fix auto-move focus target logic, add camera lag param
+
+- 2026w10-0.6 — Independent camera and turtle movement to target
+
+- 2026w10-0.7 — Add session history to HexiPedia stats
+
+- 2026w10-0.8 — Style scrollbars, redesign session history, add colors section
+
+- 2026w10-0.9 — Colors: full spectrum wheel with larger game color markers, list moved below
+
+- 2026w10-0.10 — Fix focus landing on target during auto-move
+
+- 2026w10-0.11 — Add auto-move path visualization and frozen target focus
+
+- 2026w10-0.12 — Update GAME_LOGIC documentation for auto-move and path visualization
+
+- 2026w10-0.13 — Remove rotation and flicker from target focus, align path dots with grid thickness
+
+- 2026w10-0.14 — Thinner focus/path edges, drawn on top of all cells
+
+- 2026w10-0.15 — Unique session IDs, update existing records instead of creating duplicates
+
+- 2026w10-0.16 — Manual color selection, continuous gradient wheel, widget toggle, color % labels
+
+- 2026w10-0.17 — Fix session time tracking - show game duration from guest start

@@ -187,7 +187,7 @@ html, body {
 }
 
 .mobile-tab:nth-child(1).active {
-  background: #4d0073;
+  background: #00264C;
 }
 
 .mobile-tab:nth-child(2).active {
@@ -199,7 +199,7 @@ html, body {
 }
 
 .mobile-tab.active {
-  background: var(--game-bg, #370152ff);
+  background: var(--game-bg, #00264C);
 }
 
 @media (max-width: 900px) {

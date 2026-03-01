@@ -25,6 +25,135 @@ import { hoveredCellActive } from '../gameLogic/systems/capture';
 import { useGameSession } from '../ui/hooks/useGameSession';
 import { useKeyboardInput } from '../ui/hooks/useKeyboardInput';
 
+const SESSION_HISTORY_KEY = 'hexigame.session.history';
+
+type SessionHistoryRecord = {
+  id: string;
+  startTime: number; // Unix timestamp in ms
+  endTime: number; // Unix timestamp in ms
+  gameTicks: number;
+  gameTime: string; // MM:SS format
+};
+
+
+// Format ticks into MM:SS
+function formatGameTime(ticks: number): string {
+  const seconds = Math.floor(ticks / 12); // 12 ticks per second
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
+// Create a new session record
+function createNewSession(): SessionHistoryRecord {
+  const now = Date.now();
+  const sessionId = `session_${now}_${Math.random().toString(36).substr(2, 9)}`;
+  return {
+    id: sessionId,
+    startTime: now,
+    endTime: now,
+    gameTicks: 0,
+    gameTime: '0:00',
+  };
+}
+
+// Update existing session or create new if not found
+function saveSessionHistoryRecord(sessionId: string, ticks: number) {
+  try {
+    let history: SessionHistoryRecord[] = [];
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    if (saved) {
+      history = JSON.parse(saved);
+    }
+    
+    const now = Date.now();
+    const existingIndex = history.findIndex((r) => r.id === sessionId);
+    
+    if (existingIndex !== -1) {
+      // Update existing record
+      history[existingIndex] = {
+        ...history[existingIndex],
+        endTime: now,
+        gameTicks: ticks,
+        gameTime: formatGameTime(ticks),
+      };
+    } else {
+      // Create new record (shouldn't happen normally, but for safety)
+      const record: SessionHistoryRecord = {
+        id: sessionId,
+        startTime: now - (ticks * 1000 / 12),
+        endTime: now,
+        gameTicks: ticks,
+        gameTime: formatGameTime(ticks),
+      };
+      history.unshift(record);
+      
+      // Keep last 20 sessions
+      if (history.length > 20) {
+        history = history.slice(0, 20);
+      }
+    }
+    
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn('Failed to save session history:', e);
+  }
+}
+
+// Add new session to history
+function addSessionToHistory(session: SessionHistoryRecord) {
+  try {
+    let history: SessionHistoryRecord[] = [];
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    if (saved) {
+      history = JSON.parse(saved);
+    }
+    
+    history.unshift(session);
+    
+    // Keep last 20 sessions
+    if (history.length > 20) {
+      history = history.slice(0, 20);
+    }
+    
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn('Failed to add session to history:', e);
+  }
+}
+
+function loadSessionHistory(): SessionHistoryRecord[] {
+  try {
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    console.warn('Failed to load session history:', e);
+    return [];
+  }
+}
+
+function deleteSessionHistoryRecord(recordId: string) {
+  try {
+    let history: SessionHistoryRecord[] = [];
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    if (saved) {
+      history = JSON.parse(saved);
+    }
+    
+    history = history.filter(r => r.id !== recordId);
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn('Failed to delete session history record:', e);
+  }
+}
+
+function clearSessionHistory() {
+  try {
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify([]));
+  } catch (e) {
+    console.warn('Failed to clear session history:', e);
+  }
+}
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -71,6 +200,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [isLeftHanded, setIsLeftHanded] = useState(() => {
     const saved = localStorage.getItem('hexigame.isLeftHanded');
     return saved ? saved === 'true' : false;
+  });
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryRecord[]>(() => loadSessionHistory());
+  const [lastSessionSaveTick, setLastSessionSaveTick] = useState(0);
+  const [trackSessionHistory, setTrackSessionHistory] = useState(() => {
+    const saved = localStorage.getItem('hexigame.trackSessionHistory');
+    return saved !== null ? saved === 'true' : true; // Default true
+  });
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionStartTick, setCurrentSessionStartTick] = useState<number>(0);
+  const [selectedColorIndex, setSelectedColorIndex] = useState<number>(() => {
+    const saved = localStorage.getItem('hexigame.selectedColorIndex');
+    return saved ? parseInt(saved, 10) : mergedParams.PlayerBaseColorIndex;
+  });
+  const [showColorWidget, setShowColorWidget] = useState(() => {
+    const saved = localStorage.getItem('hexigame.showColorWidget');
+    return saved !== null ? saved === 'true' : true; // Default visible
   });
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
     const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
@@ -188,6 +333,26 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     }
   }, [isSettingsOpen, guestStarted]);
 
+  // Save session history every 360 ticks (~30 seconds) if enabled
+  useEffect(() => {
+    if (!guestStarted || !trackSessionHistory || !currentSessionId) return;
+    const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
+    if (ticksSinceLastSave >= 360) {
+      saveSessionHistoryRecord(currentSessionId, gameState.tick);
+      setLastSessionSaveTick(gameState.tick);
+      setSessionHistory(loadSessionHistory());
+    }
+  }, [gameState.tick, guestStarted, trackSessionHistory, currentSessionId, lastSessionSaveTick]);
+
+  // Save track session history setting
+  useEffect(() => {
+    try {
+      localStorage.setItem('hexigame.trackSessionHistory', String(trackSessionHistory));
+    } catch (e) {
+      console.warn('Failed to save track session history setting:', e);
+    }
+  }, [trackSessionHistory]);
+
   // Handle template audio feedback
   const prevTemplateStateRef = useRef<GameState['activeTemplate']>(null);
   useEffect(() => {
@@ -236,6 +401,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       integration.onGameplayStop();
     }
   }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen]);
+
+  // Save selected color index
+  useEffect(() => {
+    localStorage.setItem('hexigame.selectedColorIndex', String(selectedColorIndex));
+  }, [selectedColorIndex]);
+
+  // Save color widget visibility
+  useEffect(() => {
+    localStorage.setItem('hexigame.showColorWidget', String(showColorWidget));
+  }, [showColorWidget]);
 
   // Derived HUD data
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
@@ -430,15 +605,28 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           {isMobileLayout && mobileTab === 'hexipedia' ? (
             <HexiPedia
               gameState={gameState}
+              params={mergedParams}
               interactionMode={interactionMode}
               tutorialLevel={tutorialLevel}
               tutorialLevelId={tutorialLevelId}
               isTutorialTaskComplete={isTutorialTaskComplete}
               completedTutorialLevelIds={completedTutorialLevelIds}
+              sessionHistory={sessionHistory}
+              trackSessionHistory={trackSessionHistory}
               onSelectTutorialLevel={handleSelectTutorialLevel}
               onRestartTutorialLevel={handleRestartTutorialLevel}
+              onToggleTrackHistory={(enabled) => setTrackSessionHistory(enabled)}
+              onDeleteSessionRecord={(recordId) => {
+                deleteSessionHistoryRecord(recordId);
+                setSessionHistory(loadSessionHistory());
+              }}
+              onClearSessionHistory={() => {
+                clearSessionHistory();
+                setSessionHistory([]);
+              }}
               onSwitchTab={(tab) => {
                 if (tab === 'heximap') setMobileTab('heximap');
+                if (tab === 'colors') setMobileTab('hexipedia'); // Keep in hexipedia but focus on colors
               }}
               onActivateTemplate={(templateId) => {
                 if (templateId === '') {
@@ -447,6 +635,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                   dispatch({ type: 'ACTIVATE_TEMPLATE', templateId });
                 }
               }}
+              selectedColorIndex={selectedColorIndex}
+              onColorSelect={(index) => setSelectedColorIndex(index)}
+              showColorWidget={showColorWidget}
+              onToggleColorWidget={(visible) => setShowColorWidget(visible)}
+              currentSessionStartTick={currentSessionStartTick}
             />
           ) : (
             <GameField
@@ -532,6 +725,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               }
               visitedTutorialCells={gameState.tutorialProgress?.visitedTargetKeys ?? new Set()}
               hideHotbar={tutorialLevel?.hideHotbar ?? false}
+              selectedColorIndex={selectedColorIndex}
+              onColorSelect={(index) => setSelectedColorIndex(index)}
+              onNavigateToPalette={() => {
+                if (isMobileLayout) {
+                  setMobileTab('hexipedia');
+                }
+                // TODO: Open HexiPedia and navigate to Colors section
+              }}
+              showColorWidget={showColorWidget}
             />
           )}
         </div>
@@ -554,6 +756,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         <GuestStart onStart={() => {
           localStorage.setItem('hexigame.guest.started', '1');
           setGuestStarted(true);
+          
+          // Create new session
+          if (trackSessionHistory) {
+            const newSession = createNewSession();
+            setCurrentSessionId(newSession.id);
+            addSessionToHistory(newSession);
+            setSessionHistory(loadSessionHistory());
+            setCurrentSessionStartTick(0); // Start tick tracking from 0
+          }
+          
           audioManager.playRandomSound();
           // Play music immediately on user interaction (required for mobile autoplay policy)
           if (musicEnabled) {
@@ -567,6 +779,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           onResetSession={() => {
             resetSession();
             setGuestStarted(false);
+            setCurrentSessionId(null); // End current session
+            setCurrentSessionStartTick(0); // Reset session tick tracking
             setTutorialLevelId('tutorial_1_movement');
             setMobileTab('hexipedia');
           }}

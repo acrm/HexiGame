@@ -152,6 +152,14 @@ No hard end: when `RemainingSeconds == 0` logic continues; only time display sto
 - Dropping (Space press) during a charge is interpreted as charge start only if not carrying.
 - If the player begins a charge over an empty cell, releasing Space does nothing.
 
+### 2.10 Auto-Move (Click-to-Move)
+When the player clicks on a non-adjacent hex cell:
+- **`autoFocusTarget`**: Target cell where focus should land after protagonist arrives and faces it.
+- **`autoMovePath`**: Greedy pathfinding (each step minimizes remaining hex distance) computes the route; stored as list of intermediate cells from protagonist to target.
+- **Movement**: Every 2 ticks, protagonist moves one step closer using greedy direction selection.
+- **Arrival**: When adjacent to `autoFocusTarget`, protagonist orients to face it, focus updates to the target, and `autoFocusTarget` clears.
+- **Cancellation**: Dragging (hold + move current focus/protagonist) cancels auto-move and clears the path.
+
 ---
 ## 3. Implementation Details (Current Prototype)
 
@@ -167,6 +175,11 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - HUD shows dynamic chance string; logic only supplies numeric chance.
 - Tutorial tasks are freely selectable in HexiPedia; completed tasks are tracked and can be restarted on demand.
 - Tutorial completion only fires on state transition (incomplete → complete), then auto-advances to the next task in order.
+- **Auto-move visualization**: 
+  - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
+  - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).
+  - Protagonist focus animation *disappears* during auto-move; reappears with normal rotating-edges animation when auto-move completes.
+  - Path is computed via greedy distance minimization and stored in `GameState.autoMovePath` for rendering.
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:
@@ -410,6 +423,13 @@ Defined in `src/templates/templateLogic.ts`:
   - Uses the same content width as the tutorial progress widget
 
 ### 8.4 Session Persistence
+- **Session History Tracking**:
+  - Each game session is assigned a unique ID on guest start
+  - Session = time from guest start to session reset (new game)
+  - Session records track: startTime, endTime, gameTicks, gameTime (MM:SS)
+  - Auto-saves every 360 ticks (~30 seconds) via updating existing session record
+  - History stores last 20 sessions in localStorage
+  - User can toggle session tracking in settings
 - **Tutorial Progress**: Tracks visited target cells per level (in-session)
 - **Completed Templates**: Persists across sessions (set of completed template IDs)
 - **Tutorial Level State**: Current level + completion status maintained in GameState

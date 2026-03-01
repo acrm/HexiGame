@@ -55,6 +55,21 @@ function computeEdgeIndexForFocusCell(tickCount: number, edgesPerCycle = 6) {
   return Math.floor(phase * edgesPerCycle) % edgesPerCycle;
 }
 
+// Compute flicker alpha (oscillates 0..1 with period)
+function computeFlickerAlpha(tickCount: number, period: number = 8): number {
+  const phase = (tickCount % period) / period;
+  // Flicker: 0 to 1 to 0 over period
+  return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+}
+
+// Draw frozen focus with three static edges (no rotation, no flicker)
+function drawFrozenFocus(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, color: string) {
+  // Draw 3 evenly spaced static edges: 0, 2, 4
+  drawEdgeHighlight(ctx, centerX, centerY, 0, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, 2, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, 4, size, color);
+}
+
 // Draw two opposite rotating edges (edges 0 and 3 at cycle start)
 function drawRotatingOppositeFaces(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number, color: string) {
   const currentEdge = computeEdgeIndexForFocusCell(tickCount, 6);
@@ -80,7 +95,7 @@ function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, cente
   ctx.moveTo(p1[0], p1[1]);
   ctx.lineTo(p2[0], p2[1]);
   ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 1;
   ctx.stroke();
 }
 
@@ -140,6 +155,10 @@ interface GameFieldProps {
   visitedTutorialCells?: Set<string>;
   hideHotbar?: boolean;
   paletteTopOffset?: number;
+  selectedColorIndex?: number;
+  onColorSelect?: (index: number) => void;
+  onNavigateToPalette?: () => void;
+  showColorWidget?: boolean;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -163,6 +182,10 @@ export const GameField: React.FC<GameFieldProps> = ({
   visitedTutorialCells = new Set(),
   hideHotbar = false,
   paletteTopOffset = 8,
+  selectedColorIndex,
+  onColorSelect,
+  onNavigateToPalette,
+  showColorWidget = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -418,26 +441,6 @@ export const GameField: React.FC<GameFieldProps> = ({
       // Check if turtle is moving (has auto-move target and is not at turtle position)
       const isTurtleMoving = !isInventory && autoMoveTarget &&
           (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r);
-
-      // Draw focus cell with rotating opposite faces ONLY if not moving
-      if (!isInventory && !isTurtleMoving) {
-        const pos = hexToPixel(focusCell.q, focusCell.r);
-        const scaledX = centerX + pos.x * scale;
-        const scaledY = centerY + pos.y * scale;
-        
-        // Use game tick for animation (12 ticks/sec, 1 edge every 4 ticks)
-        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
-      }
-
-      // Draw auto-move target (cursor) with rotating edges 2x faster when moving
-      if (!isInventory && gameState.autoFocusTarget && autoMoveTarget &&
-          (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r)) {
-        const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
-        const scaledX = centerX + pos.x * scale;
-        const scaledY = centerY + pos.y * scale;
-        // 2x faster: multiply tick by 2 for 2x rotation speed
-        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick * 2, '#FFFFFF');
-      }
 
       // In inventory mode: draw turtle background first, then inventoryGrid naturally
       if (isInventory) {
@@ -761,6 +764,40 @@ export const GameField: React.FC<GameFieldProps> = ({
       // Render template overlay if active
       renderTemplateOverlay(ctx, gameState, params, centerX, centerY, gameState.tick, scale);
 
+      // === DRAW FOCUS AND PATH MARKERS ON TOP OF EVERYTHING ===
+      // Draw focus cell with rotating opposite faces ONLY if not moving
+      if (!isInventory && !isTurtleMoving) {
+        const pos = hexToPixel(focusCell.q, focusCell.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        
+        // Use game tick for animation (12 ticks/sec, 1 edge every 4 ticks)
+        drawRotatingOppositeFaces(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick, '#FFFFFF');
+      }
+
+      // Draw path markers (white dots on intermediate path cells, same size as grid dots)
+      if (!isInventory && gameState.autoMovePath && gameState.autoMovePath.length > 0) {
+        ctx.fillStyle = '#FFFFFF';
+        const pathDotRadius = 0.8 * scale;
+        gameState.autoMovePath.forEach((pathCell) => {
+          const pos = hexToPixel(pathCell.q, pathCell.r);
+          const scaledX = centerX + pos.x * scale;
+          const scaledY = centerY + pos.y * scale;
+          ctx.beginPath();
+          ctx.arc(scaledX, scaledY, pathDotRadius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      // Draw auto-move target (cursor) with frozen focus when moving
+      if (!isInventory && gameState.autoFocusTarget) {
+        const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        // Draw frozen focus with three static edges
+        drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF');
+      }
+
       ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.globalAlpha = 0.85;
@@ -848,14 +885,16 @@ export const GameField: React.FC<GameFieldProps> = ({
   return (
     <div ref={canvasContainerRef} className="game-field" style={{ position: 'relative' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
-      <ColorPaletteWidget
-        colorPalette={params.ColorPalette}
-        focusColorIndex={
-          gameState.grid.get(`${gameState.focus.q},${gameState.focus.r}`)?.colorIndex ?? params.PlayerBaseColorIndex
-        }
-        playerBaseColorIndex={params.PlayerBaseColorIndex}
-        topOffset={paletteTopOffset}
-      />
+      {showColorWidget && (
+        <ColorPaletteWidget
+          colorPalette={params.ColorPalette}
+          selectedColorIndex={selectedColorIndex ?? params.PlayerBaseColorIndex}
+          playerBaseColorIndex={params.PlayerBaseColorIndex}
+          topOffset={paletteTopOffset}
+          onColorSelect={onColorSelect}
+          onNavigateToPalette={onNavigateToPalette}
+        />
+      )}
     </div>
   );
 };

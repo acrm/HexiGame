@@ -96,6 +96,52 @@ describe('Auto-move to target', () => {
     // Without autoMove protagonist does not move
     expect(g.getProtagonistPosition()).toEqual(before);
   });
+
+  it('focus lands on target cell after auto-move (straight line)', () => {
+    const g = createFacade(emptyParams);
+    const targetFocus = { q: 5, r: 0 };
+    g.moveToTarget(targetFocus);
+    g.tick(20); // Allow enough time to complete movement
+    expect(g.isAutoMoving()).toBe(false);
+    expect(g.getFocusPosition()).toEqual(targetFocus);
+  });
+
+  it('focus lands on target cell after auto-move (diagonal)', () => {
+    const g = createFacade(emptyParams);
+    const targetFocus = { q: 3, r: 3 };
+    g.moveToTarget(targetFocus);
+    g.tick(20);
+    expect(g.isAutoMoving()).toBe(false);
+    expect(g.getFocusPosition()).toEqual(targetFocus);
+  });
+
+  it('focus lands on target cell after auto-move (negative coords)', () => {
+    const g = createFacade(emptyParams);
+    const targetFocus = { q: -4, r: 2 };
+    g.moveToTarget(targetFocus);
+    g.tick(20);
+    expect(g.isAutoMoving()).toBe(false);
+    expect(g.getFocusPosition()).toEqual(targetFocus);
+  });
+
+  it('focus lands on target cell from various starting directions', () => {
+    const testCases = [
+      { target: { q: 3, r: 0 } },   // Right
+      { target: { q: -3, r: 0 } },  // Left
+      { target: { q: 0, r: 3 } },   // Down
+      { target: { q: 0, r: -3 } },  // Up
+      { target: { q: 2, r: 2 } },   // Down-right diagonal
+      { target: { q: -2, r: -2 } }, // Up-left diagonal
+    ];
+
+    for (const testCase of testCases) {
+      const g = createFacade(emptyParams);
+      g.moveToTarget(testCase.target);
+      g.tick(20);
+      expect(g.isAutoMoving()).toBe(false);
+      expect(g.getFocusPosition()).toEqual(testCase.target);
+    }
+  });
 });
 
 describe('Facing direction rotation', () => {
