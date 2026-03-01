@@ -33,7 +33,10 @@ export interface GameState {
   autoMoveTarget?: Axial | null;
   autoMoveTicksRemaining?: number;
   autoFocusTarget?: Axial | null;
+  autoMovePath?: Axial[];
+  autoMoveTargetDir?: number | null;
   worldViewCenter?: Axial;
+  cameraLastMoveTick?: number;
 
   tutorialLevelId?: string | null;
   tutorialProgress?: {

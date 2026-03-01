@@ -21,6 +21,7 @@ export {
   findDirectionToward,
   ensureGeneratedAround,
   updateWorldViewCenter,
+  computePath,
   generateGrid,
   createInitialState,
 } from './core/grid';

@@ -106,28 +106,71 @@ export function ensureGeneratedAround(state: GameState, params: Params, rng?: RN
   return { ...state, grid: updateCells(state.grid, toAdd) };
 }
 
-export function updateWorldViewCenter(state: GameState, params: Params): GameState {
-  const currentCenter = state.worldViewCenter ?? state.protagonist;
-  const maxOffset = Math.max(1, Math.floor(params.GridRadius / 2));
-  const dist = axialDistance(currentCenter, state.protagonist);
+// Compute path from source to target using greedy pathfinding
+export function computePath(from: Axial, to: Axial, maxSteps: number = 100): Axial[] {
+  const path: Axial[] = [];
+  let current = { ...from };
+  let steps = 0;
 
-  if (dist <= maxOffset) {
-    if (!state.worldViewCenter) {
-      return { ...state, worldViewCenter: { ...currentCenter } };
-    }
+  while (steps < maxSteps) {
+    if (current.q === to.q && current.r === to.r) break;
+    const dirIndex = findDirectionToward(current.q, current.r, to.q, to.r);
+    if (dirIndex === null) break;
+    const dir = axialDirections[dirIndex];
+    current = { q: current.q + dir.q, r: current.r + dir.r };
+    path.push({ ...current });
+    steps++;
+  }
+
+  return path;
+}
+
+export function updateWorldViewCenter(state: GameState, params: Params): GameState {
+  // Determine camera target
+  let targetCenter: Axial;
+
+  if (state.autoFocusTarget) {
+    // When moving to a target, camera aims at the target cell (independent movement)
+    targetCenter = state.autoFocusTarget;
+  } else {
+    // Normal mode: camera positioned ahead of protagonist so turtle is 3 cells from rear edge
+    const forwardDir = axialDirections[state.facingDirIndex];
+    const offset = Math.max(0, params.GridRadius - 3);
+    targetCenter = {
+      q: state.protagonist.q + forwardDir.q * offset,
+      r: state.protagonist.r + forwardDir.r * offset,
+    };
+  }
+
+  const currentCenter = state.worldViewCenter ?? targetCenter;
+  const dist = axialDistance(currentCenter, targetCenter);
+
+  // Camera at target - no movement needed
+  if (dist === 0) {
+    return state.worldViewCenter ? state : { ...state, worldViewCenter: currentCenter, cameraLastMoveTick: state.tick };
+  }
+
+  // Lagged camera: move only once every CameraLagTicks ticks
+  const lastMoveTick = state.cameraLastMoveTick ?? 0;
+  const ticksSinceLastMove = state.tick - lastMoveTick;
+
+  if (ticksSinceLastMove < params.CameraLagTicks) {
     return state;
   }
 
-  const steps = dist - maxOffset;
-  let center = { ...currentCenter };
-  for (let i = 0; i < steps; i++) {
-    const dirIndex = findDirectionToward(center.q, center.r, state.protagonist.q, state.protagonist.r);
-    if (dirIndex === null) break;
-    const dir = axialDirections[dirIndex];
-    center = { q: center.q + dir.q, r: center.r + dir.r };
+  // Move 1 step toward target
+  const dirIndex = findDirectionToward(currentCenter.q, currentCenter.r, targetCenter.q, targetCenter.r);
+  if (dirIndex === null) {
+    return { ...state, worldViewCenter: targetCenter, cameraLastMoveTick: state.tick };
   }
 
-  return { ...state, worldViewCenter: center };
+  const dir = axialDirections[dirIndex];
+  const newCenter = {
+    q: currentCenter.q + dir.q,
+    r: currentCenter.r + dir.r,
+  };
+
+  return { ...state, worldViewCenter: newCenter, cameraLastMoveTick: state.tick };
 }
 
 export function generateGrid(params: Params, rng: RNG): Grid {
@@ -157,7 +200,17 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     }
   }
   const start: Axial = { q: 0, r: 0 };
-  const startFocus = addAxial(start, axialDirections[0]);
+  const initialFacingDirIndex = 0;
+  const startFocus = addAxial(start, axialDirections[initialFacingDirIndex]);
+
+  // Initial camera center: ahead of protagonist so turtle is 3 cells from rear edge
+  const forwardDir = axialDirections[initialFacingDirIndex];
+  const cameraOffset = Math.max(0, params.GridRadius - 3);
+  const initialViewCenter = {
+    q: start.q + forwardDir.q * cameraOffset,
+    r: start.r + forwardDir.r * cameraOffset,
+  };
+
   return {
     tick: 0,
     remainingSeconds: params.TimerInitialSeconds,
@@ -168,13 +221,14 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     activeField: 'world',
     hotbarSlots: [null, null, null, null, null, null],
     selectedHotbarIndex: 0,
-    facingDirIndex: 0,
+    facingDirIndex: initialFacingDirIndex,
     grid,
     isDragging: false,
     autoMoveTarget: null,
     autoMoveTicksRemaining: 0,
     autoFocusTarget: null,
-    worldViewCenter: { ...start },
+    worldViewCenter: initialViewCenter,
+    cameraLastMoveTick: 0,
     tutorialCompletedLevelIds: new Set(),
   };
 }

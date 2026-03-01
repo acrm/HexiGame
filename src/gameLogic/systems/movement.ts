@@ -9,6 +9,7 @@ import {
   findDirectionToward,
   ensureGeneratedAround,
   updateWorldViewCenter,
+  computePath,
 } from '../core/grid';
 
 export function rotateFacing(state: GameState, deltaSteps: number): GameState {
@@ -26,37 +27,22 @@ export function updateFocusPosition(state: GameState): GameState {
 export function startAutoMove(state: GameState, target: Axial, params: Params): GameState {
   if (state.isDragging) return state;
 
-  let bestProtagonistPos: Axial | null = null;
-  let bestDir = 0;
-  let minDist = Infinity;
-
-  for (let dirIdx = 0; dirIdx < 6; dirIdx++) {
-    const dir = axialDirections[dirIdx];
-    const candidatePos = { q: target.q - dir.q, r: target.r - dir.r };
-
-    const dist = Math.abs(state.protagonist.q - candidatePos.q) +
-                 Math.abs(state.protagonist.r - candidatePos.r) +
-                 Math.abs(-state.protagonist.q - state.protagonist.r + candidatePos.q + candidatePos.r);
-    if (dist < minDist) {
-      minDist = dist;
-      bestProtagonistPos = candidatePos;
-      bestDir = dirIdx;
-    }
-  }
-
-  if (!bestProtagonistPos) return state;
+  // Target is where the FOCUS should end up.
+  // Compute path for visualization.
+  const path = computePath(state.protagonist, target);
 
   return {
     ...state,
-    autoMoveTarget: bestProtagonistPos,
-    autoMoveTicksRemaining: 0,
-    facingDirIndex: bestDir,
     autoFocusTarget: { ...target },
+    autoMoveTarget: null,
+    autoMoveTicksRemaining: 0,
+    autoMoveTargetDir: null,
+    autoMovePath: path,
   };
 }
 
 export function startDrag(state: GameState): GameState {
-  return { ...state, isDragging: true, autoMoveTarget: null };
+  return { ...state, isDragging: true, autoMoveTarget: null, autoFocusTarget: null, autoMovePath: undefined };
 }
 
 export function endDrag(state: GameState): GameState {
@@ -83,14 +69,14 @@ export function dragMoveProtagonist(state: GameState, params: Params, dq: number
 }
 
 export function attemptMoveByDirectionIndex(state: GameState, params: Params, dirIndex: number): GameState {
-  if (state.isDragging || state.autoMoveTarget) return state;
+  if (state.isDragging || state.autoFocusTarget) return state;
   const normIndex = ((dirIndex % 6) + 6) % 6;
   const next = { ...state, facingDirIndex: normIndex };
   return updateFocusPosition(next);
 }
 
 export function attemptMoveByDelta(state: GameState, params: Params, dq: number, dr: number): GameState {
-  if (state.isDragging || state.autoMoveTarget) return state;
+  if (state.isDragging || state.autoFocusTarget) return state;
   const target = { q: state.focus.q + dq, r: state.focus.r + dr };
   const matchedIndex = axialDirections.findIndex(
     d => state.focus.q + d.q === target.q && state.focus.r + d.r === target.r,

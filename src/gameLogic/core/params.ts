@@ -20,6 +20,7 @@ export interface Params {
   CarryFlickerOnFraction: number;
   CarryingMoveRequiresEmpty: boolean;
   GameTickRate: number;
+  CameraLagTicks: number;
 }
 
 export function mulberry32(seed: number): RNG {
@@ -87,4 +88,5 @@ export const DefaultParams: Params = {
   CarryFlickerOnFraction: 0.5,
   CarryingMoveRequiresEmpty: true,
   GameTickRate: 12,
+  CameraLagTicks: 2,
 };

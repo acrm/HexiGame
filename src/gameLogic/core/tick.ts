@@ -2,6 +2,7 @@ import type { GameState, RNG } from './types';
 import type { Params } from './params';
 import {
   axialDirections,
+  axialDistance,
   findDirectionToward,
   ensureGeneratedAround,
   updateWorldViewCenter,
@@ -15,34 +16,45 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = { ...next, flash: null };
   }
 
-  if (next.autoMoveTarget && !next.isDragging) {
+  // Auto-movement logic: move 1 cell every 2 ticks (via autoFocusTarget)
+  if (next.autoFocusTarget && !next.isDragging) {
     if (next.autoMoveTicksRemaining === undefined || next.autoMoveTicksRemaining <= 0) {
-      if (next.protagonist.q === next.autoMoveTarget.q && next.protagonist.r === next.autoMoveTarget.r) {
-        if (next.autoFocusTarget) {
-          const dirTowardFocus = findDirectionToward(
-            next.protagonist.q, next.protagonist.r,
-            next.autoFocusTarget.q, next.autoFocusTarget.r
-          );
-          if (dirTowardFocus !== null) {
-            next = { ...next, facingDirIndex: dirTowardFocus };
-          }
-        }
-        next = updateFocusPosition(next);
-        next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0, autoFocusTarget: null };
-      } else {
-        const dirIndex = findDirectionToward(
-          next.protagonist.q, next.protagonist.r,
-          next.autoMoveTarget.q, next.autoMoveTarget.r
+      const distToFocusTarget = axialDistance(next.protagonist, next.autoFocusTarget);
+
+      if (distToFocusTarget === 1) {
+        // Adjacent — face target and stop
+        const dirIndex = axialDirections.findIndex(
+          d => next.protagonist.q + d.q === next.autoFocusTarget!.q &&
+               next.protagonist.r + d.r === next.autoFocusTarget!.r
         );
+        if (dirIndex !== -1) {
+          next = { ...next, facingDirIndex: dirIndex };
+          next = updateFocusPosition(next);
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
+        } else {
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
+        }
+      } else if (distToFocusTarget > 1) {
+        // Move one step closer
+        const dirIndex = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoFocusTarget.q, next.autoFocusTarget.r);
         if (dirIndex !== null) {
           const dir = axialDirections[dirIndex];
           const newPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
           next = { ...next, protagonist: newPos, facingDirIndex: dirIndex, autoMoveTicksRemaining: 2 };
           next = updateFocusPosition(next);
+          // Remove current position from path if it's at the front
+          if (next.autoMovePath && next.autoMovePath.length > 0) {
+            const firstPath = next.autoMovePath[0];
+            if (firstPath.q === newPos.q && firstPath.r === newPos.r) {
+              next = { ...next, autoMovePath: next.autoMovePath.slice(1) };
+            }
+          }
         } else {
-          next = { ...next, autoMoveTarget: null, autoMoveTicksRemaining: 0 };
-          next = updateFocusPosition(next);
+          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
         }
+      } else {
+        // distToFocusTarget === 0 — protagonist ON target, clean up
+        next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
       }
     } else {
       next = { ...next, autoMoveTicksRemaining: next.autoMoveTicksRemaining - 1 };
@@ -57,7 +69,8 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     next = { ...next, remainingSeconds: next.remainingSeconds - 1 };
   }
 
-  if (!next.isDragging) {
+  // Always keep focus updated when not dragging and not auto-moving
+  if (!next.isDragging && !next.autoFocusTarget) {
     next = updateFocusPosition(next);
   }
 
