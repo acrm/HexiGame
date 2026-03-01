@@ -7,6 +7,14 @@ import { audioManager } from '../audio/audioManager';
 import { ALL_TEMPLATES } from '../templates/templateLibrary';
 import './HexiPedia.css';
 
+interface SessionHistoryRecord {
+  id: string;
+  startTime: number;
+  endTime: number;
+  gameTicks: number;
+  gameTime: string;
+}
+
 interface HexiPediaProps {
   gameState: GameState;
   interactionMode: 'desktop' | 'mobile';
@@ -14,6 +22,7 @@ interface HexiPediaProps {
   tutorialLevelId?: string | null;
   isTutorialTaskComplete?: boolean;
   completedTutorialLevelIds?: Set<string>;
+  sessionHistory?: SessionHistoryRecord[];
   onSelectTutorialLevel?: (levelId: string) => void;
   onRestartTutorialLevel?: (levelId: string) => void;
   onSwitchTab?: (tab: string) => void;
@@ -27,6 +36,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   tutorialLevelId,
   isTutorialTaskComplete = false,
   completedTutorialLevelIds,
+  sessionHistory = [],
   onSelectTutorialLevel,
   onRestartTutorialLevel,
   onSwitchTab,
@@ -286,6 +296,44 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           <span className="hexipedia-stat-label">{t('stats.sessionTicks')}</span>
                           <span className="hexipedia-stat-value">{sessionDuration}</span>
                         </div>
+                        
+                        {/* Session History Subsection */}
+                        {sessionHistory.length > 0 && (
+                          <div className="hexipedia-history-subsection">
+                            <div className="hexipedia-history-title">История сессий</div>
+                            <div className="hexipedia-history-list">
+                              {sessionHistory.slice(0, 10).map((record) => {
+                                const startDate = new Date(record.startTime);
+                                const endDate = new Date(record.endTime);
+                                const dateStr = startDate.toLocaleDateString('ru-RU', { 
+                                  month: '2-digit', 
+                                  day: '2-digit' 
+                                });
+                                const startTimeStr = startDate.toLocaleTimeString('ru-RU', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                });
+                                const endTimeStr = endDate.toLocaleTimeString('ru-RU', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                });
+                                
+                                return (
+                                  <div key={record.id} className="hexipedia-history-item">
+                                    <div className="hexipedia-history-date">{dateStr}</div>
+                                    <div className="hexipedia-history-time">
+                                      {startTimeStr} — {endTimeStr}
+                                    </div>
+                                    <div className="hexipedia-history-stats">
+                                      <span className="hexipedia-history-duration">{record.gameTime}</span>
+                                      <span className="hexipedia-history-ticks">({record.gameTicks}т)</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

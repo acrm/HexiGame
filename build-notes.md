@@ -435,3 +435,5 @@
 - 2026w10-0.5 — Fix auto-move focus target logic, add camera lag param
 
 - 2026w10-0.6 — Independent camera and turtle movement to target
+
+- 2026w10-0.7 — Add session history to HexiPedia stats

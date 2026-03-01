@@ -39,6 +39,15 @@ import { axialToKey, getHintForMode } from '../tutorial/tutorialState';
 
 // Session persistence helpers
 const SESSION_STORAGE_KEY = 'hexigame.session.state';
+const SESSION_HISTORY_KEY = 'hexigame.session.history';
+
+type SessionHistoryRecord = {
+  id: string;
+  startTime: number; // Unix timestamp in ms
+  endTime: number; // Unix timestamp in ms
+  gameTicks: number;
+  gameTime: string; // MM:SS format
+};
 
 type SerializedCell = { q: number; r: number; colorIndex: number | null };
 type SerializedActiveTemplate = {
@@ -236,6 +245,53 @@ function loadSessionState(): SessionState | null {
   }
 }
 
+// Format ticks into MM:SS
+function formatGameTime(ticks: number): string {
+  const seconds = Math.floor(ticks / 12); // 12 ticks per second
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
+function saveSessionHistoryRecord(ticks: number) {
+  try {
+    let history: SessionHistoryRecord[] = [];
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    if (saved) {
+      history = JSON.parse(saved);
+    }
+    
+    const now = Date.now();
+    const record: SessionHistoryRecord = {
+      id: `session_${now}`,
+      startTime: now - (ticks * 1000 / 12), // Estimate start time from ticks duration
+      endTime: now,
+      gameTicks: ticks,
+      gameTime: formatGameTime(ticks),
+    };
+    
+    // Keep last 20 sessions
+    history.unshift(record);
+    if (history.length > 20) {
+      history = history.slice(0, 20);
+    }
+    
+    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn('Failed to save session history:', e);
+  }
+}
+
+function loadSessionHistory(): SessionHistoryRecord[] {
+  try {
+    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    console.warn('Failed to load session history:', e);
+    return [];
+  }
+}
+
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
   const initialSessionStateRef = useRef(loadSessionState());
@@ -299,6 +355,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = localStorage.getItem('hexigame.isLeftHanded');
     return saved ? saved === 'true' : false;
   });
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryRecord[]>(() => loadSessionHistory());
+  const [lastSessionSaveTick, setLastSessionSaveTick] = useState(0);
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
     const savedLevelId = initialSessionStateRef.current?.gameState?.tutorialLevelId;
     if (savedLevelId !== undefined) return savedLevelId ?? null;
@@ -434,8 +492,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     if (guestStarted) {
       saveSessionState(gameState, { mobileTab });
+      
+      // Save session history every 360 ticks (~30 seconds) or on significant progress
+      const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
+      if (ticksSinceLastSave >= 360) {
+        saveSessionHistoryRecord(gameState.tick);
+        setLastSessionSaveTick(gameState.tick);
+        setSessionHistory(loadSessionHistory());
+      }
     }
-  }, [gameState, guestStarted, mobileTab]);
+  }, [gameState, guestStarted, mobileTab, lastSessionSaveTick]);
 
   // Handle template audio feedback
   const prevTemplateStateRef = useRef<GameState['activeTemplate']>(null);
@@ -767,6 +833,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               tutorialLevelId={tutorialLevelId}
               isTutorialTaskComplete={isTutorialTaskComplete}
               completedTutorialLevelIds={completedTutorialLevelIds}
+              sessionHistory={sessionHistory}
               onSelectTutorialLevel={handleSelectTutorialLevel}
               onRestartTutorialLevel={handleRestartTutorialLevel}
               onSwitchTab={(tab) => {
