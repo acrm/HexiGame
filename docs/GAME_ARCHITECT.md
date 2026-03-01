@@ -1,7 +1,7 @@
 # HexiGame — Architecture & Refactoring Strategy
 
-**Document Version:** 1.0  
-**Last Updated:** February 26, 2026  
+**Document Version:** 1.1  
+**Last Updated:** March 1, 2026  
 **Focus:** Current architecture analysis, technical debt, and improvement roadmap
 
 ---
@@ -1121,17 +1121,17 @@ tests/
 
 **Оптимистичный сценарий** (2–3 часа/день):
 
-| Неделя | Milestone | Deliverable |
-|--------|-----------|-------------|
-| 1 | Design Facade API | `GameTestFacade.ts` (interface + stub) |
-| 2 | Implement Adapter | Facade работает с текущим `pureLogic.ts` |
-| 3 | Write Tests | 40+ тестов (movement, capture, inventory, templates) |
-| 4 | Golden Snapshots | 10 golden scenarios, regression baseline |
-| 5–6 | Refactor Core | `gameLogic/core/`, `systems/movement`, `systems/capture` |
-| 7 | Refactor Advanced | `systems/inventory`, `systems/template` |
-| 8 | Session Layer | `appLogic/sessionReducer.ts`, `viewModel.ts` |
-| 9 | UI Integration | `ui/components/Game.tsx` uses new architecture |
-| 10 | Cleanup | Delete `pureLogic.ts`, simplify facade, final tests |
+| Неделя | Milestone | Deliverable | Статус |
+|--------|-----------|-------------|--------|
+| 1 | Design Facade API | `GameTestFacade.ts` (interface + stub) | ✅ Готово |
+| 2 | Implement Adapter | Facade работает с текущим `pureLogic.ts` | ✅ Готово |
+| 3 | Write Tests | 40+ тестов (movement, capture, inventory, templates) | ✅ Готово (96 тестов) |
+| 4 | Golden Snapshots | 10 golden scenarios, regression baseline | ✅ Готово (`tests/golden/`) |
+| 5–6 | Refactor Core | `gameLogic/core/`, `systems/movement`, `systems/capture` | ✅ Готово |
+| 7 | Refactor Advanced | `systems/inventory`, `systems/template` | ✅ Готово |
+| 8 | Session Layer | `appLogic/sessionReducer.ts`, `viewModel.ts` | ✅ Готово |
+| 9 | UI Integration | `ui/components/Game.tsx` uses new architecture | ⏳ Следующий |
+| 10 | Cleanup | Delete `pureLogic.ts`, simplify facade, final tests | ⏳ Следующий |
 
 **Pessimistic сценарий** (+50% time): 15 недель (~4 месяца).
 
@@ -1151,57 +1151,56 @@ tests/
 
 ## 8. Actionable Next Steps
 
-### Immediate (This Week)
+### Completed (Phases 1–8) ✅
 
-1. **Review `refactor-notes.md`** ✅ (уже сделано в этом документе)
+1. **Review `refactor-notes.md`** ✅
 2. **Create `docs/GAME_ARCHITECT.md`** ✅ (этот документ)
-3. **Decide on Test Facade Strategy** 🔥 **НОВОЕ**
-   - [ ] Обсудить плюсы/минусы Test Facade
-   - [ ] Выбрать: Facade-First ИЛИ Direct Testing
-   - [ ] **Рекомендация**: Facade-First для HexiGame (см. секцию 7.1)
+3. **Test Facade Strategy** ✅ — выбрана Facade-First
 
-### Short-Term (Next 2 Weeks) — **Test Facade Route** 🎯
+**Weeks 1–2: Test Facade**
+- [x] Создать `tests/facade/GameTestFacade.ts` (interface)
+- [x] Реализовать `PureLogicAdapter.ts` для `pureLogic.ts`
+- [x] Создать `AppTestFacade.ts` + `AppLogicAdapter.ts` (app-level)
+- [x] Setup Vitest + test infrastructure
 
-**Week 1: Design Facade**
-- [ ] Создать `tests/facade/GameTestFacade.ts` (interface)
-- [ ] Определить Command API (~10 методов: move, eat, pressSpace, etc.)
-- [ ] Определить Query API (~15 методов: getPosition, getCellColor, etc.)
-- [ ] Определить Assertion API (~5 методов: assertColorConservation, etc.)
-- [ ] Stub implementation (все методы → `throw new Error('Not implemented')`)
+**Weeks 3–4: Comprehensive Testing**
+- [x] Smoke tests (13 сценариев)
+- [x] Movement tests (11 сценариев)
+- [x] Inventory/Hotbar tests (12 сценариев)
+- [x] Invariant tests (14 сценариев)
+- [x] App-logic tests (46 сценариев: keyboard, settings, mobile)
+- [x] Golden snapshot tests (10 сценариев: `tests/golden/golden.test.ts`)
+- [x] **Итого**: 106 тестов, все проходят ✅
 
-**Week 2: Implement Adapter**
-- [ ] Реализовать adapter для текущего `pureLogic.ts`
-- [ ] Написать smoke tests (5–10 базовых сценариев)
-- [ ] Setup Vitest + test infrastructure
-- [ ] Создать первый golden snapshot
+**Weeks 5–7: Core Refactoring**
+- [x] Create `src/gameLogic/core/types.ts` (Axial, Cell, Grid, GameState)
+- [x] Create `src/gameLogic/core/grid.ts` (grid helpers, pathfinding)
+- [x] Create `src/gameLogic/core/params.ts` (Params, DefaultParams)
+- [x] Create `src/gameLogic/core/tick.ts` (game loop)
+- [x] Create `src/gameLogic/systems/movement.ts`
+- [x] Create `src/gameLogic/systems/capture.ts`
+- [x] Create `src/gameLogic/systems/inventory.ts`
+- [x] Create `src/gameLogic/systems/template.ts`
+- [x] Create `src/gameLogic/index.ts` (barrel re-exports)
+- [x] Update `src/logic/pureLogic.ts` → re-exports from `gameLogic/` (backwards compat)
+- [x] Update facade adapter → imports from `gameLogic/` directly
+- [x] Verify: все 106 тестов проходят ✅
 
-### Mid-Term (Weeks 3–4) — **Comprehensive Testing**
+**Week 8: Session Layer**
+- [x] Create `src/appLogic/sessionReducer.ts` (GameCommand + sessionReducer)
+- [x] Create `src/appLogic/viewModel.ts` (GameViewModel + buildGameViewModel)
 
-- [ ] Movement tests (~10 сценариев)
-- [ ] Capture tests (~15 сценариев: success, failure, cooldown, probabilities)
-- [ ] Inventory/Hotbar tests (~8 сценариев)
-- [ ] Template tests (~6 шаблонов)
-- [ ] Tutorial tests (~4 уровня)
-- [ ] Invariant tests (~5 глобальных правил)
-- [ ] **Target**: 40+ integration tests, coverage ≥ 60%
+### Next Steps (Phases 9–10)
 
-### Mid-Term (Weeks 5–7) — **Core Refactoring**
+**Week 9: UI Integration**
+- [ ] Update `ui/components/Game.tsx` to use `useGameSession` hook
+- [ ] Create `src/ui/hooks/useGameSession.ts`
+- [ ] Create `src/ui/hooks/useKeyboardInput.ts`
+- [ ] Replace direct `pureLogic.ts` calls with `sessionReducer` dispatch
 
-- [ ] Create `src/gameLogic/core/` (types, grid, params)
-- [ ] Migrate movement → `gameLogic/systems/movement.ts`
-- [ ] Migrate capture → `gameLogic/systems/capture.ts`
-- [ ] Update facade adapter (switch imports from `pureLogic` → `gameLogic`)
-- [ ] Verify: all tests still pass ✅
-
-### Long-Term (Weeks 8–10) — **Advanced Systems & Cleanup**
-
-- [ ] Migrate inventory → `gameLogic/systems/inventory.ts`
-- [ ] Migrate templates → `gameLogic/systems/template.ts`
-- [ ] Create `appLogic/sessionReducer.ts`
-- [ ] Create `appLogic/viewModel.ts`
-- [ ] Update UI: `ui/components/Game.tsx` uses new architecture
+**Week 10: Cleanup**
 - [ ] Delete `src/logic/pureLogic.ts` 🎉
-- [ ] Simplify facade (remove temporary adapters)
+- [ ] Simplify facade adapter (no more pureLogic dependency)
 - [ ] Final test run: 100% pass, coverage ≥ 70%
 
 ### Post-Refactoring (Week 11+)

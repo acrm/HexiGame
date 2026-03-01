@@ -1,0 +1,251 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Golden: app-level keyboard + guest start > matches snapshot after keyboard moves in desktop mode (seed=42) 1`] = `
+{
+  "facingDirection": 0,
+  "focus": {
+    "q": 0,
+    "r": -1,
+  },
+  "hotbarSlots": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 300,
+  "selectedHotbarIndex": 0,
+  "tick": 3,
+  "totalColorCount": 0,
+}
+`;
+
+exports[`Golden: auto-move to target > matches snapshot after moveToTarget + 20 ticks (seed=42) 1`] = `
+{
+  "facingDirection": 2,
+  "focus": {
+    "q": 3,
+    "r": 0,
+  },
+  "hotbarSlots": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 2,
+    "r": 0,
+  },
+  "remainingSeconds": 299,
+  "selectedHotbarIndex": 0,
+  "tick": 20,
+  "totalColorCount": 0,
+}
+`;
+
+exports[`Golden: color conservation over 60 ticks > total color count equals snapshot after 60 ticks (seed=42, denseParams) 1`] = `
+{
+  "final": 331,
+  "initial": 331,
+}
+`;
+
+exports[`Golden: dense grid progression > matches snapshot after 12 ticks (seed=42, denseParams) 1`] = `
+{
+  "facingDirection": 0,
+  "focus": {
+    "q": 0,
+    "r": -1,
+  },
+  "hotbarSlots": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 299,
+  "selectedHotbarIndex": 0,
+  "tick": 12,
+  "totalColorCount": 331,
+}
+`;
+
+exports[`Golden: eat + move sequence > matches snapshot after eat then direction change (seed=42) 1`] = `
+{
+  "facingDirection": 3,
+  "focus": {
+    "q": 0,
+    "r": 1,
+  },
+  "hotbarSlots": [
+    2,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 300,
+  "selectedHotbarIndex": 0,
+  "tick": 5,
+  "totalColorCount": 1,
+}
+`;
+
+exports[`Golden: empty grid progression > matches snapshot after 20 ticks (seed=42, emptyParams) 1`] = `
+{
+  "facingDirection": 0,
+  "focus": {
+    "q": 0,
+    "r": -1,
+  },
+  "hotbarSlots": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 299,
+  "selectedHotbarIndex": 0,
+  "tick": 20,
+  "totalColorCount": 0,
+}
+`;
+
+exports[`Golden: exchange with hotbar slot > matches snapshot after exchange (seed=42) 1`] = `
+{
+  "facingDirection": 0,
+  "focus": {
+    "q": 0,
+    "r": -1,
+  },
+  "hotbarSlots": [
+    null,
+    3,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 300,
+  "selectedHotbarIndex": 1,
+  "tick": 0,
+  "totalColorCount": 2,
+}
+`;
+
+exports[`Golden: hotbar selection sequence > matches snapshot after selecting slots 0-5 (seed=42) 1`] = `
+{
+  "facingDirection": 0,
+  "focus": {
+    "q": 0,
+    "r": -1,
+  },
+  "hotbarSlots": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 300,
+  "selectedHotbarIndex": 2,
+  "tick": 0,
+  "totalColorCount": 0,
+}
+`;
+
+exports[`Golden: multi-eat sequence > matches snapshot after eating 3 hexes (seed=42) 1`] = `
+{
+  "facingDirection": 1,
+  "focus": {
+    "q": 1,
+    "r": -1,
+  },
+  "hotbarSlots": [
+    1,
+    2,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 300,
+  "selectedHotbarIndex": 0,
+  "tick": 0,
+  "totalColorCount": 3,
+}
+`;
+
+exports[`Golden: settings lifecycle > matches snapshot after settings open/close cycle (seed=42) 1`] = `
+{
+  "facingDirection": 0,
+  "focus": {
+    "q": 0,
+    "r": -1,
+  },
+  "hotbarSlots": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ],
+  "isAutoMoving": false,
+  "protagonist": {
+    "q": 0,
+    "r": 0,
+  },
+  "remainingSeconds": 300,
+  "selectedHotbarIndex": 0,
+  "tick": 5,
+  "totalColorCount": 0,
+}
+`;

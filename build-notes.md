@@ -425,3 +425,5 @@
 - 2026w09-0.31 — Fix tutorial cell visit registration logic
 
 - 2026w10-0.1 — Extract gameLogic module structure from pureLogic
+
+- 2026w10-0.2 — refactor phases 4-8: gameLogic modules, golden snapshots, sessionReducer, viewModel
