@@ -217,18 +217,13 @@ function updateWorldViewCenter(state: GameState, params: Params): GameState {
 
   const currentCenter = state.worldViewCenter ?? targetCenter;
   
-  // Smooth camera movement: max 1 cell per tick
+  // Inertial camera: wait until distance > 2 to start moving (smooths short jerks)
   const dist = axialDistance(currentCenter, targetCenter);
-  if (dist === 0) {
-    return state.worldViewCenter ? state : { ...state, worldViewCenter: targetCenter };
+  if (dist <= 2) {
+    return state.worldViewCenter ? state : { ...state, worldViewCenter: currentCenter };
   }
   
-  if (dist === 1) {
-    // Move directly to target (1 cell away)
-    return { ...state, worldViewCenter: targetCenter };
-  }
-  
-  // Move 1 step toward target
+  // Smooth camera movement: max 1 cell per tick
   const dirIndex = findDirectionToward(currentCenter.q, currentCenter.r, targetCenter.q, targetCenter.r);
   if (dirIndex === null) {
     return { ...state, worldViewCenter: targetCenter };
@@ -368,20 +363,31 @@ export function startAutoMove(state: GameState, target: Axial, params: Params): 
   
   // Calculate where protagonist needs to be so that focus lands on target
   // We need to find adjacent cell to target that's in the direction we'll face
+  // Prefer direction that aligns with final approach to minimize turns near target
   let bestProtagonistPos: Axial | null = null;
   let bestDir = 0;
-  let minDist = Infinity;
+  let minCost = Infinity;
   
   for (let dirIdx = 0; dirIdx < 6; dirIdx++) {
     const dir = axialDirections[dirIdx];
     // If focus is at target, protagonist is one step back (opposite direction)
     const candidatePos = { q: target.q - dir.q, r: target.r - dir.r };
     
-    const dist = Math.abs(state.protagonist.q - candidatePos.q) + 
-                 Math.abs(state.protagonist.r - candidatePos.r) +
-                 Math.abs(-state.protagonist.q - state.protagonist.r + candidatePos.q + candidatePos.r);
-    if (dist < minDist) {
-      minDist = dist;
+    const dist = axialDistance(state.protagonist, candidatePos);
+    
+    // Count turns needed for straight-line approach
+    const dq = candidatePos.q - state.protagonist.q;
+    const dr = candidatePos.r - state.protagonist.r;
+    const ds = -dq - dr;
+    
+    // Prefer path where we can move in one or two directions (fewer turns)
+    const axisChanges = (dq !== 0 ? 1 : 0) + (dr !== 0 ? 1 : 0) + (ds !== 0 ? 1 : 0);
+    
+    // Cost = distance + penalty for axis changes (prefer straighter paths)
+    const cost = dist * 10 + axisChanges * 5;
+    
+    if (cost < minCost) {
+      minCost = cost;
       bestProtagonistPos = candidatePos;
       bestDir = dirIdx;
     }
@@ -754,18 +760,37 @@ function performHotbarTransfer(state: GameState, params: Params): GameState {
 
 // Compute greedy shortest path from from->to (list of cells excluding start, including destination)
 export function computeShortestPath(from: Axial, to: Axial, params: Params): Axial[] {
+  // Build path that approaches target straight: do turns early, straight approach at end
   const path: Axial[] = [];
+  const dq = to.q - from.q;
+  const dr = to.r - from.r;
+  const ds = -dq - dr;
+  
+  // Determine primary and secondary movement axes
+  const absQ = Math.abs(dq);
+  const absR = Math.abs(dr);
+  const absS = Math.abs(ds);
+  
+  // Move along primary axis first, then secondary (minimizes turns near target)
   let cur = { q: from.q, r: from.r };
-  const maxSteps = axialDistance(from, to) + 2; // safe guard
-  for (let i = 0; i < maxSteps; i++) {
-    if (cur.q === to.q && cur.r === to.r) break;
-    const dirIndex = findDirectionToward(cur.q, cur.r, to.q, to.r);
-    if (dirIndex == null) break;
-    const dir = axialDirections[dirIndex];
-    const next = { q: cur.q + dir.q, r: cur.r + dir.r };
-    path.push(next);
-    cur = next;
+  
+  // Find which two axes need movement
+  const axes: Array<{delta: number, apply: (c: Axial) => Axial}> = [];
+  if (dq !== 0) axes.push({ delta: Math.abs(dq), apply: (c) => ({ q: c.q + Math.sign(dq), r: c.r }) });
+  if (dr !== 0) axes.push({ delta: Math.abs(dr), apply: (c) => ({ q: c.q, r: c.r + Math.sign(dr) }) });
+  
+  // Sort by delta descending - move along longer axis first
+  axes.sort((a, b) => b.delta - a.delta);
+  
+  // Apply movement along each axis
+  for (const axis of axes) {
+    for (let i = 0; i < axis.delta; i++) {
+      const next = axis.apply(cur);
+      path.push(next);
+      cur = next;
+    }
   }
+  
   return path;
 }
 

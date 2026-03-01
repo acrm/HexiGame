@@ -427,3 +427,5 @@
 - 2026w10-0.1 — Camera follows protagonist with asymmetric offset for better forward view
 
 - 2026w10-0.2 — Fix camera offset direction and add smooth movement (1 cell per tick)
+
+- 2026w10-0.3 — Improve path planning for straighter approach and add camera lag for smoother movement
