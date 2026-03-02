@@ -106,6 +106,11 @@ export function shouldDrawAutoFocusTargetOverlay(isInventory: boolean, isTurtleM
   return !isInventory && isTurtleMoving && hasAutoFocusTarget;
 }
 
+export function isAutoMoveInProgress(protagonist: Axial, autoFocusTarget?: Axial | null): boolean {
+  if (!autoFocusTarget) return false;
+  return axialDistance(protagonist, autoFocusTarget) > 1;
+}
+
 // Draw 5-pointed star
 function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, points: number, outer: number, inner: number, color: string) {
   const angle = Math.PI / 2;
@@ -443,11 +448,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       // Focus and target visuals
       const protagonistCell = gameState.protagonist;
       const focusCell = gameState.focus;
-      const autoMoveTarget = gameState.autoMoveTarget;
-
-      // Check if turtle is moving (has auto-move target and is not at turtle position)
-      const isTurtleMoving = !isInventory && autoMoveTarget &&
-          (autoMoveTarget.q !== protagonistCell.q || autoMoveTarget.r !== protagonistCell.r);
+        const isTurtleMoving = isAutoMoveInProgress(protagonistCell, gameState.autoFocusTarget);
 
       // In inventory mode: draw turtle background first, then inventoryGrid naturally
       if (isInventory) {

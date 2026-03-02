@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldDrawAutoFocusTargetOverlay, shouldDrawWorldFocusOverlay } from '../src/components/GameField';
+import { isAutoMoveInProgress, shouldDrawAutoFocusTargetOverlay, shouldDrawWorldFocusOverlay } from '../src/components/GameField';
 
 describe('World focus overlay rendering', () => {
   it('draws focus overlay in normal world state', () => {
@@ -24,5 +24,11 @@ describe('World focus overlay rendering', () => {
     expect(shouldDrawAutoFocusTargetOverlay(false, false, true)).toBe(false);
     expect(shouldDrawAutoFocusTargetOverlay(false, true, false)).toBe(false);
     expect(shouldDrawAutoFocusTargetOverlay(true, true, true)).toBe(false);
+  });
+
+  it('treats movement as in progress only when target is farther than one hex', () => {
+    expect(isAutoMoveInProgress({ q: 0, r: 0 }, null)).toBe(false);
+    expect(isAutoMoveInProgress({ q: 0, r: 0 }, { q: 1, r: 0 })).toBe(false);
+    expect(isAutoMoveInProgress({ q: 0, r: 0 }, { q: 2, r: 0 })).toBe(true);
   });
 });

@@ -647,7 +647,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           // Map color to angle (0-360 degrees)
                           const hue = (params.ColorPaletteStartHue + idx * params.ColorPaletteHueStep) % 360;
                           const angle = (hue - 90) * (Math.PI / 180); // -90 to start from top
-                          const radius = 90;
+                          const radius = 93;
                           const x = 150 + radius * Math.cos(angle);
                           const y = 150 + radius * Math.sin(angle);
                           const isSelected = idx === selectedColorIndex;
@@ -667,9 +667,6 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             </g>
                           );
                         })}
-
-                              {/* Center circle */}
-                              <circle cx="150" cy="150" r="15" fill="#333333" stroke="#666666" strokeWidth="1" />
                             </svg>
                           </div>
                         </div>

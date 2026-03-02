@@ -465,3 +465,5 @@
 - 2026w10-0.20 — Hide focus during auto-move, refine palette layout and optics toggle
 
 - 2026w10-0.21 — Restore frozen auto-move target marker, conic wheel gradient, compact colors list
+
+- 2026w10-0.22 — Fix cursor/focus decoupling in auto-move, narrow wheel ring, compact color list
