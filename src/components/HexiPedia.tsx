@@ -647,7 +647,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           // Map color to angle (0-360 degrees)
                           const hue = (params.ColorPaletteStartHue + idx * params.ColorPaletteHueStep) % 360;
                           const angle = (hue - 90) * (Math.PI / 180); // -90 to start from top
-                          const radius = 93;
+                          const radius = 128;
                           const x = 150 + radius * Math.cos(angle);
                           const y = 150 + radius * Math.sin(angle);
                           const isSelected = idx === selectedColorIndex;

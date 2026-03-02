@@ -88,5 +88,5 @@ export const DefaultParams: Params = {
   CarryFlickerOnFraction: 0.5,
   CarryingMoveRequiresEmpty: true,
   GameTickRate: 12,
-  CameraLagTicks: 2,
+  CameraLagTicks: 0,
 };
