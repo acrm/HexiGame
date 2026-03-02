@@ -461,3 +461,5 @@
 - 2026w10-0.18 — merge main into refactor branch — camera lag, path visualization, session history, color widget
 
 - 2026w10-0.19 — Fix gradient moiré (60 segments), compact percent format, widget toggle button
+
+- 2026w10-0.20 — Hide focus during auto-move, refine palette layout and optics toggle

@@ -670,16 +670,24 @@
 .hexipedia-colors-section {
   padding: 16px;
   border-top: 1px solid #444444;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
+  display: block;
+}
+
+.hexipedia-colors-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.hexipedia-colors-column {
+  min-width: 0;
 }
 
 .hexipedia-color-wheel {
-  flex-shrink: 0;
-  width: 200px;
-  height: 200px;
+  width: 100%;
+  height: auto;
+  max-width: 260px;
 }
 
 .hexipedia-colors-list {
@@ -718,6 +726,11 @@
   border: 1px solid #444444;
   border-radius: 3px;
   font-size: 11px;
+  cursor: pointer;
+}
+
+.hexipedia-color-item.selected {
+  border-color: #ffffff;
 }
 
 .hexipedia-color-swatch {
@@ -730,13 +743,15 @@
 
 .hexipedia-color-name {
   color: #cccccc;
-  min-width: 50px;
+  flex: 1;
 }
 
-.hexipedia-color-value {
-  color: #999999;
+.hexipedia-color-percent {
+  color: #bcdfff;
   font-family: 'Courier New', monospace;
   font-size: 10px;
+  min-width: 48px;
+  text-align: right;
 }
 
 @media (max-width: 600px) {

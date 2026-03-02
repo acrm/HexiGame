@@ -134,6 +134,38 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
+  const getColorNameByHue = (hue: number): string => {
+    const h = ((hue % 360) + 360) % 360;
+    if (h < 15 || h >= 345) return 'Красный';
+    if (h < 45) return 'Оранжевый';
+    if (h < 75) return 'Жёлтый';
+    if (h < 105) return 'Лаймовый';
+    if (h < 145) return 'Зелёный';
+    if (h < 175) return 'Бирюзовый';
+    if (h < 205) return 'Голубой';
+    if (h < 235) return 'Синий';
+    if (h < 265) return 'Индиго';
+    if (h < 295) return 'Фиолетовый';
+    if (h < 325) return 'Пурпурный';
+    return 'Малиновый';
+  };
+
+  const getRelativePercent = (index: number): number => {
+    const refIndex = selectedColorIndex ?? params.PlayerBaseColorIndex;
+    const paletteSize = params.ColorPalette.length;
+    let distance = index - refIndex;
+    while (distance > paletteSize / 2) distance -= paletteSize;
+    while (distance <= -paletteSize / 2) distance += paletteSize;
+    return (distance * 100) / paletteSize;
+  };
+
+  const formatRelativePercent = (value: number): string => {
+    if (value === 0) return '0%';
+    const absValue = Math.abs(value);
+    const rounded = Number.isInteger(absValue) ? absValue.toFixed(0) : absValue.toFixed(1);
+    return `${value > 0 ? '+' : '-'}${rounded}%`;
+  };
+
   const sessionDuration = gameState.tick - currentSessionStartTick;
 
   return (
@@ -578,6 +610,14 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                     <div className="hexipedia-section-controls">
                       <button
                         className="hexipedia-section-move"
+                        onClick={() => onToggleColorWidget?.(!showColorWidget)}
+                        title={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
+                        aria-label={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
+                      >
+                        ◉
+                      </button>
+                      <button
+                        className="hexipedia-section-move"
                         onClick={() => moveSectionUp('colors')}
                         disabled={!canMoveUp}
                         title="Move up"
@@ -598,29 +638,9 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                   </div>
                   {!isCollapsed && (
                     <div className="hexipedia-colors-section">
-                      {/* Widget visibility toggle */}
-                      <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button
-                          onClick={() => onToggleColorWidget?.(!showColorWidget)}
-                          style={{
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: showColorWidget ? '#4CAF50' : '#555555',
-                            border: '1px solid #777777',
-                            borderRadius: '4px',
-                            padding: '4px 8px',
-                            color: '#FFFFFF',
-                            fontSize: '14px',
-                          }}
-                        >
-                          <span style={{ fontSize: '16px' }}>{showColorWidget ? '👁️' : '⊘'}</span>
-                          <span>Виджет</span>
-                        </button>
-                      </div>
-
-                      <svg className="hexipedia-color-wheel" viewBox="0 0 300 300" width="200" height="200">
+                      <div className="hexipedia-colors-grid">
+                        <div className="hexipedia-colors-column">
+                          <svg className="hexipedia-color-wheel" viewBox="0 0 300 300" width="200" height="200">
                         <defs>
                           {/* Conical gradient from 0° to 360° */}
                           <linearGradient id="colorWheel" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -634,7 +654,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           </linearGradient>
                         </defs>
 
-                        {/* Gradient ring using path segments (60 segments x 6° each for smooth gradient without moiré) */}
+                        {/* Gradient ring using path segments (60 x 6°) */}
                         {Array.from({ length: 60 }).map((_, idx) => {
                           const segmentDegrees = 6;
                           const hue = (idx * segmentDegrees) % 360;
@@ -665,7 +685,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           `;
 
                           return (
-                            <path key={idx} d={pathD} fill={color} stroke="none" />
+                            <path key={idx} d={pathD} fill={color} stroke={color} strokeWidth="0.6" />
                           );
                         })}
 
@@ -679,28 +699,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           const y = 150 + radius * Math.sin(angle);
                           const isSelected = idx === selectedColorIndex;
                           
-                          // Calculate percentage with proper distance and sign
-                          const refIndex = selectedColorIndex ?? params.PlayerBaseColorIndex;
-                          const paletteSize = params.ColorPalette.length;
-                          let distance = idx - refIndex;
-                          // Normalize to shortest path around the palette
-                          while (distance > paletteSize / 2) distance -= paletteSize;
-                          while (distance <= -paletteSize / 2) distance += paletteSize;
-                          const percent = (distance * 100) / paletteSize;
-                          
-                          // Format: +/- with max 1 decimal place
-                          let percentStr;
-                          if (percent === 0) {
-                            percentStr = '0';
-                          } else {
-                            const absPercent = Math.abs(percent);
-                            const rounded = absPercent % 1 === 0 ? absPercent.toFixed(0) : absPercent.toFixed(1);
-                            percentStr = `${percent > 0 ? '+' : '-'}${rounded}`;
-                          }
-
                           return (
                             <g key={`dot-${idx}`}>
-                              {/* Larger circle for clickability */}
                               <circle
                                 cx={x}
                                 cy={y}
@@ -711,43 +711,37 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => onColorSelect?.(idx)}
                               />
-                              {/* Percentage label */}
-                              <text
-                                x={x}
-                                y={y}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                style={{
-                                  fontSize: '9px',
-                                  fontWeight: 'bold',
-                                  fill: '#FFFFFF',
-                                  textShadow: '0 0 2px rgba(0,0,0,0.8)',
-                                  pointerEvents: 'none',
-                                }}
-                              >
-                                {percentStr}
-                              </text>
                             </g>
                           );
                         })}
 
                         {/* Center circle */}
                         <circle cx="150" cy="150" r="15" fill="#333333" stroke="#666666" strokeWidth="1" />
-                      </svg>
+                          </svg>
+                        </div>
 
-                      <div className="hexipedia-colors-list">
-                        {params.ColorPalette.map((color, idx) => (
-                          <div 
+                        <div className="hexipedia-colors-column">
+                          <div className="hexipedia-colors-list">
+                        {params.ColorPalette.map((color, idx) => {
+                          const hue = (params.ColorPaletteStartHue + idx * params.ColorPaletteHueStep) % 360;
+                          const colorName = getColorNameByHue(hue);
+                          const percent = formatRelativePercent(getRelativePercent(idx));
+                          const isSelected = idx === (selectedColorIndex ?? params.PlayerBaseColorIndex);
+
+                          return (
+                          <div
                             key={idx}
-                            className="hexipedia-color-item"
+                            className={`hexipedia-color-item ${isSelected ? 'selected' : ''}`}
                             onClick={() => onColorSelect?.(idx)}
-                            style={{ cursor: 'pointer' }}
                           >
                             <div className="hexipedia-color-swatch" style={{ backgroundColor: color }}></div>
-                            <span className="hexipedia-color-name">{`Color ${idx + 1}${idx === selectedColorIndex ? ' (selected)' : ''}`}</span>
-                            <span className="hexipedia-color-value">{color}</span>
+                            <span className="hexipedia-color-name">{colorName}</span>
+                            <span className="hexipedia-color-percent">{percent}</span>
                           </div>
-                        ))}
+                        );
+                        })}
+                      </div>
+                        </div>
                       </div>
                     </div>
                   )}

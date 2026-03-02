@@ -157,6 +157,7 @@ When the player clicks on a non-adjacent hex cell:
 - **`autoFocusTarget`**: Target cell where focus should land after protagonist arrives and faces it.
 - **`autoMovePath`**: Greedy pathfinding (each step minimizes remaining hex distance) computes the route; stored as list of intermediate cells from protagonist to target.
 - **Movement**: Every 2 ticks, protagonist moves one step closer using greedy direction selection.
+- **Focus visuals during movement**: World focus outline is hidden while auto-move is active.
 - **Arrival**: When adjacent to `autoFocusTarget`, protagonist orients to face it, focus updates to the target, and `autoFocusTarget` clears.
 - **Cancellation**: Dragging (hold + move current focus/protagonist) cancels auto-move and clears the path.
 
