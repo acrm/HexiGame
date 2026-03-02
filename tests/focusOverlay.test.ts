@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldDrawWorldFocusOverlay } from '../src/components/GameField';
+import { shouldDrawAutoFocusTargetOverlay, shouldDrawWorldFocusOverlay } from '../src/components/GameField';
 
 describe('World focus overlay rendering', () => {
   it('draws focus overlay in normal world state', () => {
@@ -17,5 +17,12 @@ describe('World focus overlay rendering', () => {
 
   it('does not draw focus overlay when auto focus target exists', () => {
     expect(shouldDrawWorldFocusOverlay(false, false, true)).toBe(false);
+  });
+
+  it('draws frozen target marker only during auto-move with target', () => {
+    expect(shouldDrawAutoFocusTargetOverlay(false, true, true)).toBe(true);
+    expect(shouldDrawAutoFocusTargetOverlay(false, false, true)).toBe(false);
+    expect(shouldDrawAutoFocusTargetOverlay(false, true, false)).toBe(false);
+    expect(shouldDrawAutoFocusTargetOverlay(true, true, true)).toBe(false);
   });
 });

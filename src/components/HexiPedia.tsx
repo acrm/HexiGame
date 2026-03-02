@@ -609,12 +609,12 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                     </div>
                     <div className="hexipedia-section-controls">
                       <button
-                        className="hexipedia-section-move"
+                        className={`hexipedia-section-move hexipedia-widget-toggle ${showColorWidget ? 'on' : 'off'}`}
                         onClick={() => onToggleColorWidget?.(!showColorWidget)}
                         title={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
                         aria-label={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
                       >
-                        ◉
+                        {showColorWidget ? '◉' : '◎'}
                       </button>
                       <button
                         className="hexipedia-section-move"
@@ -640,56 +640,9 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                     <div className="hexipedia-colors-section">
                       <div className="hexipedia-colors-grid">
                         <div className="hexipedia-colors-column">
-                          <svg className="hexipedia-color-wheel" viewBox="0 0 300 300" width="200" height="200">
-                        <defs>
-                          {/* Conical gradient from 0° to 360° */}
-                          <linearGradient id="colorWheel" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="hsl(0, 100%, 50%)" />
-                            <stop offset="16.67%" stopColor="hsl(60, 100%, 50%)" />
-                            <stop offset="33.33%" stopColor="hsl(120, 100%, 50%)" />
-                            <stop offset="50%" stopColor="hsl(180, 100%, 50%)" />
-                            <stop offset="66.67%" stopColor="hsl(240, 100%, 50%)" />
-                            <stop offset="83.33%" stopColor="hsl(300, 100%, 50%)" />
-                            <stop offset="100%" stopColor="hsl(0, 100%, 50%)" />
-                          </linearGradient>
-                        </defs>
-
-                        {/* Gradient ring using path segments (60 x 6°) */}
-                        {Array.from({ length: 60 }).map((_, idx) => {
-                          const segmentDegrees = 6;
-                          const hue = (idx * segmentDegrees) % 360;
-                          const startAngle = (idx * segmentDegrees - 90) * (Math.PI / 180);
-                          const endAngle = ((idx + 1) * segmentDegrees - 90) * (Math.PI / 180);
-                          const innerRadius = 60;
-                          const outerRadius = 120;
-
-                          const x1 = 150 + innerRadius * Math.cos(startAngle);
-                          const y1 = 150 + innerRadius * Math.sin(startAngle);
-                          const x2 = 150 + outerRadius * Math.cos(startAngle);
-                          const y2 = 150 + outerRadius * Math.sin(startAngle);
-                          const x3 = 150 + outerRadius * Math.cos(endAngle);
-                          const y3 = 150 + outerRadius * Math.sin(endAngle);
-                          const x4 = 150 + innerRadius * Math.cos(endAngle);
-                          const y4 = 150 + innerRadius * Math.sin(endAngle);
-
-                          const largeArc = 0;
-                          const color = `hsl(${hue}, 100%, 50%)`;
-
-                          const pathD = `
-                            M ${x1} ${y1}
-                            L ${x2} ${y2}
-                            A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x3} ${y3}
-                            L ${x4} ${y4}
-                            A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1} ${y1}
-                            Z
-                          `;
-
-                          return (
-                            <path key={idx} d={pathD} fill={color} stroke={color} strokeWidth="0.6" />
-                          );
-                        })}
-
-                        {/* Game colors as larger, clickable circles on the wheel */}
+                          <div className="hexipedia-color-wheel-wrap">
+                            <div className="hexipedia-color-wheel-ring" />
+                            <svg className="hexipedia-color-wheel-overlay" viewBox="0 0 300 300" width="200" height="200">
                         {params.ColorPalette.map((color, idx) => {
                           // Map color to angle (0-360 degrees)
                           const hue = (params.ColorPaletteStartHue + idx * params.ColorPaletteHueStep) % 360;
@@ -715,9 +668,10 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           );
                         })}
 
-                        {/* Center circle */}
-                        <circle cx="150" cy="150" r="15" fill="#333333" stroke="#666666" strokeWidth="1" />
-                          </svg>
+                              {/* Center circle */}
+                              <circle cx="150" cy="150" r="15" fill="#333333" stroke="#666666" strokeWidth="1" />
+                            </svg>
+                          </div>
                         </div>
 
                         <div className="hexipedia-colors-column">

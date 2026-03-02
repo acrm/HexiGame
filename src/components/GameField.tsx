@@ -62,6 +62,13 @@ function computeFlickerAlpha(tickCount: number, period: number = 8): number {
   return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
 }
 
+// Draw frozen focus with three static edges (no rotation, no flicker)
+function drawFrozenFocus(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, color: string) {
+  drawEdgeHighlight(ctx, centerX, centerY, 0, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, 2, size, color);
+  drawEdgeHighlight(ctx, centerX, centerY, 4, size, color);
+}
+
 // Draw two opposite rotating edges (edges 0 and 3 at cycle start)
 function drawRotatingOppositeFaces(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number, color: string) {
   const currentEdge = computeEdgeIndexForFocusCell(tickCount, 6);
@@ -93,6 +100,10 @@ function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, cente
 
 export function shouldDrawWorldFocusOverlay(isInventory: boolean, isTurtleMoving: boolean, hasAutoFocusTarget: boolean): boolean {
   return !isInventory && !isTurtleMoving && !hasAutoFocusTarget;
+}
+
+export function shouldDrawAutoFocusTargetOverlay(isInventory: boolean, isTurtleMoving: boolean, hasAutoFocusTarget: boolean): boolean {
+  return !isInventory && isTurtleMoving && hasAutoFocusTarget;
 }
 
 // Draw 5-pointed star
@@ -785,6 +796,14 @@ export const GameField: React.FC<GameFieldProps> = ({
           ctx.arc(scaledX, scaledY, pathDotRadius, 0, Math.PI * 2);
           ctx.fill();
         });
+      }
+
+      const drawAutoFocusTargetOverlay = shouldDrawAutoFocusTargetOverlay(isInventory, Boolean(isTurtleMoving), Boolean(gameState.autoFocusTarget));
+      if (drawAutoFocusTargetOverlay && gameState.autoFocusTarget) {
+        const pos = hexToPixel(gameState.autoFocusTarget.q, gameState.autoFocusTarget.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF');
       }
 
       ctx.save();

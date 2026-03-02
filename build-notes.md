@@ -463,3 +463,5 @@
 - 2026w10-0.19 — Fix gradient moiré (60 segments), compact percent format, widget toggle button
 
 - 2026w10-0.20 — Hide focus during auto-move, refine palette layout and optics toggle
+
+- 2026w10-0.21 — Restore frozen auto-move target marker, conic wheel gradient, compact colors list
