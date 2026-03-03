@@ -467,3 +467,5 @@
 - 2026w10-0.21 — Restore frozen auto-move target marker, conic wheel gradient, compact colors list
 
 - 2026w10-0.22 — Fix cursor/focus decoupling in auto-move, narrow wheel ring, compact color list
+
+- 2026w10-0.23 — Add reusable agent bootstrap alignment prompt
