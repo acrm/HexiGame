@@ -213,6 +213,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = localStorage.getItem('hexigame.selectedColorIndex');
     return saved ? parseInt(saved, 10) : mergedParams.PlayerBaseColorIndex;
   });
+  const [autoBaseColorEnabled, setAutoBaseColorEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('hexigame.autoBaseColorEnabled');
+    return saved !== null ? saved === 'true' : false;
+  });
   const [showColorWidget, setShowColorWidget] = useState(() => {
     const saved = localStorage.getItem('hexigame.showColorWidget');
     return saved !== null ? saved === 'true' : true; // Default visible
@@ -412,9 +416,15 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     localStorage.setItem('hexigame.showColorWidget', String(showColorWidget));
   }, [showColorWidget]);
 
+  // Save auto base color mode
+  useEffect(() => {
+    localStorage.setItem('hexigame.autoBaseColorEnabled', String(autoBaseColorEnabled));
+  }, [autoBaseColorEnabled]);
+
   // Derived HUD data
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
+  const widgetRelativeBaseColorIndex = autoBaseColorEnabled ? hoverColorIndex : selectedColorIndex;
 
   const tutorialLevel = useMemo(() => {
     return tutorialLevelId ? getTutorialLevel(tutorialLevelId) : null;
@@ -726,7 +736,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               visitedTutorialCells={gameState.tutorialProgress?.visitedTargetKeys ?? new Set()}
               hideHotbar={tutorialLevel?.hideHotbar ?? false}
               selectedColorIndex={selectedColorIndex}
+              relativeBaseColorIndex={widgetRelativeBaseColorIndex}
+              isAutoBaseColorEnabled={autoBaseColorEnabled}
               onColorSelect={(index) => setSelectedColorIndex(index)}
+              onToggleAutoBaseColor={() => setAutoBaseColorEnabled((prev) => !prev)}
               onNavigateToPalette={() => {
                 if (isMobileLayout) {
                   setMobileTab('hexipedia');

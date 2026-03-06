@@ -35,11 +35,15 @@ npm run bump:minor -- --desc "msg"  # Bump minor version
 
 ## Git Commit Workflow
 
+**CRITICAL: Automatic commit after version bump (no explicit request needed)**
+
+After every version bump, you **must automatically and immediately** commit all changes using the version message. This is mandatory and overrides any general "ask first" rule.
+
 **For any task with file changes:**
 
 1. Apply code changes
 2. Bump version: `npm run bump:build -- --desc "Description"`
-3. Commit with version in message:
+3. **IMMEDIATELY commit** (do not wait for user approval):
    ```bash
    git add -A && git commit -m "<version>: <description>"
    ```

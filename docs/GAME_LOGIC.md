@@ -413,9 +413,12 @@ Defined in `src/templates/templateLogic.ts`:
 ### 8.3 ColorPaletteWidget (Palette Visualization)
 - **Display**: 9-cell color bar showing entire palette
   - Ordered from antagonist color through player base (center) back to antagonist
-  - Each cell displays relative percentage from current focus color
+  - Left icon button toggles auto/manual base color mode for relative percentages
+  - **Auto mode**: base color follows focused cell color in active field
+  - **Auto mode fallback**: if focused cell has no color, percentages are hidden on all cells
+  - **Manual mode (default)**: center color is selected initially; tapping another palette cell sets new `0%` base
   - Format: `±XX%` (e.g., `+50%`, `-33.33%`, `0%`)
-  - Focus color (player base) highlighted with bright border
+  - White border is shown only for manually selected base color (hidden in auto mode)
 
 - **Styling**:
   - Consistent with HexiPedia widget aesthetic

@@ -3,9 +3,12 @@ import React from 'react';
 interface ColorPaletteWidgetProps {
   colorPalette: readonly string[];
   selectedColorIndex: number;
+  relativeBaseColorIndex: number | null;
   playerBaseColorIndex: number;
+  isAutoBaseColorEnabled: boolean;
   topOffset?: number;
   onColorSelect?: (index: number) => void;
+  onToggleAutoBaseColor?: () => void;
   onNavigateToPalette?: () => void;
 }
 
@@ -37,9 +40,12 @@ function formatPercent(percent: number): string {
 const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   colorPalette,
   selectedColorIndex,
+  relativeBaseColorIndex,
   playerBaseColorIndex,
+  isAutoBaseColorEnabled,
   topOffset = 8,
   onColorSelect,
+  onToggleAutoBaseColor,
   onNavigateToPalette,
 }) => {
   const paletteSize = colorPalette.length;
@@ -72,23 +78,50 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
       }}
     >
+      <button
+        onClick={onToggleAutoBaseColor}
+        disabled={!onToggleAutoBaseColor}
+        aria-pressed={isAutoBaseColorEnabled}
+        title={isAutoBaseColorEnabled ? 'Auto base color: on' : 'Auto base color: off'}
+        style={{
+          background: isAutoBaseColorEnabled ? '#2f5f4a' : '#444444',
+          border: '1px solid #666666',
+          borderRadius: '4px',
+          color: '#FFFFFF',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          padding: '4px 8px',
+          cursor: onToggleAutoBaseColor ? 'pointer' : 'default',
+          minWidth: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: onToggleAutoBaseColor ? 1 : 0.7,
+        }}
+      >
+        <i className="fas fa-crosshairs" aria-hidden="true" />
+      </button>
       <div
         style={{
           display: 'flex',
-          width: '100%',
+          flex: 1,
+          minWidth: 0,
         }}
       >
         {displayOrder.map((colorIndex, displayIndex) => {
           const color = colorPalette[colorIndex];
-          const percent = calculateRelativePercent(colorIndex, selectedColorIndex, paletteSize);
-          const isSelectedColor = colorIndex === selectedColorIndex;
-          const borderColor = isSelectedColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
-          const borderWidth = isSelectedColor ? 2 : 1;
+          const percent = relativeBaseColorIndex === null
+            ? null
+            : calculateRelativePercent(colorIndex, relativeBaseColorIndex, paletteSize);
+          const isManuallySelectedColor = !isAutoBaseColorEnabled && colorIndex === selectedColorIndex;
+          const borderColor = isManuallySelectedColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+          const borderWidth = isManuallySelectedColor ? 2 : 1;
+          const canSelectColor = !isAutoBaseColorEnabled && !!onColorSelect;
 
           return (
             <div
               key={`${displayIndex}-${colorIndex}`}
-              onClick={() => onColorSelect?.(colorIndex)}
+              onClick={canSelectColor ? () => onColorSelect(colorIndex) : undefined}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -99,7 +132,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
                 minWidth: 0,
                 minHeight: 24,
                 position: 'relative',
-                cursor: onColorSelect ? 'pointer' : 'default',
+                cursor: canSelectColor ? 'pointer' : 'default',
                 border: `${borderWidth}px solid ${borderColor}`,
                 boxSizing: 'border-box',
               }}
@@ -114,7 +147,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
                   textAlign: 'center',
                 }}
               >
-                {formatPercent(percent)}
+                {percent !== null ? formatPercent(percent) : ''}
               </div>
             </div>
           );

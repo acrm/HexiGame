@@ -168,7 +168,10 @@ interface GameFieldProps {
   hideHotbar?: boolean;
   paletteTopOffset?: number;
   selectedColorIndex?: number;
+  relativeBaseColorIndex?: number | null;
+  isAutoBaseColorEnabled?: boolean;
   onColorSelect?: (index: number) => void;
+  onToggleAutoBaseColor?: () => void;
   onNavigateToPalette?: () => void;
   showColorWidget?: boolean;
 }
@@ -195,7 +198,10 @@ export const GameField: React.FC<GameFieldProps> = ({
   hideHotbar = false,
   paletteTopOffset = 8,
   selectedColorIndex,
+  relativeBaseColorIndex,
+  isAutoBaseColorEnabled = false,
   onColorSelect,
+  onToggleAutoBaseColor,
   onNavigateToPalette,
   showColorWidget = true,
 }) => {
@@ -898,9 +904,12 @@ export const GameField: React.FC<GameFieldProps> = ({
         <ColorPaletteWidget
           colorPalette={params.ColorPalette}
           selectedColorIndex={selectedColorIndex ?? params.PlayerBaseColorIndex}
+          relativeBaseColorIndex={relativeBaseColorIndex ?? null}
           playerBaseColorIndex={params.PlayerBaseColorIndex}
+          isAutoBaseColorEnabled={isAutoBaseColorEnabled}
           topOffset={paletteTopOffset}
           onColorSelect={onColorSelect}
+          onToggleAutoBaseColor={onToggleAutoBaseColor}
           onNavigateToPalette={onNavigateToPalette}
         />
       )}
