@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { TutorialLevel } from '../tutorial/tutorialState';
-import { t } from '../ui/i18n';
+import { TutorialLevel } from '../../tutorial/tutorialState';
+import { t } from '../i18n';
 import './TutorialProgressWidget.css';
 
 interface TutorialProgressWidgetProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { t } from '../ui/i18n';
+import { t } from '../i18n';
 
 export const GuestStart: React.FC<{ onStart: () => void }> = ({ onStart }) => {
   return (

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { getLanguage, setLanguage, t } from '../ui/i18n';
-import version from '../../version.json';
-import { audioManager } from '../audio/audioManager';
+import { getLanguage, setLanguage, t } from '../i18n';
+import version from '../../../version.json';
+import { audioManager } from '../../audio/audioManager';
 
 interface SettingsProps {
   onClose: () => void;

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { t } from '../ui/i18n';
+import { t } from '../i18n';
 
 export const Mascot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

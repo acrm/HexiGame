@@ -3,9 +3,9 @@ import type { GameState } from '../../gameLogic/core/types';
 import type { Params } from '../../gameLogic/core/params';
 import { TutorialLevel, getHintForMode, axialToKey } from '../../tutorial/tutorialState';
 import { t } from '../i18n';
-import { getAllTutorialLevels } from '../tutorial/tutorialLevels';
-import { audioManager } from '../audio/audioManager';
-import { ALL_TEMPLATES } from '../templates/templateLibrary';
+import { getAllTutorialLevels } from '../../tutorial/tutorialLevels';
+import { audioManager } from '../../audio/audioManager';
+import { ALL_TEMPLATES } from '../../templates/templateLibrary';
 import './HexiPedia.css';
 
 interface SessionHistoryRecord {

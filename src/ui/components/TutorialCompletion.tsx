@@ -1,7 +1,7 @@
 import React from 'react';
-import { TutorialLevel } from '../tutorial/tutorialState';
-import { getNextTutorialLevel } from '../tutorial/tutorialLevels';
-import { t } from '../ui/i18n';
+import { TutorialLevel } from '../../tutorial/tutorialState';
+import { getTutorialLevel, getNextTutorialLevel } from '../../tutorial/tutorialLevels';
+import { t } from '../i18n';
 import './TutorialCompletion.css';
 
 interface TutorialCompletionProps {
