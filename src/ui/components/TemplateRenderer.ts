@@ -1,8 +1,10 @@
 // Helper functions for rendering build templates on canvas
 
-import { GameState, Params, Axial, getCell } from '../logic/pureLogic';
-import { getTemplateById } from '../templates/templateLibrary';
-import { getTemplateCellsWithWorldPos, validateTemplate } from '../templates/templateLogic';
+import type { GameState, Axial } from '../../gameLogic/core/types';
+import type { Params } from '../../gameLogic/core/params';
+import { getCell } from '../../gameLogic/core/grid';
+import { getTemplateById } from '../../templates/templateLibrary';
+import { getTemplateCellsWithWorldPos, validateTemplate } from '../../templates/templateLogic';
 
 const HEX_SIZE = 10; // Match GameField's HEX_SIZE
 

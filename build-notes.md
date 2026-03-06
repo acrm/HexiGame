@@ -471,3 +471,5 @@
 - 2026w10-0.23 — Add reusable agent bootstrap alignment prompt
 
 - 2026w10-0.24 — add auto/manual base color mode for palette widget
+
+- 2026w10-0.25 — Complete architecture migration: move UI to gameLogic/appLogic layers, remove pureLogic.ts

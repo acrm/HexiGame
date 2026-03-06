@@ -1,7 +1,8 @@
 // Tutorial levels library
 
+import type { GameState, Axial } from '../gameLogic/core/types';
+import type { Params } from '../gameLogic/core/params';
 import { TutorialLevel, axialToKey } from './tutorialState';
-import { GameState, Params } from '../logic/pureLogic';
 
 /**
  * LEVEL 1: MOVEMENT

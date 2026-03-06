@@ -8,8 +8,10 @@
 
 import {
   eatToHotbar as logicEatToHotbar,
+} from '../../src/gameLogic/systems/inventory';
+import {
   attemptMoveByDeltaOnActive,
-} from '../../src/logic/pureLogic';
+} from '../../src/gameLogic/systems/movement';
 
 import { PureLogicAdapter } from './PureLogicAdapter';
 import type { AppTestFacade, MobileTab, InteractionMode } from './AppTestFacade';

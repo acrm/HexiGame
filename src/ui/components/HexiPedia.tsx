@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { GameState, Params } from '../logic/pureLogic';
-import { TutorialLevel, getHintForMode, axialToKey } from '../tutorial/tutorialState';
-import { t } from '../ui/i18n';
+import type { GameState } from '../../gameLogic/core/types';
+import type { Params } from '../../gameLogic/core/params';
+import { TutorialLevel, getHintForMode, axialToKey } from '../../tutorial/tutorialState';
+import { t } from '../i18n';
 import { getAllTutorialLevels } from '../tutorial/tutorialLevels';
 import { audioManager } from '../audio/audioManager';
 import { ALL_TEMPLATES } from '../templates/templateLibrary';

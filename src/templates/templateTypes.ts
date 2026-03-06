@@ -1,6 +1,6 @@
 // Template system types for HexiGame
 
-import type { Axial } from '../logic/pureLogic';
+import type { Axial } from '../gameLogic/core/types';
 
 /**
  * Relative color value: percentage offset from base color in the palette.

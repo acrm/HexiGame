@@ -1,6 +1,7 @@
 // Tutorial system types and helpers
 
-import { GameState, Params, Axial } from '../logic/pureLogic';
+import type { GameState, Axial } from '../gameLogic/core/types';
+import type { Params } from '../gameLogic/core/params';
 
 /**
  * Multilingual hint adapted for interaction mode

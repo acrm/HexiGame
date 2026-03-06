@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Params, GameState, Axial, computeBreadcrumbs, axialDistance } from '../logic/pureLogic';
+import type { Params } from '../../gameLogic/core/params';
+import type { GameState, Axial } from '../../gameLogic/core/types';
+import { computeBreadcrumbs } from '../../gameLogic/systems/movement';
+import { axialDistance } from '../../gameLogic/core/grid';
 import { renderTemplateOverlay } from './TemplateRenderer';
 import ColorPaletteWidget from './ColorPaletteWidget';
 

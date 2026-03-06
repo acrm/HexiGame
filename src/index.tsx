@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import Game from './components/Game';
+import Game from './ui/components/Game';
 import { integration } from './appLogic/integration';
 import '@fortawesome/fontawesome-free/css/all.css';
 import '@fontsource/roboto/400.css';

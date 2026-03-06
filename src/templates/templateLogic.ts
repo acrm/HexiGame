@@ -1,8 +1,14 @@
 // Pure logic for build template system
 
-import type { Axial, Grid } from '../logic/pureLogic';
+import type { Axial } from '../gameLogic/core/types';
+import type { Grid } from '../gameLogic/core/types';
 import type { BuildTemplate, TemplateCell, RelativeColor, ActiveTemplateState } from './templateTypes';
-import { axialToKey, getCell } from '../logic/pureLogic';
+import { getCell } from '../gameLogic/core/grid';
+
+// Helper to convert Axial to string key for Set/Map
+function axialToKey(pos: Axial): string {
+  return `${pos.q},${pos.r}`;
+}
 
 /**
  * Convert relative color to absolute palette index

@@ -1,29 +1,27 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './Game.css';
-import {
-  DefaultParams,
-  Params,
-  GameState,
-  equalAxial,
-} from '../logic/pureLogic';
+import type { GameState, Axial } from '../../gameLogic/core/types';
+import type { Params } from '../../gameLogic/core/params';
+import { DefaultParams } from '../../gameLogic/core/params';
+import { equalAxial } from '../../gameLogic/core/grid';
 import ControlsDesktop from './ControlsInfoDesktop';
 import ControlsMobile from './ControlsInfoMobile';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField';
 import Settings from './Settings';
-import { t } from '../ui/i18n';
-import { integration } from '../appLogic/integration';
-import { audioManager } from '../audio/audioManager';
+import { t } from '../i18n';
+import { integration } from '../../appLogic/integration';
+import { audioManager } from '../../audio/audioManager';
 import GuestStart from './GuestStart';
 import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
-import { ColorScheme } from '../ui/colorScheme';
+import { ColorScheme } from '../colorScheme';
 import TutorialProgressWidget from './TutorialProgressWidget';
-import { getTutorialLevel, getNextTutorialLevel } from '../tutorial/tutorialLevels';
-import { axialToKey, getHintForMode } from '../tutorial/tutorialState';
-import { hoveredCellActive } from '../gameLogic/systems/capture';
-import { useGameSession } from '../ui/hooks/useGameSession';
-import { useKeyboardInput } from '../ui/hooks/useKeyboardInput';
+import { getTutorialLevel, getNextTutorialLevel } from '../../tutorial/tutorialLevels';
+import { axialToKey, getHintForMode } from '../../tutorial/tutorialState';
+import { hoveredCellActive } from '../../gameLogic/systems/capture';
+import { useGameSession } from '../hooks/useGameSession';
+import { useKeyboardInput } from '../hooks/useKeyboardInput';
 
 const SESSION_HISTORY_KEY = 'hexigame.session.history';
 
