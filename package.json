@@ -1,6 +1,6 @@
 {
   "name": "hexigame",
-  "version": "2026w10-0.26",
+  "version": "2026w10-0.27",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "preview:yandex": "vite preview --mode yandex",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "tsc --noEmit && vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

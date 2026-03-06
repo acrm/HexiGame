@@ -475,3 +475,5 @@
 - 2026w10-0.25 — Complete architecture migration: move UI to gameLogic/appLogic layers, remove pureLogic.ts
 
 - 2026w10-0.26 — Fix import paths in UI components after migration
+
+- 2026w10-0.27 — Remove dead code: Wiki, ControlsInfoMobile, TutorialOverlay

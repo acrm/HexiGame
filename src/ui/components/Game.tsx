@@ -5,7 +5,6 @@ import type { Params } from '../../gameLogic/core/params';
 import { DefaultParams } from '../../gameLogic/core/params';
 import { equalAxial } from '../../gameLogic/core/grid';
 import ControlsDesktop from './ControlsInfoDesktop';
-import ControlsMobile from './ControlsInfoMobile';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField';
 import Settings from './Settings';
