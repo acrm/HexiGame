@@ -3,7 +3,7 @@ import type { TutorialLevel } from '../../../tutorial/tutorialState';
 import { getHintForMode, axialToKey } from '../../../tutorial/tutorialState';
 import { t } from '../../i18n';
 import { getAllTutorialLevels } from '../../../tutorial/tutorialLevels';
-import { audioManager } from '../../../audio/audioManager';
+import { audioController } from '../../../appLogic/audioController';
 import SectionBase from './SectionBase';
 
 interface TasksSectionProps {
@@ -12,6 +12,8 @@ interface TasksSectionProps {
   isTutorialTaskComplete?: boolean;
   completedTutorialLevelIds?: Set<string>;
   interactionMode: 'desktop' | 'mobile';
+  soundEnabled?: boolean;
+  soundVolume?: number;
   onSelectTutorialLevel?: (levelId: string) => void;
   onRestartTutorialLevel?: (levelId: string) => void;
   onSwitchTab?: (tab: string) => void;
@@ -33,6 +35,8 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
   isTutorialTaskComplete = false,
   completedTutorialLevelIds = new Set(),
   interactionMode,
+  soundEnabled = true,
+  soundVolume = 0.6,
   onSelectTutorialLevel,
   onRestartTutorialLevel,
   onSwitchTab,
@@ -98,7 +102,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                       className={`hexipedia-task-action ${isCurrent ? 'active' : ''}`}
                       onClick={(event) => {
                         event.stopPropagation();
-                        audioManager.playRandomSound();
+                        audioController.playRandomSound(soundEnabled, soundVolume);
                         if (!isCurrent) onSelectTutorialLevel?.(level.id);
                       }}
                       disabled={isCurrent}
@@ -110,7 +114,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                       className="hexipedia-task-action restart"
                       onClick={(event) => {
                         event.stopPropagation();
-                        audioManager.playRandomSound();
+                        audioController.playRandomSound(soundEnabled, soundVolume);
                         onRestartTutorialLevel?.(level.id);
                       }}
                     >
@@ -130,7 +134,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                           <span 
                             className="hexipedia-link"
                             onClick={() => {
-                              audioManager.playRandomSound();
+                              audioController.playRandomSound(soundEnabled, soundVolume);
                               onSwitchTab?.('heximap');
                             }}
                           >

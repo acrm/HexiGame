@@ -18,4 +18,4 @@
 - [x] Убрать дублирование `integration.init()` / `onGameReady()` (единая точка orchestration)
 - [x] Разделить `GameField.tsx` на renderer/input/viewport модули
 - [x] Вынести tutorial flow orchestration из `Game.tsx` в `appLogic/tutorialFlow`
-- [ ] Перевести audio lifecycle на appLogic-порт (UI только отправляет intents)
+- [x] Перевести audio lifecycle на appLogic-порт (audioController + audioDriver)

@@ -27,7 +27,7 @@ import {
   persistUserSettings,
   userSettingsReducer,
 } from '../../appLogic/userSettings';
-import { audioManager } from '../../audio/audioManager';
+import { audioController } from '../../appLogic/audioController';
 import GuestStart from './GuestStart';
 import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
@@ -166,38 +166,29 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     hotbarSize: 6,
   });
 
-  // Initialize audio manager with music settings
+  // Initialize audio controller on mount
   useEffect(() => {
-    audioManager.setMusicEnabled(musicEnabled);
-  }, [musicEnabled]);
+    audioController.init();
+  }, []);
 
-  // Apply music volume
+  // Update music volume when settings change
   useEffect(() => {
-    audioManager.setMusicVolume(musicVolume);
+    audioController.updateMusicVolume(musicVolume);
   }, [musicVolume]);
-
-  // Apply sound settings
-  useEffect(() => {
-    audioManager.setSoundEnabled(soundEnabled);
-  }, [soundEnabled]);
-
-  useEffect(() => {
-    audioManager.setSoundVolume(soundVolume);
-  }, [soundVolume]);
 
   // Start audio on guest start (user interaction required)
   useEffect(() => {
     if (guestStarted && musicEnabled && !document.hidden) {
-      audioManager.playMusic();
+      audioController.playMusic(musicEnabled, musicVolume);
     }
-  }, [guestStarted, musicEnabled]);
+  }, [guestStarted, musicEnabled, musicVolume]);
 
   // Retry music resume on first user interaction after page reload
   useEffect(() => {
     if (!guestStarted || !musicEnabled) return;
 
     const resumeOnInteraction = () => {
-      audioManager.playMusic();
+      audioController.playMusic(musicEnabled, musicVolume);
       window.removeEventListener('pointerdown', resumeOnInteraction);
       window.removeEventListener('keydown', resumeOnInteraction);
       window.removeEventListener('touchstart', resumeOnInteraction);
@@ -212,7 +203,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       window.removeEventListener('keydown', resumeOnInteraction);
       window.removeEventListener('touchstart', resumeOnInteraction);
     };
-  }, [guestStarted, musicEnabled]);
+  }, [guestStarted, musicEnabled, musicVolume]);
 
   // Sync tutorial level into gameState when tutorialFlowState changes
   useEffect(() => {
@@ -226,21 +217,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       if (document.hidden) {
         dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: true });
         integration.onGameplayStop();
-        audioManager.pause();
+        audioController.pauseMusic();
       } else {
         dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: false });
         if (guestStarted && !isSettingsOpen) {
           integration.onGameplayStart();
         }
-        if (guestStarted && musicEnabled) {
-          audioManager.playMusic().catch(() => console.log('[Audio] Autoplay blocked'));
-        }
-        audioManager.resume();
+        audioController.resumeMusic(musicEnabled, musicVolume);
       }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [guestStarted, isSettingsOpen, musicEnabled]);
+  }, [guestStarted, isSettingsOpen, musicEnabled, musicVolume]);
 
   // Save session history every 360 ticks (~30 seconds) if enabled
   useEffect(() => {
@@ -276,19 +264,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
     // Check for completion
     if (!prev.completedAtTick && curr.completedAtTick) {
-      audioManager.templateCompleted();
+      audioController.templateCompleted(soundEnabled, soundVolume);
     }
     // Check for error state change
     else if (!prev.hasErrors && curr.hasErrors) {
-      audioManager.templateCellWrong();
+      audioController.templateCellWrong(soundEnabled, soundVolume);
     }
     // Check for correct cell fill
     else if (prev.filledCells.size < curr.filledCells.size && !curr.hasErrors) {
-      audioManager.templateCellCorrect();
+      audioController.templateCellCorrect(soundEnabled, soundVolume);
     }
 
     prevTemplateStateRef.current = curr;
-  }, [gameState.activeTemplate]);
+  }, [gameState.activeTemplate, soundEnabled, soundVolume]);
 
   // Gameplay lifecycle (start/stop based on game state and menu)
   // Note: integration.init() and onGameReady() are called once in index.tsx
@@ -327,21 +315,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     }
     const wasComplete = prevTutorialCompleteRef.current;
     if (!wasComplete && tutorialViewModel.isTaskComplete) {
-      audioManager.playSound('audio/mixkit-small-win-2020.wav');
+      audioController.playSound('audio/mixkit-small-win-2020.wav', soundEnabled, soundVolume);
       tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
     }
     prevTutorialCompleteRef.current = tutorialViewModel.isTaskComplete;
-  }, [tutorialViewModel.isTaskComplete, tutorialFlowState.currentLevelId, tutorialActions]);
+  }, [tutorialViewModel.isTaskComplete, tutorialFlowState.currentLevelId, tutorialActions, soundEnabled, soundVolume]);
 
   const handleTutorialCompleteClick = () => {
     if (!tutorialFlowState.currentLevelId || !tutorialViewModel.level) return;
     if (!tutorialViewModel.isTaskComplete) return;
-    audioManager.playRandomSound();
+    audioController.playRandomSound(soundEnabled, soundVolume);
     tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
   };
 
   const handleViewTutorialTask = () => {
-    audioManager.playRandomSound();
+    audioController.playRandomSound(soundEnabled, soundVolume);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
@@ -372,9 +360,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     if (!visitedKey) return;
 
     // Play service bell sound on target cell visit
-    audioManager.playSound('audio/mixkit-service-bell-931.wav');
+    audioController.playSound('audio/mixkit-service-bell-931.wav', soundEnabled, soundVolume);
     dispatch({ type: 'MARK_TUTORIAL_TARGET_VISITED', key: visitedKey });
-  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialFlowState.currentLevelId, isMobileLayout, mobileTab, dispatch]);
+  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialFlowState.currentLevelId, isMobileLayout, mobileTab, dispatch, soundEnabled, soundVolume]);
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
@@ -421,7 +409,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <button
               className={`mobile-tab ${mobileTab === 'heximap' ? 'active' : ''}`}
               onClick={() => {
-                audioManager.playRandomSound();
+                audioController.playRandomSound(soundEnabled, soundVolume);
                 dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
               }}
             >
@@ -437,7 +425,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <button
               className={`mobile-tab ${mobileTab === 'hexipedia' ? 'active' : ''}`}
               onClick={() => {
-                audioManager.playRandomSound();
+                audioController.playRandomSound(soundEnabled, soundVolume);
                 dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
               }}
             >
@@ -448,7 +436,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <button
             className="settings-button"
             onClick={() => {
-              audioManager.playRandomSound();
+              audioController.playRandomSound(soundEnabled, soundVolume);
               dispatchApp({ type: 'OPEN_SETTINGS' });
             }}
             title={t('settings.open')}
@@ -470,6 +458,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               completedTutorialLevelIds={tutorialViewModel.completedLevelIds}
               sessionHistory={sessionHistory}
               trackSessionHistory={trackSessionHistory}
+              soundEnabled={soundEnabled}
+              soundVolume={soundVolume}
               onSelectTutorialLevel={handleSelectTutorialLevel}
               onRestartTutorialLevel={handleRestartTutorialLevel}
               onToggleTrackHistory={(enabled: boolean) => {
@@ -517,7 +507,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               showFPS={showFPS}
               isInventory={effectiveIsInventory}
               onToggleInventory={() => {
-                audioManager.playRandomSound();
+                audioController.playRandomSound(soundEnabled, soundVolume);
                 if (isMobileLayout) {
                   dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
                 } else {
@@ -526,7 +516,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 }
               }}
               onCapture={() => {
-                audioManager.playRandomSound();
+                audioController.playRandomSound(soundEnabled, soundVolume);
                 // Mobile press ACT -> perform instant context action
                 dispatch({ type: 'ACTION_PRESSED' });
               }}
@@ -537,7 +527,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 dispatch({ type: 'EAT_REQUESTED' });
               }}
               onSetCursor={(q, r) => {
-                audioManager.playRandomSound();
+                audioController.playRandomSound(soundEnabled, soundVolume);
                 // Check if clicking on focus or protagonist - start drag
                 // Otherwise - start auto-move to target
                 const clickedPos = { q, r };
@@ -579,7 +569,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 dispatch({ type: 'DRAG_MOVE', dq, dr });
               }}
               onHotbarSlotClick={(slotIdx) => {
-                audioManager.playRandomSound();
+                audioController.playRandomSound(soundEnabled, soundVolume);
                 dispatch({ type: 'EXCHANGE_HOTBAR_SLOT', slotIndex: slotIdx });
               }}
               isLeftHanded={isLeftHanded}
@@ -638,11 +628,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             dispatchApp({ type: 'SET_SESSION_HISTORY', history });
           }
           
-          audioManager.playRandomSound();
+          audioController.playRandomSound(soundEnabled, soundVolume);
           // Play music immediately on user interaction (required for mobile autoplay policy)
-          if (musicEnabled) {
-            audioManager.playMusic().catch(() => console.log('[Audio] Autoplay blocked'));
-          }
+          audioController.playMusic(musicEnabled, musicVolume).catch(() => console.log('[Audio] Autoplay blocked'));
         }} />
       )}
       {isSettingsOpen && (

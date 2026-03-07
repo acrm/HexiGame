@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import type { GameState } from '../../../gameLogic/core/types';
-import { audioManager } from '../../../audio/audioManager';
+import { audioController } from '../../../appLogic/audioController';
 import { ALL_TEMPLATES } from '../../../templates/templateLibrary';
 import SectionBase from './SectionBase';
 
 interface TemplatesSectionProps {
   gameState: GameState;
+  soundEnabled?: boolean;
+  soundVolume?: number;
   onActivateTemplate?: (templateId: string) => void;
   sectionOrder: string[];
   isCollapsed: boolean;
@@ -18,6 +20,8 @@ interface TemplatesSectionProps {
 
 export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
   gameState,
+  soundEnabled = true,
+  soundVolume = 0.6,
   onActivateTemplate,
   sectionOrder,
   isCollapsed,
@@ -49,7 +53,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
               value=""
               checked={!gameState.activeTemplate}
               onChange={() => {
-                audioManager.playRandomSound();
+                audioController.playRandomSound(soundEnabled, soundVolume);
                 onActivateTemplate?.('');
               }}
             />
@@ -71,7 +75,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                       value={template.id}
                       checked={isActive}
                       onChange={() => {
-                        audioManager.playRandomSound();
+                        audioController.playRandomSound(soundEnabled, soundVolume);
                         onActivateTemplate?.(template.id);
                       }}
                     />
@@ -89,7 +93,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                   <button
                     className={`hexipedia-template-expand ${isExpanded ? 'expanded' : ''}`}
                     onClick={() => {
-                      audioManager.playRandomSound();
+                      audioController.playRandomSound(soundEnabled, soundVolume);
                       setExpandedTemplateId(isExpanded ? null : template.id);
                     }}
                     aria-label="Show template details"

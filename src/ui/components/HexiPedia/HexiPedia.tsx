@@ -21,6 +21,8 @@ interface HexiPediaProps {
   completedTutorialLevelIds?: Set<string>;
   sessionHistory?: SessionHistoryRecord[];
   trackSessionHistory?: boolean;
+  soundEnabled?: boolean;
+  soundVolume?: number;
   onSelectTutorialLevel?: (levelId: string) => void;
   onRestartTutorialLevel?: (levelId: string) => void;
   onToggleTrackHistory?: (enabled: boolean) => void;
@@ -54,6 +56,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   completedTutorialLevelIds = new Set(),
   sessionHistory = [],
   trackSessionHistory = true,
+  soundEnabled = true,
+  soundVolume = 0.6,
   onSelectTutorialLevel,
   onRestartTutorialLevel,
   onToggleTrackHistory,
@@ -141,6 +145,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                     isTutorialTaskComplete={isTutorialTaskComplete}
                     completedTutorialLevelIds={completedTutorialLevelIds}
                     interactionMode={interactionMode}
+                    soundEnabled={soundEnabled}
+                    soundVolume={soundVolume}
                     onSelectTutorialLevel={onSelectTutorialLevel}
                     onRestartTutorialLevel={onRestartTutorialLevel}
                     onSwitchTab={onSwitchTab}
@@ -187,6 +193,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                   <TemplatesSection
                     key="templates"
                     gameState={gameState}
+                    soundEnabled={soundEnabled}
+                    soundVolume={soundVolume}
                     onActivateTemplate={onActivateTemplate}
                     sectionOrder={sectionOrder}
                     isCollapsed={isCollapsed}
