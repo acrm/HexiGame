@@ -487,3 +487,5 @@
 - 2026w10-0.33 — Update bump script to auto-commit
 
 - 2026w10-0.34 — Revert HexiPedia refactoring - restore working functionality with all sections
+
+- 2026w10-0.35 — Refactor HexiPedia into modular extensible components - full functionality preserved
