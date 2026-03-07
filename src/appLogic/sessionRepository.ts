@@ -1,26 +1,21 @@
 /**
- * useGameSession — React hook that manages the game state lifecycle.
+ * sessionRepository — localStorage persistence for game session state.
  *
  * Responsibilities:
- *  - Initialises GameState from localStorage or fresh seed
- *  - Runs the tick loop (setInterval at GameTickRate)
- *  - Persists state to localStorage on every change
- *  - Exposes `gameState` and `dispatch(GameCommand)` to callers
+ *  - Serialize/deserialize GameState to/from localStorage
+ *  - Handle legacy session format migration
+ *  - Provide clear/load/save API for session data
  *
- * Phase 9 deliverable (UI Integration).
+ * Extracted from ui/hooks/useGameSession.ts (2026-03-07).
  */
 
-import { useCallback, useEffect, useReducer, useRef } from 'react';
-import type { GameState } from '../../gameLogic/core/types';
-import type { Params } from '../../gameLogic/core/params';
-import type { RNG } from '../../gameLogic/core/types';
-import { mulberry32, DefaultParams } from '../../gameLogic/core/params';
-import { createInitialState } from '../../gameLogic/core/grid';
-import { sessionReducer, type GameCommand } from '../../appLogic/sessionReducer';
+import type { GameState } from '../gameLogic/core/types';
 
-// ─── Session persistence ───────────────────────────────────────────────────────
+// ─── Storage key ───────────────────────────────────────────────────────────────
 
 const SESSION_KEY = 'hexigame.session.state';
+
+// ─── Serialization types ───────────────────────────────────────────────────────
 
 type SerializedCell = { q: number; r: number; colorIndex: number | null };
 type SerializedActiveTemplate = {
@@ -61,7 +56,13 @@ type SerializedGameState = Partial<{
   tutorialInteractionMode: 'desktop' | 'mobile';
   tutorialCompletedLevelIds: string[];
 }>;
-type SessionState = { gameState: SerializedGameState; ui?: { mobileTab?: string } };
+
+export type SessionState = { 
+  gameState: SerializedGameState; 
+  ui?: { mobileTab?: string } 
+};
+
+// ─── Serialization helpers ─────────────────────────────────────────────────────
 
 function serializeGrid(grid: Map<string, { q: number; r: number; colorIndex: number | null }>): SerializedCell[] {
   return Array.from(grid.values()).map(c => ({ q: c.q, r: c.r, colorIndex: c.colorIndex }));
@@ -160,7 +161,9 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
   };
 }
 
-function loadSession(): SessionState | null {
+// ─── Public API ────────────────────────────────────────────────────────────────
+
+export function loadSession(): SessionState | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
@@ -175,7 +178,7 @@ function loadSession(): SessionState | null {
   }
 }
 
-function saveSession(state: GameState, ui?: SessionState['ui']) {
+export function saveSession(state: GameState, ui?: SessionState['ui']): void {
   try {
     const session: SessionState = { gameState: serializeState(state), ui };
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -184,81 +187,17 @@ function saveSession(state: GameState, ui?: SessionState['ui']) {
   }
 }
 
-// ─── Reducer wrapper ───────────────────────────────────────────────────────────
-
-function makeReducer(params: Params) {
-  return (state: GameState, command: GameCommand): GameState =>
-    sessionReducer(state, params, command);
+export function clearSession(): void {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem('hexigame.guest.started');
+  localStorage.removeItem('hexigame.tutorial.started');
 }
 
-// ─── Hook ──────────────────────────────────────────────────────────────────────
-
-export interface UseGameSessionOptions {
-  params?: Partial<Params>;
-  seed?: number;
-  isPaused: boolean;
-  guestStarted: boolean;
-  /** Mobile UI tab — used for session save metadata */
-  mobileTab?: string;
-}
-
-export interface UseGameSessionResult {
-  gameState: GameState;
-  dispatch: (command: GameCommand) => void;
-  /** Reset to a fresh game state (clears localStorage) */
-  resetSession: () => void;
-}
-
-export function useGameSession({
-  params,
-  seed,
-  isPaused,
-  guestStarted,
-  mobileTab,
-}: UseGameSessionOptions): UseGameSessionResult {
-  const mergedParams: Params = { ...DefaultParams, ...(params ?? {}) };
-  const rngRef = useRef<RNG>(mulberry32(seed ?? Date.now()));
-
-  // Build initial state once
-  const initialStateRef = useRef<GameState | null>(null);
-  if (!initialStateRef.current) {
-    const fresh = createInitialState(mergedParams, rngRef.current);
-    const session = loadSession();
-    const isGuestStarted = !!localStorage.getItem('hexigame.guest.started');
-    initialStateRef.current = isGuestStarted && session?.gameState
-      ? deserializeState(session.gameState, fresh)
-      : fresh;
+export function restoreGameState(fallbackState: GameState): GameState {
+  const session = loadSession();
+  const isGuestStarted = !!localStorage.getItem('hexigame.guest.started');
+  if (!isGuestStarted || !session?.gameState) {
+    return fallbackState;
   }
-
-  const [gameState, dispatch] = useReducer(
-    makeReducer(mergedParams),
-    initialStateRef.current,
-  );
-
-  // Tick loop
-  useEffect(() => {
-    if (!guestStarted) return;
-    const id = setInterval(() => {
-      if (!isPaused) {
-        dispatch({ type: 'TICK', rng: rngRef.current });
-      }
-    }, 1000 / mergedParams.GameTickRate);
-    return () => clearInterval(id);
-  }, [mergedParams.GameTickRate, isPaused, guestStarted]);
-
-  // Persist on every state change (only after guest start)
-  useEffect(() => {
-    if (!guestStarted) return;
-    saveSession(gameState, mobileTab ? { mobileTab } : undefined);
-  }, [gameState, guestStarted, mobileTab]);
-
-  const resetSession = useCallback(() => {
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem('hexigame.guest.started');
-    localStorage.removeItem('hexigame.tutorial.started');
-    const fresh = createInitialState(mergedParams, rngRef.current);
-    dispatch({ type: 'RESET_STATE', newState: fresh });
-  }, [mergedParams]);
-
-  return { gameState, dispatch, resetSession };
+  return deserializeState(session.gameState, fallbackState);
 }

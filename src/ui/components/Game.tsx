@@ -36,8 +36,14 @@ import TutorialProgressWidget from './TutorialProgressWidget';
 import { getTutorialLevel, getNextTutorialLevel } from '../../tutorial/tutorialLevels';
 import { axialToKey, getHintForMode } from '../../tutorial/tutorialState';
 import { hoveredCellActive } from '../../gameLogic/systems/capture';
-import { useGameSession } from '../hooks/useGameSession';
 import { useKeyboardInput } from '../hooks/useKeyboardInput';
+import {
+  createSessionController,
+  initializeGameState,
+  type SessionController,
+} from '../../appLogic/sessionController';
+import { mulberry32 } from '../../gameLogic/core/params';
+import { clearSession } from '../../appLogic/sessionRepository';
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -84,14 +90,52 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return hasTutorialStarted ? null : 'tutorial_1_movement';
   });
 
-  // Game session (state + dispatch via sessionReducer)
-  const { gameState, dispatch, resetSession } = useGameSession({
-    params,
-    seed,
-    isPaused,
-    guestStarted,
-    mobileTab,
+  // Game session state
+  const [gameState, setGameState] = useState<GameState>(() => {
+    const rng = mulberry32(seed ?? Date.now());
+    return initializeGameState(mergedParams, rng);
   });
+
+  // Session controller (tick loop, persistence, dispatch)
+  const controllerRef = useRef<SessionController | null>(null);
+  if (!controllerRef.current) {
+    controllerRef.current = createSessionController({
+      params,
+      seed,
+      onStateChange: setGameState,
+      getMobileTab: () => mobileTab,
+    });
+  }
+  const { dispatch, resetSession: resetSessionController } = controllerRef.current;
+
+  // Start/stop tick loop based on guest started
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (!controller) return;
+    if (guestStarted) {
+      controller.enablePersistence(true);
+      controller.start();
+    } else {
+      controller.stop();
+      controller.enablePersistence(false);
+    }
+    return () => {
+      controller.stop();
+    };
+  }, [guestStarted]);
+
+  // Update pause state
+  useEffect(() => {
+    controllerRef.current?.setPaused(isPaused);
+  }, [isPaused]);
+
+  // Reset session wrapper
+  const resetSession = () => {
+    clearSession();
+    const rng = mulberry32(seed ?? Date.now());
+    const fresh = initializeGameState(mergedParams, rng);
+    setGameState(fresh);
+  };
 
   // Keyboard input (desktop mode only)
   const isHexiLabLockedForKeyboard = useMemo(() => {

@@ -495,3 +495,5 @@
 - 2026w10-0.37 — Move user settings state into appLogic reducer
 
 - 2026w10-0.38 — Update architecture review documentation
+
+- 2026w10-0.39 — Migrate useGameSession to appLogic layer
