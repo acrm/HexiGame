@@ -501,3 +501,5 @@
 - 2026w10-0.40 — Remove duplicate integration.init() calls
 
 - 2026w10-0.41 — Extract tutorial flow orchestration to appLogic
+
+- 2026w10-0.42 — Split GameField into composable modules

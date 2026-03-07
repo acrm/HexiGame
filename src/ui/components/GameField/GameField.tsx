@@ -16,9 +16,10 @@ import {
   HEX_SIZE,
   hexToPixel,
   getHotbarGeometry,
-  pixelToAxial as pixelToAxialUtil,
-  detectHotbarSlotClick as detectHotbarSlotClickUtil,
 } from './geometryUtils';
+import { useViewport } from './useViewport';
+import { useTouchInput } from './useTouchInput';
+import { useMouseInput } from './useMouseInput';
 
 const GRID_STROKE_COLOR = '#635572ff';
 
@@ -97,106 +98,42 @@ export const GameField: React.FC<GameFieldProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const frameCounterRef = useRef({ last: performance.now(), frames: 0 });
-  // Track active ACT (action mode) touch so release outside button still ends action mode
-  const actTouchIdRef = useRef<number | null>(null);
-  // Geometry refs for click/tap mapping
-  const scaleRef = useRef<number>(1);
-  const centerXRef = useRef<number>(0);
-  const centerYRef = useRef<number>(0);
 
-  function pixelToAxial(px: number, py: number): { q: number; r: number } {
-    return pixelToAxialUtil(px, py, scaleRef, centerXRef, centerYRef);
-  }
+  // Viewport management (scale, centerX, centerY)
+  const viewport = useViewport({
+    canvasRef,
+    isInventory,
+    hideHotbar,
+    isLeftHanded,
+  });
+  const { scaleRef, centerXRef, centerYRef, pixelToAxial, detectHotbarSlotClick } = viewport;
 
-  // Detect if a click is on a hotbar ring slot (mobile only)
-  function detectHotbarSlotClick(px: number, py: number): number | null {
-    if (!canvasRef.current) return null;
-    return detectHotbarSlotClickUtil(px, py, canvasRef.current, isInventory, hideHotbar, isLeftHanded);
-  }
+  // Touch input handling
+  useTouchInput({
+    canvasRef,
+    gameState,
+    isInventory,
+    hideHotbar,
+    isLeftHanded,
+    pixelToAxial,
+    detectHotbarSlotClick,
+    onHotbarSlotClick,
+    onCapture,
+    onRelease,
+    onCellClickDown,
+  });
 
-  // Touch handling for mobile controls
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    function handleTouchStart(ev: TouchEvent) {
-      const currentCanvas = canvasRef.current;
-      if (!currentCanvas) return;
-      const rect = currentCanvas.getBoundingClientRect();
-      for (let i = 0; i < ev.changedTouches.length; i++) {
-        const t = ev.changedTouches[i];
-        const x = t.clientX - rect.left;
-        const y = t.clientY - rect.top;
-
-        // Check hotbar first
-        const hotbarSlotIdx = detectHotbarSlotClick(x, y);
-        if (hotbarSlotIdx !== null && onHotbarSlotClick) {
-          ev.preventDefault();
-          onHotbarSlotClick(hotbarSlotIdx);
-          continue;
-        }
-
-        const {
-          centerX: capCenterX,
-          centerY: capCenterY,
-          hexSize: capRadius,
-        } = getHotbarGeometry(currentCanvas, isLeftHanded);
-
-        const showAct = !isInventory; // ACT always available in world
-        let consumed = false;
-        const dCap = Math.hypot(x - capCenterX, y - capCenterY);
-        if (dCap <= capRadius && showAct) {
-          ev.preventDefault();
-          actTouchIdRef.current = t.identifier;
-          onCapture();
-          consumed = true;
-        }
-
-        if (!consumed) {
-          const axial = pixelToAxial(x, y);
-          if (onCellClickDown) {
-            onCellClickDown(axial.q, axial.r);
-          }
-          // If tapping on focus cell in world mode, also start action mode
-          if (!isInventory && axial.q === gameState.focus.q && axial.r === gameState.focus.r) {
-            actTouchIdRef.current = t.identifier;
-            onCapture();
-          }
-        }
-      }
-    }
-
-    function handleTouchMove(ev: TouchEvent) {
-      // Joystick is disabled on mobile; prevent accidental page scroll while swiping.
-      ev.preventDefault();
-    }
-
-    function handleTouchEnd(ev: TouchEvent) {
-      const currentCanvas = canvasRef.current;
-      if (!currentCanvas) return;
-      for (let i = 0; i < ev.changedTouches.length; i++) {
-        const t = ev.changedTouches[i];
-        // Release action mode if ACT touch ends (regardless of where it ends)
-        if (t.identifier === actTouchIdRef.current) {
-          actTouchIdRef.current = null;
-          ev.preventDefault();
-          onRelease();
-        }
-      }
-    }
-
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-
-    return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart as any);
-      canvas.removeEventListener('touchmove', handleTouchMove as any);
-      canvas.removeEventListener('touchend', handleTouchEnd as any);
-      canvas.removeEventListener('touchcancel', handleTouchEnd as any);
-    };
-  }, [gameState.focus, isInventory, onToggleInventory, onCapture, onRelease, onEat, onSetCursor, onCellClickDown]);
+  // Mouse input handling
+  useMouseInput({
+    canvasRef,
+    pixelToAxial,
+    detectHotbarSlotClick,
+    onSetCursor,
+    onCellClickDown,
+    onCellClickUp,
+    onCellDrag,
+    onHotbarSlotClick,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -678,70 +615,6 @@ export const GameField: React.FC<GameFieldProps> = ({
       cancelAnimationFrame(raf);
     };
   }, [gameState, params, fps, setFps, isInventory]);
-
-  // Desktop mouse click focusing
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    let lastAxial: { q: number; r: number } | null = null;
-    
-    function handleMouseDown(ev: MouseEvent) {
-      if (ev.button !== 0) return;
-      const rect = canvas!.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
-      const y = ev.clientY - rect.top;
-      
-      // Check if click is on hotbar slot first
-      const hotbarSlotIdx = detectHotbarSlotClick(x, y);
-      if (hotbarSlotIdx !== null && onHotbarSlotClick) {
-        onHotbarSlotClick(hotbarSlotIdx);
-        return;
-      }
-      
-      const axial = pixelToAxial(x, y);
-      lastAxial = axial;
-      onSetCursor(axial.q, axial.r);
-      if (onCellClickDown) {
-        onCellClickDown(axial.q, axial.r);
-      }
-    }
-    
-    function handleMouseMove(ev: MouseEvent) {
-      if (!lastAxial) return; // Not dragging
-      const rect = canvas!.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
-      const y = ev.clientY - rect.top;
-      const axial = pixelToAxial(x, y);
-      // Only call drag if we moved to a different cell
-      if (axial.q !== lastAxial.q || axial.r !== lastAxial.r) {
-        lastAxial = axial;
-        if (onCellDrag) {
-          onCellDrag(axial.q, axial.r);
-        }
-      }
-    }
-    
-    function handleMouseUp(ev: MouseEvent) {
-      if (ev.button !== 0) return;
-      const rect = canvas!.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
-      const y = ev.clientY - rect.top;
-      const axial = pixelToAxial(x, y);
-      lastAxial = null; // End drag
-      if (onCellClickUp) {
-        onCellClickUp(axial.q, axial.r);
-      }
-    }
-    
-    canvas.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [onSetCursor, onCellClickDown, onCellClickUp, onCellDrag]);
 
   return (
     <div ref={canvasContainerRef} className="game-field" style={{ position: 'relative' }}>
