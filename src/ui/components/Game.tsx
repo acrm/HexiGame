@@ -273,23 +273,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     prevTemplateStateRef.current = curr;
   }, [gameState.activeTemplate]);
 
-  // Signal game ready to SDK (LoadingAPI.ready for Yandex) - call as soon as loaded
-  useEffect(() => {
-    let mounted = true;
-    Promise.resolve(integration.init()).then(() => {
-      if (mounted) {
-        integration.onGameReady();
-      }
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   // Gameplay lifecycle (start/stop based on game state and menu)
+  // Note: integration.init() and onGameReady() are called once in index.tsx
   useEffect(() => {
     if (guestStarted && !isPaused && !isSettingsOpen && !isMascotOpen) {
-      Promise.resolve(integration.init()).then(() => integration.onGameplayStart());
+      integration.onGameplayStart();
     } else if (guestStarted) {
       integration.onGameplayStop();
     }

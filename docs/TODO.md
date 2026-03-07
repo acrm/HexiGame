@@ -15,7 +15,7 @@
 ## Architecture Backlog (2026-03-07)
 
 - [x] Вынести `useGameSession` из `ui/hooks` в `appLogic/sessionController` + `sessionRepository`
-- [ ] Убрать дублирование `integration.init()` / `onGameReady()` (единая точка orchestration)
+- [x] Убрать дублирование `integration.init()` / `onGameReady()` (единая точка orchestration)
 - [ ] Разделить `GameField.tsx` на renderer/input/viewport модули
 - [ ] Вынести tutorial flow orchestration из `Game.tsx` в `appLogic/tutorialFlow`
 - [ ] Перевести audio lifecycle на appLogic-порт (UI только отправляет intents)

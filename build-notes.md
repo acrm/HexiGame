@@ -497,3 +497,5 @@
 - 2026w10-0.38 — Update architecture review documentation
 
 - 2026w10-0.39 — Migrate useGameSession to appLogic layer
+
+- 2026w10-0.40 — Remove duplicate integration.init() calls
