@@ -22,6 +22,6 @@
 
 ## Decomposition Candidates (2026-03-07 audit)
 
-- [ ] Вынести аудио lifecycle/effects из `src/ui/components/Game.tsx` в отдельный `ui/hooks/useGameAudio.ts`
+- [x] Вынести аудио lifecycle/effects из `src/ui/components/Game.tsx` в отдельный `ui/hooks/useGameAudio.ts`
 - [x] Вынести canvas render-loop из `src/ui/components/GameField/GameField.tsx` в `ui/components/GameField/useCanvasRenderer.ts`
 - [ ] Разделить JSX-слой `src/ui/components/Game.tsx` на контейнеры (`GameMobileTabs`, `GameOverlays`, `GamePanels`) без изменения UX

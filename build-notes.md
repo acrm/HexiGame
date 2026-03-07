@@ -509,3 +509,5 @@
 - 2026w10-0.44 — Remove legacy audioManager and refresh decomposition audit docs
 
 - 2026w10-0.45 — Extract GameField render loop into useCanvasRenderer hook
+
+- 2026w10-0.46 — Extract Game audio lifecycle into useGameAudio hook

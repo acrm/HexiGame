@@ -1,0 +1,116 @@
+import { useCallback, useEffect, useRef } from 'react';
+import type { GameState } from '../../gameLogic/core/types';
+import { audioController } from '../../appLogic/audioController';
+
+export interface UseGameAudioOptions {
+  guestStarted: boolean;
+  musicEnabled: boolean;
+  musicVolume: number;
+  soundEnabled: boolean;
+  soundVolume: number;
+  activeTemplate: GameState['activeTemplate'];
+}
+
+export interface UseGameAudioApi {
+  playUiClick: () => void;
+  playSound: (soundPath: string) => void;
+  playMusicFromInteraction: () => void;
+}
+
+export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
+  const {
+    guestStarted,
+    musicEnabled,
+    musicVolume,
+    soundEnabled,
+    soundVolume,
+    activeTemplate,
+  } = options;
+
+  useEffect(() => {
+    audioController.init();
+  }, []);
+
+  useEffect(() => {
+    audioController.updateMusicVolume(musicVolume);
+  }, [musicVolume]);
+
+  useEffect(() => {
+    if (guestStarted && musicEnabled && !document.hidden) {
+      audioController.playMusic(musicEnabled, musicVolume);
+    }
+  }, [guestStarted, musicEnabled, musicVolume]);
+
+  useEffect(() => {
+    if (!guestStarted || !musicEnabled) return;
+
+    const resumeOnInteraction = () => {
+      audioController.playMusic(musicEnabled, musicVolume);
+      window.removeEventListener('pointerdown', resumeOnInteraction);
+      window.removeEventListener('keydown', resumeOnInteraction);
+      window.removeEventListener('touchstart', resumeOnInteraction);
+    };
+
+    window.addEventListener('pointerdown', resumeOnInteraction, { passive: true, once: true });
+    window.addEventListener('keydown', resumeOnInteraction, { once: true });
+    window.addEventListener('touchstart', resumeOnInteraction, { passive: true, once: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', resumeOnInteraction);
+      window.removeEventListener('keydown', resumeOnInteraction);
+      window.removeEventListener('touchstart', resumeOnInteraction);
+    };
+  }, [guestStarted, musicEnabled, musicVolume]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        audioController.pauseMusic();
+      } else {
+        audioController.resumeMusic(musicEnabled, musicVolume);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [musicEnabled, musicVolume]);
+
+  const previousTemplateRef = useRef<GameState['activeTemplate']>(null);
+  useEffect(() => {
+    if (!activeTemplate || !previousTemplateRef.current) {
+      previousTemplateRef.current = activeTemplate;
+      return;
+    }
+
+    const previousTemplate = previousTemplateRef.current;
+    const currentTemplate = activeTemplate;
+
+    if (!previousTemplate.completedAtTick && currentTemplate.completedAtTick) {
+      audioController.templateCompleted(soundEnabled, soundVolume);
+    } else if (!previousTemplate.hasErrors && currentTemplate.hasErrors) {
+      audioController.templateCellWrong(soundEnabled, soundVolume);
+    } else if (previousTemplate.filledCells.size < currentTemplate.filledCells.size && !currentTemplate.hasErrors) {
+      audioController.templateCellCorrect(soundEnabled, soundVolume);
+    }
+
+    previousTemplateRef.current = currentTemplate;
+  }, [activeTemplate, soundEnabled, soundVolume]);
+
+  const playUiClick = useCallback(() => {
+    audioController.playRandomSound(soundEnabled, soundVolume);
+  }, [soundEnabled, soundVolume]);
+
+  const playSound = useCallback((soundPath: string) => {
+    audioController.playSound(soundPath, soundEnabled, soundVolume);
+  }, [soundEnabled, soundVolume]);
+
+  const playMusicFromInteraction = useCallback(() => {
+    audioController.playMusic(musicEnabled, musicVolume).catch(() => console.log('[Audio] Autoplay blocked'));
+  }, [musicEnabled, musicVolume]);
+
+  return {
+    playUiClick,
+    playSound,
+    playMusicFromInteraction,
+  };
+}

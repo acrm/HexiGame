@@ -27,7 +27,6 @@ import {
   persistUserSettings,
   userSettingsReducer,
 } from '../../appLogic/userSettings';
-import { audioController } from '../../appLogic/audioController';
 import GuestStart from './GuestStart';
 import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
@@ -44,6 +43,7 @@ import {
   type TutorialFlowState,
 } from '../../appLogic/tutorialFlow';
 import { useKeyboardInput } from '../hooks/useKeyboardInput';
+import { useGameAudio } from '../hooks/useGameAudio';
 import {
   createSessionController,
   initializeGameState,
@@ -166,44 +166,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     hotbarSize: 6,
   });
 
-  // Initialize audio controller on mount
-  useEffect(() => {
-    audioController.init();
-  }, []);
-
-  // Update music volume when settings change
-  useEffect(() => {
-    audioController.updateMusicVolume(musicVolume);
-  }, [musicVolume]);
-
-  // Start audio on guest start (user interaction required)
-  useEffect(() => {
-    if (guestStarted && musicEnabled && !document.hidden) {
-      audioController.playMusic(musicEnabled, musicVolume);
-    }
-  }, [guestStarted, musicEnabled, musicVolume]);
-
-  // Retry music resume on first user interaction after page reload
-  useEffect(() => {
-    if (!guestStarted || !musicEnabled) return;
-
-    const resumeOnInteraction = () => {
-      audioController.playMusic(musicEnabled, musicVolume);
-      window.removeEventListener('pointerdown', resumeOnInteraction);
-      window.removeEventListener('keydown', resumeOnInteraction);
-      window.removeEventListener('touchstart', resumeOnInteraction);
-    };
-
-    window.addEventListener('pointerdown', resumeOnInteraction, { passive: true, once: true });
-    window.addEventListener('keydown', resumeOnInteraction, { once: true });
-    window.addEventListener('touchstart', resumeOnInteraction, { passive: true, once: true });
-
-    return () => {
-      window.removeEventListener('pointerdown', resumeOnInteraction);
-      window.removeEventListener('keydown', resumeOnInteraction);
-      window.removeEventListener('touchstart', resumeOnInteraction);
-    };
-  }, [guestStarted, musicEnabled, musicVolume]);
+  const { playUiClick, playSound, playMusicFromInteraction } = useGameAudio({
+    guestStarted,
+    musicEnabled,
+    musicVolume,
+    soundEnabled,
+    soundVolume,
+    activeTemplate: gameState.activeTemplate,
+  });
 
   // Sync tutorial level into gameState when tutorialFlowState changes
   useEffect(() => {
@@ -217,18 +187,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       if (document.hidden) {
         dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: true });
         integration.onGameplayStop();
-        audioController.pauseMusic();
       } else {
         dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: false });
         if (guestStarted && !isSettingsOpen) {
           integration.onGameplayStart();
         }
-        audioController.resumeMusic(musicEnabled, musicVolume);
       }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [guestStarted, isSettingsOpen, musicEnabled, musicVolume]);
+  }, [guestStarted, isSettingsOpen]);
 
   // Save session history every 360 ticks (~30 seconds) if enabled
   useEffect(() => {
@@ -250,33 +218,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     persistUserSettings(localStorage, settingsState);
   }, [settingsState]);
-
-  // Handle template audio feedback
-  const prevTemplateStateRef = useRef<GameState['activeTemplate']>(null);
-  useEffect(() => {
-    if (!gameState.activeTemplate || !prevTemplateStateRef.current) {
-      prevTemplateStateRef.current = gameState.activeTemplate;
-      return;
-    }
-
-    const prev = prevTemplateStateRef.current;
-    const curr = gameState.activeTemplate;
-
-    // Check for completion
-    if (!prev.completedAtTick && curr.completedAtTick) {
-      audioController.templateCompleted(soundEnabled, soundVolume);
-    }
-    // Check for error state change
-    else if (!prev.hasErrors && curr.hasErrors) {
-      audioController.templateCellWrong(soundEnabled, soundVolume);
-    }
-    // Check for correct cell fill
-    else if (prev.filledCells.size < curr.filledCells.size && !curr.hasErrors) {
-      audioController.templateCellCorrect(soundEnabled, soundVolume);
-    }
-
-    prevTemplateStateRef.current = curr;
-  }, [gameState.activeTemplate, soundEnabled, soundVolume]);
 
   // Gameplay lifecycle (start/stop based on game state and menu)
   // Note: integration.init() and onGameReady() are called once in index.tsx
@@ -315,21 +256,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     }
     const wasComplete = prevTutorialCompleteRef.current;
     if (!wasComplete && tutorialViewModel.isTaskComplete) {
-      audioController.playSound('audio/mixkit-small-win-2020.wav', soundEnabled, soundVolume);
+      playSound('audio/mixkit-small-win-2020.wav');
       tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
     }
     prevTutorialCompleteRef.current = tutorialViewModel.isTaskComplete;
-  }, [tutorialViewModel.isTaskComplete, tutorialFlowState.currentLevelId, tutorialActions, soundEnabled, soundVolume]);
+  }, [tutorialViewModel.isTaskComplete, tutorialFlowState.currentLevelId, tutorialActions, playSound]);
 
   const handleTutorialCompleteClick = () => {
     if (!tutorialFlowState.currentLevelId || !tutorialViewModel.level) return;
     if (!tutorialViewModel.isTaskComplete) return;
-    audioController.playRandomSound(soundEnabled, soundVolume);
+    playUiClick();
     tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
   };
 
   const handleViewTutorialTask = () => {
-    audioController.playRandomSound(soundEnabled, soundVolume);
+    playUiClick();
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
@@ -360,9 +301,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     if (!visitedKey) return;
 
     // Play service bell sound on target cell visit
-    audioController.playSound('audio/mixkit-service-bell-931.wav', soundEnabled, soundVolume);
+    playSound('audio/mixkit-service-bell-931.wav');
     dispatch({ type: 'MARK_TUTORIAL_TARGET_VISITED', key: visitedKey });
-  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialFlowState.currentLevelId, isMobileLayout, mobileTab, dispatch, soundEnabled, soundVolume]);
+  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialFlowState.currentLevelId, isMobileLayout, mobileTab, dispatch, playSound]);
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
@@ -409,7 +350,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <button
               className={`mobile-tab ${mobileTab === 'heximap' ? 'active' : ''}`}
               onClick={() => {
-                audioController.playRandomSound(soundEnabled, soundVolume);
+                playUiClick();
                 dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
               }}
             >
@@ -425,7 +366,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             <button
               className={`mobile-tab ${mobileTab === 'hexipedia' ? 'active' : ''}`}
               onClick={() => {
-                audioController.playRandomSound(soundEnabled, soundVolume);
+                playUiClick();
                 dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
               }}
             >
@@ -436,7 +377,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <button
             className="settings-button"
             onClick={() => {
-              audioController.playRandomSound(soundEnabled, soundVolume);
+              playUiClick();
               dispatchApp({ type: 'OPEN_SETTINGS' });
             }}
             title={t('settings.open')}
@@ -507,7 +448,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               showFPS={showFPS}
               isInventory={effectiveIsInventory}
               onToggleInventory={() => {
-                audioController.playRandomSound(soundEnabled, soundVolume);
+                playUiClick();
                 if (isMobileLayout) {
                   dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
                 } else {
@@ -516,7 +457,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 }
               }}
               onCapture={() => {
-                audioController.playRandomSound(soundEnabled, soundVolume);
+                playUiClick();
                 // Mobile press ACT -> perform instant context action
                 dispatch({ type: 'ACTION_PRESSED' });
               }}
@@ -527,7 +468,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 dispatch({ type: 'EAT_REQUESTED' });
               }}
               onSetCursor={(q, r) => {
-                audioController.playRandomSound(soundEnabled, soundVolume);
+                playUiClick();
                 // Check if clicking on focus or protagonist - start drag
                 // Otherwise - start auto-move to target
                 const clickedPos = { q, r };
@@ -569,7 +510,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 dispatch({ type: 'DRAG_MOVE', dq, dr });
               }}
               onHotbarSlotClick={(slotIdx) => {
-                audioController.playRandomSound(soundEnabled, soundVolume);
+                playUiClick();
                 dispatch({ type: 'EXCHANGE_HOTBAR_SLOT', slotIndex: slotIdx });
               }}
               isLeftHanded={isLeftHanded}
@@ -628,9 +569,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             dispatchApp({ type: 'SET_SESSION_HISTORY', history });
           }
           
-          audioController.playRandomSound(soundEnabled, soundVolume);
+          playUiClick();
           // Play music immediately on user interaction (required for mobile autoplay policy)
-          audioController.playMusic(musicEnabled, musicVolume).catch(() => console.log('[Audio] Autoplay blocked'));
+          playMusicFromInteraction();
         }} />
       )}
       {isSettingsOpen && (
