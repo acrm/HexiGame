@@ -481,3 +481,5 @@
 - 2026w10-0.30 — 2026w10-0.27: Remove dead code: Wiki, ControlsInfoMobile, TutorialOverlay
 
 - 2026w10-0.31 — Refactor GameField and HexiPedia: extract components and utilities into separate files
+
+- 2026w10-0.32 — 2026w10-0.29: Refactor GameField and HexiPedia with extracted components and utilities
