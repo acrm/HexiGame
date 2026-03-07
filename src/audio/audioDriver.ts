@@ -125,7 +125,7 @@ class AudioDriver implements AudioDriverInterface {
   }
 
   /**
-   * Preload critical audio assets (sound effects + first music track).
+   * Preload critical audio assets (sound effects + random music track).
    * Returns a promise that resolves when assets are ready to play.
    */
   preloadCriticalAssets(): Promise<void> {
@@ -162,9 +162,10 @@ class AudioDriver implements AudioDriverInterface {
         );
       }
 
-      // Preload first music track
-      const firstTrackPath = MUSIC_TRACKS[0];
-      const musicPreload = new Audio(firstTrackPath);
+      // Preload random music track
+      const randomIndex = Math.floor(Math.random() * MUSIC_TRACKS.length);
+      const randomTrackPath = MUSIC_TRACKS[randomIndex];
+      const musicPreload = new Audio(randomTrackPath);
       promises.push(
         new Promise<void>((resolve) => {
           const onCanPlay = () => {

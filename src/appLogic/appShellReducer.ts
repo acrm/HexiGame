@@ -17,6 +17,7 @@ export interface AppShellState {
   isPaused: boolean;
   interactionMode: InteractionMode;
   guestStarted: boolean;
+  startupAnimationShown: boolean;
   isSettingsOpen: boolean;
   isMascotOpen: boolean;
   sessionHistory: SessionHistoryRecord[];
@@ -35,6 +36,7 @@ export type AppShellCommand =
   | { type: 'CLOSE_MASCOT' }
   | { type: 'VISIBILITY_CHANGED'; hidden: boolean }
   | { type: 'GUEST_STARTED' }
+  | { type: 'STARTUP_ANIMATION_COMPLETE' }
   | { type: 'RESET_AFTER_SESSION_RESET' }
   | { type: 'SET_TRACK_SESSION_HISTORY'; enabled: boolean }
   | { type: 'SET_SESSION_HISTORY'; history: SessionHistoryRecord[] }
@@ -43,12 +45,14 @@ export type AppShellCommand =
   | { type: 'CLEAR_ACTIVE_SESSION' };
 
 export function createInitialAppShellState(storage: StorageReader): AppShellState {
-  const hasTutorialStarted = !!storage.getItem(TUTORIAL_STARTED_KEY);
+  const hasGuestStarted = !!storage.getItem(GUEST_STARTED_KEY);
   return {
     isInventory: false,
     mobileTab: hasTutorialStarted ? 'heximap' : 'hexipedia',
     isPaused: false,
     interactionMode: 'mobile',
+    guestStarted: hasGuestStarted,
+    startupAnimationShown: hasGuestStarted, // Skip animation if already started before
     guestStarted: !!storage.getItem(GUEST_STARTED_KEY),
     isSettingsOpen: false,
     isMascotOpen: false,
@@ -123,10 +127,18 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
         isPaused: state.isSettingsOpen ? true : false,
       };
 
+    case 'STARTUP_ANIMATION_COMPLETE':
+      return {
+        ...state,
+        startupAnimationShown: true,
+        isPaused: state.isSettingsOpen ? true : false,
+      };
+
     case 'RESET_AFTER_SESSION_RESET':
       return {
         ...state,
         guestStarted: false,
+        startupAnimationShown: false,
         isPaused: true,
         isInventory: false,
         mobileTab: 'hexipedia',

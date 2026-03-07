@@ -31,6 +31,7 @@ import {
   userSettingsReducer,
 } from '../../appLogic/userSettings';
 import GuestStart from './GuestStart';
+import StartupAnimation from './StartupAnimation';
 import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../colorScheme';
@@ -71,6 +72,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     isPaused,
     interactionMode,
     guestStarted,
+    startupAnimationShown,
     isSettingsOpen,
     isMascotOpen,
     sessionHistory,
@@ -357,6 +359,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     playMusicFromInteraction();
   };
 
+  const handleStartupAnimationComplete = () => {
+    dispatchApp({ type: 'STARTUP_ANIMATION_COMPLETE' });
+  };
+
   const hexiPediaProps: React.ComponentProps<typeof HexiPedia> = {
     gameState,
     params: mergedParams,
@@ -601,6 +607,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         isMascotOpen={isMascotOpen}
         onCloseMascot={() => dispatchApp({ type: 'CLOSE_MASCOT' })}
       />
+
+      {guestStarted && !startupAnimationShown && (
+        <StartupAnimation
+          onComplete={handleStartupAnimationComplete}
+          playerColor={mergedParams.ColorPalette[mergedParams.PlayerBaseColorIndex]}
+        />
+      )}
     </div>
   );
 };

@@ -519,3 +519,5 @@
 - 2026w10-0.49 — Add loading screen for cold start
 
 - 2026w10-0.50 — Preload critical audio assets before game start
+
+- 2026w10-0.51 — Add turtle startup animation with random music track preload
