@@ -513,3 +513,5 @@
 - 2026w10-0.46 — Extract Game audio lifecycle into useGameAudio hook
 
 - 2026w10-0.47 — Split Game JSX into presentational containers
+
+- 2026w10-0.48 — Fix missing audioController import in HexiPedia
