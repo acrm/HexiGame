@@ -249,7 +249,7 @@ A multi-level guided experience teaching core mechanics step-by-step:
 2. **Game.tsx**: React root component; event handlers, UI orchestration.
 3. **GameField.tsx**: Canvas rendering; input dispatch to logic layer.
 4. **tutorialState.ts / tutorialLevels.ts**: Tutorial system state and level definitions.
-5. **audioManager.ts**: Sound playback wrapper (HTML5 Audio API).
+5. **audioController.ts + audioDriver.ts**: Audio orchestration (appLogic) + low-level HTML5 Audio driver.
 
 ### Platform
 - **Target**: Web browsers (HTML5 canvas, React + TypeScript).

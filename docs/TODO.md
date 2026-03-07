@@ -19,3 +19,9 @@
 - [x] Разделить `GameField.tsx` на renderer/input/viewport модули
 - [x] Вынести tutorial flow orchestration из `Game.tsx` в `appLogic/tutorialFlow`
 - [x] Перевести audio lifecycle на appLogic-порт (audioController + audioDriver)
+
+## Decomposition Candidates (2026-03-07 audit)
+
+- [ ] Вынести аудио lifecycle/effects из `src/ui/components/Game.tsx` в отдельный `ui/hooks/useGameAudio.ts`
+- [ ] Вынести canvas render-loop из `src/ui/components/GameField/GameField.tsx` в `ui/components/GameField/useCanvasRenderer.ts`
+- [ ] Разделить JSX-слой `src/ui/components/Game.tsx` на контейнеры (`GameMobileTabs`, `GameOverlays`, `GamePanels`) без изменения UX

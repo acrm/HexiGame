@@ -505,3 +505,5 @@
 - 2026w10-0.42 — Split GameField into composable modules
 
 - 2026w10-0.43 — Extract audio to appLogic layer
+
+- 2026w10-0.44 — Remove legacy audioManager and refresh decomposition audit docs

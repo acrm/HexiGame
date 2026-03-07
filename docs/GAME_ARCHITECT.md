@@ -58,8 +58,8 @@ src/
 ├── logic/
 │   └── pureLogic.ts              # 876 строк — монолитная игровая логика
 ├── components/
-│   ├── Game.tsx                  # 780 строк — корневой React-компонент
-│   ├── GameField.tsx             # 841 строк —Canvas рендеринг + input handling
+│   ├── Game.tsx                  # 680 строк — корневой React-компонент
+│   ├── GameField/GameField.tsx   # 640 строк — Canvas рендеринг + input handling
 │   ├── Hotbar.tsx                # 232 строк
 │   ├── Settings.tsx              # 184 строк
 │   ├── TemplateRenderer.ts       # 154 строк
@@ -72,8 +72,9 @@ src/
 │   ├── tutorialLevels.ts         # 109 строк
 │   └── tutorialState.ts          # 104 строк
 ├── audio/
-│   └── audioManager.ts           # 190 строк
+│   └── audioDriver.ts            # Низкоуровневый HTML5 Audio driver
 ├── appLogic/
+│   ├── audioController.ts        # Audio orchestration и intents
 │   ├── integration.ts            # Интеграция с платформами
 │   ├── integration.yandex.ts
 │   └── integration.null.ts
@@ -150,7 +151,7 @@ Game.tsx
   ├─→ pureLogic.ts (876 строк, весь модуль)
   ├─→ templateLogic.ts → pureLogic.ts
   ├─→ tutorialState.ts → pureLogic.ts
-  └─→ audioManager.ts
+  └─→ appLogic/audioController.ts → audio/audioDriver.ts
 
 GameField.tsx
   ├─→ pureLogic.ts (дублирует типы и хелперы)
@@ -374,7 +375,7 @@ class EventBus {
 
 **Integration Points:**
 - `sessionReducer` публикует события после изменений состояния
-- `audioManager` подписывается на `CAPTURE_SUCCESS`, играет звук
+- `audioController` обрабатывает audio intents (UI/состояние) и делегирует воспроизведение в `audioDriver`
 - `integration.yandex.ts` подписывается на события для аналитики
 
 **Benefits:**
