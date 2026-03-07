@@ -8,6 +8,9 @@ import ControlsDesktop from './ControlsInfoDesktop';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField/GameField';
 import Settings from './Settings';
+import GameMobileTabs from './Game/GameMobileTabs';
+import GamePanels from './Game/GamePanels';
+import GameOverlays from './Game/GameOverlays';
 import { t } from '../i18n';
 import { integration } from '../../appLogic/integration';
 import {
@@ -324,6 +327,233 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && tutorialViewModel.level ? 56 : 8;
   const currentTutorialHint = tutorialViewModel.level ? getHintForMode(tutorialViewModel.level.hints, interactionMode) : '';
 
+  const handleOpenSettings = () => {
+    playUiClick();
+    dispatchApp({ type: 'OPEN_SETTINGS' });
+  };
+
+  const handleSelectHexiMapTab = () => {
+    playUiClick();
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+  };
+
+  const handleSelectHexiPediaTab = () => {
+    playUiClick();
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+  };
+
+  const handleGuestStart = () => {
+    localStorage.setItem('hexigame.guest.started', '1');
+    dispatchApp({ type: 'GUEST_STARTED' });
+
+    if (trackSessionHistory) {
+      const newSession = createNewSessionHistoryRecord();
+      const history = addSessionToHistory(localStorage, newSession);
+      dispatchApp({ type: 'SESSION_STARTED', sessionId: newSession.id, startTick: 0 });
+      dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+    }
+
+    playUiClick();
+    playMusicFromInteraction();
+  };
+
+  const hexiPediaProps: React.ComponentProps<typeof HexiPedia> = {
+    gameState,
+    params: mergedParams,
+    interactionMode,
+    tutorialLevel: tutorialViewModel.level,
+    tutorialLevelId: tutorialFlowState.currentLevelId,
+    isTutorialTaskComplete: tutorialViewModel.isTaskComplete,
+    completedTutorialLevelIds: tutorialViewModel.completedLevelIds,
+    sessionHistory,
+    trackSessionHistory,
+    soundEnabled,
+    soundVolume,
+    onSelectTutorialLevel: handleSelectTutorialLevel,
+    onRestartTutorialLevel: handleRestartTutorialLevel,
+    onToggleTrackHistory: (enabled: boolean) => {
+      dispatchApp({ type: 'SET_TRACK_SESSION_HISTORY', enabled });
+    },
+    onDeleteSessionRecord: (recordId: string) => {
+      const history = deleteSessionHistoryRecord(localStorage, recordId);
+      dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+    },
+    onClearSessionHistory: () => {
+      const history = clearSessionHistory(localStorage);
+      dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+    },
+    onSwitchTab: (tab: string) => {
+      if (tab === 'heximap') {
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+      }
+      if (tab === 'colors') {
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+      }
+    },
+    onActivateTemplate: (templateId: string) => {
+      if (templateId === '') {
+        dispatch({ type: 'DEACTIVATE_TEMPLATE' });
+      } else {
+        dispatch({ type: 'ACTIVATE_TEMPLATE', templateId });
+      }
+    },
+    selectedColorIndex,
+    onColorSelect: (index: number) => {
+      dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
+    },
+    showColorWidget,
+    onToggleColorWidget: (visible: boolean) => {
+      dispatchSettings({ type: 'SET_SHOW_COLOR_WIDGET', visible });
+    },
+    currentSessionStartTick,
+  };
+
+  const gameFieldProps: React.ComponentProps<typeof GameField> = {
+    gameState,
+    params: mergedParams,
+    fps,
+    setFps,
+    showFPS,
+    isInventory: effectiveIsInventory,
+    onToggleInventory: () => {
+      playUiClick();
+      if (isMobileLayout) {
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+      } else {
+        if (isHexiLabLocked) return;
+        dispatch({ type: 'TOGGLE_INVENTORY' });
+      }
+    },
+    onCapture: () => {
+      playUiClick();
+      dispatch({ type: 'ACTION_PRESSED' });
+    },
+    onRelease: () => {
+      // Mobile release ACT -> action already performed on press
+    },
+    onEat: () => {
+      dispatch({ type: 'EAT_REQUESTED' });
+    },
+    onSetCursor: (q, r) => {
+      playUiClick();
+      const clickedPos = { q, r };
+      const isFocusCell = equalAxial(clickedPos, gameState.focus);
+      const isProtagonistCell = equalAxial(clickedPos, gameState.protagonist);
+      if (isFocusCell || isProtagonistCell) {
+        dispatch({ type: 'START_DRAG' });
+      } else {
+        dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
+      }
+    },
+    onCellClickDown: (q, r) => {
+      if (mouseIsDownRef.current) return;
+      mouseIsDownRef.current = true;
+      const clickedPos = { q, r };
+      const isFocusCell = equalAxial(clickedPos, gameState.focus);
+      if (isFocusCell && !gameState.isDragging && !gameState.autoMoveTarget) {
+        dispatch({ type: 'ACTION_PRESSED' });
+        return;
+      }
+      const isProtagonistCell = equalAxial(clickedPos, gameState.protagonist);
+      if (isFocusCell || isProtagonistCell) {
+        dispatch({ type: 'START_DRAG' });
+      } else {
+        dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
+      }
+    },
+    onCellClickUp: (_q, _r) => {
+      if (!mouseIsDownRef.current) return;
+      mouseIsDownRef.current = false;
+      if (gameState.isDragging) {
+        dispatch({ type: 'END_DRAG' });
+      }
+    },
+    onCellDrag: (q, r) => {
+      if (!gameState.isDragging) return;
+      const dq = q - gameState.protagonist.q;
+      const dr = r - gameState.protagonist.r;
+      dispatch({ type: 'DRAG_MOVE', dq, dr });
+    },
+    onHotbarSlotClick: (slotIdx) => {
+      playUiClick();
+      dispatch({ type: 'EXCHANGE_HOTBAR_SLOT', slotIndex: slotIdx });
+    },
+    isLeftHanded,
+    paletteTopOffset,
+    tutorialTargetCells:
+      tutorialViewModel.level && (!isMobileLayout || mobileTab === 'heximap')
+        ? (tutorialViewModel.level.targetCells ?? [])
+        : [],
+    visitedTutorialCells: gameState.tutorialProgress?.visitedTargetKeys ?? new Set(),
+    hideHotbar: tutorialViewModel.level?.hideHotbar ?? false,
+    selectedColorIndex,
+    relativeBaseColorIndex: widgetRelativeBaseColorIndex,
+    isAutoBaseColorEnabled: autoBaseColorEnabled,
+    onColorSelect: (index) => {
+      dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
+    },
+    onToggleAutoBaseColor: () => {
+      dispatchSettings({ type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' });
+    },
+    onNavigateToPalette: () => {
+      if (isMobileLayout) {
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+      }
+      // TODO: Open HexiPedia and navigate to Colors section
+    },
+    showColorWidget,
+  };
+
+  const settingsProps: React.ComponentProps<typeof Settings> = {
+    onClose: () => dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden }),
+    onResetSession: () => {
+      resetSession();
+      dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
+      setTutorialFlowState({ currentLevelId: 'tutorial_1_movement' });
+      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+    },
+    onShowMascot: () => {
+      dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden });
+      dispatchApp({ type: 'OPEN_MASCOT' });
+    },
+    soundEnabled,
+    onToggleSound: (enabled) => {
+      dispatchSettings({ type: 'SET_SOUND_ENABLED', enabled });
+    },
+    soundVolume,
+    onSoundVolumeChange: (volume) => {
+      dispatchSettings({ type: 'SET_SOUND_VOLUME', volume });
+    },
+    musicEnabled,
+    onToggleMusic: (enabled) => {
+      dispatchSettings({ type: 'SET_MUSIC_ENABLED', enabled });
+    },
+    musicVolume,
+    onMusicVolumeChange: (volume) => {
+      dispatchSettings({ type: 'SET_MUSIC_VOLUME', volume });
+    },
+    showFPS,
+    onToggleShowFPS: (show) => {
+      dispatchSettings({ type: 'SET_SHOW_FPS', show });
+    },
+    isLeftHanded,
+    onToggleLeftHanded: (isLeft) => {
+      dispatchSettings({ type: 'SET_LEFT_HANDED', isLeft });
+    },
+  };
+
+  const tutorialWidgetProps = tutorialViewModel.level
+    ? {
+        level: tutorialViewModel.level,
+        hintText: currentTutorialHint,
+        visitedCount: tutorialViewModel.visitedTargetCount,
+        totalCount: tutorialViewModel.targetKeys.length,
+        isComplete: tutorialViewModel.isTaskComplete,
+        onComplete: handleTutorialCompleteClick,
+        onViewTask: handleViewTutorialTask,
+      }
+    : null;
+
   return (
     <div
       className="game-root mobile-forced"
@@ -345,275 +575,32 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         </div>
       )}
       {isMobileLayout && (
-        <div className="mobile-tab-bar">
-          <div className="mobile-tabs-container">
-            <button
-              className={`mobile-tab ${mobileTab === 'heximap' ? 'active' : ''}`}
-              onClick={() => {
-                playUiClick();
-                dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
-              }}
-            >
-              {t('tab.heximap')}
-            </button>
-            <button
-              className={`mobile-tab ${mobileTab === 'hexilab' ? 'active' : ''} disabled`}
-              onClick={() => {}}
-              disabled
-            >
-              {t('tab.hexilab')}
-            </button>
-            <button
-              className={`mobile-tab ${mobileTab === 'hexipedia' ? 'active' : ''}`}
-              onClick={() => {
-                playUiClick();
-                dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
-              }}
-            >
-              {t('tab.hexipedia')}
-            </button>
-          </div>
-          {/* Settings gear on right side of tab bar */}
-          <button
-            className="settings-button"
-            onClick={() => {
-              playUiClick();
-              dispatchApp({ type: 'OPEN_SETTINGS' });
-            }}
-            title={t('settings.open')}
-          >
-            <i className="fas fa-cog"></i>
-          </button>
-        </div>
-      )}
-      <div className="game-main">
-        <div className="game-field-area">
-          {isMobileLayout && mobileTab === 'hexipedia' ? (
-            <HexiPedia
-              gameState={gameState}
-              params={mergedParams}
-              interactionMode={interactionMode}
-              tutorialLevel={tutorialViewModel.level}
-              tutorialLevelId={tutorialFlowState.currentLevelId}
-              isTutorialTaskComplete={tutorialViewModel.isTaskComplete}
-              completedTutorialLevelIds={tutorialViewModel.completedLevelIds}
-              sessionHistory={sessionHistory}
-              trackSessionHistory={trackSessionHistory}
-              soundEnabled={soundEnabled}
-              soundVolume={soundVolume}
-              onSelectTutorialLevel={handleSelectTutorialLevel}
-              onRestartTutorialLevel={handleRestartTutorialLevel}
-              onToggleTrackHistory={(enabled: boolean) => {
-                dispatchApp({ type: 'SET_TRACK_SESSION_HISTORY', enabled });
-              }}
-              onDeleteSessionRecord={(recordId: string) => {
-                const history = deleteSessionHistoryRecord(localStorage, recordId);
-                dispatchApp({ type: 'SET_SESSION_HISTORY', history });
-              }}
-              onClearSessionHistory={() => {
-                const history = clearSessionHistory(localStorage);
-                dispatchApp({ type: 'SET_SESSION_HISTORY', history });
-              }}
-              onSwitchTab={(tab: string) => {
-                if (tab === 'heximap') {
-                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
-                }
-                if (tab === 'colors') {
-                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
-                }
-              }}
-              onActivateTemplate={(templateId: string) => {
-                if (templateId === '') {
-                  dispatch({ type: 'DEACTIVATE_TEMPLATE' });
-                } else {
-                  dispatch({ type: 'ACTIVATE_TEMPLATE', templateId });
-                }
-              }}
-              selectedColorIndex={selectedColorIndex}
-              onColorSelect={(index: number) => {
-                dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
-              }}
-              showColorWidget={showColorWidget}
-              onToggleColorWidget={(visible: boolean) => {
-                dispatchSettings({ type: 'SET_SHOW_COLOR_WIDGET', visible });
-              }}
-              currentSessionStartTick={currentSessionStartTick}
-            />
-          ) : (
-            <GameField
-              gameState={gameState}
-              params={mergedParams}
-              fps={fps}
-              setFps={setFps}
-              showFPS={showFPS}
-              isInventory={effectiveIsInventory}
-              onToggleInventory={() => {
-                playUiClick();
-                if (isMobileLayout) {
-                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
-                } else {
-                  if (isHexiLabLocked) return;
-                  dispatch({ type: 'TOGGLE_INVENTORY' });
-                }
-              }}
-              onCapture={() => {
-                playUiClick();
-                // Mobile press ACT -> perform instant context action
-                dispatch({ type: 'ACTION_PRESSED' });
-              }}
-              onRelease={() => {
-                // Mobile release ACT -> action already performed on press
-              }}
-              onEat={() => {
-                dispatch({ type: 'EAT_REQUESTED' });
-              }}
-              onSetCursor={(q, r) => {
-                playUiClick();
-                // Check if clicking on focus or protagonist - start drag
-                // Otherwise - start auto-move to target
-                const clickedPos = { q, r };
-                const isFocusCell = equalAxial(clickedPos, gameState.focus);
-                const isProtagonistCell = equalAxial(clickedPos, gameState.protagonist);
-                if (isFocusCell || isProtagonistCell) {
-                  dispatch({ type: 'START_DRAG' });
-                } else {
-                  dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
-                }
-              }}
-              onCellClickDown={(q, r) => {
-                if (mouseIsDownRef.current) return;
-                mouseIsDownRef.current = true;
-                const clickedPos = { q, r };
-                const isFocusCell = equalAxial(clickedPos, gameState.focus);
-                if (isFocusCell && !gameState.isDragging && !gameState.autoMoveTarget) {
-                  dispatch({ type: 'ACTION_PRESSED' });
-                  return;
-                }
-                const isProtagonistCell = equalAxial(clickedPos, gameState.protagonist);
-                if (isFocusCell || isProtagonistCell) {
-                  dispatch({ type: 'START_DRAG' });
-                } else {
-                  dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
-                }
-              }}
-              onCellClickUp={(_q, _r) => {
-                if (!mouseIsDownRef.current) return;
-                mouseIsDownRef.current = false;
-                if (gameState.isDragging) {
-                  dispatch({ type: 'END_DRAG' });
-                }
-              }}
-              onCellDrag={(q, r) => {
-                if (!gameState.isDragging) return;
-                const dq = q - gameState.protagonist.q;
-                const dr = r - gameState.protagonist.r;
-                dispatch({ type: 'DRAG_MOVE', dq, dr });
-              }}
-              onHotbarSlotClick={(slotIdx) => {
-                playUiClick();
-                dispatch({ type: 'EXCHANGE_HOTBAR_SLOT', slotIndex: slotIdx });
-              }}
-              isLeftHanded={isLeftHanded}
-              paletteTopOffset={paletteTopOffset}
-              tutorialTargetCells={
-                tutorialViewModel.level && (!isMobileLayout || mobileTab === 'heximap')
-                  ? (tutorialViewModel.level.targetCells ?? [])
-                  : []
-              }
-              visitedTutorialCells={gameState.tutorialProgress?.visitedTargetKeys ?? new Set()}
-              hideHotbar={tutorialViewModel.level?.hideHotbar ?? false}
-              selectedColorIndex={selectedColorIndex}
-              relativeBaseColorIndex={widgetRelativeBaseColorIndex}
-              isAutoBaseColorEnabled={autoBaseColorEnabled}
-              onColorSelect={(index) => {
-                dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
-              }}
-              onToggleAutoBaseColor={() => {
-                dispatchSettings({ type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' });
-              }}
-              onNavigateToPalette={() => {
-                if (isMobileLayout) {
-                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
-                }
-                // TODO: Open HexiPedia and navigate to Colors section
-              }}
-              showColorWidget={showColorWidget}
-            />
-          )}
-        </div>
-        <div className="game-footer-controls" />
-      </div>
-      {isMobileLayout && mobileTab === 'heximap' && tutorialViewModel.level && (
-        <div className="tutorial-widget-overlay">
-          <TutorialProgressWidget
-            level={tutorialViewModel.level}
-            hintText={currentTutorialHint}
-            visitedCount={tutorialViewModel.visitedTargetCount}
-            totalCount={tutorialViewModel.targetKeys.length}
-            isComplete={tutorialViewModel.isTaskComplete}
-            onComplete={handleTutorialCompleteClick}
-            onViewTask={handleViewTutorialTask}
-          />
-        </div>
-      )}
-      {!guestStarted && (
-        <GuestStart onStart={() => {
-          localStorage.setItem('hexigame.guest.started', '1');
-          dispatchApp({ type: 'GUEST_STARTED' });
-          
-          // Create new session
-          if (trackSessionHistory) {
-            const newSession = createNewSessionHistoryRecord();
-            const history = addSessionToHistory(localStorage, newSession);
-            dispatchApp({ type: 'SESSION_STARTED', sessionId: newSession.id, startTick: 0 });
-            dispatchApp({ type: 'SET_SESSION_HISTORY', history });
-          }
-          
-          playUiClick();
-          // Play music immediately on user interaction (required for mobile autoplay policy)
-          playMusicFromInteraction();
-        }} />
-      )}
-      {isSettingsOpen && (
-        <Settings 
-          onClose={() => dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden })}
-          onResetSession={() => {
-            resetSession();
-            dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
-            setTutorialFlowState({ currentLevelId: 'tutorial_1_movement' });
-            dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
-          }}
-          onShowMascot={() => {
-            dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden });
-            dispatchApp({ type: 'OPEN_MASCOT' });
-          }}
-          soundEnabled={soundEnabled}
-          onToggleSound={(enabled) => {
-            dispatchSettings({ type: 'SET_SOUND_ENABLED', enabled });
-          }}
-          soundVolume={soundVolume}
-          onSoundVolumeChange={(volume) => {
-            dispatchSettings({ type: 'SET_SOUND_VOLUME', volume });
-          }}
-          musicEnabled={musicEnabled}
-          onToggleMusic={(enabled) => {
-            dispatchSettings({ type: 'SET_MUSIC_ENABLED', enabled });
-          }}
-          musicVolume={musicVolume}
-          onMusicVolumeChange={(volume) => {
-            dispatchSettings({ type: 'SET_MUSIC_VOLUME', volume });
-          }}
-          showFPS={showFPS}
-          onToggleShowFPS={(show) => {
-            dispatchSettings({ type: 'SET_SHOW_FPS', show });
-          }}
-          isLeftHanded={isLeftHanded}
-          onToggleLeftHanded={(isLeft) => {
-            dispatchSettings({ type: 'SET_LEFT_HANDED', isLeft });
-          }}
+        <GameMobileTabs
+          mobileTab={mobileTab}
+          onSelectHexiMap={handleSelectHexiMapTab}
+          onSelectHexiPedia={handleSelectHexiPediaTab}
+          onOpenSettings={handleOpenSettings}
         />
       )}
-      {isMascotOpen && <Mascot onClose={() => dispatchApp({ type: 'CLOSE_MASCOT' })} />}
+
+      <GamePanels
+        isMobileLayout={isMobileLayout}
+        mobileTab={mobileTab}
+        hexiPediaProps={hexiPediaProps}
+        gameFieldProps={gameFieldProps}
+      />
+
+      <GameOverlays
+        isMobileLayout={isMobileLayout}
+        mobileTab={mobileTab}
+        tutorialWidgetProps={tutorialWidgetProps}
+        showGuestStart={!guestStarted}
+        onGuestStart={handleGuestStart}
+        isSettingsOpen={isSettingsOpen}
+        settingsProps={settingsProps}
+        isMascotOpen={isMascotOpen}
+        onCloseMascot={() => dispatchApp({ type: 'CLOSE_MASCOT' })}
+      />
     </div>
   );
 };

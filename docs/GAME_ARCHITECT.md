@@ -58,7 +58,10 @@ src/
 ├── logic/
 │   └── pureLogic.ts              # 876 строк — монолитная игровая логика
 ├── components/
-│   ├── Game.tsx                  # 680 строк — корневой React-компонент
+│   ├── Game.tsx                  # 608 строк — корневой React-компонент
+│   ├── Game/GameMobileTabs.tsx   # 52 строки — мобильная навигация
+│   ├── Game/GamePanels.tsx       # 33 строки — main-panel composition
+│   ├── Game/GameOverlays.tsx     # 48 строк — overlay composition
 │   ├── GameField/GameField.tsx   # 160 строк — orchestration shell (input + composition)
 │   ├── GameField/useCanvasRenderer.ts # 534 строки — canvas render loop
 │   ├── Hotbar.tsx                # 232 строк
@@ -81,6 +84,7 @@ src/
 │   └── integration.null.ts
 └── ui/
     ├── i18n.ts                   # 152 строк — локализация
+  ├── hooks/useGameAudio.ts     # 116 строк — audio lifecycle hook
     └── colorScheme.ts            # 44 строк
 ```
 
