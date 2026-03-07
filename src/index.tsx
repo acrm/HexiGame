@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import Game from './ui/components/Game';
 import LoadingScreen from './ui/components/LoadingScreen';
 import { integration } from './appLogic/integration';
+import { audioController } from './appLogic/audioController';
 import '@fortawesome/fontawesome-free/css/all.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/700.css';
@@ -25,10 +26,15 @@ function Root() {
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
-		// Initialize platform integration and mark game ready when bootstrapped
+		// Initialize platform integration and preload critical assets
 		(async () => {
 			try {
+				// Platform integration (SDK, language, etc.)
 				await integration.init();
+				
+				// Preload critical audio assets (sound effects + first music track)
+				await audioController.preload();
+				
 				integration.onGameReady();
 			} catch {}
 			

@@ -517,3 +517,5 @@
 - 2026w10-0.48 — Fix missing audioController import in HexiPedia
 
 - 2026w10-0.49 — Add loading screen for cold start
+
+- 2026w10-0.50 — Preload critical audio assets before game start

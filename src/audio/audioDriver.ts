@@ -98,10 +98,12 @@ export interface AudioDriverInterface {
   loadMusicTrack: (index: number) => MusicTrackHandle;
   playRandomSound: (volume: number) => void;
   playSound: (path: string, volume: number) => void;
+  preloadCriticalAssets: () => Promise<void>;
 }
 
 class AudioDriver implements AudioDriverInterface {
   private soundPool: HTMLAudioElement[] = [];
+  private preloadPromise: Promise<void> | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -120,6 +122,71 @@ class AudioDriver implements AudioDriverInterface {
   loadMusicTrack(index: number): MusicTrackHandle {
     const trackPath = MUSIC_TRACKS[index % MUSIC_TRACKS.length];
     return new MusicTrack(trackPath);
+  }
+
+  /**
+   * Preload critical audio assets (sound effects + first music track).
+   * Returns a promise that resolves when assets are ready to play.
+   */
+  preloadCriticalAssets(): Promise<void> {
+    if (this.preloadPromise) return this.preloadPromise;
+
+    this.preloadPromise = (async () => {
+      const promises: Promise<void>[] = [];
+
+      // Preload all sound effects
+      for (const audio of this.soundPool) {
+        promises.push(
+          new Promise<void>((resolve) => {
+            if (audio.readyState >= 3) {
+              // HAVE_FUTURE_DATA or better
+              resolve();
+            } else {
+              const onCanPlay = () => {
+                audio.removeEventListener('canplaythrough', onCanPlay);
+                audio.removeEventListener('error', onError);
+                resolve();
+              };
+              const onError = () => {
+                audio.removeEventListener('canplaythrough', onCanPlay);
+                audio.removeEventListener('error', onError);
+                // Resolve anyway - don't block on failed audio
+                resolve();
+              };
+              audio.addEventListener('canplaythrough', onCanPlay);
+              audio.addEventListener('error', onError);
+              // Trigger loading
+              audio.load();
+            }
+          })
+        );
+      }
+
+      // Preload first music track
+      const firstTrackPath = MUSIC_TRACKS[0];
+      const musicPreload = new Audio(firstTrackPath);
+      promises.push(
+        new Promise<void>((resolve) => {
+          const onCanPlay = () => {
+            musicPreload.removeEventListener('canplaythrough', onCanPlay);
+            musicPreload.removeEventListener('error', onError);
+            resolve();
+          };
+          const onError = () => {
+            musicPreload.removeEventListener('canplaythrough', onCanPlay);
+            musicPreload.removeEventListener('error', onError);
+            resolve();
+          };
+          musicPreload.addEventListener('canplaythrough', onCanPlay);
+          musicPreload.addEventListener('error', onError);
+          musicPreload.load();
+        })
+      );
+
+      await Promise.all(promises);
+    })();
+
+    return this.preloadPromise;
   }
 
   playRandomSound(volume: number): void {

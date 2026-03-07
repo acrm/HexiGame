@@ -10,6 +10,7 @@ interface MusicPlaybackState {
 
 interface AudioControllerInterface {
   init: () => void;
+  preload: () => Promise<void>;
   playMusic: (enabled: boolean, volume: number) => Promise<void>;
   pauseMusic: () => void;
   resumeMusic: (enabled: boolean, volume: number) => void;
@@ -44,6 +45,14 @@ class AudioController implements AudioControllerInterface {
   init(): void {
     // Load initial track (not playing yet, waiting for user interaction)
     this.loadTrack();
+  }
+
+  /**
+   * Preload critical audio assets before showing the game.
+   * Should be called during app initialization.
+   */
+  async preload(): Promise<void> {
+    await audioDriver.preloadCriticalAssets();
   }
 
   private loadTrack(): void {
