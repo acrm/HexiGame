@@ -123,6 +123,15 @@ function main() {
   updatePackageJson(newVersion);
   appendBuildNote(newVersion, description);
 
+  // Auto-commit version changes
+  try {
+    execSync('git add -A', { cwd: rootDir, stdio: 'pipe' });
+    const commitMsg = `${newVersion}: ${description}`;
+    execSync(`git commit -m "${commitMsg}"`, { cwd: rootDir, stdio: 'pipe' });
+  } catch (err) {
+    // Not a git repo or git not available - silently skip
+  }
+
   // Print version to allow other tools/agents to read it easily.
   // Example: node scripts/update-version.js --desc "Fix joystick position"
   console.log(newVersion);
