@@ -1,105 +1,26 @@
 import React, { useEffect, useRef } from 'react';
-import type { Params } from '../../gameLogic/core/params';
-import type { GameState, Axial } from '../../gameLogic/core/types';
-import { computeBreadcrumbs } from '../../gameLogic/systems/movement';
-import { axialDistance } from '../../gameLogic/core/grid';
-import { renderTemplateOverlay } from './TemplateRenderer';
-import ColorPaletteWidget from './ColorPaletteWidget';
+import type { Params } from '../../../gameLogic/core/params';
+import type { GameState, Axial } from '../../../gameLogic/core/types';
+import { computeBreadcrumbs } from '../../../gameLogic/systems/movement';
+import { axialDistance } from '../../../gameLogic/core/grid';
+import { renderTemplateOverlay } from '../TemplateRenderer';
+import ColorPaletteWidget from '../ColorPaletteWidget';
+import {
+  drawHex,
+  drawCornerDots,
+  drawFrozenFocus,
+  drawRotatingOppositeFaces,
+  drawEdgeHighlight,
+} from './drawingUtils';
+import {
+  HEX_SIZE,
+  hexToPixel,
+  getHotbarGeometry,
+  pixelToAxial as pixelToAxialUtil,
+  detectHotbarSlotClick as detectHotbarSlotClickUtil,
+} from './geometryUtils';
 
-const HEX_SIZE = 10; // pixels
 const GRID_STROKE_COLOR = '#635572ff';
-const HOTBAR_HEX_SIZE = 30;
-const HOTBAR_RING_RADIUS_MULT = 1.7;
-
-function getHotbarGeometry(canvas: HTMLCanvasElement, isLeftHanded: boolean) {
-  const margin = 90;
-  const inward = canvas.width * 0.03;
-  const baseY = canvas.height - margin;
-  const centerX = isLeftHanded ? margin + inward : canvas.width - margin - inward;
-  const centerY = baseY;
-  const hexSize = HOTBAR_HEX_SIZE;
-  const ringRadius = hexSize * HOTBAR_RING_RADIUS_MULT;
-  return { centerX, centerY, hexSize, ringRadius };
-}
-
-// Helper: axial -> pixel (pointy-top)
-function hexToPixel(q: number, r: number) {
-  const x = HEX_SIZE * 1.5 * q;
-  const y = HEX_SIZE * Math.sqrt(3) * (r + q / 2);
-  return { x, y };
-}
-
-// Draw single hex
-function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, fill: string, stroke: string, lineWidth = 2) {
-  const angleDeg = 60;
-  const pts: [number, number][] = [];
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (angleDeg * i);
-    pts.push([x + size * Math.cos(angle), y + size * Math.sin(angle)]);
-  }
-  ctx.beginPath();
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 1; i < 6; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-  if (lineWidth > 0) {
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = lineWidth;
-    ctx.stroke();
-  }
-}
-
-// Visual rotating edge highlight index with custom period (4 ticks = 1 edge rotation)
-function computeEdgeIndexForFocusCell(tickCount: number, edgesPerCycle = 6) {
-  // 1 edge rotates every 4 ticks, so cycle = 6 * 4 = 24 ticks
-  const cycleLength = edgesPerCycle * 1;
-  const phase = (tickCount % cycleLength) / cycleLength;
-  return Math.floor(phase * edgesPerCycle) % edgesPerCycle;
-}
-
-// Compute flicker alpha (oscillates 0..1 with period)
-function computeFlickerAlpha(tickCount: number, period: number = 8): number {
-  const phase = (tickCount % period) / period;
-  // Flicker: 0 to 1 to 0 over period
-  return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
-}
-
-// Draw frozen focus with three static edges (no rotation, no flicker)
-function drawFrozenFocus(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, color: string) {
-  drawEdgeHighlight(ctx, centerX, centerY, 0, size, color);
-  drawEdgeHighlight(ctx, centerX, centerY, 2, size, color);
-  drawEdgeHighlight(ctx, centerX, centerY, 4, size, color);
-}
-
-// Draw two opposite rotating edges (edges 0 and 3 at cycle start)
-function drawRotatingOppositeFaces(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number, color: string) {
-  const currentEdge = computeEdgeIndexForFocusCell(tickCount, 6);
-  const oppositeEdge = (currentEdge + 3) % 6;
-  
-  // Draw current rotating edge
-  drawEdgeHighlight(ctx, centerX, centerY, currentEdge, size, color);
-  // Draw opposite edge (always opposite)
-  drawEdgeHighlight(ctx, centerX, centerY, oppositeEdge, size, color);
-}
-
-function drawEdgeHighlight(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, edge: number, size: number, color: string) {
-  const angleDeg = 60;
-  const pts: [number, number][] = [];
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (angleDeg * i);
-    pts.push([centerX + size * Math.cos(angle), centerY + size * Math.sin(angle)]);
-  }
-  const p1 = pts[edge];
-  const p2 = pts[(edge + 1) % 6];
-  if (!p1 || !p2) return;
-  ctx.beginPath();
-  ctx.moveTo(p1[0], p1[1]);
-  ctx.lineTo(p2[0], p2[1]);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
 
 export function shouldDrawWorldFocusOverlay(isInventory: boolean, isTurtleMoving: boolean, hasAutoFocusTarget: boolean): boolean {
   return !isInventory && !isTurtleMoving && !hasAutoFocusTarget;
@@ -112,41 +33,6 @@ export function shouldDrawAutoFocusTargetOverlay(isInventory: boolean, isTurtleM
 export function isAutoMoveInProgress(protagonist: Axial, autoFocusTarget?: Axial | null): boolean {
   if (!autoFocusTarget) return false;
   return axialDistance(protagonist, autoFocusTarget) > 1;
-}
-
-// Draw 5-pointed star
-function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, points: number, outer: number, inner: number, color: string) {
-  const angle = Math.PI / 2;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  for (let i = 0; i < points * 2; i++) {
-    const r = i % 2 === 0 ? outer : inner;
-    const a = (i * Math.PI) / points - angle;
-    const x = cx + r * Math.cos(a);
-    const y = cy + r * Math.sin(a);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawCornerDots(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number, tickCount: number) {
-  const angleDeg = 60;
-  const blinkOn = (tickCount % 12) < 6;
-  const alpha = blinkOn ? 1 : 0.35;
-  const dotRadius = Math.max(1.4, size * 0.12);
-  ctx.save();
-  ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (angleDeg * i);
-    const vx = centerX + size * Math.cos(angle);
-    const vy = centerY + size * Math.sin(angle);
-    ctx.beginPath();
-    ctx.arc(vx, vy, dotRadius, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
 }
 
 interface GameFieldProps {
@@ -219,55 +105,13 @@ export const GameField: React.FC<GameFieldProps> = ({
   const centerYRef = useRef<number>(0);
 
   function pixelToAxial(px: number, py: number): { q: number; r: number } {
-    const scale = scaleRef.current;
-    const cx = centerXRef.current;
-    const cy = centerYRef.current;
-    const x = (px - cx) / scale;
-    const y = (py - cy) / scale;
-    const qFloat = x / (1.5 * HEX_SIZE);
-    const rFloat = (y / (Math.sqrt(3) * HEX_SIZE)) - qFloat / 2;
-    let q = qFloat;
-    let r = rFloat;
-    let s = -q - r;
-    const rq = Math.round(q);
-    const rr = Math.round(r);
-    const rs = Math.round(s);
-    const qDiff = Math.abs(rq - q);
-    const rDiff = Math.abs(rr - r);
-    const sDiff = Math.abs(rs - s);
-    if (qDiff > rDiff && qDiff > sDiff) {
-      q = -rr - rs;
-    } else if (rDiff > sDiff) {
-      r = -rq - rs;
-    }
-    return { q: Math.round(q), r: Math.round(r) };
+    return pixelToAxialUtil(px, py, scaleRef, centerXRef, centerYRef);
   }
 
   // Detect if a click is on a hotbar ring slot (mobile only)
   function detectHotbarSlotClick(px: number, py: number): number | null {
-    if (isInventory || hideHotbar) return null;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-
-    const {
-      centerX: hotbarCenterX,
-      centerY: hotbarCenterY,
-      hexSize: hotbarHexSize,
-      ringRadius: hotbarRingRadius,
-    } = getHotbarGeometry(canvas, isLeftHanded);
-
-    // Check distance to each slot
-    for (let slotIndex = 0; slotIndex < 6; slotIndex++) {
-      const angle = (Math.PI / 3) * slotIndex - 3 * Math.PI / 6;
-      const slotX = hotbarCenterX + hotbarRingRadius * Math.cos(angle);
-      const slotY = hotbarCenterY + hotbarRingRadius * Math.sin(angle);
-      const dist = Math.hypot(px - slotX, py - slotY);
-      if (dist < hotbarHexSize * 1.1) {
-        return slotIndex;
-      }
-    }
-    return null;
+    if (!canvasRef.current) return null;
+    return detectHotbarSlotClickUtil(px, py, canvasRef.current, isInventory, hideHotbar, isLeftHanded);
   }
 
   // Touch handling for mobile controls
@@ -436,7 +280,6 @@ export const GameField: React.FC<GameFieldProps> = ({
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-
       const centerX = isInventory
         ? canvas.width / 2 - ((activeMinX + activeMaxX) / 2) * scale
         : canvas.width / 2 - hexToPixel(worldViewCenter.q, worldViewCenter.r).x * scale;
@@ -457,7 +300,7 @@ export const GameField: React.FC<GameFieldProps> = ({
       // Focus and target visuals
       const protagonistCell = gameState.protagonist;
       const focusCell = gameState.focus;
-        const isTurtleMoving = isAutoMoveInProgress(protagonistCell, gameState.autoFocusTarget);
+      const isTurtleMoving = isAutoMoveInProgress(protagonistCell, gameState.autoFocusTarget);
 
       // In inventory mode: draw turtle background first, then inventoryGrid naturally
       if (isInventory) {

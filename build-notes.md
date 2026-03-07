@@ -477,3 +477,7 @@
 - 2026w10-0.26 — Fix import paths in UI components after migration
 
 - 2026w10-0.27 — Remove dead code: Wiki, ControlsInfoMobile, TutorialOverlay
+
+- 2026w10-0.30 — 2026w10-0.27: Remove dead code: Wiki, ControlsInfoMobile, TutorialOverlay
+
+- 2026w10-0.31 — Refactor GameField and HexiPedia: extract components and utilities into separate files

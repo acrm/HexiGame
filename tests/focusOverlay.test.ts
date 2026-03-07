@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAutoMoveInProgress, shouldDrawAutoFocusTargetOverlay, shouldDrawWorldFocusOverlay } from '../src/ui/components/GameField';
+import { isAutoMoveInProgress, shouldDrawAutoFocusTargetOverlay, shouldDrawWorldFocusOverlay } from '../src/ui/components/GameField/GameField';
 
 describe('World focus overlay rendering', () => {
   it('draws focus overlay in normal world state', () => {
