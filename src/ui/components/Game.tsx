@@ -12,7 +12,7 @@ import { t } from '../i18n';
 import { integration } from '../../appLogic/integration';
 import { audioManager } from '../../audio/audioManager';
 import GuestStart from './GuestStart';
-import HexiPedia from './HexiPedia/HexiPedia';
+import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../colorScheme';
 import TutorialProgressWidget from './TutorialProgressWidget';
@@ -622,8 +622,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               trackSessionHistory={trackSessionHistory}
               onSelectTutorialLevel={handleSelectTutorialLevel}
               onRestartTutorialLevel={handleRestartTutorialLevel}
-              onToggleTrackHistory={(enabled) => setTrackSessionHistory(enabled)}
-              onDeleteSessionRecord={(recordId) => {
+              onToggleTrackHistory={(enabled: boolean) => setTrackSessionHistory(enabled)}
+              onDeleteSessionRecord={(recordId: string) => {
                 deleteSessionHistoryRecord(recordId);
                 setSessionHistory(loadSessionHistory());
               }}
@@ -631,11 +631,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 clearSessionHistory();
                 setSessionHistory([]);
               }}
-              onSwitchTab={(tab) => {
+              onSwitchTab={(tab: string) => {
                 if (tab === 'heximap') setMobileTab('heximap');
                 if (tab === 'colors') setMobileTab('hexipedia'); // Keep in hexipedia but focus on colors
               }}
-              onActivateTemplate={(templateId) => {
+              onActivateTemplate={(templateId: string) => {
                 if (templateId === '') {
                   dispatch({ type: 'DEACTIVATE_TEMPLATE' });
                 } else {
@@ -643,9 +643,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 }
               }}
               selectedColorIndex={selectedColorIndex}
-              onColorSelect={(index) => setSelectedColorIndex(index)}
+              onColorSelect={(index: number) => setSelectedColorIndex(index)}
               showColorWidget={showColorWidget}
-              onToggleColorWidget={(visible) => setShowColorWidget(visible)}
+              onToggleColorWidget={(visible: boolean) => setShowColorWidget(visible)}
               currentSessionStartTick={currentSessionStartTick}
             />
           ) : (

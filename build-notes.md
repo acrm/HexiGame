@@ -485,3 +485,5 @@
 - 2026w10-0.32 — 2026w10-0.29: Refactor GameField and HexiPedia with extracted components and utilities
 
 - 2026w10-0.33 — Update bump script to auto-commit
+
+- 2026w10-0.34 — Revert HexiPedia refactoring - restore working functionality with all sections
