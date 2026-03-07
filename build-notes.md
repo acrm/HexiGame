@@ -493,3 +493,5 @@
 - 2026w10-0.36 — Move app shell and session history logic into appLogic
 
 - 2026w10-0.37 — Move user settings state into appLogic reducer
+
+- 2026w10-0.38 — Update architecture review documentation

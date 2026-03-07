@@ -1,12 +1,28 @@
 # HexiGame — Architecture & Refactoring Strategy
 
-**Document Version:** 1.1  
-**Last Updated:** March 1, 2026  
-**Focus:** Current architecture analysis, technical debt, and improvement roadmap
+**Document Version:** 1.2  
+**Last Updated:** March 7, 2026  
+**Focus:** Historical strategy + links to current architecture snapshot
+
+> ⚠️ Актуальный архитектурный обзор проекта перенесён в отдельный документ:  
+> **`docs/ARCHITECTURE_REVIEW_2026-03-07.md`**.
+
+> Этот файл сохранён как исторический roadmap и журнал эволюции архитектуры.
 
 ---
 
 ## Executive Summary
+
+### Current Snapshot (March 7, 2026)
+
+- Полный актуальный срез (слои, метрики, hotspot-файлы, риски и roadmap):
+  - `docs/ARCHITECTURE_REVIEW_2026-03-07.md`
+- Ключевой прогресс:
+  - завершена миграция на `gameLogic` / `appLogic` / `ui`
+  - app-level orchestration расширен (`appShellReducer`, `sessionHistory`, `userSettings`)
+  - test suite стабилен (129/129)
+
+Ниже оставлен исторический анализ и поэтапный план, который использовался во время миграции.
 
 HexiGame представляет собой React-приложение с чистой функциональной логикой игры. Текущая архитектура работоспособна, но имеет проблемы масштабируемости:
 
