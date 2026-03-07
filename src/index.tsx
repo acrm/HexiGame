@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Game from './ui/components/Game';
+import LoadingScreen from './ui/components/LoadingScreen';
 import { integration } from './appLogic/integration';
 import '@fortawesome/fontawesome-free/css/all.css';
 import '@fontsource/roboto/400.css';
@@ -21,6 +22,8 @@ if (version) {
 }
 
 function Root() {
+	const [isLoading, setIsLoading] = useState(true);
+
 	useEffect(() => {
 		// Initialize platform integration and mark game ready when bootstrapped
 		(async () => {
@@ -28,6 +31,11 @@ function Root() {
 				await integration.init();
 				integration.onGameReady();
 			} catch {}
+			
+			// Small delay to ensure smooth transition
+			setTimeout(() => {
+				setIsLoading(false);
+			}, 300);
 		})();
 
 		const applyVh = () => {
@@ -39,7 +47,12 @@ function Root() {
 		return () => window.removeEventListener('resize', applyVh);
 	}, []);
 
-	return <Game />;
+	return (
+		<>
+			<LoadingScreen isLoading={isLoading} />
+			{!isLoading && <Game />}
+		</>
+	);
 }
 
 createRoot(document.getElementById('root')!).render(<Root />);

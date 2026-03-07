@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import { getAllTutorialLevels } from '../../tutorial/tutorialLevels';
 import { ALL_TEMPLATES } from '../../templates/templateLibrary';
 import { audioController } from '../../appLogic/audioController';
-import './HexiPedia.css';
+import './HexiPedia/HexiPedia.css';
 
 interface SessionHistoryRecord {
   id: string;

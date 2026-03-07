@@ -515,3 +515,5 @@
 - 2026w10-0.47 — Split Game JSX into presentational containers
 
 - 2026w10-0.48 — Fix missing audioController import in HexiPedia
+
+- 2026w10-0.49 — Add loading screen for cold start
