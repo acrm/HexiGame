@@ -59,7 +59,8 @@ src/
 │   └── pureLogic.ts              # 876 строк — монолитная игровая логика
 ├── components/
 │   ├── Game.tsx                  # 680 строк — корневой React-компонент
-│   ├── GameField/GameField.tsx   # 640 строк — Canvas рендеринг + input handling
+│   ├── GameField/GameField.tsx   # 160 строк — orchestration shell (input + composition)
+│   ├── GameField/useCanvasRenderer.ts # 534 строки — canvas render loop
 │   ├── Hotbar.tsx                # 232 строк
 │   ├── Settings.tsx              # 184 строк
 │   ├── TemplateRenderer.ts       # 154 строк
