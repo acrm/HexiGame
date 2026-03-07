@@ -491,3 +491,5 @@
 - 2026w10-0.35 — Refactor HexiPedia into modular extensible components - full functionality preserved
 
 - 2026w10-0.36 — Move app shell and session history logic into appLogic
+
+- 2026w10-0.37 — Move user settings state into appLogic reducer

@@ -22,6 +22,11 @@ import {
   saveSessionHistoryRecord,
   saveTrackSessionHistoryPreference,
 } from '../../appLogic/sessionHistory';
+import {
+  createInitialUserSettingsState,
+  persistUserSettings,
+  userSettingsReducer,
+} from '../../appLogic/userSettings';
 import { audioManager } from '../../audio/audioManager';
 import GuestStart from './GuestStart';
 import HexiPedia from './HexiPedia';
@@ -58,46 +63,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     currentSessionId,
     currentSessionStartTick,
   } = appShellState;
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    const saved = localStorage.getItem('hexigame.soundEnabled');
-    if (saved !== null) return saved === 'true';
-    const legacy = localStorage.getItem('hexigame.sound');
-    return legacy ? legacy === 'true' : true;
-  });
-  const [soundVolume, setSoundVolume] = useState(() => {
-    const saved = localStorage.getItem('hexigame.soundVolume');
-    return saved ? parseFloat(saved) : 0.6;
-  });
-  const [musicEnabled, setMusicEnabled] = useState(() => {
-    const saved = localStorage.getItem('hexigame.musicEnabled');
-    if (saved !== null) return saved === 'true';
-    const legacy = localStorage.getItem('hexigame.sound');
-    return legacy ? legacy === 'true' : true;
-  });
-  const [musicVolume, setMusicVolume] = useState(() => {
-    const saved = localStorage.getItem('hexigame.musicVolume');
-    return saved ? parseFloat(saved) : 0.5;
-  });
-  const [showFPS, setShowFPS] = useState(() => {
-    const saved = localStorage.getItem('hexigame.showFPS');
-    return saved ? saved === 'true' : false;
-  });
-  const [isLeftHanded, setIsLeftHanded] = useState(() => {
-    const saved = localStorage.getItem('hexigame.isLeftHanded');
-    return saved ? saved === 'true' : false;
-  });
-  const [selectedColorIndex, setSelectedColorIndex] = useState<number>(() => {
-    const saved = localStorage.getItem('hexigame.selectedColorIndex');
-    return saved ? parseInt(saved, 10) : mergedParams.PlayerBaseColorIndex;
-  });
-  const [autoBaseColorEnabled, setAutoBaseColorEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('hexigame.autoBaseColorEnabled');
-    return saved !== null ? saved === 'true' : false;
-  });
-  const [showColorWidget, setShowColorWidget] = useState(() => {
-    const saved = localStorage.getItem('hexigame.showColorWidget');
-    return saved !== null ? saved === 'true' : true; // Default visible
-  });
+  const [settingsState, dispatchSettings] = useReducer(
+    userSettingsReducer,
+    undefined,
+    () => createInitialUserSettingsState(localStorage, mergedParams.PlayerBaseColorIndex),
+  );
+  const {
+    soundEnabled,
+    soundVolume,
+    musicEnabled,
+    musicVolume,
+    showFPS,
+    isLeftHanded,
+    selectedColorIndex,
+    autoBaseColorEnabled,
+    showColorWidget,
+  } = settingsState;
   const [tutorialLevelId, setTutorialLevelId] = useState<string | null>(() => {
     const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
     return hasTutorialStarted ? null : 'tutorial_1_movement';
@@ -216,6 +197,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     saveTrackSessionHistoryPreference(localStorage, trackSessionHistory);
   }, [trackSessionHistory]);
 
+  // Save user settings
+  useEffect(() => {
+    persistUserSettings(localStorage, settingsState);
+  }, [settingsState]);
+
   // Handle template audio feedback
   const prevTemplateStateRef = useRef<GameState['activeTemplate']>(null);
   useEffect(() => {
@@ -264,21 +250,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       integration.onGameplayStop();
     }
   }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen]);
-
-  // Save selected color index
-  useEffect(() => {
-    localStorage.setItem('hexigame.selectedColorIndex', String(selectedColorIndex));
-  }, [selectedColorIndex]);
-
-  // Save color widget visibility
-  useEffect(() => {
-    localStorage.setItem('hexigame.showColorWidget', String(showColorWidget));
-  }, [showColorWidget]);
-
-  // Save auto base color mode
-  useEffect(() => {
-    localStorage.setItem('hexigame.autoBaseColorEnabled', String(autoBaseColorEnabled));
-  }, [autoBaseColorEnabled]);
 
   // Derived HUD data
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
@@ -521,9 +492,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
                 }
               }}
               selectedColorIndex={selectedColorIndex}
-              onColorSelect={(index: number) => setSelectedColorIndex(index)}
+              onColorSelect={(index: number) => {
+                dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
+              }}
               showColorWidget={showColorWidget}
-              onToggleColorWidget={(visible: boolean) => setShowColorWidget(visible)}
+              onToggleColorWidget={(visible: boolean) => {
+                dispatchSettings({ type: 'SET_SHOW_COLOR_WIDGET', visible });
+              }}
               currentSessionStartTick={currentSessionStartTick}
             />
           ) : (
@@ -612,8 +587,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               selectedColorIndex={selectedColorIndex}
               relativeBaseColorIndex={widgetRelativeBaseColorIndex}
               isAutoBaseColorEnabled={autoBaseColorEnabled}
-              onColorSelect={(index) => setSelectedColorIndex(index)}
-              onToggleAutoBaseColor={() => setAutoBaseColorEnabled((prev) => !prev)}
+              onColorSelect={(index) => {
+                dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
+              }}
+              onToggleAutoBaseColor={() => {
+                dispatchSettings({ type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' });
+              }}
               onNavigateToPalette={() => {
                 if (isMobileLayout) {
                   dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
@@ -674,33 +653,27 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           }}
           soundEnabled={soundEnabled}
           onToggleSound={(enabled) => {
-            setSoundEnabled(enabled);
-            localStorage.setItem('hexigame.soundEnabled', String(enabled));
+            dispatchSettings({ type: 'SET_SOUND_ENABLED', enabled });
           }}
           soundVolume={soundVolume}
           onSoundVolumeChange={(volume) => {
-            setSoundVolume(volume);
-            localStorage.setItem('hexigame.soundVolume', String(volume));
+            dispatchSettings({ type: 'SET_SOUND_VOLUME', volume });
           }}
           musicEnabled={musicEnabled}
           onToggleMusic={(enabled) => {
-            setMusicEnabled(enabled);
-            localStorage.setItem('hexigame.musicEnabled', String(enabled));
+            dispatchSettings({ type: 'SET_MUSIC_ENABLED', enabled });
           }}
           musicVolume={musicVolume}
           onMusicVolumeChange={(volume) => {
-            setMusicVolume(volume);
-            localStorage.setItem('hexigame.musicVolume', String(volume));
+            dispatchSettings({ type: 'SET_MUSIC_VOLUME', volume });
           }}
           showFPS={showFPS}
           onToggleShowFPS={(show) => {
-            setShowFPS(show);
-            localStorage.setItem('hexigame.showFPS', String(show));
+            dispatchSettings({ type: 'SET_SHOW_FPS', show });
           }}
           isLeftHanded={isLeftHanded}
           onToggleLeftHanded={(isLeft) => {
-            setIsLeftHanded(isLeft);
-            localStorage.setItem('hexigame.isLeftHanded', String(isLeft));
+            dispatchSettings({ type: 'SET_LEFT_HANDED', isLeft });
           }}
         />
       )}
