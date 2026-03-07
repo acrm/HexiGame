@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import './Game.css';
 import type { GameState, Axial } from '../../gameLogic/core/types';
 import type { Params } from '../../gameLogic/core/params';
@@ -10,6 +10,18 @@ import GameField from './GameField/GameField';
 import Settings from './Settings';
 import { t } from '../i18n';
 import { integration } from '../../appLogic/integration';
+import {
+  appShellReducer,
+  createInitialAppShellState,
+} from '../../appLogic/appShellReducer';
+import {
+  addSessionToHistory,
+  clearSessionHistory,
+  createNewSessionHistoryRecord,
+  deleteSessionHistoryRecord,
+  saveSessionHistoryRecord,
+  saveTrackSessionHistoryPreference,
+} from '../../appLogic/sessionHistory';
 import { audioManager } from '../../audio/audioManager';
 import GuestStart from './GuestStart';
 import HexiPedia from './HexiPedia';
@@ -22,154 +34,30 @@ import { hoveredCellActive } from '../../gameLogic/systems/capture';
 import { useGameSession } from '../hooks/useGameSession';
 import { useKeyboardInput } from '../hooks/useKeyboardInput';
 
-const SESSION_HISTORY_KEY = 'hexigame.session.history';
-
-type SessionHistoryRecord = {
-  id: string;
-  startTime: number; // Unix timestamp in ms
-  endTime: number; // Unix timestamp in ms
-  gameTicks: number;
-  gameTime: string; // MM:SS format
-};
-
-
-// Format ticks into MM:SS
-function formatGameTime(ticks: number): string {
-  const seconds = Math.floor(ticks / 12); // 12 ticks per second
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${minutes}:${String(secs).padStart(2, '0')}`;
-}
-
-// Create a new session record
-function createNewSession(): SessionHistoryRecord {
-  const now = Date.now();
-  const sessionId = `session_${now}_${Math.random().toString(36).substr(2, 9)}`;
-  return {
-    id: sessionId,
-    startTime: now,
-    endTime: now,
-    gameTicks: 0,
-    gameTime: '0:00',
-  };
-}
-
-// Update existing session or create new if not found
-function saveSessionHistoryRecord(sessionId: string, ticks: number) {
-  try {
-    let history: SessionHistoryRecord[] = [];
-    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
-    if (saved) {
-      history = JSON.parse(saved);
-    }
-    
-    const now = Date.now();
-    const existingIndex = history.findIndex((r) => r.id === sessionId);
-    
-    if (existingIndex !== -1) {
-      // Update existing record
-      history[existingIndex] = {
-        ...history[existingIndex],
-        endTime: now,
-        gameTicks: ticks,
-        gameTime: formatGameTime(ticks),
-      };
-    } else {
-      // Create new record (shouldn't happen normally, but for safety)
-      const record: SessionHistoryRecord = {
-        id: sessionId,
-        startTime: now - (ticks * 1000 / 12),
-        endTime: now,
-        gameTicks: ticks,
-        gameTime: formatGameTime(ticks),
-      };
-      history.unshift(record);
-      
-      // Keep last 20 sessions
-      if (history.length > 20) {
-        history = history.slice(0, 20);
-      }
-    }
-    
-    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  } catch (e) {
-    console.warn('Failed to save session history:', e);
-  }
-}
-
-// Add new session to history
-function addSessionToHistory(session: SessionHistoryRecord) {
-  try {
-    let history: SessionHistoryRecord[] = [];
-    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
-    if (saved) {
-      history = JSON.parse(saved);
-    }
-    
-    history.unshift(session);
-    
-    // Keep last 20 sessions
-    if (history.length > 20) {
-      history = history.slice(0, 20);
-    }
-    
-    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  } catch (e) {
-    console.warn('Failed to add session to history:', e);
-  }
-}
-
-function loadSessionHistory(): SessionHistoryRecord[] {
-  try {
-    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch (e) {
-    console.warn('Failed to load session history:', e);
-    return [];
-  }
-}
-
-function deleteSessionHistoryRecord(recordId: string) {
-  try {
-    let history: SessionHistoryRecord[] = [];
-    const saved = localStorage.getItem(SESSION_HISTORY_KEY);
-    if (saved) {
-      history = JSON.parse(saved);
-    }
-    
-    history = history.filter(r => r.id !== recordId);
-    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  } catch (e) {
-    console.warn('Failed to delete session history record:', e);
-  }
-}
-
-function clearSessionHistory() {
-  try {
-    localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify([]));
-  } catch (e) {
-    console.warn('Failed to clear session history:', e);
-  }
-}
-
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
   const mergedParams: Params = { ...DefaultParams, ...(params || {}) };
   const [fps, setFps] = useState(0);
   const mouseIsDownRef = useRef(false);
-  const [isMobileInfoOpen, setIsMobileInfoOpen] = useState(false);
-  const [isInventory, setIsInventory] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'heximap' | 'hexilab' | 'hexipedia'>(() => {
-    const hasTutorialStarted = localStorage.getItem('hexigame.tutorial.started');
-    return hasTutorialStarted ? 'heximap' : 'hexipedia';
-  });
-  const [isPaused, setIsPaused] = useState(false);
-  const [interactionMode, setInteractionMode] = useState<'desktop' | 'mobile'>('mobile');
-  const [guestStarted, setGuestStarted] = useState<boolean>(() => {
-    return !!localStorage.getItem('hexigame.guest.started');
-  });
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isMascotOpen, setIsMascotOpen] = useState(false);
+  const [appShellState, dispatchApp] = useReducer(
+    appShellReducer,
+    undefined,
+    () => createInitialAppShellState(localStorage),
+  );
+  const {
+    isInventory,
+    mobileTab,
+    isPaused,
+    interactionMode,
+    guestStarted,
+    isSettingsOpen,
+    isMascotOpen,
+    sessionHistory,
+    lastSessionSaveTick,
+    trackSessionHistory,
+    currentSessionId,
+    currentSessionStartTick,
+  } = appShellState;
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('hexigame.soundEnabled');
     if (saved !== null) return saved === 'true';
@@ -198,14 +86,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = localStorage.getItem('hexigame.isLeftHanded');
     return saved ? saved === 'true' : false;
   });
-  const [sessionHistory, setSessionHistory] = useState<SessionHistoryRecord[]>(() => loadSessionHistory());
-  const [lastSessionSaveTick, setLastSessionSaveTick] = useState(0);
-  const [trackSessionHistory, setTrackSessionHistory] = useState(() => {
-    const saved = localStorage.getItem('hexigame.trackSessionHistory');
-    return saved !== null ? saved === 'true' : true; // Default true
-  });
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [currentSessionStartTick, setCurrentSessionStartTick] = useState<number>(0);
   const [selectedColorIndex, setSelectedColorIndex] = useState<number>(() => {
     const saved = localStorage.getItem('hexigame.selectedColorIndex');
     return saved ? parseInt(saved, 10) : mergedParams.PlayerBaseColorIndex;
@@ -292,11 +172,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     };
   }, [guestStarted, musicEnabled]);
 
-  // Force mobile interaction mode (desktop temporarily disabled)
-  useEffect(() => {
-    setInteractionMode('mobile');
-  }, []);
-
   // Sync tutorial level into gameState when tutorialLevelId changes
   useEffect(() => {
     dispatch({ type: 'SET_TUTORIAL_LEVEL', levelId: tutorialLevelId });
@@ -307,11 +182,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     const onVis = () => {
       if (document.hidden) {
-        setIsPaused(true);
+        dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: true });
         integration.onGameplayStop();
         audioManager.pause();
       } else {
-        setIsPaused(false);
+        dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: false });
         if (guestStarted && !isSettingsOpen) {
           integration.onGameplayStart();
         }
@@ -323,35 +198,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [guestStarted, isSettingsOpen]);
-
-  // Pause/resume on settings open/close
-  useEffect(() => {
-    if (isSettingsOpen) {
-      setIsPaused(true);
-    } else if (guestStarted && !document.hidden) {
-      setIsPaused(false);
-    }
-  }, [isSettingsOpen, guestStarted]);
+  }, [guestStarted, isSettingsOpen, musicEnabled]);
 
   // Save session history every 360 ticks (~30 seconds) if enabled
   useEffect(() => {
     if (!guestStarted || !trackSessionHistory || !currentSessionId) return;
     const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
     if (ticksSinceLastSave >= 360) {
-      saveSessionHistoryRecord(currentSessionId, gameState.tick);
-      setLastSessionSaveTick(gameState.tick);
-      setSessionHistory(loadSessionHistory());
+      const history = saveSessionHistoryRecord(localStorage, currentSessionId, gameState.tick);
+      dispatchApp({ type: 'SESSION_SAVE_TICK', tick: gameState.tick });
+      dispatchApp({ type: 'SET_SESSION_HISTORY', history });
     }
   }, [gameState.tick, guestStarted, trackSessionHistory, currentSessionId, lastSessionSaveTick]);
 
   // Save track session history setting
   useEffect(() => {
-    try {
-      localStorage.setItem('hexigame.trackSessionHistory', String(trackSessionHistory));
-    } catch (e) {
-      console.warn('Failed to save track session history setting:', e);
-    }
+    saveTrackSessionHistoryPreference(localStorage, trackSessionHistory);
   }, [trackSessionHistory]);
 
   // Handle template audio feedback
@@ -457,7 +319,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const handleSelectTutorialLevel = (levelId: string) => {
     if (completedTutorialLevelIds.has(levelId)) return;
     setTutorialLevelId(levelId);
-    setMobileTab('hexipedia');
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
   const handleRestartTutorialLevel = (levelId: string) => {
@@ -473,7 +335,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       },
     });
     setTutorialLevelId(levelId);
-    setMobileTab('hexipedia');
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
   useEffect(() => {
@@ -498,7 +360,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const handleViewTutorialTask = () => {
     audioManager.playRandomSound();
-    setMobileTab('hexipedia');
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
   const isMobileLayout = true;
@@ -507,12 +369,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   useEffect(() => {
     if (!tutorialLevel?.disableInventory) return;
-    setIsInventory(false);
     dispatch({ type: 'SET_ACTIVE_FIELD', field: 'world' });
     if (mobileTab === 'hexilab') {
-      setMobileTab('heximap');
+      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
     }
-  }, [tutorialLevel?.disableInventory, mobileTab]);
+  }, [tutorialLevel?.disableInventory, mobileTab, dispatch]);
 
   // Track focus visits on target cells
   useEffect(() => {
@@ -543,10 +404,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Sync mobile tab selection with active field and inventory flag
   useEffect(() => {
     if (!isMobileLayout) return;
-    const nextInventory = mobileTab === 'hexilab';
-    setIsInventory(nextInventory);
     dispatch({ type: 'SET_ACTIVE_FIELD', field: mobileTab === 'hexilab' ? 'inventory' : 'world' });
-  }, [isMobileLayout, mobileTab]);
+  }, [isMobileLayout, mobileTab, dispatch]);
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'hexilab' : isInventory;
 
@@ -583,7 +442,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <div className="mobile-tabs-container">
             <button
               className={`mobile-tab ${mobileTab === 'heximap' ? 'active' : ''}`}
-              onClick={() => { audioManager.playRandomSound(); setMobileTab('heximap'); }}
+              onClick={() => {
+                audioManager.playRandomSound();
+                dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+              }}
             >
               {t('tab.heximap')}
             </button>
@@ -596,13 +458,23 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             </button>
             <button
               className={`mobile-tab ${mobileTab === 'hexipedia' ? 'active' : ''}`}
-              onClick={() => { audioManager.playRandomSound(); setMobileTab('hexipedia'); }}
+              onClick={() => {
+                audioManager.playRandomSound();
+                dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+              }}
             >
               {t('tab.hexipedia')}
             </button>
           </div>
           {/* Settings gear on right side of tab bar */}
-          <button className="settings-button" onClick={() => { audioManager.playRandomSound(); setIsSettingsOpen(true); }} title={t('settings.open')}>
+          <button
+            className="settings-button"
+            onClick={() => {
+              audioManager.playRandomSound();
+              dispatchApp({ type: 'OPEN_SETTINGS' });
+            }}
+            title={t('settings.open')}
+          >
             <i className="fas fa-cog"></i>
           </button>
         </div>
@@ -622,18 +494,24 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               trackSessionHistory={trackSessionHistory}
               onSelectTutorialLevel={handleSelectTutorialLevel}
               onRestartTutorialLevel={handleRestartTutorialLevel}
-              onToggleTrackHistory={(enabled: boolean) => setTrackSessionHistory(enabled)}
+              onToggleTrackHistory={(enabled: boolean) => {
+                dispatchApp({ type: 'SET_TRACK_SESSION_HISTORY', enabled });
+              }}
               onDeleteSessionRecord={(recordId: string) => {
-                deleteSessionHistoryRecord(recordId);
-                setSessionHistory(loadSessionHistory());
+                const history = deleteSessionHistoryRecord(localStorage, recordId);
+                dispatchApp({ type: 'SET_SESSION_HISTORY', history });
               }}
               onClearSessionHistory={() => {
-                clearSessionHistory();
-                setSessionHistory([]);
+                const history = clearSessionHistory(localStorage);
+                dispatchApp({ type: 'SET_SESSION_HISTORY', history });
               }}
               onSwitchTab={(tab: string) => {
-                if (tab === 'heximap') setMobileTab('heximap');
-                if (tab === 'colors') setMobileTab('hexipedia'); // Keep in hexipedia but focus on colors
+                if (tab === 'heximap') {
+                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+                }
+                if (tab === 'colors') {
+                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+                }
               }}
               onActivateTemplate={(templateId: string) => {
                 if (templateId === '') {
@@ -659,10 +537,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               onToggleInventory={() => {
                 audioManager.playRandomSound();
                 if (isMobileLayout) {
-                  setMobileTab('heximap');
+                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
                 } else {
                   if (isHexiLabLocked) return;
-                  setIsInventory(v => !v);
                   dispatch({ type: 'TOGGLE_INVENTORY' });
                 }
               }}
@@ -739,7 +616,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
               onToggleAutoBaseColor={() => setAutoBaseColorEnabled((prev) => !prev)}
               onNavigateToPalette={() => {
                 if (isMobileLayout) {
-                  setMobileTab('hexipedia');
+                  dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
                 }
                 // TODO: Open HexiPedia and navigate to Colors section
               }}
@@ -765,15 +642,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       {!guestStarted && (
         <GuestStart onStart={() => {
           localStorage.setItem('hexigame.guest.started', '1');
-          setGuestStarted(true);
+          dispatchApp({ type: 'GUEST_STARTED' });
           
           // Create new session
           if (trackSessionHistory) {
-            const newSession = createNewSession();
-            setCurrentSessionId(newSession.id);
-            addSessionToHistory(newSession);
-            setSessionHistory(loadSessionHistory());
-            setCurrentSessionStartTick(0); // Start tick tracking from 0
+            const newSession = createNewSessionHistoryRecord();
+            const history = addSessionToHistory(localStorage, newSession);
+            dispatchApp({ type: 'SESSION_STARTED', sessionId: newSession.id, startTick: 0 });
+            dispatchApp({ type: 'SET_SESSION_HISTORY', history });
           }
           
           audioManager.playRandomSound();
@@ -785,18 +661,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       )}
       {isSettingsOpen && (
         <Settings 
-          onClose={() => setIsSettingsOpen(false)}
+          onClose={() => dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden })}
           onResetSession={() => {
             resetSession();
-            setGuestStarted(false);
-            setCurrentSessionId(null); // End current session
-            setCurrentSessionStartTick(0); // Reset session tick tracking
+            dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
             setTutorialLevelId('tutorial_1_movement');
-            setMobileTab('hexipedia');
+            dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
           }}
           onShowMascot={() => {
-            setIsSettingsOpen(false);
-            setIsMascotOpen(true);
+            dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden });
+            dispatchApp({ type: 'OPEN_MASCOT' });
           }}
           soundEnabled={soundEnabled}
           onToggleSound={(enabled) => {
@@ -830,7 +704,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           }}
         />
       )}
-      {isMascotOpen && <Mascot onClose={() => setIsMascotOpen(false)} />}
+      {isMascotOpen && <Mascot onClose={() => dispatchApp({ type: 'CLOSE_MASCOT' })} />}
     </div>
   );
 };

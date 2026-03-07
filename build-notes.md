@@ -489,3 +489,5 @@
 - 2026w10-0.34 — Revert HexiPedia refactoring - restore working functionality with all sections
 
 - 2026w10-0.35 — Refactor HexiPedia into modular extensible components - full functionality preserved
+
+- 2026w10-0.36 — Move app shell and session history logic into appLogic
