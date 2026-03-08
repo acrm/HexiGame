@@ -42,10 +42,10 @@ Whenever you, as an AI agent, finish a task that involves **any change to tracke
 
 ### Commit messages
 
-- Include the **new version string** in the commit message when committing changes.
+- The bump script creates commit messages automatically with the **new version string**.
   - Example: `25w48-0.3: adjust mobile joystick visuals`.
 
-Always run the appropriate bump command **after** your code changes are applied and before suggesting a commit message.
+Always run the appropriate bump command **after** your code changes are applied.
 
 ## Git commit workflow
 
@@ -53,19 +53,13 @@ Always run the appropriate bump command **after** your code changes are applied 
 
 1. Apply all code changes
 2. Run version bump: `npm run bump:build -- --desc "Description"`
-3. Stage and commit immediately:
-   ```bash
-   git add -A && git commit -m "<version>: <description from bump>"
-   ```
+3. Do **not** run a separate `git add` / `git commit`; bump script commits automatically.
 
 **For critical bug fixes** (game doesn't render, major visual corruption, etc.):
 
-If the fix requires multiple attempts and you've already committed once:
+If the fix requires multiple attempts:
 1. Apply the corrective changes
 2. Run version bump: `npm run bump:build -- --desc "Fix details"`
-3. Squash into previous commit with new version:
-   ```bash
-   git add -A && git reset --soft HEAD~1 && git commit -m "<new version>: <original functional description>"
-   ```
+3. Avoid manual squash/extra commit by default; each bump creates a versioned commit.
 
-This preserves the original feature/bugfix description while updating the version number.
+This keeps commit history versioned through bump operations.

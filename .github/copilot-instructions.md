@@ -35,25 +35,19 @@ npm run bump:minor -- --desc "msg"  # Bump minor version
 
 ## Git Commit Workflow
 
-**CRITICAL: Automatic commit after version bump (no explicit request needed)**
+**CRITICAL: No separate manual commit after version bump**
 
-After every version bump, you **must automatically and immediately** commit all changes using the version message. This is mandatory and overrides any general "ask first" rule.
+After every version bump, the `npm run bump:build` / `npm run bump:minor` script already creates the commit automatically using the version message.
 
 **For any task with file changes:**
 
 1. Apply code changes
 2. Bump version: `npm run bump:build -- --desc "Description"`
-3. **IMMEDIATELY commit** (do not wait for user approval):
-   ```bash
-   git add -A && git commit -m "<version>: <description>"
-   ```
+3. Do **not** run an additional `git add` / `git commit` after bump.
 
 **For critical bug fixes** (game broken/unrendered):
-- If already committed, use squash commit to preserve original description:
-  ```bash
-  git add -A && git reset --soft HEAD~1 && git commit -m "<new version>: <original description>"
-  ```
-- This updates version while keeping functional description unchanged
+- Keep functional context in the bump description (`--desc`) and run one more bump if needed.
+- Avoid manual squash/extra commit by default, because bump script already commits.
 
 ## Key Documentation
 

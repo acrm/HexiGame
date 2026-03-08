@@ -523,3 +523,5 @@
 - 2026w10-0.51 — Add turtle startup animation with random music track preload
 
 - 2026w11-0.1 — Fix app shell startup state initialization
+
+- 2026w11-0.2 — Align instructions with bump auto-commit workflow

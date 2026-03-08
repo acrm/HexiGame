@@ -42,9 +42,9 @@ Create or update with these policy blocks:
 - Commit message format requirement: `<version>: <description>`.
 - Standard git workflow sequence:
   1) apply changes,
-  2) run bump,
+  2) run bump (auto-commit),
   3) run verification,
-  4) commit.
+  4) no separate manual commit after bump.
 
 ### 2) `.github/copilot-instructions.md`
 
@@ -99,6 +99,7 @@ Create or update a Node.js script that:
   - `version.json`,
   - `package.json` field `version`,
   - appends to `build-notes.md`.
+- Automatically stages and commits changes with message format `<version>: <description>` when git is available.
 - If `--desc` omitted, tries to use last git commit message; fallback to default text.
 - Prints the new version to stdout.
 
