@@ -46,6 +46,7 @@ export type AppShellCommand =
 
 export function createInitialAppShellState(storage: StorageReader): AppShellState {
   const hasGuestStarted = !!storage.getItem(GUEST_STARTED_KEY);
+  const hasTutorialStarted = !!storage.getItem(TUTORIAL_STARTED_KEY);
   return {
     isInventory: false,
     mobileTab: hasTutorialStarted ? 'heximap' : 'hexipedia',
@@ -53,7 +54,6 @@ export function createInitialAppShellState(storage: StorageReader): AppShellStat
     interactionMode: 'mobile',
     guestStarted: hasGuestStarted,
     startupAnimationShown: hasGuestStarted, // Skip animation if already started before
-    guestStarted: !!storage.getItem(GUEST_STARTED_KEY),
     isSettingsOpen: false,
     isMascotOpen: false,
     sessionHistory: loadSessionHistory(storage),
