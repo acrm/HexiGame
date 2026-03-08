@@ -22,9 +22,9 @@ describe('Smoke — initialization', () => {
     expect(g.getProtagonistPosition()).toEqual({ q: 0, r: 0 });
   });
 
-  it('focus starts in adjacent cell (direction 0 = up: q=0,r=-1)', () => {
+  it('focus starts in adjacent cell', () => {
     const focus = g.getFocusPosition();
-    // Direction 0 = up: dq=0, dr=-1; axial hex distance must be 1
+    // Focus must start adjacent to protagonist; axial hex distance must be 1
     const pos = g.getProtagonistPosition();
     const dq = focus.q - pos.q;
     const dr = focus.r - pos.r;

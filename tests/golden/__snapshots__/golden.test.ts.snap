@@ -63,9 +63,9 @@ exports[`Golden: color conservation over 60 ticks > total color count equals sna
 
 exports[`Golden: dense grid progression > matches snapshot after 12 ticks (seed=42, denseParams) 1`] = `
 {
-  "facingDirection": 0,
+  "facingDirection": 1,
   "focus": {
-    "q": 0,
+    "q": 1,
     "r": -1,
   },
   "hotbarSlots": [
@@ -117,9 +117,9 @@ exports[`Golden: eat + move sequence > matches snapshot after eat then direction
 
 exports[`Golden: empty grid progression > matches snapshot after 20 ticks (seed=42, emptyParams) 1`] = `
 {
-  "facingDirection": 0,
+  "facingDirection": 1,
   "focus": {
-    "q": 0,
+    "q": 1,
     "r": -1,
   },
   "hotbarSlots": [
@@ -171,9 +171,9 @@ exports[`Golden: exchange with hotbar slot > matches snapshot after exchange (se
 
 exports[`Golden: hotbar selection sequence > matches snapshot after selecting slots 0-5 (seed=42) 1`] = `
 {
-  "facingDirection": 0,
+  "facingDirection": 1,
   "focus": {
-    "q": 0,
+    "q": 1,
     "r": -1,
   },
   "hotbarSlots": [
@@ -225,9 +225,9 @@ exports[`Golden: multi-eat sequence > matches snapshot after eating 3 hexes (see
 
 exports[`Golden: settings lifecycle > matches snapshot after settings open/close cycle (seed=42) 1`] = `
 {
-  "facingDirection": 0,
+  "facingDirection": 1,
   "focus": {
-    "q": 0,
+    "q": 1,
     "r": -1,
   },
   "hotbarSlots": [

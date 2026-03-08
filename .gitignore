@@ -35,3 +35,4 @@ coverage/
 
 # Misc
 *.local
+vite.config.mts.timestamp-*.mjs

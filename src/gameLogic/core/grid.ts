@@ -200,7 +200,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     }
   }
   const start: Axial = { q: 0, r: 0 };
-  const initialFacingDirIndex = 0;
+  const initialFacingDirIndex = 1;
   const startFocus = addAxial(start, axialDirections[initialFacingDirIndex]);
 
   // Initial camera center: ahead of protagonist so turtle is 3 cells from rear edge

@@ -23,7 +23,7 @@ describe('Focus movement by delta', () => {
   });
 
   it('focus moves down (dq=0, dr=+1) from current position', () => {
-    // Initial focus: (0, -1) — directly in front of protagonist (UP direction)
+    // Initial focus is always adjacent to protagonist
     const before = g.getFocusPosition();
     // Move focus in one of 6 directions
     g.moveFocusDelta(0, 1); // down

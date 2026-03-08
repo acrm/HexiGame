@@ -56,6 +56,8 @@ import {
 import { mulberry32 } from '../../gameLogic/core/params';
 import { clearSession } from '../../appLogic/sessionRepository';
 
+const MASCOT_FACING_DIR_INDEX = 1;
+
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
   const mergedParams: Params = { ...DefaultParams, ...(params || {}) };
@@ -361,6 +363,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const handleStartupAnimationComplete = () => {
+    dispatch({ type: 'MOVE_CURSOR_DIRECTION', dirIndex: MASCOT_FACING_DIR_INDEX });
     dispatchApp({ type: 'STARTUP_ANIMATION_COMPLETE' });
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
@@ -613,7 +616,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       {guestStarted && !startupAnimationShown && (
         <StartupAnimation
           onComplete={handleStartupAnimationComplete}
-          playerColor={mergedParams.ColorPalette[mergedParams.PlayerBaseColorIndex]}
         />
       )}
     </div>

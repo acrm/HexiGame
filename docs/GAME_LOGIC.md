@@ -379,6 +379,8 @@ Defined in `src/templates/templateLogic.ts`:
 - On cold start, the app shows a full-screen loading screen while platform integration and critical audio assets are preloaded.
 - After loading, user confirms entry via Guest Start overlay.
 - A startup animation then plays, assembling the turtle avatar from hexagons before gameplay UI is fully revealed.
+- Startup turtle silhouette/orientation matches the in-game mascot (same shell/head/limb proportions and facing).
+- Initial world focus is aligned to the mascot-facing direction so the turtle on HexiMap looks in the same direction at session start.
 - Mobile default tab at startup is **HexiMap** (world view), not HexiPedia.
 
 ### 8.1 Tutorial System enhancements

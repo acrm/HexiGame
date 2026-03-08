@@ -535,3 +535,9 @@
 - 2026w11-0.6 — Fix startup animation layout and expose bump auto-commit errors
 
 - 2026w11-0.7 — Fix startup hex morph stability and force HexiMap on start
+
+- 2026w11-0.8 — Align startup turtle with mascot and initial facing
+
+- 2026w11-0.9 — Align startup turtle with mascot and initial facing
+
+- 2026w11-0.10 — Align startup turtle with mascot and initial facing
