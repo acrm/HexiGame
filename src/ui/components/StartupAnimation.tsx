@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './StartupAnimation.css';
 
 interface StartupAnimationProps {
@@ -8,6 +8,11 @@ interface StartupAnimationProps {
 
 export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, playerColor }) => {
   const [phase, setPhase] = useState(0);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const timers = [
@@ -17,11 +22,11 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
       setTimeout(() => setPhase(4), 3500),     // Eyes appear
       setTimeout(() => setPhase(5), 4000),     // Shrink to game size
       setTimeout(() => setPhase(6), 5500),     // Reveal game
-      setTimeout(() => onComplete(), 6500),    // Complete
+      setTimeout(() => onCompleteRef.current(), 6500),    // Complete
     ];
 
     return () => timers.forEach(clearTimeout);
-  }, [onComplete]);
+  }, []);
 
   // Hexagon path for SVG
   const hexPath = (size: number) => {

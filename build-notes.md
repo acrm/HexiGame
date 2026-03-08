@@ -525,3 +525,5 @@
 - 2026w11-0.1 — Fix app shell startup state initialization
 
 - 2026w11-0.2 — Align instructions with bump auto-commit workflow
+
+- 2026w11-0.3 — Fix startup animation phase timer reset
