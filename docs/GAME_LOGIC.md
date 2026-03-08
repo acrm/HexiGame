@@ -375,6 +375,12 @@ Defined in `src/templates/templateLogic.ts`:
 ---
 ## 8. User Interface & UX (v0.22–0.26)
 
+### 8.0 Startup sequence
+- On cold start, the app shows a full-screen loading screen while platform integration and critical audio assets are preloaded.
+- After loading, user confirms entry via Guest Start overlay.
+- A startup animation then plays, assembling the turtle avatar from hexagons before gameplay UI is fully revealed.
+- Mobile default tab at startup is **HexiMap** (world view), not HexiPedia.
+
 ### 8.1 Tutorial System enhancements
 - **TutorialProgressWidget**: Displays tutorial level progress (visited cells / target cells)
   - Info button (ℹ) provides quick access to task objective and hints

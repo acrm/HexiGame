@@ -45,6 +45,26 @@
   opacity: 1;
 }
 
+.hex-top {
+  transform: translate(0, -86.6px);
+}
+
+.hex-top-right {
+  transform: translate(75px, -43.3px);
+}
+
+.hex-bottom-right {
+  transform: translate(75px, 43.3px);
+}
+
+.hex-bottom {
+  transform: translate(0, 86.6px);
+}
+
+.hex-top-left {
+  transform: translate(-75px, -43.3px);
+}
+
 /* Hexagon transformations to form turtle */
 .hex-top.to-leg {
   animation: moveToLeg1 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;

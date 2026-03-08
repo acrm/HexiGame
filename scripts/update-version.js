@@ -19,7 +19,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,6 +96,32 @@ function appendBuildNote(newVersion, description) {
   }
 }
 
+function autoCommitVersionChanges(newVersion, description) {
+  const commitMsg = `${newVersion}: ${description}`;
+  try {
+    execFileSync('git', ['add', '-A'], {
+      cwd: rootDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
+    });
+
+    execFileSync('git', ['commit', '-m', commitMsg], {
+      cwd: rootDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
+    });
+  } catch (err) {
+    const stdout = typeof err.stdout === 'string' ? err.stdout.trim() : '';
+    const stderr = typeof err.stderr === 'string' ? err.stderr.trim() : '';
+
+    console.error('[update-version] Auto-commit failed.');
+    if (stdout) console.error(stdout);
+    if (stderr) console.error(stderr);
+
+    throw new Error('Failed to auto-commit version changes. See logs above.');
+  }
+}
+
 function main() {
   const args = getArgs();
   const meta = readJson(versionFile);
@@ -124,13 +150,7 @@ function main() {
   appendBuildNote(newVersion, description);
 
   // Auto-commit version changes
-  try {
-    execSync('git add -A', { cwd: rootDir, stdio: 'pipe' });
-    const commitMsg = `${newVersion}: ${description}`;
-    execSync(`git commit -m "${commitMsg}"`, { cwd: rootDir, stdio: 'pipe' });
-  } catch (err) {
-    // Not a git repo or git not available - silently skip
-  }
+  autoCommitVersionChanges(newVersion, description);
 
   // Print version to allow other tools/agents to read it easily.
   // Example: node scripts/update-version.js --desc "Fix joystick position"

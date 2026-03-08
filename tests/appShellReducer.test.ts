@@ -15,11 +15,11 @@ function createStorage(initial: Record<string, string> = {}) {
 }
 
 describe('appShellReducer', () => {
-  it('initial state uses hexipedia when tutorial was not started', () => {
+  it('initial state uses heximap when tutorial was not started', () => {
     const storage = createStorage();
     const state = createInitialAppShellState(storage);
 
-    expect(state.mobileTab).toBe('hexipedia');
+    expect(state.mobileTab).toBe('heximap');
     expect(state.trackSessionHistory).toBe(true);
     expect(state.guestStarted).toBe(false);
   });

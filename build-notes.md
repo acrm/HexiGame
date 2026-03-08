@@ -527,3 +527,9 @@
 - 2026w11-0.2 — Align instructions with bump auto-commit workflow
 
 - 2026w11-0.3 — Fix startup animation phase timer reset
+
+- 2026w11-0.4 — Fix startup turtle assembly and default to HexiMap
+
+- 2026w11-0.5 — Finalize startup animation fix
+
+- 2026w11-0.6 — Fix startup animation layout and expose bump auto-commit errors

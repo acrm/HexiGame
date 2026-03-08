@@ -53,7 +53,7 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
           className={`hex-surround hex-top ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
           style={{ '--target-x': '25px', '--target-y': '-43px', '--target-scale': '0.33' } as React.CSSProperties}
         >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" transform="translate(0, -86.6)" />
+          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
         </g>
 
         {/* Top-right hexagon */}
@@ -61,7 +61,7 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
           className={`hex-surround hex-top-right ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
           style={{ '--target-x': '43px', '--target-y': '-25px', '--target-scale': '0.33' } as React.CSSProperties}
         >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" transform="translate(75, -43.3)" />
+          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
         </g>
 
         {/* Bottom-right hexagon */}
@@ -69,7 +69,7 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
           className={`hex-surround hex-bottom-right ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
           style={{ '--target-x': '43px', '--target-y': '25px', '--target-scale': '0.33' } as React.CSSProperties}
         >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" transform="translate(75, 43.3)" />
+          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
         </g>
 
         {/* Bottom hexagon */}
@@ -77,7 +77,7 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
           className={`hex-surround hex-bottom ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
           style={{ '--target-x': '25px', '--target-y': '43px', '--target-scale': '0.33' } as React.CSSProperties}
         >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" transform="translate(0, 86.6)" />
+          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
         </g>
 
         {/* Top-left hexagon (head) */}
@@ -85,7 +85,7 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
           className={`hex-surround hex-top-left ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-head' : ''}`}
           style={{ '--target-x': '-43px', '--target-y': '-25px', '--target-scale': '0.59' } as React.CSSProperties}
         >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" transform="translate(-75, -43.3)" />
+          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
         </g>
 
         {/* Eyes */}

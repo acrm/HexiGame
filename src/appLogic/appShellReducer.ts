@@ -6,7 +6,6 @@ import {
 } from './sessionHistory';
 
 const GUEST_STARTED_KEY = 'hexigame.guest.started';
-const TUTORIAL_STARTED_KEY = 'hexigame.tutorial.started';
 
 export type MobileTab = 'heximap' | 'hexilab' | 'hexipedia';
 export type InteractionMode = 'desktop' | 'mobile';
@@ -46,10 +45,9 @@ export type AppShellCommand =
 
 export function createInitialAppShellState(storage: StorageReader): AppShellState {
   const hasGuestStarted = !!storage.getItem(GUEST_STARTED_KEY);
-  const hasTutorialStarted = !!storage.getItem(TUTORIAL_STARTED_KEY);
   return {
     isInventory: false,
-    mobileTab: hasTutorialStarted ? 'heximap' : 'hexipedia',
+    mobileTab: 'heximap',
     isPaused: false,
     interactionMode: 'mobile',
     guestStarted: hasGuestStarted,
@@ -141,7 +139,7 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
         startupAnimationShown: false,
         isPaused: true,
         isInventory: false,
-        mobileTab: 'hexipedia',
+        mobileTab: 'heximap',
         isMascotOpen: false,
         currentSessionId: null,
         currentSessionStartTick: 0,
