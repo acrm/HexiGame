@@ -533,3 +533,5 @@
 - 2026w11-0.5 — Finalize startup animation fix
 
 - 2026w11-0.6 — Fix startup animation layout and expose bump auto-commit errors
+
+- 2026w11-0.7 — Fix startup hex morph stability and force HexiMap on start

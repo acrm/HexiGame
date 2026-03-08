@@ -347,6 +347,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const handleGuestStart = () => {
     localStorage.setItem('hexigame.guest.started', '1');
     dispatchApp({ type: 'GUEST_STARTED' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
 
     if (trackSessionHistory) {
       const newSession = createNewSessionHistoryRecord();
@@ -361,6 +362,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const handleStartupAnimationComplete = () => {
     dispatchApp({ type: 'STARTUP_ANIMATION_COMPLETE' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
   const hexiPediaProps: React.ComponentProps<typeof HexiPedia> = {
@@ -516,7 +518,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       resetSession();
       dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
       setTutorialFlowState({ currentLevelId: 'tutorial_1_movement' });
-      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
     },
     onShowMascot: () => {
       dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden });

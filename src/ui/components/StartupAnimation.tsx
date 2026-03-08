@@ -42,50 +42,45 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
 
   return (
     <div className={`startup-animation ${phase >= 6 ? 'fade-out' : ''}`}>
-      <svg className="startup-svg" viewBox="-300 -300 600 600" width="100%" height="100%">
+      <svg className={`startup-svg ${phase >= 5 ? 'shrink-to-game' : ''}`} viewBox="-300 -300 600 600" width="100%" height="100%">
         {/* Center hexagon (body) */}
         <g className={`hex-center ${phase >= 1 ? 'visible' : ''}`}>
           <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
         </g>
 
         {/* Top hexagon */}
-        <g 
-          className={`hex-surround hex-top ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
-          style={{ '--target-x': '25px', '--target-y': '-43px', '--target-scale': '0.33' } as React.CSSProperties}
-        >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+        <g transform="translate(25, -43.3)">
+          <g className={`hex-surround hex-top ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}>
+            <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+          </g>
         </g>
 
         {/* Top-right hexagon */}
-        <g 
-          className={`hex-surround hex-top-right ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
-          style={{ '--target-x': '43px', '--target-y': '-25px', '--target-scale': '0.33' } as React.CSSProperties}
-        >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+        <g transform="translate(43.3, -25)">
+          <g className={`hex-surround hex-top-right ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}>
+            <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+          </g>
         </g>
 
         {/* Bottom-right hexagon */}
-        <g 
-          className={`hex-surround hex-bottom-right ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
-          style={{ '--target-x': '43px', '--target-y': '25px', '--target-scale': '0.33' } as React.CSSProperties}
-        >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+        <g transform="translate(43.3, 25)">
+          <g className={`hex-surround hex-bottom-right ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}>
+            <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+          </g>
         </g>
 
         {/* Bottom hexagon */}
-        <g 
-          className={`hex-surround hex-bottom ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}
-          style={{ '--target-x': '25px', '--target-y': '43px', '--target-scale': '0.33' } as React.CSSProperties}
-        >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+        <g transform="translate(25, 43.3)">
+          <g className={`hex-surround hex-bottom ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-leg' : ''}`}>
+            <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+          </g>
         </g>
 
         {/* Top-left hexagon (head) */}
-        <g 
-          className={`hex-surround hex-top-left ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-head' : ''}`}
-          style={{ '--target-x': '-43px', '--target-y': '-25px', '--target-scale': '0.59' } as React.CSSProperties}
-        >
-          <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+        <g transform="translate(-43.3, -25)">
+          <g className={`hex-surround hex-top-left ${phase >= 2 ? 'visible' : ''} ${phase >= 3 ? 'to-head' : ''}`}>
+            <polygon points={hexPath(50)} fill={playerColor} stroke="#FFFFFF" strokeWidth="2" />
+          </g>
         </g>
 
         {/* Eyes */}
@@ -96,8 +91,6 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete, 
           </g>
         )}
 
-        {/* Turtle group for final scaling */}
-        <g className={`turtle-final ${phase >= 5 ? 'shrink-to-game' : ''}`} />
       </svg>
     </div>
   );
