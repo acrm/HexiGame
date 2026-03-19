@@ -107,8 +107,10 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     templates: null,
     colors: null,
   });
+  const lang = getLanguage();
+  const locale = lang === 'ru' ? 'ru-RU' : 'en-US';
   const progress = gameState.tutorialProgress;
-  const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode, getLanguage()) : '';
+  const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode, lang) : '';
   const fullHint = hint ? `${hint} ${t('tutorial.followFocusNote')}` : t('tutorial.followFocusNote');
 
   const targetCells = tutorialLevel?.targetCells ?? [];
@@ -245,18 +247,18 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
 
   const getColorNameByHue = (hue: number): string => {
     const h = ((hue % 360) + 360) % 360;
-    if (h < 15 || h >= 345) return 'Красный';
-    if (h < 45) return 'Оранжевый';
-    if (h < 75) return 'Жёлтый';
-    if (h < 105) return 'Лаймовый';
-    if (h < 145) return 'Зелёный';
-    if (h < 175) return 'Бирюзовый';
-    if (h < 205) return 'Голубой';
-    if (h < 235) return 'Синий';
-    if (h < 265) return 'Индиго';
-    if (h < 295) return 'Фиолетовый';
-    if (h < 325) return 'Пурпурный';
-    return 'Малиновый';
+    if (h < 15 || h >= 345) return t('hexipedia.colors.red');
+    if (h < 45) return t('hexipedia.colors.orange');
+    if (h < 75) return t('hexipedia.colors.yellow');
+    if (h < 105) return t('hexipedia.colors.lime');
+    if (h < 145) return t('hexipedia.colors.green');
+    if (h < 175) return t('hexipedia.colors.turquoise');
+    if (h < 205) return t('hexipedia.colors.cyan');
+    if (h < 235) return t('hexipedia.colors.blue');
+    if (h < 265) return t('hexipedia.colors.indigo');
+    if (h < 295) return t('hexipedia.colors.violet');
+    if (h < 325) return t('hexipedia.colors.purple');
+    return t('hexipedia.colors.crimson');
   };
 
   const getRelativePercent = (index: number): number => {
@@ -280,8 +282,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   const sectionTitles: Record<HexiPediaSectionId, string> = {
     tasks: t('tutorial.tasksTitle'),
     stats: t('stats.title'),
-    templates: 'Build Templates',
-    colors: 'Цвета',
+    templates: t('template.title'),
+    colors: t('colors.title'),
   };
 
   const dropdownSections = sectionOrder.filter(id => {
@@ -300,8 +302,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
           onChange={(event) => setSectionFilter(event.target.value)}
           onFocus={() => setShowSearchDropdown(true)}
           onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
-          placeholder="Открыть панель…"
-          aria-label="Filter sections"
+          placeholder={t('hexipedia.searchPlaceholder')}
+          aria-label={t('hexipedia.searchAria')}
         />
         {showSearchDropdown && (
           <div className="hexipedia-section-dropdown">
@@ -355,8 +357,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                         className={`hexipedia-section-move hexipedia-widget-toggle ${showTutorialWidget ? 'on' : 'off'}`}
                         onClick={() => onToggleTutorialWidget?.(!showTutorialWidget)}
                         disabled={!onToggleTutorialWidget}
-                        title={showTutorialWidget ? 'Скрыть виджет заданий' : 'Показать виджет заданий'}
-                        aria-label={showTutorialWidget ? 'Скрыть виджет заданий' : 'Показать виджет заданий'}
+                        title={showTutorialWidget ? t('hexipedia.widget.hideTasks') : t('hexipedia.widget.showTasks')}
+                        aria-label={showTutorialWidget ? t('hexipedia.widget.hideTasks') : t('hexipedia.widget.showTasks')}
                       >
                         <i
                           className={`fas ${showTutorialWidget ? 'fa-eye' : 'fa-eye-slash'}`}
@@ -369,8 +371,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             className="hexipedia-section-move"
                             onClick={() => moveSectionUp('tasks')}
                             disabled={!canMoveUp}
-                            title="Выше"
-                            aria-label="Выше"
+                            title={t('hexipedia.section.moveUp')}
+                            aria-label={t('hexipedia.section.moveUp')}
                           >
                             ▲
                           </button>
@@ -378,8 +380,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             className="hexipedia-section-move"
                             onClick={() => moveSectionDown('tasks')}
                             disabled={!canMoveDown}
-                            title="Ниже"
-                            aria-label="Ниже"
+                            title={t('hexipedia.section.moveDown')}
+                            aria-label={t('hexipedia.section.moveDown')}
                           >
                             ▼
                           </button>
@@ -388,8 +390,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('tasks')}
-                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
-                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
+                        aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
                       >
                         <i className="fas fa-thumbtack" aria-hidden="true" />
                       </button>
@@ -400,7 +402,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       {allLevels.map(level => {
                         const isCurrent = tutorialLevelId === level.id;
                         const isCompleted = completedLevelIds.has(level.id) || (isCurrent && isTutorialTaskComplete);
-                        const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode, getLanguage());
+                        const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode, lang);
                         const levelTargetCells = isCurrent ? targetCells : (level.targetCells ?? []);
                         const baseLevelProgress = level.getProgress
                           ? level.getProgress(
@@ -434,7 +436,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                 {isCompleted ? '✓' : ''}
                               </span>
                               <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
-                                {getLocalizedText(level.objective, getLanguage())}
+                                {getLocalizedText(level.objective, lang)}
                               </span>
                               <div className="hexipedia-task-actions">
                                 {!isCompleted ? (
@@ -532,19 +534,19 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                         <>
                           <button
                             className="hexipedia-section-move"
-                            onClick={() => moveSectionUp('tasks')}
+                            onClick={() => moveSectionUp('stats')}
                             disabled={!canMoveUp}
-                            title="Выше"
-                            aria-label="Выше"
+                            title={t('hexipedia.section.moveUp')}
+                            aria-label={t('hexipedia.section.moveUp')}
                           >
                             ▲
                           </button>
                           <button
                             className="hexipedia-section-move"
-                            onClick={() => moveSectionDown('tasks')}
+                            onClick={() => moveSectionDown('stats')}
                             disabled={!canMoveDown}
-                            title="Ниже"
-                            aria-label="Ниже"
+                            title={t('hexipedia.section.moveDown')}
+                            aria-label={t('hexipedia.section.moveDown')}
                           >
                             ▼
                           </button>
@@ -553,8 +555,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('stats')}
-                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
-                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
+                        aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
                       >
                         <i className="fas fa-thumbtack" aria-hidden="true" />
                       </button>
@@ -575,14 +577,14 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                         {/* Session History Subsection */}
                         <div className="hexipedia-history-subsection">
                           <div className="hexipedia-history-header">
-                            <div className="hexipedia-history-title">История сессий</div>
+                            <div className="hexipedia-history-title">{t('stats.history.title')}</div>
                             <label className="hexipedia-history-toggle">
                               <input 
                                 type="checkbox" 
                                 checked={trackSessionHistory}
                                 onChange={(e) => onToggleTrackHistory?.(e.target.checked)}
                               />
-                              <span>Вести историю</span>
+                              <span>{t('stats.history.track')}</span>
                             </label>
                           </div>
                           
@@ -592,11 +594,11 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                 className="hexipedia-history-clear-btn"
                                 onClick={() => setDeleteConfirmAll(true)}
                               >
-                                Удалить всё
+                                {t('stats.history.clearAll')}
                               </button>
                               {deleteConfirmAll && (
                                 <div className="hexipedia-delete-confirm">
-                                  <span>Удалить все записи?</span>
+                                  <span>{t('stats.history.confirmClearAll')}</span>
                                   <button
                                     className="hexipedia-confirm-yes"
                                     onClick={() => {
@@ -604,13 +606,13 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                       setDeleteConfirmAll(false);
                                     }}
                                   >
-                                    Да
+                                    {t('common.yes')}
                                   </button>
                                   <button
                                     className="hexipedia-confirm-no"
                                     onClick={() => setDeleteConfirmAll(false)}
                                   >
-                                    Нет
+                                    {t('common.no')}
                                   </button>
                                 </div>
                               )}
@@ -622,15 +624,15 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                               {sessionHistory.slice(0, 20).map((record) => {
                                 const startDate = new Date(record.startTime);
                                 const endDate = new Date(record.endTime);
-                                const dateStr = startDate.toLocaleDateString('ru-RU', { 
+                                const dateStr = startDate.toLocaleDateString(locale, { 
                                   month: '2-digit', 
                                   day: '2-digit' 
                                 });
-                                const startTimeStr = startDate.toLocaleTimeString('ru-RU', { 
+                                const startTimeStr = startDate.toLocaleTimeString(locale, { 
                                   hour: '2-digit', 
                                   minute: '2-digit' 
                                 });
-                                const endTimeStr = endDate.toLocaleTimeString('ru-RU', { 
+                                const endTimeStr = endDate.toLocaleTimeString(locale, { 
                                   hour: '2-digit', 
                                   minute: '2-digit' 
                                 });
@@ -644,13 +646,13 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                       {' '}
                                       <span className="hexipedia-history-duration">{record.gameTime}</span>
                                       {' '}
-                                      <span className="hexipedia-history-ticks">({record.gameTicks}т)</span>
+                                      <span className="hexipedia-history-ticks">({record.gameTicks}{t('stats.history.tickShort')})</span>
                                     </span>
                                     {!showConfirm ? (
                                       <button
                                         className="hexipedia-history-delete-btn"
                                         onClick={() => setDeleteConfirmRecordId(record.id)}
-                                        title="Удалить"
+                                        title={t('common.delete')}
                                       >
                                         ✕
                                       </button>
@@ -663,13 +665,13 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                             setDeleteConfirmRecordId(null);
                                           }}
                                         >
-                                          Да
+                                          {t('common.yes')}
                                         </button>
                                         <button
                                           className="hexipedia-confirm-no"
                                           onClick={() => setDeleteConfirmRecordId(null)}
                                         >
-                                          Нет
+                                          {t('common.no')}
                                         </button>
                                       </div>
                                     )}
@@ -678,7 +680,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                               })}
                             </div>
                           ) : (
-                            <div className="hexipedia-history-empty">Нет сохраненных сессий</div>
+                            <div className="hexipedia-history-empty">{t('stats.history.empty')}</div>
                           )}
                         </div>
                       </div>
@@ -710,7 +712,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <span className="hexipedia-section-toggle">
                         {isCollapsed ? '▶' : '▼'}
                       </span>
-                      <span className="hexipedia-section-title">Build Templates</span>
+                      <span className="hexipedia-section-title">{t('template.title')}</span>
                     </div>
                     <div className="hexipedia-section-controls">
                       {isPinned && (
@@ -719,8 +721,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             className="hexipedia-section-move"
                             onClick={() => moveSectionUp('templates')}
                             disabled={!canMoveUp}
-                            title="Выше"
-                            aria-label="Выше"
+                            title={t('hexipedia.section.moveUp')}
+                            aria-label={t('hexipedia.section.moveUp')}
                           >
                             ▲
                           </button>
@@ -728,8 +730,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             className="hexipedia-section-move"
                             onClick={() => moveSectionDown('templates')}
                             disabled={!canMoveDown}
-                            title="Ниже"
-                            aria-label="Ниже"
+                            title={t('hexipedia.section.moveDown')}
+                            aria-label={t('hexipedia.section.moveDown')}
                           >
                             ▼
                           </button>
@@ -738,8 +740,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('templates')}
-                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
-                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
+                        aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
                       >
                         <i className="fas fa-thumbtack" aria-hidden="true" />
                       </button>
@@ -781,7 +783,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                       onActivateTemplate?.(template.id);
                                     }}
                                   />
-                                  <span className="hexipedia-template-name">{template.name.en}</span>
+                                  <span className="hexipedia-template-name">{template.name[lang]}</span>
                                   <span className={`hexipedia-template-difficulty ${template.difficulty}`}>
                                     {template.difficulty === 'easy' && '●'}
                                     {template.difficulty === 'medium' && '●●'}
@@ -809,15 +811,15 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                   {template.description && (
                                     <div className="hexipedia-template-description">
                                       <span className="hexipedia-detail-label">{t('template.description')}</span>
-                                      <span className="hexipedia-detail-text">{template.description[getLanguage() as 'en' | 'ru']}</span>
+                                      <span className="hexipedia-detail-text">{template.description[lang]}</span>
                                     </div>
                                   )}
                                   
-                                  {template.hints && template.hints[getLanguage() as 'en' | 'ru']?.length ? (
+                                  {template.hints && template.hints[lang]?.length ? (
                                     <div className="hexipedia-template-hints">
                                       <span className="hexipedia-detail-label">{t('template.hints')}</span>
                                       <ul className="hexipedia-hints-list">
-                                        {template.hints[getLanguage() as 'en' | 'ru']!.map((hint, idx) => (
+                                        {template.hints[lang]!.map((hint, idx) => (
                                           <li key={idx} className="hexipedia-hint-item">{hint}</li>
                                         ))}
                                       </ul>
@@ -862,15 +864,15 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <span className="hexipedia-section-toggle">
                         {isCollapsed ? '▶' : '▼'}
                       </span>
-                      <span className="hexipedia-section-title">Цвета</span>
+                      <span className="hexipedia-section-title">{t('colors.title')}</span>
                     </div>
                     <div className="hexipedia-section-controls">
                       <button
                         className={`hexipedia-section-move hexipedia-widget-toggle ${showColorWidget ? 'on' : 'off'}`}
                         onClick={() => onToggleColorWidget?.(!showColorWidget)}
                         disabled={!onToggleColorWidget}
-                        title={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
-                        aria-label={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
+                        title={showColorWidget ? t('hexipedia.widget.hideColors') : t('hexipedia.widget.showColors')}
+                        aria-label={showColorWidget ? t('hexipedia.widget.hideColors') : t('hexipedia.widget.showColors')}
                       >
                         <i className={`fas ${showColorWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
                       </button>
@@ -880,8 +882,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             className="hexipedia-section-move"
                             onClick={() => moveSectionUp('colors')}
                             disabled={!canMoveUp}
-                            title="Выше"
-                            aria-label="Выше"
+                            title={t('hexipedia.section.moveUp')}
+                            aria-label={t('hexipedia.section.moveUp')}
                           >
                             ▲
                           </button>
@@ -889,8 +891,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             className="hexipedia-section-move"
                             onClick={() => moveSectionDown('colors')}
                             disabled={!canMoveDown}
-                            title="Ниже"
-                            aria-label="Ниже"
+                            title={t('hexipedia.section.moveDown')}
+                            aria-label={t('hexipedia.section.moveDown')}
                           >
                             ▼
                           </button>
@@ -899,8 +901,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('colors')}
-                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
-                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
+                        aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
                       >
                         <i className="fas fa-thumbtack" aria-hidden="true" />
                       </button>
