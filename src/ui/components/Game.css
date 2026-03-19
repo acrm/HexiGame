@@ -132,7 +132,7 @@ html, body {
   width: 100%;
 }
 
-.game-root.mobile-forced .tutorial-widget-overlay {
+.game-root.mobile-forced .widget-stack-overlay {
   left: 50%;
   right: auto;
   width: min(420px, calc(var(--vh, 1vh) * 100 * 9 / 16));
@@ -358,12 +358,20 @@ html, body {
   text-align: center;
 }
 
-.tutorial-widget-overlay {
+.widget-stack-overlay {
   position: fixed;
   top: 48px;
   left: 0;
   right: 0;
   z-index: 100;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.widget-stack-overlay > * {
   pointer-events: all;
 }
 

@@ -53,7 +53,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
         title="Open tasks in HexiPedia"
         aria-label="Open tasks in HexiPedia"
       >
-        &gt;&gt;
+        »
       </button>
     </div>
   );

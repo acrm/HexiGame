@@ -4,11 +4,16 @@ import GuestStart from '../GuestStart';
 import Mascot from '../Mascot';
 import Settings from '../Settings';
 import TutorialProgressWidget from '../TutorialProgressWidget';
+import ColorPaletteWidget from '../ColorPaletteWidget';
+
+type HexiPediaSectionId = 'tasks' | 'stats' | 'templates' | 'colors';
 
 interface GameOverlaysProps {
   isMobileLayout: boolean;
   mobileTab: MobileTab;
   tutorialWidgetProps: React.ComponentProps<typeof TutorialProgressWidget> | null;
+  colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null;
+  sectionOrder: HexiPediaSectionId[];
   showGuestStart: boolean;
   onGuestStart: () => void;
   isSettingsOpen: boolean;
@@ -21,6 +26,8 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   isMobileLayout,
   mobileTab,
   tutorialWidgetProps,
+  colorPaletteWidgetProps,
+  sectionOrder,
   showGuestStart,
   onGuestStart,
   isSettingsOpen,
@@ -30,9 +37,17 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 }) => {
   return (
     <>
-      {isMobileLayout && mobileTab === 'heximap' && tutorialWidgetProps && (
-        <div className="tutorial-widget-overlay">
-          <TutorialProgressWidget {...tutorialWidgetProps} />
+      {isMobileLayout && mobileTab === 'heximap' && (
+        <div className="widget-stack-overlay">
+          {sectionOrder.map(sectionId => {
+            if (sectionId === 'tasks' && tutorialWidgetProps) {
+              return <TutorialProgressWidget key="tasks" {...tutorialWidgetProps} />;
+            }
+            if (sectionId === 'colors' && colorPaletteWidgetProps) {
+              return <ColorPaletteWidget key="colors" {...colorPaletteWidgetProps} />;
+            }
+            return null;
+          })}
         </div>
       )}
 

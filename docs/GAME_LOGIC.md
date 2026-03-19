@@ -176,10 +176,13 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - HUD shows dynamic chance string; logic only supplies numeric chance.
 - Tutorial tasks are freely selectable in HexiPedia; completed tasks are tracked and can be restarted on demand.
 - Tutorial completion only fires on state transition (incomplete → complete), then auto-advances to the next task in order.
-- Top overlay widgets use `>>` shortcuts to open HexiPedia and auto-scroll to the matching panel (`Tasks` or `Colors`).
-- HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Templates`, `Colors`) start disabled.
+- Top overlay widgets use `»` navigation button to open HexiPedia and auto-scroll to the matching panel (`Tasks` or `Colors`). Both widgets use the same `»` icon for visual consistency.
+- HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Templates`, `Colors`) start disabled (not rendered).
 - Enabled panels that are not pinned auto-hide after leaving HexiPedia; pinned panels remain enabled across tab switches.
-- The `Tasks` panel includes a toggle for showing/hiding the tutorial progress widget (enabled by default).
+- Disabled panels are completely removed from the DOM (not just collapsed). They can be restored via the search bar dropdown which lists all panels. Clicking a panel in the dropdown enables and scrolls to it.
+- Panel header controls (left → right): widget visibility toggle (tasks/colors only) | ▲▼ reorder | 📌 pin. No enable/disable toggle button — panel disappears automatically when not pinned and not active.
+- Panel section order is synced between HexiPedia and GameOverlays; overlay widgets (tutorial, palette) stack in section order.
+- The `Tasks` panel includes a toggle for the tutorial progress widget (eye icon); the `Colors` panel includes a toggle for the palette widget.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).

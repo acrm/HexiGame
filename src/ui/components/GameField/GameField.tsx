@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import type { Params } from '../../../gameLogic/core/params';
 import type { GameState, Axial } from '../../../gameLogic/core/types';
 import { axialDistance } from '../../../gameLogic/core/grid';
-import ColorPaletteWidget from '../ColorPaletteWidget';
 import { useViewport } from './useViewport';
 import { useTouchInput } from './useTouchInput';
 import { useMouseInput } from './useMouseInput';
@@ -41,14 +40,6 @@ interface GameFieldProps {
   tutorialTargetCells?: Axial[];
   visitedTutorialCells?: Set<string>;
   hideHotbar?: boolean;
-  paletteTopOffset?: number;
-  selectedColorIndex?: number;
-  relativeBaseColorIndex?: number | null;
-  isAutoBaseColorEnabled?: boolean;
-  onColorSelect?: (index: number) => void;
-  onToggleAutoBaseColor?: () => void;
-  onNavigateToPalette?: () => void;
-  showColorWidget?: boolean;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -71,14 +62,6 @@ export const GameField: React.FC<GameFieldProps> = ({
   tutorialTargetCells = [],
   visitedTutorialCells = new Set(),
   hideHotbar = false,
-  paletteTopOffset = 8,
-  selectedColorIndex,
-  relativeBaseColorIndex,
-  isAutoBaseColorEnabled = false,
-  onColorSelect,
-  onToggleAutoBaseColor,
-  onNavigateToPalette,
-  showColorWidget = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -140,19 +123,6 @@ export const GameField: React.FC<GameFieldProps> = ({
   return (
     <div ref={canvasContainerRef} className="game-field" style={{ position: 'relative' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
-      {showColorWidget && (
-        <ColorPaletteWidget
-          colorPalette={params.ColorPalette}
-          selectedColorIndex={selectedColorIndex ?? params.PlayerBaseColorIndex}
-          relativeBaseColorIndex={relativeBaseColorIndex ?? null}
-          playerBaseColorIndex={params.PlayerBaseColorIndex}
-          isAutoBaseColorEnabled={isAutoBaseColorEnabled}
-          topOffset={paletteTopOffset}
-          onColorSelect={onColorSelect}
-          onToggleAutoBaseColor={onToggleAutoBaseColor}
-          onNavigateToPalette={onNavigateToPalette}
-        />
-      )}
     </div>
   );
 };

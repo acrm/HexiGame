@@ -545,3 +545,5 @@
 - 2026w12-0.1 — unify top widgets layout
 
 - 2026w12-0.2 — tasks widget navigation and panel pinning
+
+- 2026w12-0.3 — widget stack by section order, search dropdown, unified nav icons

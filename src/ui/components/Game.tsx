@@ -36,6 +36,7 @@ import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../colorScheme';
 import TutorialProgressWidget from './TutorialProgressWidget';
+import ColorPaletteWidget from './ColorPaletteWidget';
 import { hoveredCellActive } from '../../gameLogic/systems/capture';
 import {
   createInitialTutorialFlowState,
@@ -111,6 +112,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     'tasks',
   ]);
   const [focusHexiPediaSection, setFocusHexiPediaSection] = useState<HexiPediaSectionId | null>(null);
+  const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'stats', 'templates', 'colors']);
 
   // Game session state
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -476,6 +478,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     onFocusSectionHandled: () => {
       setFocusHexiPediaSection(null);
     },
+    sectionOrder,
+    onChangeSectionOrder: setSectionOrder,
     currentSessionStartTick,
   };
 
@@ -550,26 +554,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       dispatch({ type: 'EXCHANGE_HOTBAR_SLOT', slotIndex: slotIdx });
     },
     isLeftHanded,
-    paletteTopOffset,
     tutorialTargetCells:
       tutorialViewModel.level && (!isMobileLayout || mobileTab === 'heximap')
         ? (tutorialViewModel.level.targetCells ?? [])
         : [],
     visitedTutorialCells: gameState.tutorialProgress?.visitedTargetKeys ?? new Set(),
     hideHotbar: tutorialViewModel.level?.hideHotbar ?? false,
-    selectedColorIndex,
-    relativeBaseColorIndex: widgetRelativeBaseColorIndex,
-    isAutoBaseColorEnabled: autoBaseColorEnabled,
-    onColorSelect: (index) => {
-      dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
-    },
-    onToggleAutoBaseColor: () => {
-      dispatchSettings({ type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' });
-    },
-    onNavigateToPalette: () => {
-      openHexiPediaSection('colors');
-    },
-    showColorWidget,
   };
 
   const settingsProps: React.ComponentProps<typeof Settings> = {
@@ -622,6 +612,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const visibleTutorialWidgetProps = showTutorialWidget ? tutorialWidgetProps : null;
 
+  const colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null = showColorWidget
+    ? {
+        colorPalette: mergedParams.ColorPalette,
+        selectedColorIndex: selectedColorIndex ?? mergedParams.PlayerBaseColorIndex,
+        relativeBaseColorIndex: widgetRelativeBaseColorIndex,
+        playerBaseColorIndex: mergedParams.PlayerBaseColorIndex,
+        isAutoBaseColorEnabled: autoBaseColorEnabled,
+        onColorSelect: (index) => { dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index }); },
+        onToggleAutoBaseColor: () => { dispatchSettings({ type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' }); },
+        onNavigateToPalette: () => { openHexiPediaSection('colors'); },
+      }
+    : null;
+
   return (
     <div
       className="game-root mobile-forced"
@@ -662,6 +665,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         isMobileLayout={isMobileLayout}
         mobileTab={mobileTab}
         tutorialWidgetProps={visibleTutorialWidgetProps}
+        colorPaletteWidgetProps={colorPaletteWidgetProps}
+        sectionOrder={sectionOrder}
         showGuestStart={!guestStarted}
         onGuestStart={handleGuestStart}
         isSettingsOpen={isSettingsOpen}
