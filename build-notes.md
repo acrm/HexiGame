@@ -547,3 +547,5 @@
 - 2026w12-0.2 — tasks widget navigation and panel pinning
 
 - 2026w12-0.3 — widget stack by section order, search dropdown, unified nav icons
+
+- 2026w12-0.4 — translate hardcoded UI strings, fix language support for templates

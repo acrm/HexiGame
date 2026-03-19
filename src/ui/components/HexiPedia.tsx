@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../../gameLogic/core/types';
 import type { Params } from '../../gameLogic/core/params';
 import { TutorialLevel, getHintForMode, axialToKey } from '../../tutorial/tutorialState';
-import { t } from '../i18n';
+import { t, getLanguage } from '../i18n';
 import { getAllTutorialLevels } from '../../tutorial/tutorialLevels';
 import { ALL_TEMPLATES } from '../../templates/templateLibrary';
 import { audioController } from '../../appLogic/audioController';
@@ -203,7 +203,29 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     });
 
     const animationFrameId = requestAnimationFrame(() => {
-      sectionRefs.current[activeFocusSectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const sectionElement = sectionRefs.current[activeFocusSectionId];
+      if (!sectionElement) return;
+
+      const isPinned = isSectionPinned(activeFocusSectionId);
+      const scrollContainer = sectionElement.parentElement;
+      if (!scrollContainer) return;
+
+      if (isPinned) {
+        // For pinned sections: scroll so section is visible and not below 10% of viewport
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const sectionRect = sectionElement.getBoundingClientRect();
+        const scrollThreshold = containerRect.height * 0.1; // 10% from top
+        
+        if (sectionRect.top < containerRect.top || sectionRect.bottom > containerRect.top + scrollThreshold) {
+          // Need to scroll: position section so it's visible near the top
+          const scrollOffset = sectionElement.offsetTop - scrollThreshold;
+          scrollContainer.scrollTo({ top: Math.max(0, scrollOffset), behavior: 'smooth' });
+        }
+      } else {
+        // For non-pinned sections: scroll to top
+        sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      
       if (focusSectionId) onFocusSectionHandled?.();
       else setLocalFocusSectionId(null);
     });
@@ -341,24 +363,28 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           aria-hidden="true"
                         />
                       </button>
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionUp('tasks')}
-                        disabled={!canMoveUp}
-                        title="Выше"
-                        aria-label="Выше"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionDown('tasks')}
-                        disabled={!canMoveDown}
-                        title="Ниже"
-                        aria-label="Ниже"
-                      >
-                        ▼
-                      </button>
+                      {isPinned && (
+                        <>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionUp('tasks')}
+                            disabled={!canMoveUp}
+                            title="Выше"
+                            aria-label="Выше"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionDown('tasks')}
+                            disabled={!canMoveDown}
+                            title="Ниже"
+                            aria-label="Ниже"
+                          >
+                            ▼
+                          </button>
+                        </>
+                      )}
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('tasks')}
@@ -398,7 +424,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                     }}
                                     disabled={isCurrent}
                                   >
-                                    {isCurrent ? 'Current' : 'Activate'}
+                                    {isCurrent ? t('tutorial.current') : t('tutorial.activate')}
                                   </button>
                                 ) : (
                                   <button
@@ -409,7 +435,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                       onRestartTutorialLevel?.(level.id);
                                     }}
                                   >
-                                    Restart
+                                    {t('tutorial.restart')}
                                   </button>
                                 )}
                               </div>
@@ -479,24 +505,28 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <span className="hexipedia-section-title">{t('stats.title')}</span>
                     </div>
                     <div className="hexipedia-section-controls">
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionUp('stats')}
-                        disabled={!canMoveUp}
-                        title="Выше"
-                        aria-label="Выше"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionDown('stats')}
-                        disabled={!canMoveDown}
-                        title="Ниже"
-                        aria-label="Ниже"
-                      >
-                        ▼
-                      </button>
+                      {isPinned && (
+                        <>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionUp('tasks')}
+                            disabled={!canMoveUp}
+                            title="Выше"
+                            aria-label="Выше"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionDown('tasks')}
+                            disabled={!canMoveDown}
+                            title="Ниже"
+                            aria-label="Ниже"
+                          >
+                            ▼
+                          </button>
+                        </>
+                      )}
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('stats')}
@@ -660,24 +690,28 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       <span className="hexipedia-section-title">Build Templates</span>
                     </div>
                     <div className="hexipedia-section-controls">
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionUp('templates')}
-                        disabled={!canMoveUp}
-                        title="Выше"
-                        aria-label="Выше"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionDown('templates')}
-                        disabled={!canMoveDown}
-                        title="Ниже"
-                        aria-label="Ниже"
-                      >
-                        ▼
-                      </button>
+                      {isPinned && (
+                        <>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionUp('templates')}
+                            disabled={!canMoveUp}
+                            title="Выше"
+                            aria-label="Выше"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionDown('templates')}
+                            disabled={!canMoveDown}
+                            title="Ниже"
+                            aria-label="Ниже"
+                          >
+                            ▼
+                          </button>
+                        </>
+                      )}
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('templates')}
@@ -702,7 +736,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                               onActivateTemplate?.('');
                             }}
                           />
-                          <span className="hexipedia-template-name">None</span>
+                          <span className="hexipedia-template-name">{t('template.none')}</span>
                         </label>
                         
                         {ALL_TEMPLATES.map(template => {
@@ -741,7 +775,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                     audioController.playRandomSound(soundEnabled, soundVolume);
                                     setExpandedTemplateId(isExpanded ? null : template.id);
                                   }}
-                                  aria-label="Show template details"
+                                  aria-label={t('template.showDetails')}
                                 >
                                   ▼
                                 </button>
@@ -751,24 +785,24 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                 <div className="hexipedia-template-details">
                                   {template.description && (
                                     <div className="hexipedia-template-description">
-                                      <span className="hexipedia-detail-label">Description:</span>
-                                      <span className="hexipedia-detail-text">{template.description.en}</span>
+                                      <span className="hexipedia-detail-label">{t('template.description')}</span>
+                                      <span className="hexipedia-detail-text">{template.description[getLanguage() as 'en' | 'ru']}</span>
                                     </div>
                                   )}
                                   
-                                  {template.hints && template.hints.en && template.hints.en.length > 0 && (
+                                  {template.hints && template.hints[getLanguage() as 'en' | 'ru']?.length ? (
                                     <div className="hexipedia-template-hints">
-                                      <span className="hexipedia-detail-label">Hints:</span>
+                                      <span className="hexipedia-detail-label">{t('template.hints')}</span>
                                       <ul className="hexipedia-hints-list">
-                                        {template.hints.en.map((hint, idx) => (
+                                        {template.hints[getLanguage() as 'en' | 'ru']!.map((hint, idx) => (
                                           <li key={idx} className="hexipedia-hint-item">{hint}</li>
                                         ))}
                                       </ul>
                                     </div>
-                                  )}
+                                  ) : null}
                                   
                                   <div className="hexipedia-template-cells">
-                                    <span className="hexipedia-detail-label">Cells:</span>
+                                    <span className="hexipedia-detail-label">{t('template.cells')}</span>
                                     <span className="hexipedia-detail-text">{template.cells.length}</span>
                                   </div>
                                 </div>
@@ -817,24 +851,28 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       >
                         <i className={`fas ${showColorWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
                       </button>
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionUp('colors')}
-                        disabled={!canMoveUp}
-                        title="Выше"
-                        aria-label="Выше"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        className="hexipedia-section-move"
-                        onClick={() => moveSectionDown('colors')}
-                        disabled={!canMoveDown}
-                        title="Ниже"
-                        aria-label="Ниже"
-                      >
-                        ▼
-                      </button>
+                      {isPinned && (
+                        <>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionUp('colors')}
+                            disabled={!canMoveUp}
+                            title="Выше"
+                            aria-label="Выше"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => moveSectionDown('colors')}
+                            disabled={!canMoveDown}
+                            title="Ниже"
+                            aria-label="Ниже"
+                          >
+                            ▼
+                          </button>
+                        </>
+                      )}
                       <button
                         className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
                         onClick={() => toggleSectionPinned('colors')}
