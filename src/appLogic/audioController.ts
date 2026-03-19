@@ -17,6 +17,7 @@ interface AudioControllerInterface {
   updateMusicVolume: (volume: number) => void;
   playRandomSound: (enabled: boolean, volume: number) => void;
   playSound: (path: string, enabled: boolean, volume: number) => void;
+  invalidMove: (enabled: boolean, volume: number) => void;
   templateCellCorrect: (enabled: boolean, volume: number) => void;
   templateCellWrong: (enabled: boolean, volume: number) => void;
   templateCompleted: (enabled: boolean, volume: number) => void;
@@ -170,6 +171,10 @@ class AudioController implements AudioControllerInterface {
   playSound(path: string, enabled: boolean, volume: number): void {
     if (!enabled) return;
     audioDriver.playSound(path, volume);
+  }
+
+  invalidMove(enabled: boolean, volume: number): void {
+    this.playSound('audio/mixkit-video-game-retro-click-237.wav', enabled, volume);
   }
 
   templateCellCorrect(enabled: boolean, volume: number): void {

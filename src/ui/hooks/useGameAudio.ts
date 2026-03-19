@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { GameState } from '../../gameLogic/core/types';
+import type { GameState, InvalidMoveTargetState } from '../../gameLogic/core/types';
 import { audioController } from '../../appLogic/audioController';
 
 export interface UseGameAudioOptions {
@@ -9,6 +9,7 @@ export interface UseGameAudioOptions {
   soundEnabled: boolean;
   soundVolume: number;
   activeTemplate: GameState['activeTemplate'];
+  invalidMoveTarget?: InvalidMoveTargetState | null;
 }
 
 export interface UseGameAudioApi {
@@ -25,6 +26,7 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
     soundEnabled,
     soundVolume,
     activeTemplate,
+    invalidMoveTarget,
   } = options;
 
   useEffect(() => {
@@ -95,6 +97,23 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
 
     previousTemplateRef.current = currentTemplate;
   }, [activeTemplate, soundEnabled, soundVolume]);
+
+  const previousInvalidMoveTargetRef = useRef<InvalidMoveTargetState | null | undefined>(null);
+  useEffect(() => {
+    const previousInvalidMoveTarget = previousInvalidMoveTargetRef.current;
+    if (
+      invalidMoveTarget && (
+        !previousInvalidMoveTarget ||
+        previousInvalidMoveTarget.startedTick !== invalidMoveTarget.startedTick ||
+        previousInvalidMoveTarget.position.q !== invalidMoveTarget.position.q ||
+        previousInvalidMoveTarget.position.r !== invalidMoveTarget.position.r
+      )
+    ) {
+      audioController.invalidMove(soundEnabled, soundVolume);
+    }
+
+    previousInvalidMoveTargetRef.current = invalidMoveTarget;
+  }, [invalidMoveTarget, soundEnabled, soundVolume]);
 
   const playUiClick = useCallback(() => {
     audioController.playRandomSound(soundEnabled, soundVolume);

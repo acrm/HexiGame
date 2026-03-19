@@ -190,6 +190,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     soundEnabled,
     soundVolume,
     activeTemplate: gameState.activeTemplate,
+    invalidMoveTarget: gameState.invalidMoveTarget,
   });
 
   // Sync tutorial level into gameState when tutorialFlowState changes
@@ -261,8 +262,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const handleRestartTutorialLevel = (levelId: string) => {
-    const newState = tutorialActions.restartLevel(levelId, gameState);
-    dispatch({ type: 'RESET_STATE', newState });
+    tutorialActions.restartLevel(levelId);
   };
 
   // Auto-complete tutorial level when task is done
@@ -602,8 +602,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const tutorialWidgetProps = tutorialViewModel.level
     ? {
-        visitedCount: tutorialViewModel.visitedTargetCount,
-        totalCount: tutorialViewModel.targetKeys.length,
+        progressCurrent: tutorialViewModel.progressCurrent,
+        progressTotal: tutorialViewModel.progressTotal,
+        progressLabel: t(tutorialViewModel.progressLabelKey),
         isComplete: tutorialViewModel.isTaskComplete,
         onComplete: handleTutorialCompleteClick,
         onViewTask: handleViewTutorialTask,

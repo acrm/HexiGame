@@ -31,6 +31,7 @@ import {
   activateTemplate,
   deactivateTemplate,
 } from '../gameLogic/systems/template';
+import { applyTutorialLevelSetup } from '../tutorial/tutorialSandbox';
 
 // ─── Command Types ────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ export type GameCommand =
   | { type: 'ACTIVATE_TEMPLATE'; templateId: string }
   | { type: 'DEACTIVATE_TEMPLATE' }
   // Tutorial
-  | { type: 'SET_TUTORIAL_LEVEL'; levelId: string | null }
+  | { type: 'SET_TUTORIAL_LEVEL'; levelId: string | null; forceReset?: boolean }
   | { type: 'MARK_TUTORIAL_TARGET_VISITED'; key: string }
   | { type: 'COMPLETE_TUTORIAL_LEVEL'; levelId: string; nextLevelId: string | null }
   | { type: 'SET_TUTORIAL_INTERACTION_MODE'; mode: 'desktop' | 'mobile' }
@@ -134,10 +135,16 @@ export function sessionReducer(
         if (!state.tutorialLevelId && !state.tutorialProgress) return state;
         return { ...state, tutorialLevelId: null, tutorialProgress: undefined };
       }
-      if (state.tutorialLevelId === command.levelId) return state;
+      if (state.tutorialLevelId === command.levelId && !command.forceReset) return state;
+      const preparedState = applyTutorialLevelSetup(state, params, command.levelId);
+      const updatedCompletedIds = new Set(preparedState.tutorialCompletedLevelIds ?? []);
+      if (command.forceReset) {
+        updatedCompletedIds.delete(command.levelId);
+      }
       return {
-        ...state,
+        ...preparedState,
         tutorialLevelId: command.levelId,
+        tutorialCompletedLevelIds: updatedCompletedIds,
         tutorialProgress: {
           visitedTargetKeys: new Set(),
           startTick: state.tick,
@@ -163,22 +170,12 @@ export function sessionReducer(
       const nextProgress = progress && !progress.completedAtTick
         ? { ...progress, completedAtTick: state.tick }
         : progress;
-      const nextTutorialLevelId = command.nextLevelId ?? null;
       const nextState: GameState = {
         ...state,
         tutorialCompletedLevelIds: completedSet,
         tutorialProgress: nextProgress,
-        tutorialLevelId: nextTutorialLevelId,
+        tutorialLevelId: command.nextLevelId ? state.tutorialLevelId : null,
       };
-      if (nextTutorialLevelId && nextTutorialLevelId !== state.tutorialLevelId) {
-        return {
-          ...nextState,
-          tutorialProgress: {
-            visitedTargetKeys: new Set(),
-            startTick: state.tick,
-          },
-        };
-      }
       return nextState;
     }
 

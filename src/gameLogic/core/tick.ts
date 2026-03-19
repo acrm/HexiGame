@@ -3,7 +3,7 @@ import type { Params } from './params';
 import {
   axialDirections,
   axialDistance,
-  findDirectionToward,
+  isWorldCellWalkable,
   ensureGeneratedAround,
   updateWorldViewCenter,
 } from './grid';
@@ -14,6 +14,10 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
 
   if (next.flash && (next.tick - next.flash.startedTick) >= params.CaptureFlashDurationTicks) {
     next = { ...next, flash: null };
+  }
+
+  if (next.invalidMoveTarget && (next.tick - next.invalidMoveTarget.startedTick) >= params.CaptureFlashDurationTicks) {
+    next = { ...next, invalidMoveTarget: null };
   }
 
   // Auto-movement logic: move 1 cell every 2 ticks (via autoFocusTarget)
@@ -35,22 +39,37 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
           next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
         }
       } else if (distToFocusTarget > 1) {
-        // Move one step closer
-        const dirIndex = findDirectionToward(next.protagonist.q, next.protagonist.r, next.autoFocusTarget.q, next.autoFocusTarget.r);
-        if (dirIndex !== null) {
-          const dir = axialDirections[dirIndex];
-          const newPos = { q: next.protagonist.q + dir.q, r: next.protagonist.r + dir.r };
-          next = { ...next, protagonist: newPos, facingDirIndex: dirIndex, autoMoveTicksRemaining: 2 };
-          next = updateFocusPosition(next);
-          // Remove current position from path if it's at the front
-          if (next.autoMovePath && next.autoMovePath.length > 0) {
-            const firstPath = next.autoMovePath[0];
-            if (firstPath.q === newPos.q && firstPath.r === newPos.r) {
-              next = { ...next, autoMovePath: next.autoMovePath.slice(1) };
-            }
-          }
+        const pathStep = next.autoMovePath?.[0];
+        if (!pathStep || axialDistance(next.protagonist, pathStep) !== 1 || !isWorldCellWalkable(next.grid, pathStep)) {
+          next = {
+            ...next,
+            flash: { type: 'failure', startedTick: next.tick },
+            invalidMoveTarget: {
+              position: { ...next.autoFocusTarget },
+              startedTick: next.tick,
+            },
+            autoFocusTarget: null,
+            autoMoveTicksRemaining: 0,
+            autoMoveTarget: null,
+            autoMoveTargetDir: null,
+            autoMovePath: undefined,
+          };
         } else {
-          next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
+          const dirIndex = axialDirections.findIndex(
+            dir => next.protagonist.q + dir.q === pathStep.q && next.protagonist.r + dir.r === pathStep.r,
+          );
+          if (dirIndex === -1) {
+            next = { ...next, autoFocusTarget: null, autoMoveTicksRemaining: 0, autoMoveTarget: null, autoMoveTargetDir: null, autoMovePath: undefined };
+          } else {
+            next = {
+              ...next,
+              protagonist: pathStep,
+              facingDirIndex: dirIndex,
+              autoMoveTicksRemaining: 2,
+              autoMovePath: next.autoMovePath?.slice(1),
+            };
+            next = updateFocusPosition(next);
+          }
         }
       } else {
         // distToFocusTarget === 0 — protagonist ON target, clean up
@@ -59,10 +78,6 @@ export function tick(state: GameState, params: Params, rng?: RNG): GameState {
     } else {
       next = { ...next, autoMoveTicksRemaining: next.autoMoveTicksRemaining - 1 };
     }
-  }
-
-  if (next.flash && (next.tick - next.flash.startedTick) >= params.CaptureFlashDurationTicks) {
-    next = { ...next, flash: null };
   }
 
   if (next.tick % params.GameTickRate === 0 && next.remainingSeconds > 0) {

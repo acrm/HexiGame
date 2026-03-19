@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../../gameLogic/core/types';
 import type { Params } from '../../gameLogic/core/params';
-import { TutorialLevel, getHintForMode, axialToKey } from '../../tutorial/tutorialState';
+import { TutorialLevel, getHintForMode, axialToKey, getLocalizedText } from '../../tutorial/tutorialState';
 import { t, getLanguage } from '../i18n';
 import { getAllTutorialLevels } from '../../tutorial/tutorialLevels';
 import { ALL_TEMPLATES } from '../../templates/templateLibrary';
@@ -108,7 +108,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     colors: null,
   });
   const progress = gameState.tutorialProgress;
-  const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode) : '';
+  const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode, getLanguage()) : '';
   const fullHint = hint ? `${hint} ${t('tutorial.followFocusNote')}` : t('tutorial.followFocusNote');
 
   const targetCells = tutorialLevel?.targetCells ?? [];
@@ -400,9 +400,32 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       {allLevels.map(level => {
                         const isCurrent = tutorialLevelId === level.id;
                         const isCompleted = completedLevelIds.has(level.id) || (isCurrent && isTutorialTaskComplete);
-                        const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode);
+                        const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode, getLanguage());
                         const levelTargetCells = isCurrent ? targetCells : (level.targetCells ?? []);
-                        const levelVisited = isCurrent ? visitedCount : 0;
+                        const baseLevelProgress = level.getProgress
+                          ? level.getProgress(
+                              gameState,
+                              params,
+                              progress ?? { visitedTargetKeys: new Set<string>(), startTick: 0 },
+                            )
+                          : {
+                              current: 0,
+                              total: levelTargetCells.length,
+                              labelKey: 'tutorial.cellsVisited',
+                            };
+                        const levelProgress = isCurrent && progress
+                          ? (level.getProgress
+                            ? level.getProgress(gameState, params, progress)
+                            : {
+                                current: visitedCount,
+                                total: levelTargetCells.length,
+                                labelKey: 'tutorial.cellsVisited',
+                              })
+                          : {
+                              current: isCompleted ? baseLevelProgress.total : 0,
+                              total: baseLevelProgress.total,
+                              labelKey: baseLevelProgress.labelKey,
+                            };
 
                         return (
                           <div key={level.id} className="hexipedia-accordion-item">
@@ -411,7 +434,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                 {isCompleted ? '✓' : ''}
                               </span>
                               <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
-                                {level.objective}
+                                {getLocalizedText(level.objective, getLanguage())}
                               </span>
                               <div className="hexipedia-task-actions">
                                 {!isCompleted ? (
@@ -467,7 +490,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
 
                                 <div className="hexipedia-section">
                                   <div className="hexipedia-section-title">{t('tutorial.progress')}</div>
-                                  <div className="hexipedia-text">{levelVisited} / {levelTargetCells.length}</div>
+                                  <div className="hexipedia-text">{levelProgress.current} / {levelProgress.total} {t(levelProgress.labelKey)}</div>
                                 </div>
                               </div>
                             )}

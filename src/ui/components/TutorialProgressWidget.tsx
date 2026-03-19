@@ -1,19 +1,20 @@
 import React from 'react';
-import { t } from '../i18n';
 import './OverlayWidget.css';
 import './TutorialProgressWidget.css';
 
 interface TutorialProgressWidgetProps {
-  visitedCount: number;
-  totalCount: number;
+  progressCurrent: number;
+  progressTotal: number;
+  progressLabel: string;
   isComplete: boolean;
   onComplete: () => void;
   onViewTask?: () => void;
 }
 
 export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
-  visitedCount,
-  totalCount,
+  progressCurrent,
+  progressTotal,
+  progressLabel,
   isComplete,
   onComplete,
   onViewTask,
@@ -38,8 +39,8 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           <span className={`tutorial-progress-checkbox ${isComplete ? 'checked' : ''}`}>
             {isComplete ? '✓' : ''}
           </span>
-          <span className="tutorial-progress-count">{visitedCount} / {totalCount}</span>
-          <span className="tutorial-progress-label">{t('tutorial.cellsVisited')}</span>
+          <span className="tutorial-progress-count">{progressCurrent} / {progressTotal}</span>
+          <span className="tutorial-progress-label">{progressLabel}</span>
         </div>
       </div>
       <button

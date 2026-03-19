@@ -43,6 +43,9 @@ export interface TutorialViewModel {
   level: TutorialLevel | null;
   targetKeys: string[];
   visitedTargetCount: number;
+  progressCurrent: number;
+  progressTotal: number;
+  progressLabelKey: string;
   isTaskComplete: boolean;
   isHexiLabLocked: boolean;
   completedLevelIds: Set<string>;
@@ -58,6 +61,19 @@ export function computeTutorialViewModel(
   const visitedTargetCount = gameState.tutorialProgress
     ? targetKeys.filter(key => gameState.tutorialProgress?.visitedTargetKeys.has(key)).length
     : 0;
+  const progress = level && gameState.tutorialProgress
+    ? (level.getProgress
+      ? level.getProgress(gameState, params, gameState.tutorialProgress)
+      : {
+          current: visitedTargetCount,
+          total: targetKeys.length,
+          labelKey: 'tutorial.cellsVisited',
+        })
+    : {
+        current: 0,
+        total: 0,
+        labelKey: 'tutorial.cellsVisited',
+      };
   const isTaskComplete = !!level && !!gameState.tutorialProgress
     ? level.winCondition(gameState, params, gameState.tutorialProgress)
     : false;
@@ -68,6 +84,9 @@ export function computeTutorialViewModel(
     level,
     targetKeys,
     visitedTargetCount,
+    progressCurrent: progress.current,
+    progressTotal: progress.total,
+    progressLabelKey: progress.labelKey,
     isTaskComplete,
     isHexiLabLocked,
     completedLevelIds,
@@ -79,7 +98,7 @@ export function computeTutorialViewModel(
 export interface TutorialFlowActions {
   completeLevel: (levelId: string) => void;
   selectLevel: (levelId: string) => void;
-  restartLevel: (levelId: string, gameState: GameState) => GameState;
+  restartLevel: (levelId: string) => void;
 }
 
 export function createTutorialFlowActions(
@@ -107,19 +126,10 @@ export function createTutorialFlowActions(
       dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
     },
 
-    restartLevel: (levelId: string, gameState: GameState): GameState => {
-      const updatedCompletedIds = new Set(gameState.tutorialCompletedLevelIds ?? []);
-      updatedCompletedIds.delete(levelId);
-      
-      const newState = {
-        ...gameState,
-        tutorialCompletedLevelIds: updatedCompletedIds,
-      };
-      
+    restartLevel: (levelId: string) => {
       setState({ currentLevelId: levelId });
+      dispatchGame({ type: 'SET_TUTORIAL_LEVEL', levelId, forceReset: true });
       dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
-      
-      return newState;
     },
   };
 }

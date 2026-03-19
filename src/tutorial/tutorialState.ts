@@ -3,12 +3,23 @@
 import type { GameState, Axial } from '../gameLogic/core/types';
 import type { Params } from '../gameLogic/core/params';
 
+export interface LocalizedText {
+  en: string;
+  ru: string;
+}
+
+export interface TutorialProgressMetrics {
+  current: number;
+  total: number;
+  labelKey: string;
+}
+
 /**
  * Multilingual hint adapted for interaction mode
  */
 export interface AdaptiveHint {
-  desktop: string;  // Hint for desktop keyboard controls
-  mobile: string;   // Hint for mobile touch controls
+  desktop: LocalizedText;  // Hint for desktop keyboard controls
+  mobile: LocalizedText;   // Hint for mobile touch controls
 }
 
 /**
@@ -16,9 +27,15 @@ export interface AdaptiveHint {
  */
 export interface TutorialLevel {
   id: string;
-  objective: string;           // Goal to display to the player
+  objective: LocalizedText;    // Goal to display to the player
   hints: AdaptiveHint;         // Hints adapted for control mode
   targetCells?: Axial[];       // Cells required to visit for this task
+  activeTemplateId?: string;
+  getProgress?: (
+    state: GameState,
+    params: Params,
+    progressData: TutorialProgressData
+  ) => TutorialProgressMetrics;
   winCondition: (
     state: GameState,
     params: Params,
@@ -100,6 +117,11 @@ export function areVisitedCellsSpread(
 /**
  * Get the appropriate hint based on interaction mode
  */
-export function getHintForMode(hint: AdaptiveHint, mode: 'desktop' | 'mobile'): string {
-  return mode === 'desktop' ? hint.desktop : hint.mobile;
+export function getHintForMode(hint: AdaptiveHint, mode: 'desktop' | 'mobile', lang: 'en' | 'ru' = 'en'): string {
+  const localizedText = mode === 'desktop' ? hint.desktop : hint.mobile;
+  return getLocalizedText(localizedText, lang);
+}
+
+export function getLocalizedText(text: LocalizedText, lang: 'en' | 'ru' = 'en'): string {
+  return text[lang];
 }

@@ -162,6 +162,88 @@ export const TEMPLATE_YIN_YANG: BuildTemplate = {
   },
 };
 
+export const TEMPLATE_HORSESHOE_SHELTER: BuildTemplate = {
+  id: 'horseshoe_shelter',
+  name: {
+    en: 'Horseshoe Shelter',
+    ru: 'Подкова-убежище',
+  },
+  description: {
+    en: 'A simple one-color shelter shaped like a horseshoe',
+    ru: 'Простое одноцветное убежище в форме подковы',
+  },
+  difficulty: 'easy',
+  anchorCell: { q: 0, r: 0 },
+  cells: [
+    { q: 0, r: 0, relativeColor: 0 },
+    { q: -1, r: 0, relativeColor: 0 },
+    { q: -1, r: -1, relativeColor: 0 },
+    { q: 0, r: -2, relativeColor: 0 },
+    { q: 1, r: -1, relativeColor: 0 },
+  ],
+  hints: {
+    en: [
+      'Build the shelter from one color only',
+      'Start with the lower edge cell closest to the turtle',
+    ],
+    ru: [
+      'Соберите убежище из одного цвета',
+      'Начните с нижней клетки, ближайшей к черепашке',
+    ],
+  },
+};
+
+export const TEMPLATE_YIN_YANG_V2: BuildTemplate = {
+  id: 'yin_yang_v2',
+  name: {
+    en: 'Yin-Yang',
+    ru: 'Инь-Янь',
+  },
+  description: {
+    en: 'A large two-color symbol with mirrored eyes',
+    ru: 'Крупный двухцветный символ с зеркальными глазками',
+  },
+  difficulty: 'hard',
+  anchorCell: { q: 0, r: 0 },
+  cells: [
+    { q: 0, r: -4, relativeColor: 50 },
+    { q: 1, r: -4, relativeColor: 50 },
+    { q: 2, r: -4, relativeColor: 50 },
+
+    { q: -1, r: -3, relativeColor: 50 },
+    { q: 0, r: -3, relativeColor: 50 },
+    { q: 1, r: -3, relativeColor: 50 },
+    { q: 2, r: -3, relativeColor: 0 },
+
+    { q: -2, r: -2, relativeColor: 50 },
+    { q: -1, r: -2, relativeColor: 50 },
+    { q: 0, r: -2, relativeColor: 0 },
+    { q: 1, r: -2, relativeColor: 50 },
+    { q: 2, r: -2, relativeColor: 0 },
+
+    { q: -2, r: -1, relativeColor: 50 },
+    { q: -1, r: -1, relativeColor: 0 },
+    { q: 0, r: -1, relativeColor: 0 },
+    { q: 1, r: -1, relativeColor: 0 },
+
+    { q: -2, r: 0, relativeColor: 0 },
+    { q: -1, r: 0, relativeColor: 0 },
+    { q: 0, r: 0, relativeColor: 0 },
+  ],
+  hints: {
+    en: [
+      'Use only two opposite colors',
+      'Look for the S-shaped split through the center',
+      'Each side has a single eye of the opposite color',
+    ],
+    ru: [
+      'Используйте только два противоположных цвета',
+      'Ищите S-образную границу через центр',
+      'В каждой половине есть глазок противоположного цвета',
+    ],
+  },
+};
+
 /**
  * Hexagon: Ring of 6 cells with alternating colors
  * Difficulty: Medium
@@ -347,6 +429,8 @@ export const ALL_TEMPLATES: BuildTemplate[] = [
   TEMPLATE_TRIANGLE,
   TEMPLATE_FLOWER,
   TEMPLATE_YIN_YANG,
+  TEMPLATE_HORSESHOE_SHELTER,
+  TEMPLATE_YIN_YANG_V2,
   TEMPLATE_HEXAGON,
   TEMPLATE_STAR,
   TEMPLATE_RAINBOW_SPIRAL,

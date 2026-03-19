@@ -90,9 +90,9 @@ function tick():
 function attemptMove(directionVector):
   target = neighbor(Cursor, directionVector)
   if target does not exist: return  // outside disk
+  if target.colorIndex != null: return  // colored world cells are impassable
 
   if CapturedCell != null:  // carrying
-      if target.colorIndex != null: return  // blocked by colored cell
       // transport color
       target.colorIndex = CapturedCell.colorIndex
       CapturedCell.colorIndex = null
@@ -148,17 +148,20 @@ No hard end: when `RemainingSeconds == 0` logic continues; only time display sto
 
 ### 2.9 Edge Cases
 - Attempting capture without meeting preconditions is a no-op.
-- Movement into colored cell while carrying is blocked.
+- Movement into a colored world cell is blocked even when not carrying.
 - Dropping (Space press) during a charge is interpreted as charge start only if not carrying.
 - If the player begins a charge over an empty cell, releasing Space does nothing.
+- Clicking or dragging toward an unreachable world cell triggers failure feedback instead of partial movement.
 
 ### 2.10 Auto-Move (Click-to-Move)
 When the player clicks on a non-adjacent hex cell:
 - **`autoFocusTarget`**: Target cell where focus should land after protagonist arrives and faces it.
-- **`autoMovePath`**: Greedy pathfinding (each step minimizes remaining hex distance) computes the route; stored as list of intermediate cells from protagonist to target.
-- **Movement**: Every 2 ticks, protagonist moves one step closer using greedy direction selection.
+- **Reachability**: Colored world cells are obstacles; the turtle never steps onto them.
+- **`autoMovePath`**: Walkability-aware pathfinding computes a route through empty cells to a free cell adjacent to the clicked target; the route is stored as a list of intermediate cells.
+- **Movement**: Every 2 ticks, protagonist moves one step along the precomputed reachable route.
 - **Focus visuals during movement**: World focus outline is hidden while auto-move is active; target cell shows static frozen marker.
 - **Arrival**: When adjacent to `autoFocusTarget`, protagonist orients to face it, focus updates to the target, and `autoFocusTarget` clears.
+- **Invalid target feedback**: If no reachable adjacent cell exists, the click is rejected, the target cell receives a temporary red outline, and failure audio plays.
 - **Cancellation**: Dragging (hold + move current focus/protagonist) cancels auto-move and clears the path.
 
 ---
@@ -176,6 +179,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - HUD shows dynamic chance string; logic only supplies numeric chance.
 - Tutorial tasks are freely selectable in HexiPedia; completed tasks are tracked and can be restarted on demand.
 - Tutorial completion only fires on state transition (incomplete → complete), then auto-advances to the next task in order.
+- Tutorial levels use deterministic scripted sandbox setups; free-play world generation remains procedural.
 - Top overlay widgets use `»` navigation button to open HexiPedia and auto-scroll to the matching panel (`Tasks` or `Colors`). Both widgets use the same `»` icon for visual consistency.
 - HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Templates`, `Colors`) start disabled (not rendered).
 - Enabled panels that are not pinned auto-hide after leaving HexiPedia; pinned panels remain enabled across tab switches.
@@ -187,7 +191,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).
   - Protagonist focus animation *disappears* during auto-move; reappears with normal rotating-edges animation when auto-move completes.
-  - Path is computed via greedy distance minimization and stored in `GameState.autoMovePath` for rendering.
+  - Path is computed only across walkable empty cells and stored in `GameState.autoMovePath` for rendering.
+  - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:
@@ -343,6 +348,9 @@ completedTemplates?: Set<string>;      // Finished template IDs
 | `triangle` | Rainbow Triangle | Easy | 3 | Small triangle with gradient: 0%, 12.5%, 25% |
 | `flower` | Flower | Medium | 7 | Center (0%) + 6 petals alternating (0%, 25%) |
 | `yin_yang` | Yin-Yang | Hard | 7 | Balanced opposites: 0%, 25%, 50%, -25%. Complex pattern. |
+| `horseshoe_shelter` | Horseshoe Shelter | Easy | 5 | One-color horseshoe used in the shelter tutorial step. |
+| `yin_yang_v2` | Yin-Yang | Hard | 19 | Large two-color yin-yang with mirrored eyes for the advanced tutorial step. |
+| `rainbow_spiral` | Rainbow Spiral | Hard | 10 | Multi-color spiral that requires the full palette. |
 
 Each template includes localized name/description and optional hints array.
 
@@ -391,10 +399,17 @@ Defined in `src/templates/templateLogic.ts`:
 - Mobile default tab at startup is **HexiMap** (world view), not HexiPedia.
 
 ### 8.1 Tutorial System enhancements
-- **TutorialProgressWidget**: Displays tutorial level progress (visited cells / target cells)
+- **TutorialProgressWidget**: Displays tutorial level progress using level-defined metrics (visited cells, collected colors, excavated cells, placed template cells)
   - Info button (ℹ) provides quick access to task objective and hints
   - Info bubble popup always shows hint text for the currently active tutorial task
   - Positioned in-game, allowing context-aware task information without tab switching
+- **Scripted tutorial flow**:
+  - `tutorial_1_movement`: visit three target cells
+  - `tutorial_2_collect_colors`: gather one hex of each palette color into the hotbar
+  - `tutorial_3_excavation`: clear blocking layers and extract the hidden hex
+  - `tutorial_4_shelter`: build the one-color horseshoe shelter
+  - `tutorial_5_yin_yang`: assemble the larger two-color yin-yang with mirrored eyes
+  - `tutorial_6_rainbow`: complete the full-palette rainbow figure
 
 ### 8.1.1 Input reliability
 - **Hotbar hit-testing**:
@@ -449,7 +464,7 @@ Defined in `src/templates/templateLogic.ts`:
   - Auto-saves every 360 ticks (~30 seconds) via updating existing session record
   - History stores last 20 sessions in localStorage
   - User can toggle session tracking in settings
-- **Tutorial Progress**: Tracks visited target cells per level (in-session)
+- **Tutorial Progress**: Tracks per-level scripted metrics in-session (visited targets, hotbar colors, excavation clears, template fill counts)
 - **Completed Templates**: Persists across sessions (set of completed template IDs)
 - **Tutorial Level State**: Current level + completion status maintained in GameState
 
@@ -461,11 +476,11 @@ Defined in `src/templates/templateLogic.ts`:
 
 ---
 ## 9. Not Implemented (Scope Notes)
-Still absent: delivery targets, objectives, progression, end conditions, obstacles beyond occupied cells, persistence (beyond templates/tutorial).
+Still absent: delivery targets, long-form level objectives beyond tutorial/template tasks, hard end conditions, and persistence beyond templates/tutorial progress.
 
 ---
 ## 10. Summary
-The prototype's gameplay centers on probabilistic single-color capture and spatial transport constrained by empty adjacency. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate. Template system adds creative spatial pattern challenges as optional gameplay layer. UI/UX layer provides accessible tutorial progression and information lookup without interrupting core gameplay.
+The prototype's gameplay centers on probabilistic single-color capture and spatial transport constrained by empty-cell walkability. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate. The template system adds creative spatial pattern challenges as an optional gameplay layer, and the scripted tutorial now teaches navigation, collection, excavation, and construction patterns without relying on random map luck.
 
 ---
 ## 11. Potential Future Parameters (Extensions)

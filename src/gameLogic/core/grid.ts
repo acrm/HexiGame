@@ -46,6 +46,11 @@ export function getCell(grid: Grid, p: Axial): Cell | undefined {
   return grid.get(keyOfAxial(p));
 }
 
+export function isWorldCellWalkable(grid: Grid, p: Axial): boolean {
+  const cell = getCell(grid, p);
+  return !!cell && cell.colorIndex === null;
+}
+
 export function setCell(grid: Grid, cell: Cell): Grid {
   const next = new Map(grid);
   next.set(keyOf(cell.q, cell.r), cell);
@@ -125,6 +130,86 @@ export function computePath(from: Axial, to: Axial, maxSteps: number = 100): Axi
   return path;
 }
 
+function reconstructPath(
+  parents: Map<string, string | null>,
+  nodes: Map<string, Axial>,
+  endKey: string,
+): Axial[] {
+  const path: Axial[] = [];
+  let currentKey: string | null = endKey;
+
+  while (currentKey) {
+    const node = nodes.get(currentKey);
+    const parentKey: string | null = parents.get(currentKey) ?? null;
+    if (!node) break;
+    if (parentKey !== null) {
+      path.push(node);
+    }
+    currentKey = parentKey;
+  }
+
+  return path.reverse();
+}
+
+export function findWalkablePath(
+  grid: Grid,
+  start: Axial,
+  goalKeys: Set<string>,
+): Axial[] | null {
+  const startKey = keyOfAxial(start);
+  if (goalKeys.has(startKey)) return [];
+
+  const queue: Axial[] = [{ ...start }];
+  const visited = new Set<string>([startKey]);
+  const parents = new Map<string, string | null>([[startKey, null]]);
+  const nodes = new Map<string, Axial>([[startKey, { ...start }]]);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const currentKey = keyOfAxial(current);
+
+    for (const dir of axialDirections) {
+      const next = addAxial(current, dir);
+      const nextKey = keyOfAxial(next);
+
+      if (visited.has(nextKey)) continue;
+      if (!isWorldCellWalkable(grid, next)) continue;
+
+      visited.add(nextKey);
+      parents.set(nextKey, currentKey);
+      nodes.set(nextKey, next);
+
+      if (goalKeys.has(nextKey)) {
+        return reconstructPath(parents, nodes, nextKey);
+      }
+
+      queue.push(next);
+    }
+  }
+
+  return null;
+}
+
+export function computePathToFocusTarget(grid: Grid, from: Axial, target: Axial): Axial[] | null {
+  if (!getCell(grid, target)) return null;
+  if (axialDistance(from, target) === 1) return [];
+
+  const goalKeys = new Set<string>();
+  for (const dir of axialDirections) {
+    const candidate = addAxial(target, dir);
+    if (candidate.q === from.q && candidate.r === from.r) {
+      goalKeys.add(keyOfAxial(candidate));
+      continue;
+    }
+    if (isWorldCellWalkable(grid, candidate)) {
+      goalKeys.add(keyOfAxial(candidate));
+    }
+  }
+
+  if (goalKeys.size === 0) return null;
+  return findWalkablePath(grid, from, goalKeys);
+}
+
 export function updateWorldViewCenter(state: GameState, params: Params): GameState {
   // Determine camera target
   let targetCenter: Axial;
@@ -191,6 +276,11 @@ export function generateGrid(params: Params, rng: RNG): Grid {
 
 export function createInitialState(params: Params, rng: RNG): GameState {
   const grid = generateGrid(params, rng);
+  const safeStartCells: Cell[] = [
+    { q: 0, r: 0, colorIndex: null },
+    ...axialDirections.map(dir => ({ q: dir.q, r: dir.r, colorIndex: null })),
+  ];
+  const safeGrid = updateCells(grid, safeStartCells);
   const inv: Grid = new Map();
   const invRadius = 3;
   for (let q = -invRadius; q <= invRadius; q++) {
@@ -217,12 +307,13 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     focus: startFocus,
     protagonist: { ...start },
     flash: null,
+    invalidMoveTarget: null,
     inventoryGrid: inv,
     activeField: 'world',
     hotbarSlots: [null, null, null, null, null, null],
     selectedHotbarIndex: 0,
     facingDirIndex: initialFacingDirIndex,
-    grid,
+    grid: safeGrid,
     isDragging: false,
     autoMoveTarget: null,
     autoMoveTicksRemaining: 0,

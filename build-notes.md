@@ -549,3 +549,5 @@
 - 2026w12-0.3 — widget stack by section order, search dropdown, unified nav icons
 
 - 2026w12-0.4 — translate hardcoded UI strings, fix language support for templates
+
+- 2026w12-0.5 — Scripted tutorial and blocked pathing

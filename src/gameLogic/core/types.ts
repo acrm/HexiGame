@@ -15,6 +15,11 @@ export interface FlashState {
   startedTick: number;
 }
 
+export interface InvalidMoveTargetState {
+  position: Axial;
+  startedTick: number;
+}
+
 export type RNG = () => number;
 
 export interface GameState {
@@ -23,6 +28,7 @@ export interface GameState {
   focus: Axial;
   protagonist: Axial;
   flash: FlashState | null;
+  invalidMoveTarget?: InvalidMoveTargetState | null;
   grid: Grid;
   inventoryGrid: Grid;
   activeField?: 'world' | 'inventory';

@@ -157,6 +157,8 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                     onToggleCollapse={() => toggleSectionCollapse('tasks')}
                     onMoveUp={() => moveSectionUp('tasks')}
                     onMoveDown={() => moveSectionDown('tasks')}
+                    gameState={gameState}
+                    params={params}
                     tutorialProgress={progress}
                     targetCells={targetCells}
                     visitedCount={visitedCount}

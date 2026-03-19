@@ -6,11 +6,28 @@ import {
   axialInDisk,
   axialDistance,
   getCell,
+  computePathToFocusTarget,
   findDirectionToward,
+  isWorldCellWalkable,
   ensureGeneratedAround,
   updateWorldViewCenter,
-  computePath,
 } from '../core/grid';
+
+function markInvalidMoveTarget(state: GameState, target: Axial): GameState {
+  return {
+    ...state,
+    flash: { type: 'failure', startedTick: state.tick },
+    invalidMoveTarget: {
+      position: { ...target },
+      startedTick: state.tick,
+    },
+    autoFocusTarget: null,
+    autoMoveTarget: null,
+    autoMoveTicksRemaining: 0,
+    autoMoveTargetDir: null,
+    autoMovePath: undefined,
+  };
+}
 
 export function rotateFacing(state: GameState, deltaSteps: number): GameState {
   const dir = ((state.facingDirIndex + deltaSteps) % 6 + 6) % 6;
@@ -27,9 +44,10 @@ export function updateFocusPosition(state: GameState): GameState {
 export function startAutoMove(state: GameState, target: Axial, params: Params): GameState {
   if (state.isDragging) return state;
 
-  // Target is where the FOCUS should end up.
-  // Compute path for visualization.
-  const path = computePath(state.protagonist, target);
+  const path = computePathToFocusTarget(state.grid, state.protagonist, target);
+  if (path === null) {
+    return markInvalidMoveTarget(state, target);
+  }
 
   return {
     ...state,
@@ -38,6 +56,7 @@ export function startAutoMove(state: GameState, target: Axial, params: Params): 
     autoMoveTicksRemaining: 0,
     autoMoveTargetDir: null,
     autoMovePath: path,
+    invalidMoveTarget: null,
   };
 }
 
@@ -57,6 +76,10 @@ export function dragMoveProtagonist(state: GameState, params: Params, dq: number
 
   const newPos = { q: state.protagonist.q + dq, r: state.protagonist.r + dr };
   const newFocus = { q: state.focus.q + dq, r: state.focus.r + dr };
+
+  if (!isWorldCellWalkable(state.grid, newPos)) {
+    return markInvalidMoveTarget(state, newPos);
+  }
 
   const dirIndex = axialDirections.findIndex(d => d.q === dq && d.r === dr);
   if (dirIndex !== -1) {

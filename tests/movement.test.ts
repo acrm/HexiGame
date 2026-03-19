@@ -14,6 +14,29 @@ import {
   DIR_DOWN_RIGHT,
 } from './facade/testHelpers';
 import type { GameTestFacade } from './facade/GameTestFacade';
+import {
+  axialDirections,
+  attemptMoveTo,
+  createInitialState,
+  DefaultParams,
+  dragMoveProtagonist,
+  mulberry32,
+  startDrag,
+  tick as logicTick,
+  updateCells,
+} from '../src/gameLogic';
+
+function createEmptyWorldState() {
+  const params = {
+    ...DefaultParams,
+    InitialColorProbability: 0,
+  };
+
+  return {
+    params,
+    state: createInitialState(params, mulberry32(42)),
+  };
+}
 
 describe('Focus movement by delta', () => {
   let g: GameTestFacade;
@@ -83,10 +106,14 @@ describe('Auto-move to target', () => {
     expect(g.isAutoMoving()).toBe(false);
   });
 
-  it('moveToTarget far from center is allowed in infinite world', () => {
-    const g = createFacade({ ...emptyParams, gridRadius: 3 });
-    g.moveToTarget({ q: 10, r: 10 });
-    expect(g.isAutoMoving()).toBe(true);
+  it('moveToTarget rejects unreachable target outside generated world', () => {
+    const { params } = createEmptyWorldState();
+    let state = createInitialState(params, mulberry32(7));
+
+    state = attemptMoveTo(state, params, { q: 10, r: 10 });
+
+    expect(state.autoFocusTarget).toBeNull();
+    expect(state.invalidMoveTarget?.position).toEqual({ q: 10, r: 10 });
   });
 
   it('protagonist stays in place without auto-move during ticks', () => {
@@ -151,5 +178,78 @@ describe('Facing direction rotation', () => {
       g.moveFocusDirection(d);
       expect(g.getFacingDirection()).toBe(d);
     }
+  });
+});
+
+describe('Blocked world pathing', () => {
+  it('finds a detour around blocking colored hexes', () => {
+    const { params, state: initialState } = createEmptyWorldState();
+    let state = {
+      ...initialState,
+      grid: updateCells(initialState.grid, [
+        { q: 1, r: 0, colorIndex: 1 },
+        { q: 2, r: 0, colorIndex: 1 },
+      ]),
+    };
+
+    state = attemptMoveTo(state, params, { q: 3, r: 0 });
+    expect(state.autoFocusTarget).toEqual({ q: 3, r: 0 });
+    expect(state.autoMovePath && state.autoMovePath.length).toBeGreaterThan(0);
+
+    for (let step = 0; step < 30; step++) {
+      state = logicTick(state, params);
+    }
+
+    expect(state.autoFocusTarget).toBeNull();
+    expect(state.focus).toEqual({ q: 3, r: 0 });
+  });
+
+  it('allows auto-move to a colored target if an adjacent free approach cell exists', () => {
+    const { params, state: initialState } = createEmptyWorldState();
+    let state = {
+      ...initialState,
+      grid: updateCells(initialState.grid, [{ q: 3, r: 0, colorIndex: 2 }]),
+    };
+
+    state = attemptMoveTo(state, params, { q: 3, r: 0 });
+
+    expect(state.autoFocusTarget).toEqual({ q: 3, r: 0 });
+    expect(state.invalidMoveTarget).toBeNull();
+  });
+
+  it('marks target invalid when no adjacent approach cell is reachable', () => {
+    const { params, state: initialState } = createEmptyWorldState();
+    const target = { q: 3, r: 0 };
+    const blockedCells = [
+      { q: target.q, r: target.r, colorIndex: 2 },
+      ...axialDirections.map((dir, index) => ({
+        q: target.q + dir.q,
+        r: target.r + dir.r,
+        colorIndex: (index % 3) + 1,
+      })),
+    ];
+    let state = {
+      ...initialState,
+      grid: updateCells(initialState.grid, blockedCells),
+    };
+
+    state = attemptMoveTo(state, params, target);
+
+    expect(state.autoFocusTarget).toBeNull();
+    expect(state.invalidMoveTarget?.position).toEqual(target);
+  });
+
+  it('blocks dragging the turtle into a colored hex', () => {
+    const { params, state: initialState } = createEmptyWorldState();
+    let state = {
+      ...initialState,
+      grid: updateCells(initialState.grid, [{ q: 1, r: -1, colorIndex: 4 }]),
+    };
+
+    state = startDrag(state);
+    state = dragMoveProtagonist(state, params, 1, -1);
+
+    expect(state.protagonist).toEqual({ q: 0, r: 0 });
+    expect(state.invalidMoveTarget?.position).toEqual({ q: 1, r: -1 });
   });
 });

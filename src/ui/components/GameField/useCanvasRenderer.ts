@@ -495,6 +495,16 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         drawFrozenFocus(ctx, scaledX, scaledY, HEX_SIZE * scale, '#FFFFFF');
       }
 
+      if (!isInventory && gameState.invalidMoveTarget) {
+        const pos = hexToPixel(gameState.invalidMoveTarget.position.q, gameState.invalidMoveTarget.position.r);
+        const scaledX = centerX + pos.x * scale;
+        const scaledY = centerY + pos.y * scale;
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, 'transparent', '#ff4d4d', 1.2 * scale);
+        ctx.restore();
+      }
+
       ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.globalAlpha = 0.85;

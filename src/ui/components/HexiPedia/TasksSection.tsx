@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import type { TutorialLevel } from '../../../tutorial/tutorialState';
-import { getHintForMode, axialToKey } from '../../../tutorial/tutorialState';
-import { t } from '../../i18n';
+import { getHintForMode, axialToKey, getLocalizedText } from '../../../tutorial/tutorialState';
+import { t, getLanguage } from '../../i18n';
 import { getAllTutorialLevels } from '../../../tutorial/tutorialLevels';
 import { audioController } from '../../../appLogic/audioController';
 import SectionBase from './SectionBase';
+import type { GameState } from '../../../gameLogic/core/types';
+import type { Params } from '../../../gameLogic/core/params';
 
 interface TasksSectionProps {
   tutorialLevel: TutorialLevel | null;
@@ -24,6 +26,8 @@ interface TasksSectionProps {
   onToggleCollapse: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  gameState: GameState;
+  params: Params;
   tutorialProgress?: any;
   targetCells?: any[];
   visitedCount?: number;
@@ -47,6 +51,8 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
   onToggleCollapse,
   onMoveUp,
   onMoveDown,
+  gameState,
+  params,
   tutorialProgress,
   targetCells: propTargetCells,
   visitedCount: propVisitedCount,
@@ -54,7 +60,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
   const [expandedLevelId, setExpandedLevelId] = useState<string | null>(tutorialLevel?.id ?? null);
   
   const allLevels = getAllTutorialLevels();
-  const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode) : '';
+  const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode, getLanguage()) : '';
   const fullHint = hint ? `${hint} ${t('tutorial.followFocusNote')}` : t('tutorial.followFocusNote');
   const targetCells = propTargetCells ?? tutorialLevel?.targetCells ?? [];
   const targetKeys = tutorialLevel ? targetCells.map(axialToKey) : [];
@@ -83,9 +89,32 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
         {allLevels.map(level => {
           const isCurrent = tutorialLevelId === level.id;
           const isCompleted = completedTutorialLevelIds.has(level.id) || (isCurrent && isTutorialTaskComplete);
-          const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode);
+          const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode, getLanguage());
           const levelTargetCells = isCurrent ? targetCells : (level.targetCells ?? []);
-          const levelVisited = isCurrent ? visitedCount : 0;
+          const baseLevelProgress = level.getProgress
+            ? level.getProgress(
+                gameState,
+                params,
+                tutorialProgress ?? { visitedTargetKeys: new Set<string>(), startTick: 0 },
+              )
+            : {
+                current: 0,
+                total: levelTargetCells.length,
+                labelKey: 'tutorial.cellsVisited',
+              };
+          const levelProgress = isCurrent && tutorialProgress
+            ? (level.getProgress
+              ? level.getProgress(gameState, params, tutorialProgress)
+              : {
+                  current: visitedCount,
+                  total: levelTargetCells.length,
+                  labelKey: 'tutorial.cellsVisited',
+                })
+            : {
+                current: isCompleted ? baseLevelProgress.total : 0,
+                total: baseLevelProgress.total,
+                labelKey: baseLevelProgress.labelKey,
+              };
 
           return (
             <div key={level.id} className="hexipedia-accordion-item">
@@ -94,7 +123,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                   {isCompleted ? '✓' : ''}
                 </span>
                 <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
-                  {level.objective}
+                  {getLocalizedText(level.objective, getLanguage())}
                 </span>
                 <div className="hexipedia-task-actions">
                   {!isCompleted ? (
@@ -150,7 +179,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
 
                   <div className="hexipedia-section">
                     <div className="hexipedia-section-title">{t('tutorial.progress')}</div>
-                    <div className="hexipedia-text">{levelVisited} / {levelTargetCells.length}</div>
+                    <div className="hexipedia-text">{levelProgress.current} / {levelProgress.total} {t(levelProgress.labelKey)}</div>
                   </div>
                 </div>
               )}
