@@ -1,16 +1,15 @@
 .tutorial-progress-container {
   position: relative;
-  display: flex;
-  align-items: stretch;
-  margin: 8px 8px;
-  gap: 0;
+  margin: 8px;
 }
 
 .tutorial-progress-widget {
+  display: flex;
+  align-items: center;
   flex: 1;
   background: #333333;
   border: 1px solid #555555;
-  padding: 8px 12px;
+  padding: 6px 10px;
   box-sizing: border-box;
   text-align: left;
   cursor: default;
@@ -33,26 +32,14 @@
 }
 
 .tutorial-info-button {
-  background: #333333;
-  border: 1px solid #555555;
-  border-left: none;
-  padding: 8px 10px;
-  color: #88ccff;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  flex-shrink: 0;
-}
-
-.tutorial-info-button:hover {
-  background: #3a3a3a;
-  color: #aaddff;
+  font-size: 15px;
 }
 
 .tutorial-progress-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .tutorial-progress-checkbox {
@@ -83,6 +70,7 @@
   font-size: 12px;
   color: #999999;
   font-weight: 600;
+  min-width: 0;
 }
 
 .tutorial-info-bubble {

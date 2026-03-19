@@ -541,3 +541,5 @@
 - 2026w11-0.9 — Align startup turtle with mascot and initial facing
 
 - 2026w11-0.10 — Align startup turtle with mascot and initial facing
+
+- 2026w12-0.1 — unify top widgets layout

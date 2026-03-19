@@ -1,4 +1,6 @@
 import React from 'react';
+import './ColorPaletteWidget.css';
+import './OverlayWidget.css';
 
 interface ColorPaletteWidgetProps {
   colorPalette: readonly string[];
@@ -61,115 +63,57 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        top: topOffset,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'calc(100% - 16px)',
-        background: '#333333',
-        border: '1px solid #555555',
-        borderRadius: '4px',
-        padding: '8px',
-        display: 'flex',
-        flexDirection: 'row',
-        gap: '6px',
-        zIndex: 50,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-      }}
+      className="overlay-widget-shell color-palette-widget"
+      style={{ top: topOffset }}
     >
-      <button
-        onClick={onToggleAutoBaseColor}
-        disabled={!onToggleAutoBaseColor}
-        aria-pressed={isAutoBaseColorEnabled}
-        title={isAutoBaseColorEnabled ? 'Auto base color: on' : 'Auto base color: off'}
-        style={{
-          background: isAutoBaseColorEnabled ? '#2f5f4a' : '#444444',
-          border: '1px solid #666666',
-          borderRadius: '4px',
-          color: '#FFFFFF',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          padding: '4px 8px',
-          cursor: onToggleAutoBaseColor ? 'pointer' : 'default',
-          minWidth: '32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: onToggleAutoBaseColor ? 1 : 0.7,
-        }}
-      >
-        <i className="fas fa-crosshairs" aria-hidden="true" />
-      </button>
-      <div
-        style={{
-          display: 'flex',
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
+      <div className="overlay-widget-body color-palette-widget__body">
+        <button
+          type="button"
+          onClick={onToggleAutoBaseColor}
+          disabled={!onToggleAutoBaseColor}
+          aria-pressed={isAutoBaseColorEnabled}
+          title={isAutoBaseColorEnabled ? 'Auto base color: on' : 'Auto base color: off'}
+          className={`color-palette-widget__auto-button ${isAutoBaseColorEnabled ? 'is-active' : ''}`}
+        >
+          <i className="fas fa-crosshairs" aria-hidden="true" />
+        </button>
+        <div className="color-palette-widget__palette">
         {displayOrder.map((colorIndex, displayIndex) => {
           const color = colorPalette[colorIndex];
           const percent = relativeBaseColorIndex === null
             ? null
             : calculateRelativePercent(colorIndex, relativeBaseColorIndex, paletteSize);
           const isManuallySelectedColor = !isAutoBaseColorEnabled && colorIndex === selectedColorIndex;
-          const borderColor = isManuallySelectedColor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
-          const borderWidth = isManuallySelectedColor ? 2 : 1;
           const canSelectColor = !isAutoBaseColorEnabled && !!onColorSelect;
 
           return (
-            <div
+            <button
               key={`${displayIndex}-${colorIndex}`}
+              type="button"
               onClick={canSelectColor ? () => onColorSelect(colorIndex) : undefined}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: color,
-                minWidth: 0,
-                minHeight: 24,
-                position: 'relative',
-                cursor: canSelectColor ? 'pointer' : 'default',
-                border: `${borderWidth}px solid ${borderColor}`,
-                boxSizing: 'border-box',
-              }}
+              disabled={!canSelectColor}
+              className={[
+                'color-palette-widget__swatch',
+                canSelectColor ? 'is-clickable' : '',
+                isManuallySelectedColor ? 'is-selected' : '',
+              ].filter(Boolean).join(' ')}
+              style={{ ['--swatch-color' as string]: color }}
             >
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  color: '#FFFFFF',
-                  textShadow: '0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)',
-                  whiteSpace: 'nowrap',
-                  textAlign: 'center',
-                }}
-              >
+              <span className="color-palette-widget__percent">
                 {percent !== null ? formatPercent(percent) : ''}
-              </div>
-            </div>
+              </span>
+            </button>
           );
         })}
+        </div>
       </div>
       {onNavigateToPalette && (
         <button
+          type="button"
           onClick={onNavigateToPalette}
-          style={{
-            background: '#444444',
-            border: '1px solid #666666',
-            borderRadius: '4px',
-            color: '#FFFFFF',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            padding: '4px 8px',
-            cursor: 'pointer',
-            minWidth: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          title="Open palette details"
+          aria-label="Open palette details"
+          className="overlay-widget-edge-button color-palette-widget__navigate-button"
         >
           »
         </button>

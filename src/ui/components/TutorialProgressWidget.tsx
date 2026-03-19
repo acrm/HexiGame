@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TutorialLevel } from '../../tutorial/tutorialState';
 import { t } from '../i18n';
+import './OverlayWidget.css';
 import './TutorialProgressWidget.css';
 
 interface TutorialProgressWidgetProps {
@@ -34,9 +35,9 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
 
   return (
     <>
-      <div className="tutorial-progress-container">
+      <div className="overlay-widget-shell tutorial-progress-container">
         <div
-          className={`tutorial-progress-widget ${isComplete ? 'complete' : 'clickable'}`}
+          className={`overlay-widget-body tutorial-progress-widget ${isComplete ? 'complete' : 'clickable'}`}
           onClick={handleClick}
           role="button"
           aria-disabled={!isComplete && !onViewTask}
@@ -50,7 +51,8 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           </div>
         </div>
         <button
-          className="tutorial-info-button"
+          type="button"
+          className="overlay-widget-edge-button tutorial-info-button"
           onClick={(e) => {
             e.stopPropagation();
             setShowInfoBubble(!showInfoBubble);
