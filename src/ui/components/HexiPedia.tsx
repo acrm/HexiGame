@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { GameState } from '../../gameLogic/core/types';
 import type { Params } from '../../gameLogic/core/params';
 import { TutorialLevel, getHintForMode, axialToKey } from '../../tutorial/tutorialState';
@@ -15,6 +15,8 @@ interface SessionHistoryRecord {
   gameTicks: number;
   gameTime: string;
 }
+
+type HexiPediaSectionId = 'tasks' | 'stats' | 'templates' | 'colors';
 
 interface HexiPediaProps {
   gameState: GameState;
@@ -39,6 +41,14 @@ interface HexiPediaProps {
   onColorSelect?: (index: number) => void;
   showColorWidget?: boolean;
   onToggleColorWidget?: (visible: boolean) => void;
+  showTutorialWidget?: boolean;
+  onToggleTutorialWidget?: (visible: boolean) => void;
+  enabledSections?: HexiPediaSectionId[];
+  pinnedSections?: HexiPediaSectionId[];
+  onSetSectionEnabled?: (sectionId: HexiPediaSectionId, enabled: boolean) => void;
+  onSetSectionPinned?: (sectionId: HexiPediaSectionId, pinned: boolean) => void;
+  focusSectionId?: HexiPediaSectionId | null;
+  onFocusSectionHandled?: () => void;
   currentSessionStartTick?: number;
 }
 
@@ -65,6 +75,14 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   onColorSelect,
   showColorWidget = true,
   onToggleColorWidget,
+  showTutorialWidget = true,
+  onToggleTutorialWidget,
+  enabledSections = ['tasks'],
+  pinnedSections = ['tasks'],
+  onSetSectionEnabled,
+  onSetSectionPinned,
+  focusSectionId = null,
+  onFocusSectionHandled,
   currentSessionStartTick = 0,
 }) => {
   const [sectionFilter, setSectionFilter] = useState('');
@@ -72,10 +90,23 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   const [expandedLevelId, setExpandedLevelId] = useState<string | null>(
     tutorialLevel?.id ?? null
   );
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [sectionOrder, setSectionOrder] = useState(['tasks', 'stats', 'templates', 'colors']);
+  const [collapsedSections, setCollapsedSections] = useState<Set<HexiPediaSectionId>>(
+    new Set<HexiPediaSectionId>(['stats', 'templates', 'colors']),
+  );
+  const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>([
+    'tasks',
+    'stats',
+    'templates',
+    'colors',
+  ]);
   const [deleteConfirmRecordId, setDeleteConfirmRecordId] = useState<string | null>(null);
   const [deleteConfirmAll, setDeleteConfirmAll] = useState(false);
+  const sectionRefs = useRef<Record<HexiPediaSectionId, HTMLDivElement | null>>({
+    tasks: null,
+    stats: null,
+    templates: null,
+    colors: null,
+  });
   const progress = gameState.tutorialProgress;
   const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode) : '';
   const fullHint = hint ? `${hint} ${t('tutorial.followFocusNote')}` : t('tutorial.followFocusNote');
@@ -92,7 +123,11 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     }
   };
 
-  const toggleSectionCollapse = (sectionId: string) => {
+  const isSectionEnabled = (sectionId: HexiPediaSectionId): boolean => enabledSections.includes(sectionId);
+  const isSectionPinned = (sectionId: HexiPediaSectionId): boolean => pinnedSections.includes(sectionId);
+
+  const toggleSectionCollapse = (sectionId: HexiPediaSectionId) => {
+    if (!isSectionEnabled(sectionId)) return;
     const newSet = new Set(collapsedSections);
     if (newSet.has(sectionId)) {
       newSet.delete(sectionId);
@@ -102,7 +137,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     setCollapsedSections(newSet);
   };
 
-  const moveSectionUp = (sectionId: string) => {
+  const moveSectionUp = (sectionId: HexiPediaSectionId) => {
     const idx = sectionOrder.indexOf(sectionId);
     if (idx > 0) {
       const newOrder = [...sectionOrder];
@@ -111,12 +146,40 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     }
   };
 
-  const moveSectionDown = (sectionId: string) => {
+  const moveSectionDown = (sectionId: HexiPediaSectionId) => {
     const idx = sectionOrder.indexOf(sectionId);
     if (idx < sectionOrder.length - 1) {
       const newOrder = [...sectionOrder];
       [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
       setSectionOrder(newOrder);
+    }
+  };
+
+  const toggleSectionEnabled = (sectionId: HexiPediaSectionId) => {
+    const nextEnabled = !isSectionEnabled(sectionId);
+    onSetSectionEnabled?.(sectionId, nextEnabled);
+
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (nextEnabled) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSectionPinned = (sectionId: HexiPediaSectionId) => {
+    const nextPinned = !isSectionPinned(sectionId);
+    onSetSectionPinned?.(sectionId, nextPinned);
+    if (nextPinned && !isSectionEnabled(sectionId)) {
+      onSetSectionEnabled?.(sectionId, true);
+      setCollapsedSections((prev) => {
+        const next = new Set(prev);
+        next.delete(sectionId);
+        return next;
+      });
     }
   };
 
@@ -128,6 +191,28 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     if (!sectionFilterValue) return true;
     return title.toLowerCase().includes(sectionFilterValue);
   };
+
+  useEffect(() => {
+    if (!focusSectionId) return;
+
+    if (!isSectionEnabled(focusSectionId)) {
+      onSetSectionEnabled?.(focusSectionId, true);
+    }
+
+    setCollapsedSections((prev) => {
+      if (!prev.has(focusSectionId)) return prev;
+      const next = new Set(prev);
+      next.delete(focusSectionId);
+      return next;
+    });
+
+    const animationFrameId = requestAnimationFrame(() => {
+      sectionRefs.current[focusSectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      onFocusSectionHandled?.();
+    });
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [focusSectionId, enabledSections, onFocusSectionHandled, onSetSectionEnabled]);
 
   // Format ticks into MM:SS
   // Game runs at 12 ticks per second
@@ -195,17 +280,59 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
 
             // Tasks section
             if (sectionId === 'tasks' && isSectionVisible(t('tutorial.tasksTitle'))) {
+              const isEnabled = isSectionEnabled('tasks');
+              const isPinned = isSectionPinned('tasks');
+
               return (
-                <div key="tasks" className="hexipedia-section-wrapper">
+                <div
+                  key="tasks"
+                  ref={(element) => {
+                    sectionRefs.current.tasks = element;
+                  }}
+                  className={`hexipedia-section-wrapper ${isEnabled ? '' : 'is-disabled'}`.trim()}
+                >
                   <div className="hexipedia-section-header-container">
                     <div 
-                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
-                      onClick={() => toggleSectionCollapse('tasks')}
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''} ${isEnabled ? '' : 'disabled'}`.trim()}
+                      onClick={() => {
+                        if (!isEnabled) return;
+                        toggleSectionCollapse('tasks');
+                      }}
                     >
-                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-toggle">
+                        {isEnabled ? (isCollapsed ? '▶' : '▼') : '○'}
+                      </span>
                       <span className="hexipedia-section-title">{t('tutorial.tasksTitle')}</span>
                     </div>
                     <div className="hexipedia-section-controls">
+                      <button
+                        className={`hexipedia-section-move hexipedia-section-enable ${isEnabled ? 'on' : 'off'}`}
+                        onClick={() => toggleSectionEnabled('tasks')}
+                        title={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                        aria-label={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                      >
+                        <i className="fas fa-power-off" aria-hidden="true" />
+                      </button>
+                      <button
+                        className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
+                        onClick={() => toggleSectionPinned('tasks')}
+                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                      >
+                        <i className="fas fa-thumbtack" aria-hidden="true" />
+                      </button>
+                      <button
+                        className={`hexipedia-section-move hexipedia-widget-toggle ${showTutorialWidget ? 'on' : 'off'}`}
+                        onClick={() => onToggleTutorialWidget?.(!showTutorialWidget)}
+                        disabled={!onToggleTutorialWidget}
+                        title={showTutorialWidget ? 'Скрыть виджет заданий' : 'Показать виджет заданий'}
+                        aria-label={showTutorialWidget ? 'Скрыть виджет заданий' : 'Показать виджет заданий'}
+                      >
+                        <i
+                          className={`fas ${showTutorialWidget ? 'fa-eye' : 'fa-eye-slash'}`}
+                          aria-hidden="true"
+                        />
+                      </button>
                       <button
                         className="hexipedia-section-move"
                         onClick={() => moveSectionUp('tasks')}
@@ -226,7 +353,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       </button>
                     </div>
                   </div>
-                  {!isCollapsed && (
+                  {isEnabled && !isCollapsed && (
                     <div className="hexipedia-accordion-list">
                       {allLevels.map(level => {
                         const isCurrent = tutorialLevelId === level.id;
@@ -313,17 +440,47 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
 
             // Stats section
             if (sectionId === 'stats' && isSectionVisible(t('stats.title'))) {
+              const isEnabled = isSectionEnabled('stats');
+              const isPinned = isSectionPinned('stats');
+
               return (
-                <div key="stats" className="hexipedia-section-wrapper">
+                <div
+                  key="stats"
+                  ref={(element) => {
+                    sectionRefs.current.stats = element;
+                  }}
+                  className={`hexipedia-section-wrapper ${isEnabled ? '' : 'is-disabled'}`.trim()}
+                >
                   <div className="hexipedia-section-header-container">
                     <div 
-                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
-                      onClick={() => toggleSectionCollapse('stats')}
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''} ${isEnabled ? '' : 'disabled'}`.trim()}
+                      onClick={() => {
+                        if (!isEnabled) return;
+                        toggleSectionCollapse('stats');
+                      }}
                     >
-                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-toggle">
+                        {isEnabled ? (isCollapsed ? '▶' : '▼') : '○'}
+                      </span>
                       <span className="hexipedia-section-title">{t('stats.title')}</span>
                     </div>
                     <div className="hexipedia-section-controls">
+                      <button
+                        className={`hexipedia-section-move hexipedia-section-enable ${isEnabled ? 'on' : 'off'}`}
+                        onClick={() => toggleSectionEnabled('stats')}
+                        title={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                        aria-label={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                      >
+                        <i className="fas fa-power-off" aria-hidden="true" />
+                      </button>
+                      <button
+                        className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
+                        onClick={() => toggleSectionPinned('stats')}
+                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                      >
+                        <i className="fas fa-thumbtack" aria-hidden="true" />
+                      </button>
                       <button
                         className="hexipedia-section-move"
                         onClick={() => moveSectionUp('stats')}
@@ -344,7 +501,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       </button>
                     </div>
                   </div>
-                  {!isCollapsed && (
+                  {isEnabled && !isCollapsed && (
                     <div className="hexipedia-stats-section">
                       <div className="hexipedia-stats-content">
                         <div className="hexipedia-stat-row">
@@ -474,17 +631,47 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
 
             // Templates section
             if (sectionId === 'templates' && isSectionVisible('Build Templates')) {
+              const isEnabled = isSectionEnabled('templates');
+              const isPinned = isSectionPinned('templates');
+
               return (
-                <div key="templates" className="hexipedia-section-wrapper">
+                <div
+                  key="templates"
+                  ref={(element) => {
+                    sectionRefs.current.templates = element;
+                  }}
+                  className={`hexipedia-section-wrapper ${isEnabled ? '' : 'is-disabled'}`.trim()}
+                >
                   <div className="hexipedia-section-header-container">
                     <div 
-                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
-                      onClick={() => toggleSectionCollapse('templates')}
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''} ${isEnabled ? '' : 'disabled'}`.trim()}
+                      onClick={() => {
+                        if (!isEnabled) return;
+                        toggleSectionCollapse('templates');
+                      }}
                     >
-                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-toggle">
+                        {isEnabled ? (isCollapsed ? '▶' : '▼') : '○'}
+                      </span>
                       <span className="hexipedia-section-title">Build Templates</span>
                     </div>
                     <div className="hexipedia-section-controls">
+                      <button
+                        className={`hexipedia-section-move hexipedia-section-enable ${isEnabled ? 'on' : 'off'}`}
+                        onClick={() => toggleSectionEnabled('templates')}
+                        title={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                        aria-label={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                      >
+                        <i className="fas fa-power-off" aria-hidden="true" />
+                      </button>
+                      <button
+                        className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
+                        onClick={() => toggleSectionPinned('templates')}
+                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                      >
+                        <i className="fas fa-thumbtack" aria-hidden="true" />
+                      </button>
                       <button
                         className="hexipedia-section-move"
                         onClick={() => moveSectionUp('templates')}
@@ -505,7 +692,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       </button>
                     </div>
                   </div>
-                  {!isCollapsed && (
+                  {isEnabled && !isCollapsed && (
                     <div className="hexipedia-templates-section">
                       <div className="hexipedia-templates-list">
                         <label className="hexipedia-template-radio">
@@ -602,24 +789,55 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
 
             // Colors section
             if (sectionId === 'colors' && isSectionVisible('Цвета')) {
+              const isEnabled = isSectionEnabled('colors');
+              const isPinned = isSectionPinned('colors');
+
               return (
-                <div key="colors" className="hexipedia-section-wrapper">
+                <div
+                  key="colors"
+                  ref={(element) => {
+                    sectionRefs.current.colors = element;
+                  }}
+                  className={`hexipedia-section-wrapper ${isEnabled ? '' : 'is-disabled'}`.trim()}
+                >
                   <div className="hexipedia-section-header-container">
                     <div 
-                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
-                      onClick={() => toggleSectionCollapse('colors')}
+                      className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''} ${isEnabled ? '' : 'disabled'}`.trim()}
+                      onClick={() => {
+                        if (!isEnabled) return;
+                        toggleSectionCollapse('colors');
+                      }}
                     >
-                      <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                      <span className="hexipedia-section-toggle">
+                        {isEnabled ? (isCollapsed ? '▶' : '▼') : '○'}
+                      </span>
                       <span className="hexipedia-section-title">Цвета</span>
                     </div>
                     <div className="hexipedia-section-controls">
                       <button
+                        className={`hexipedia-section-move hexipedia-section-enable ${isEnabled ? 'on' : 'off'}`}
+                        onClick={() => toggleSectionEnabled('colors')}
+                        title={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                        aria-label={isEnabled ? 'Отключить панель' : 'Включить панель'}
+                      >
+                        <i className="fas fa-power-off" aria-hidden="true" />
+                      </button>
+                      <button
+                        className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
+                        onClick={() => toggleSectionPinned('colors')}
+                        title={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                        aria-label={isPinned ? 'Открепить панель' : 'Закрепить панель'}
+                      >
+                        <i className="fas fa-thumbtack" aria-hidden="true" />
+                      </button>
+                      <button
                         className={`hexipedia-section-move hexipedia-widget-toggle ${showColorWidget ? 'on' : 'off'}`}
                         onClick={() => onToggleColorWidget?.(!showColorWidget)}
+                        disabled={!onToggleColorWidget}
                         title={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
                         aria-label={showColorWidget ? 'Скрыть виджет' : 'Показать виджет'}
                       >
-                        {showColorWidget ? '◉' : '◎'}
+                        <i className={`fas ${showColorWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
                       </button>
                       <button
                         className="hexipedia-section-move"
@@ -641,7 +859,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       </button>
                     </div>
                   </div>
-                  {!isCollapsed && (
+                  {isEnabled && !isCollapsed && (
                     <div className="hexipedia-colors-section">
                       <div className="hexipedia-colors-grid">
                         <div className="hexipedia-colors-column">

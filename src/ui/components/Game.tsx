@@ -36,7 +36,6 @@ import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../colorScheme';
 import TutorialProgressWidget from './TutorialProgressWidget';
-import { getHintForMode } from '../../tutorial/tutorialState';
 import { hoveredCellActive } from '../../gameLogic/systems/capture';
 import {
   createInitialTutorialFlowState,
@@ -57,6 +56,7 @@ import { mulberry32 } from '../../gameLogic/core/params';
 import { clearSession } from '../../appLogic/sessionRepository';
 
 const MASCOT_FACING_DIR_INDEX = 1;
+type HexiPediaSectionId = 'tasks' | 'stats' | 'templates' | 'colors';
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -98,11 +98,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     selectedColorIndex,
     autoBaseColorEnabled,
     showColorWidget,
+    showTutorialWidget,
   } = settingsState;
   // Tutorial flow state
   const [tutorialFlowState, setTutorialFlowState] = useState<TutorialFlowState>(() =>
     createInitialTutorialFlowState(),
   );
+  const [enabledHexiPediaSections, setEnabledHexiPediaSections] = useState<HexiPediaSectionId[]>([
+    'tasks',
+  ]);
+  const [pinnedHexiPediaSections, setPinnedHexiPediaSections] = useState<HexiPediaSectionId[]>([
+    'tasks',
+  ]);
+  const [focusHexiPediaSection, setFocusHexiPediaSection] = useState<HexiPediaSectionId | null>(null);
 
   // Game session state
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -276,9 +284,42 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
   };
 
-  const handleViewTutorialTask = () => {
+  const setHexiPediaSectionEnabled = (sectionId: HexiPediaSectionId, enabled: boolean) => {
+    setEnabledHexiPediaSections((prev) => {
+      if (enabled) {
+        return prev.includes(sectionId) ? prev : [...prev, sectionId];
+      }
+      return prev.filter((id) => id !== sectionId);
+    });
+
+    if (!enabled) {
+      setPinnedHexiPediaSections((prev) => prev.filter((id) => id !== sectionId));
+      setFocusHexiPediaSection((prev) => (prev === sectionId ? null : prev));
+    }
+  };
+
+  const setHexiPediaSectionPinned = (sectionId: HexiPediaSectionId, pinned: boolean) => {
+    setPinnedHexiPediaSections((prev) => {
+      if (pinned) {
+        return prev.includes(sectionId) ? prev : [...prev, sectionId];
+      }
+      return prev.filter((id) => id !== sectionId);
+    });
+
+    if (pinned) {
+      setEnabledHexiPediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
+    }
+  };
+
+  const openHexiPediaSection = (sectionId: HexiPediaSectionId) => {
     playUiClick();
+    setEnabledHexiPediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
+    setFocusHexiPediaSection(sectionId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+  };
+
+  const handleViewTutorialTask = () => {
+    openHexiPediaSection('tasks');
   };
 
   const isMobileLayout = true;
@@ -321,6 +362,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatch({ type: 'SET_ACTIVE_FIELD', field: mobileTab === 'hexilab' ? 'inventory' : 'world' });
   }, [isMobileLayout, mobileTab, dispatch]);
 
+  // Keep only pinned sections enabled when HexiPedia tab is not active.
+  useEffect(() => {
+    if (mobileTab === 'hexipedia') return;
+    setEnabledHexiPediaSections((prev) =>
+      prev.filter((sectionId) => pinnedHexiPediaSections.includes(sectionId)),
+    );
+  }, [mobileTab, pinnedHexiPediaSections]);
+
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'hexilab' : isInventory;
 
   // Determine background color based on active tab
@@ -329,7 +378,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     : '#370152ff';
 
   const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && tutorialViewModel.level ? 56 : 8;
-  const currentTutorialHint = tutorialViewModel.level ? getHintForMode(tutorialViewModel.level.hints, interactionMode) : '';
 
   const handleOpenSettings = () => {
     playUiClick();
@@ -398,7 +446,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
       }
       if (tab === 'colors') {
-        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+        openHexiPediaSection('colors');
       }
     },
     onActivateTemplate: (templateId: string) => {
@@ -415,6 +463,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     showColorWidget,
     onToggleColorWidget: (visible: boolean) => {
       dispatchSettings({ type: 'SET_SHOW_COLOR_WIDGET', visible });
+    },
+    showTutorialWidget,
+    onToggleTutorialWidget: (visible: boolean) => {
+      dispatchSettings({ type: 'SET_SHOW_TUTORIAL_WIDGET', visible });
+    },
+    enabledSections: enabledHexiPediaSections,
+    pinnedSections: pinnedHexiPediaSections,
+    onSetSectionEnabled: setHexiPediaSectionEnabled,
+    onSetSectionPinned: setHexiPediaSectionPinned,
+    focusSectionId: focusHexiPediaSection,
+    onFocusSectionHandled: () => {
+      setFocusHexiPediaSection(null);
     },
     currentSessionStartTick,
   };
@@ -507,10 +567,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       dispatchSettings({ type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' });
     },
     onNavigateToPalette: () => {
-      if (isMobileLayout) {
-        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
-      }
-      // TODO: Open HexiPedia and navigate to Colors section
+      openHexiPediaSection('colors');
     },
     showColorWidget,
   };
@@ -555,8 +612,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const tutorialWidgetProps = tutorialViewModel.level
     ? {
-        level: tutorialViewModel.level,
-        hintText: currentTutorialHint,
         visitedCount: tutorialViewModel.visitedTargetCount,
         totalCount: tutorialViewModel.targetKeys.length,
         isComplete: tutorialViewModel.isTaskComplete,
@@ -564,6 +619,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         onViewTask: handleViewTutorialTask,
       }
     : null;
+
+  const visibleTutorialWidgetProps = showTutorialWidget ? tutorialWidgetProps : null;
 
   return (
     <div
@@ -604,7 +661,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       <GameOverlays
         isMobileLayout={isMobileLayout}
         mobileTab={mobileTab}
-        tutorialWidgetProps={tutorialWidgetProps}
+        tutorialWidgetProps={visibleTutorialWidgetProps}
         showGuestStart={!guestStarted}
         onGuestStart={handleGuestStart}
         isSettingsOpen={isSettingsOpen}

@@ -50,7 +50,7 @@
   display: flex;
   flex: 1;
   min-width: 0;
-  gap: 2px;
+  gap: 0;
 }
 
 .color-palette-widget__swatch {

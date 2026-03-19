@@ -543,3 +543,5 @@
 - 2026w11-0.10 — Align startup turtle with mascot and initial facing
 
 - 2026w12-0.1 — unify top widgets layout
+
+- 2026w12-0.2 — tasks widget navigation and panel pinning
