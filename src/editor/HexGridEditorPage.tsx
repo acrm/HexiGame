@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { axialDistance, keyOfAxial } from '../gameLogic/core/grid';
 import type { Axial } from '../gameLogic/core/types';
 import { DefaultParams } from '../gameLogic/core/params';
@@ -75,6 +75,8 @@ export default function HexGridEditorPage() {
   const [documentState, setDocumentState] = useState<EditorDocumentState>(createInitialEditorDocument);
   const [basePaletteIndex, setBasePaletteIndex] = useState<number>(DefaultParams.PlayerBaseColorIndex);
   const [paintRelativeColor, setPaintRelativeColor] = useState<number | null>(0);
+  const [zoom, setZoom] = useState(1);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   const gridRadius = useMemo(() => computeGridRadius(documentState), [documentState]);
 
@@ -114,6 +116,17 @@ export default function HexGridEditorPage() {
     }
     return map;
   }, [documentState.cells]);
+
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setZoom(z => Math.max(0.25, Math.min(4, z * (e.deltaY < 0 ? 1.1 : 0.9))));
+    };
+    board.addEventListener('wheel', onWheel, { passive: false });
+    return () => board.removeEventListener('wheel', onWheel);
+  }, []);
 
   const handleCoordinatesChange = (rawValue: string) => {
     const { cells, parseError } = parseCells(rawValue);
@@ -174,27 +187,18 @@ export default function HexGridEditorPage() {
     return (offset * 100) / EDITOR_PALETTE.length;
   };
 
+  const handleZoomIn = () => setZoom(z => Math.min(4, z * 1.2));
+  const handleZoomOut = () => setZoom(z => Math.max(0.25, z / 1.2));
+
   return (
     <div className="editor-page">
-      <section className="editor-stage">
-        <header className="editor-stage-header">
-          <div>
-            <div className="editor-kicker">Auxiliary Tool</div>
-            <h1 className="editor-title">Hex Grid Editor</h1>
-            <p className="editor-description">
-              Click hexes to toggle them. The coordinates panel updates instantly. Choose a palette base color (0%)
-              and a painting color (relativeColor %), then click cells to add them.
-            </p>
-          </div>
-          <div className="editor-stage-actions">
-            <div className="editor-stat-pill">Cells: {documentState.cells.length}</div>
-            <a className="editor-back-link" href="../">
-              Open game
-            </a>
-          </div>
-        </header>
-
-        <div className="editor-board">
+      <div className="editor-grid-panel" ref={boardRef}>
+        <div className="editor-zoom-controls">
+          <button type="button" className="editor-zoom-btn" onClick={handleZoomOut} title="Zoom out">−</button>
+          <span className="editor-zoom-label">{Math.round(zoom * 100)}%</span>
+          <button type="button" className="editor-zoom-btn" onClick={handleZoomIn} title="Zoom in">+</button>
+        </div>
+        <div className="editor-grid-zoom-wrapper" style={{ transform: `scale(${zoom})` }}>
           <svg className="editor-grid-svg" viewBox={gridLayout.viewBox} role="img" aria-label="Editable axial hex grid">
             {gridLayout.positionedCells.map(({ cell, x, y }) => {
               const cellKey = keyOfAxial(cell);
@@ -241,13 +245,19 @@ export default function HexGridEditorPage() {
             })}
           </svg>
         </div>
-      </section>
+      </div>
 
       <aside className="editor-sidebar">
         <div className="editor-sidebar-header">
-          <div>
-            <h2 className="editor-sidebar-title">Pattern</h2>
-            <p className="editor-sidebar-note">Edit coordinates and palette settings</p>
+          <div className="editor-kicker">Auxiliary Tool</div>
+          <h1 className="editor-title">Hex Grid Editor</h1>
+          <p className="editor-description">
+            Click hexes to toggle them. The coordinates panel updates instantly. Choose a palette base color (0%)
+            and a painting color (relativeColor %), then click cells to add them.
+          </p>
+          <div className="editor-stage-actions">
+            <div className="editor-stat-pill">Cells: {documentState.cells.length}</div>
+            <a className="editor-back-link" href="../">Open game</a>
           </div>
         </div>
 

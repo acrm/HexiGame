@@ -25,28 +25,87 @@ textarea {
 }
 
 .editor-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
+  grid-template-columns: 1fr 400px;
 }
 
-.editor-stage {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 28px;
-  gap: 20px;
+.editor-grid-panel {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 243, 0.94), rgba(247, 241, 229, 0.92)),
+    repeating-linear-gradient(
+      0deg,
+      rgba(17, 75, 95, 0.05),
+      rgba(17, 75, 95, 0.05) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(17, 75, 95, 0.04),
+      rgba(17, 75, 95, 0.04) 1px,
+      transparent 1px,
+      transparent 28px
+    );
 }
 
-.editor-stage-header {
+.editor-grid-zoom-wrapper {
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
+}
+
+.editor-zoom-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 252, 247, 0.92);
+  border: 1px solid rgba(17, 75, 95, 0.15);
+  border-radius: 999px;
+  padding: 4px 6px;
+  box-shadow: 0 4px 12px rgba(53, 37, 25, 0.1);
+}
+
+.editor-zoom-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 700;
+  color: #114b5f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.editor-zoom-btn:hover {
+  background: rgba(17, 75, 95, 0.1);
+}
+
+.editor-zoom-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4d4034;
+  min-width: 44px;
+  text-align: center;
 }
 
 .editor-kicker {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -54,16 +113,15 @@ textarea {
 }
 
 .editor-title {
-  margin: 6px 0 10px;
-  font-size: clamp(32px, 4vw, 52px);
-  line-height: 0.95;
+  margin: 4px 0 8px;
+  font-size: 26px;
+  line-height: 1.1;
   color: #1d1611;
 }
 
 .editor-description {
   margin: 0;
-  max-width: 760px;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.6;
   color: #4a3d31;
 }
@@ -71,9 +129,9 @@ textarea {
 .editor-stage-actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   align-items: center;
   gap: 10px;
+  margin-top: 10px;
 }
 
 .editor-stat-pill {
@@ -100,37 +158,9 @@ textarea {
   box-shadow: 0 14px 26px rgba(17, 75, 95, 0.24);
 }
 
-.editor-board {
-  min-height: 0;
-  flex: 1;
-  border-radius: 28px;
-  padding: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 250, 243, 0.94), rgba(247, 241, 229, 0.92)),
-    repeating-linear-gradient(
-      0deg,
-      rgba(17, 75, 95, 0.05),
-      rgba(17, 75, 95, 0.05) 1px,
-      transparent 1px,
-      transparent 28px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(17, 75, 95, 0.04),
-      rgba(17, 75, 95, 0.04) 1px,
-      transparent 1px,
-      transparent 28px
-    );
-  border: 1px solid rgba(17, 75, 95, 0.12);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 18px 36px rgba(53, 37, 25, 0.12);
-}
-
 .editor-grid-svg {
   width: 100%;
   height: 100%;
-  min-height: 640px;
   display: block;
 }
 
@@ -205,10 +235,12 @@ textarea {
 }
 
 .editor-sidebar {
+  height: 100vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 24px;
+  padding: 20px;
   background: rgba(248, 242, 231, 0.94);
   border-left: 1px solid rgba(17, 75, 95, 0.12);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.7);
@@ -216,21 +248,10 @@ textarea {
 
 .editor-sidebar-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.editor-sidebar-title {
-  margin: 0 0 4px;
-  font-size: 24px;
-}
-
-.editor-sidebar-note {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #5f5044;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(17, 75, 95, 0.1);
 }
 
 .editor-add-button,
@@ -455,35 +476,34 @@ textarea {
   transform: scale(0.96);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .editor-page {
+    height: auto;
+    overflow: auto;
     grid-template-columns: 1fr;
   }
 
-  .editor-stage {
-    padding-bottom: 0;
+  .editor-grid-panel {
+    height: 70vw;
+    min-height: 320px;
+    max-height: 560px;
   }
 
   .editor-sidebar {
+    height: auto;
+    overflow-y: visible;
     border-left: none;
     border-top: 1px solid rgba(17, 75, 95, 0.12);
   }
 }
 
 @media (max-width: 720px) {
-  .editor-stage,
   .editor-sidebar {
     padding: 16px;
   }
 
-  .editor-stage-header,
-  .editor-sidebar-header,
-  .editor-layer-header {
+  .editor-sidebar-header {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .editor-grid-svg {
-    min-height: 480px;
   }
 }

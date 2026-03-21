@@ -4,6 +4,7 @@ import {
   serializeCells,
   toggleCell,
   normalizeCells,
+  type EditorCell,
 } from '../src/editor/editorState';
 
 describe('editorState', () => {
@@ -45,7 +46,7 @@ describe('editorState', () => {
   });
 
   it('toggleCell adds and removes cells', () => {
-    let cells = [{ q: 0, r: 0, relativeColor: null }];
+    let cells: EditorCell[] = [{ q: 0, r: 0, relativeColor: null }];
 
     // Add a cell
     cells = toggleCell(cells, { q: 1, r: 0 }, 50);
