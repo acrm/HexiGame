@@ -26,6 +26,16 @@ export interface TemplateCell {
 }
 
 /**
+ * Spatial structure of a build template.
+ * Cells are authored in a local coordinate space,
+ * and anchorCell points to which of those cells is the anchor.
+ */
+export interface TemplateStructure {
+  anchorCell: Axial;
+  cells: TemplateCell[];
+}
+
+/**
  * A build template definition
  */
 export interface BuildTemplate {
@@ -39,19 +49,11 @@ export interface BuildTemplate {
     ru: string;
   };
   difficulty: 'easy' | 'medium' | 'hard';
-  
+
   /**
-   * Anchor cell coordinates (relative to template origin).
-   * This is the starting point where the first hex will be placed.
-   * Typically has relativeColor: 0
+   * Embedded template structure with anchor and cells.
    */
-  anchorCell: Axial;
-  
-  /**
-   * All cells in the template (including anchor).
-   * Coordinates are relative to the anchor point.
-   */
-  cells: TemplateCell[];
+  structure: TemplateStructure;
   
   /**
    * Optional hints for the player

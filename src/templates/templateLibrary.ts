@@ -2,8 +2,9 @@
 
 import type { BuildTemplate } from './templateTypes';
 
-// Anchor convention: (0,0) is the edge cell closest to the turtle.
-// Templates are authored for turtle facing up; rotation keeps them oriented to the head.
+// Anchor convention: anchorCell points to the edge cell closest to the turtle.
+// Templates are authored in a local coordinate space for turtle facing up;
+// rotation keeps them oriented to the head.
 
 /**
  * Simple ring: 7 hexes of the same color forming a ring with center
@@ -21,18 +22,20 @@ export const TEMPLATE_RING_R1: BuildTemplate = {
     ru: 'Кольцо из 7 гексов одного цвета',
   },
   difficulty: 'easy',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    // Anchor edge (closest to turtle)
-    { q: 0, r: 0, relativeColor: 0 },
-    // Ring around center
-    { q: 0, r: -1, relativeColor: 0 },   // Center
-    { q: 0, r: -2, relativeColor: 0 },   // North
-    { q: 1, r: -2, relativeColor: 0 },   // North-East
-    { q: 1, r: -1, relativeColor: 0 },   // South-East
-    { q: -1, r: 0, relativeColor: 0 },   // South-West
-    { q: -1, r: -1, relativeColor: 0 },  // North-West
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      // Anchor edge (closest to turtle)
+      { q: 0, r: 0, relativeColor: 0 },
+      // Ring around center
+      { q: 0, r: -1, relativeColor: 0 },   // Center
+      { q: 0, r: -2, relativeColor: 0 },   // North
+      { q: 1, r: -2, relativeColor: 0 },   // North-East
+      { q: 1, r: -1, relativeColor: 0 },   // South-East
+      { q: -1, r: 0, relativeColor: 0 },   // South-West
+      { q: -1, r: -1, relativeColor: 0 },  // North-West
+    ],
+  },
   hints: {
     en: [
       'Start with any color',
@@ -62,19 +65,21 @@ export const TEMPLATE_FLOWER: BuildTemplate = {
     ru: 'Цветок с чередующимися цветными лепестками',
   },
   difficulty: 'medium',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    // Anchor edge (closest to turtle)
-    { q: 0, r: 0, relativeColor: 0 },
-    // Center
-    { q: 0, r: -1, relativeColor: 0 },
-    // Alternating petals: base color and +33.33% (2 steps ahead)
-    { q: 0, r: -2, relativeColor: 33.33 },
-    { q: 1, r: -2, relativeColor: 0 },
-    { q: 1, r: -1, relativeColor: 33.33 },
-    { q: -1, r: 0, relativeColor: 33.33 },
-    { q: -1, r: -1, relativeColor: 0 },
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      // Anchor edge (closest to turtle)
+      { q: 0, r: 0, relativeColor: 0 },
+      // Center
+      { q: 0, r: -1, relativeColor: 0 },
+      // Alternating petals: base color and +33.33% (2 steps ahead)
+      { q: 0, r: -2, relativeColor: 33.33 },
+      { q: 1, r: -2, relativeColor: 0 },
+      { q: 1, r: -1, relativeColor: 33.33 },
+      { q: -1, r: 0, relativeColor: 33.33 },
+      { q: -1, r: -1, relativeColor: 0 },
+    ],
+  },
   hints: {
     en: [
       'Use two colors that are 2 steps apart in the palette',
@@ -102,12 +107,14 @@ export const TEMPLATE_TRIANGLE: BuildTemplate = {
     ru: 'Маленький треугольник с градиентом цвета',
   },
   difficulty: 'easy',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    { q: 0, r: 0, relativeColor: 0 },     // Anchor at focus (0%) - bottom edge
-    { q: 0, r: -1, relativeColor: 33.33 },   // Away from turtle (upward)
-    { q: 1, r: -1, relativeColor: 16.67 }, // +1 step (upward-right)
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      { q: 0, r: 0, relativeColor: 0 },     // Anchor at focus (0%) - bottom edge
+      { q: 0, r: -1, relativeColor: 33.33 },   // Away from turtle (upward)
+      { q: 1, r: -1, relativeColor: 16.67 }, // +1 step (upward-right)
+    ],
+  },
   hints: {
     en: [
       'Three adjacent colors from the palette',
@@ -135,21 +142,23 @@ export const TEMPLATE_YIN_YANG: BuildTemplate = {
     ru: 'Баланс противоположных цветов',
   },
   difficulty: 'hard',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    // Anchor at focus (0%)
-    { q: 0, r: 0, relativeColor: 0 },
-    // Center
-    { q: 0, r: -1, relativeColor: 33.33 },
-    // Left side (base color)
-    { q: -1, r: -1, relativeColor: 33.33 },
-    { q: -1, r: 0, relativeColor: 33.33 },
-    // Right side (opposite color, ±50% = 3 steps)
-    { q: 1, r: -2, relativeColor: -33.33 },
-    { q: 1, r: -1, relativeColor: -33.33 },
-    // Top
-    { q: 0, r: -2, relativeColor: 50 },
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      // Anchor at focus (0%)
+      { q: 0, r: 0, relativeColor: 0 },
+      // Center
+      { q: 0, r: -1, relativeColor: 33.33 },
+      // Left side (base color)
+      { q: -1, r: -1, relativeColor: 33.33 },
+      { q: -1, r: 0, relativeColor: 33.33 },
+      // Right side (opposite color, ±50% = 3 steps)
+      { q: 1, r: -2, relativeColor: -33.33 },
+      { q: 1, r: -1, relativeColor: -33.33 },
+      // Top
+      { q: 0, r: -2, relativeColor: 50 },
+    ],
+  },
   hints: {
     en: [
       'Uses opposite colors (4 steps apart)',
@@ -173,14 +182,16 @@ export const TEMPLATE_HORSESHOE_SHELTER: BuildTemplate = {
     ru: 'Простое одноцветное убежище в форме подковы',
   },
   difficulty: 'easy',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    { q: 0, r: 0, relativeColor: 0 },
-    { q: -1, r: 0, relativeColor: 0 },
-    { q: -1, r: -1, relativeColor: 0 },
-    { q: 0, r: -2, relativeColor: 0 },
-    { q: 1, r: -1, relativeColor: 0 },
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      { q: 0, r: 0, relativeColor: 0 },
+      { q: -1, r: 0, relativeColor: 0 },
+      { q: -1, r: -1, relativeColor: 0 },
+      { q: 0, r: -2, relativeColor: 0 },
+      { q: 1, r: -1, relativeColor: 0 },
+    ],
+  },
   hints: {
     en: [
       'Build the shelter from one color only',
@@ -204,39 +215,41 @@ export const TEMPLATE_YIN_YANG_V2: BuildTemplate = {
     ru: 'Крупный двухцветный символ с зеркальными глазками',
   },
   difficulty: 'hard',
-  anchorCell: { q: -1, r: -1 },
-  cells: [
-    { q: -1, r: -4, relativeColor: 50 },
-    { q: 0, r: -4, relativeColor: 50 },
-    { q: 1, r: -4, relativeColor: 0 },
-    { q: 2, r: -4, relativeColor: 0 },
-    { q: -2, r: -3, relativeColor: 50 },
-    { q: -1, r: -3, relativeColor: 0 },
-    { q: 0, r: -3, relativeColor: 50 },
-    { q: 1, r: -3, relativeColor: 0 },
-    { q: 2, r: -3, relativeColor: 0 },
-    { q: -3, r: -2, relativeColor: 50 },
-    { q: -2, r: -2, relativeColor: 50 },
-    { q: -1, r: -2, relativeColor: 50 },
-    { q: 0, r: -2, relativeColor: 0 },
-    { q: 1, r: -2, relativeColor: 0 },
-    { q: 2, r: -2, relativeColor: 0 },
-    { q: -4, r: -1, relativeColor: 50 },
-    { q: -3, r: -1, relativeColor: 50 },
-    { q: -2, r: -1, relativeColor: 50 },
-    { q: -1, r: -1, relativeColor: 0 },
-    { q: 0, r: -1, relativeColor: 0 },
-    { q: 1, r: -1, relativeColor: 0 },
-    { q: -4, r: 0, relativeColor: 50 },
-    { q: -3, r: 0, relativeColor: 50 },
-    { q: -2, r: 0, relativeColor: 0 },
-    { q: -1, r: 0, relativeColor: 50 },
-    { q: 0, r: 0, relativeColor: 0 },
-    { q: -4, r: 1, relativeColor: 50 },
-    { q: -3, r: 1, relativeColor: 50 },
-    { q: -2, r: 1, relativeColor: 0 },
-    { q: -1, r: 1, relativeColor: 0 }
+  structure: {
+    anchorCell: { q: -1, r: -1 },
+    cells: [
+      { q: -1, r: -4, relativeColor: 50 },
+      { q: 0, r: -4, relativeColor: 50 },
+      { q: 1, r: -4, relativeColor: 0 },
+      { q: 2, r: -4, relativeColor: 0 },
+      { q: -2, r: -3, relativeColor: 50 },
+      { q: -1, r: -3, relativeColor: 0 },
+      { q: 0, r: -3, relativeColor: 50 },
+      { q: 1, r: -3, relativeColor: 0 },
+      { q: 2, r: -3, relativeColor: 0 },
+      { q: -3, r: -2, relativeColor: 50 },
+      { q: -2, r: -2, relativeColor: 50 },
+      { q: -1, r: -2, relativeColor: 50 },
+      { q: 0, r: -2, relativeColor: 0 },
+      { q: 1, r: -2, relativeColor: 0 },
+      { q: 2, r: -2, relativeColor: 0 },
+      { q: -4, r: -1, relativeColor: 50 },
+      { q: -3, r: -1, relativeColor: 50 },
+      { q: -2, r: -1, relativeColor: 50 },
+      { q: -1, r: -1, relativeColor: 0 },
+      { q: 0, r: -1, relativeColor: 0 },
+      { q: 1, r: -1, relativeColor: 0 },
+      { q: -4, r: 0, relativeColor: 50 },
+      { q: -3, r: 0, relativeColor: 50 },
+      { q: -2, r: 0, relativeColor: 0 },
+      { q: -1, r: 0, relativeColor: 50 },
+      { q: 0, r: 0, relativeColor: 0 },
+      { q: -4, r: 1, relativeColor: 50 },
+      { q: -3, r: 1, relativeColor: 50 },
+      { q: -2, r: 1, relativeColor: 0 },
+      { q: -1, r: 1, relativeColor: 0 },
     ],
+  },
   hints: {
     en: [
       'Use only two opposite colors',
@@ -266,17 +279,19 @@ export const TEMPLATE_HEXAGON: BuildTemplate = {
     ru: 'Кольцо из 6 клеток с чередующимися цветами',
   },
   difficulty: 'medium',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    // Anchor at focus (0%)
-    { q: 0, r: 0, relativeColor: 0 },
-    // Ring cells only, alternating colors
-    { q: 0, r: -2, relativeColor: -33.33 },    // North
-    { q: 1, r: -2, relativeColor: 0 },      // NE
-    { q: 1, r: -1, relativeColor: -33.33 },    // SE
-    { q: -1, r: 0, relativeColor: -33.33 },    // W
-    { q: -1, r: -1, relativeColor: 0 },     // NW
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      // Anchor at focus (0%)
+      { q: 0, r: 0, relativeColor: 0 },
+      // Ring cells only, alternating colors
+      { q: 0, r: -2, relativeColor: -33.33 },    // North
+      { q: 1, r: -2, relativeColor: 0 },      // NE
+      { q: 1, r: -1, relativeColor: -33.33 },    // SE
+      { q: -1, r: 0, relativeColor: -33.33 },    // W
+      { q: -1, r: -1, relativeColor: 0 },     // NW
+    ],
+  },
   hints: {
     en: [
       'Six-sided ring without center',
@@ -306,31 +321,33 @@ export const TEMPLATE_STAR: BuildTemplate = {
     ru: 'Центр с 6 лучами в разных цветах',
   },
   difficulty: 'medium',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    // Anchor at focus (0%)
-    { q: 0, r: 0, relativeColor: 0 },
-    // Center
-    { q: 0, r: -2, relativeColor: -33.33 },
-    // Six rays (immediate neighbors + one layer out)
-    // Ray 1: North
-    { q: 0, r: -3, relativeColor: -33.33 },
-    { q: 0, r: -4, relativeColor: 0 },
-    // Ray 2: NE
-    { q: 1, r: -3, relativeColor: -33.33 },
-    { q: 2, r: -4, relativeColor: 0 },
-    // Ray 3: SE
-    { q: 1, r: -2, relativeColor: -33.33 },
-    { q: 2, r: -2, relativeColor: 0 },
-    // Ray 4: South
-    { q: 0, r: -1, relativeColor: -33.33 },
-    // Ray 5: SW
-    { q: -1, r: -1, relativeColor: -33.33 },
-    { q: -2, r: 0, relativeColor: 0 },
-    // Ray 6: NW
-    { q: -1, r: -2, relativeColor: -33.33 },
-    { q: -2, r: -2, relativeColor: 0 },
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      // Anchor at focus (0%)
+      { q: 0, r: 0, relativeColor: 0 },
+      // Center
+      { q: 0, r: -2, relativeColor: -33.33 },
+      // Six rays (immediate neighbors + one layer out)
+      // Ray 1: North
+      { q: 0, r: -3, relativeColor: -33.33 },
+      { q: 0, r: -4, relativeColor: 0 },
+      // Ray 2: NE
+      { q: 1, r: -3, relativeColor: -33.33 },
+      { q: 2, r: -4, relativeColor: 0 },
+      // Ray 3: SE
+      { q: 1, r: -2, relativeColor: -33.33 },
+      { q: 2, r: -2, relativeColor: 0 },
+      // Ray 4: South
+      { q: 0, r: -1, relativeColor: -33.33 },
+      // Ray 5: SW
+      { q: -1, r: -1, relativeColor: -33.33 },
+      { q: -2, r: 0, relativeColor: 0 },
+      // Ray 6: NW
+      { q: -1, r: -2, relativeColor: -33.33 },
+      { q: -2, r: -2, relativeColor: 0 },
+    ],
+  },
   hints: {
     en: [
       'Six spikes radiating from center',
@@ -360,19 +377,21 @@ export const TEMPLATE_RAINBOW_SPIRAL: BuildTemplate = {
     ru: 'Спиральный градиент с плавным переходом цветов',
   },
   difficulty: 'hard',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    // Spiral from anchor through all 6 colors + extra cells
-    { q: 0, r: 0, relativeColor: 0 },      // Anchor at focus
-    { q: 0, r: -1, relativeColor: -33.33 },   // 2 steps back
-    { q: 0, r: -2, relativeColor: -16.67 },// 1 step back
-    { q: 1, r: -2, relativeColor: 0 }, // back to 0
-    { q: 1, r: -1, relativeColor: 16.67 },     // 1 step forward
-    { q: 1, r: 0, relativeColor: 33.33 },   // 2 steps forward
-    { q: -1, r: 0, relativeColor: 50 }, // opposite (3 steps)
-    { q: -1, r: -1, relativeColor: -33.33 },// 2 steps back
-    { q: -1, r: -2, relativeColor: -16.67 },  // 1 step back
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      // Spiral from anchor through all 6 colors + extra cells
+      { q: 0, r: 0, relativeColor: 0 },      // Anchor at focus
+      { q: 0, r: -1, relativeColor: -33.33 },   // 2 steps back
+      { q: 0, r: -2, relativeColor: -16.67 },// 1 step back
+      { q: 1, r: -2, relativeColor: 0 }, // back to 0
+      { q: 1, r: -1, relativeColor: 16.67 },     // 1 step forward
+      { q: 1, r: 0, relativeColor: 33.33 },   // 2 steps forward
+      { q: -1, r: 0, relativeColor: 50 }, // opposite (3 steps)
+      { q: -1, r: -1, relativeColor: -33.33 },// 2 steps back
+      { q: -1, r: -2, relativeColor: -16.67 },  // 1 step back
+    ],
+  },
   hints: {
     en: [
       'Nine cells forming a spiral path',
@@ -404,16 +423,18 @@ export const TEMPLATE_CROSS: BuildTemplate = {
     ru: 'Крестообразный узор из 5 клеток',
   },
   difficulty: 'easy',
-  anchorCell: { q: 0, r: 0 },
-  cells: [
-    // Anchor edge (closest to turtle)
-    { q: 0, r: 0, relativeColor: 0 },
-    // Four cardinal directions
-    { q: 0, r: -1, relativeColor: 0 },     // Center
-    { q: 0, r: -2, relativeColor: 0 },     // North
-    { q: 1, r: -1, relativeColor: 0 },     // East
-    { q: -1, r: -1, relativeColor: 0 },    // West
-  ],
+  structure: {
+    anchorCell: { q: 0, r: 0 },
+    cells: [
+      // Anchor edge (closest to turtle)
+      { q: 0, r: 0, relativeColor: 0 },
+      // Four cardinal directions
+      { q: 0, r: -1, relativeColor: 0 },     // Center
+      { q: 0, r: -2, relativeColor: 0 },     // North
+      { q: 1, r: -1, relativeColor: 0 },     // East
+      { q: -1, r: -1, relativeColor: 0 },    // West
+    ],
+  },
   hints: {
     en: [
       'Five cells in a + shape',

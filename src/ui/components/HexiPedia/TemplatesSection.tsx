@@ -124,7 +124,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                     
                     <div className="hexipedia-template-cells">
                       <span className="hexipedia-detail-label">Cells:</span>
-                      <span className="hexipedia-detail-text">{template.cells.length}</span>
+                      <span className="hexipedia-detail-text">{template.structure.cells.length}</span>
                     </div>
                   </div>
                 )}

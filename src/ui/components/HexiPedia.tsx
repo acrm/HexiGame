@@ -828,7 +828,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                   
                                   <div className="hexipedia-template-cells">
                                     <span className="hexipedia-detail-label">{t('template.cells')}</span>
-                                    <span className="hexipedia-detail-text">{template.cells.length}</span>
+                                    <span className="hexipedia-detail-text">{template.structure.cells.length}</span>
                                   </div>
                                 </div>
                               )}

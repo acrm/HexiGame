@@ -53,12 +53,16 @@ export function rotateAxial(pos: Axial, rotation: number): Axial {
  */
 export function getTemplateCellWorldPos(
   templateCell: TemplateCell,
+  templateAnchorCell: Axial,
   anchorWorldPos: Axial,
   rotation: number
 ): Axial {
   // Rotate cell position relative to anchor
   const rotated = rotateAxial(
-    { q: templateCell.q, r: templateCell.r },
+    {
+      q: templateCell.q - templateAnchorCell.q,
+      r: templateCell.r - templateAnchorCell.r,
+    },
     rotation
   );
   
@@ -83,8 +87,8 @@ export function getTemplateCellsWithWorldPos(
   worldPos: Axial;
   expectedColorIndex: number | null;
 }> {
-  return template.cells.map(cell => {
-    const worldPos = getTemplateCellWorldPos(cell, anchorWorldPos, rotation);
+  return template.structure.cells.map(cell => {
+    const worldPos = getTemplateCellWorldPos(cell, template.structure.anchorCell, anchorWorldPos, rotation);
     const expectedColorIndex = cell.relativeColor !== null
       ? getAbsoluteColor(cell.relativeColor, baseColorIndex, paletteSize)
       : null;
@@ -189,10 +193,10 @@ export function isTemplateEmpty(
   rotation: number,
   grid: Grid
 ): boolean {
-  const cells = template.cells.filter(c => c.relativeColor !== null);
+  const cells = template.structure.cells.filter(c => c.relativeColor !== null);
   
   for (const cell of cells) {
-    const worldPos = getTemplateCellWorldPos(cell, anchorWorldPos, rotation);
+    const worldPos = getTemplateCellWorldPos(cell, template.structure.anchorCell, anchorWorldPos, rotation);
     const worldCell = getCell(grid, worldPos);
     
     if (worldCell && worldCell.colorIndex !== null) {
@@ -218,8 +222,8 @@ export function determineTemplateAnchor(
   focusPos: Axial,
   rotation: number
 ): { anchorPos: Axial; baseColorIndex: number } | null {
-  // Template anchors only when hex is placed at focus (where anchor cell is)
-  // Anchor cell MUST be at { q: 0, r: 0 } with relativeColor: 0
+  // Template anchors only when hex is placed at focus.
+  // focusPos becomes the world position of template.structure.anchorCell.
   if (placedHexPos.q !== focusPos.q || placedHexPos.r !== focusPos.r) {
     return null; // Only anchor when placing on focus
   }

@@ -14,7 +14,7 @@ import { TutorialLevel, TutorialProgressMetrics, axialToKey } from './tutorialSt
 
 function computeTemplateProgress(state: GameState, templateId: string): TutorialProgressMetrics {
   const template = getTemplateById(templateId);
-  const total = template?.cells.length ?? 0;
+  const total = template?.structure.cells.length ?? 0;
   const current = state.activeTemplate?.templateId === templateId
     ? state.activeTemplate.filledCells.size
     : 0;

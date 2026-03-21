@@ -242,8 +242,10 @@ The build template system allows players to create spatial color patterns follow
   name: { en, ru };                    // Localized template name
   description?: { en, ru };            // Optional description
   difficulty: 'easy' | 'medium' | 'hard';
-  anchorCell: { q, r };                // Anchor position (usually 0,0)
-  cells: TemplateCell[];               // Cell definitions
+  structure: {
+    anchorCell: { q, r };              // Which authored cell is the anchor
+    cells: TemplateCell[];             // Authored cell definitions
+  };
   hints?: { en?, ru? };                // Player hints (array)
 }
 ```
@@ -251,10 +253,12 @@ The build template system allows players to create spatial color patterns follow
 **Template Cell** (`TemplateCell`)
 ```typescript
 {
-  q, r: number;                        // Position relative to anchor
+  q, r: number;                        // Position in template-local coordinates
   relativeColor: number | null;        // -50..50 (percentage) or null (empty)
 }
 ```
+
+`anchorCell` points to one of the authored template cells. World placement uses cell offsets relative to that anchor.
 
 **Relative Color System**
 Colors are percentages from base (anchor) color in the palette:
@@ -306,8 +310,9 @@ Templates rotate with player heading via `facingDirIndex` (0–5):
 function rotateAxial(pos, rotation):
   repeat rotation times:
     (q, r) → (-r, q + r)  // 60° clockwise rotation
-    
-worldPos = anchorPos + rotatedPos
+
+localOffset = cellPos - anchorCell
+worldPos = anchorPos + rotate(localOffset)
 ```
 
 ### 7.4 Rendering

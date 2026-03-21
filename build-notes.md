@@ -579,3 +579,5 @@
 - 2026w12-0.18 — Editor: anchorCell format, anchor placement mode, anchor marker rendering
 
 - 2026w13-0.1 — tutorial widget phase flow and field-boundary highlights
+
+- 2026w13-0.2 — Templates: nest structure object and support staged-only bump workflow

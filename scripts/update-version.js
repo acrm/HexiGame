@@ -7,9 +7,14 @@
   Usage:
     node scripts/update-version.js --desc "Short description"
     node scripts/update-version.js --minor --desc "Minor bump description"
+    node scripts/update-version.js --all --desc "Stage all changes before bump"
 
   If --minor is passed, minor is incremented and build is reset to 1.
   Otherwise only build is incremented.
+
+  By default, the script commits the already staged change set together with
+  version.json / package.json / build-notes.md. Pass --all to keep the old
+  behavior and stage the entire working tree before committing.
 
   Description is appended to build-notes.md together with new version.
   If --desc is not provided, the script will try to use the last commit
@@ -40,11 +45,13 @@ function writeJson(filePath, data) {
 
 function getArgs() {
   const args = process.argv.slice(2);
-  const result = { minor: false, desc: null };
+  const result = { minor: false, all: false, desc: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--minor') {
       result.minor = true;
+    } else if (a === '--all') {
+      result.all = true;
     } else if (a === '--desc') {
       result.desc = args[i + 1] ?? '';
       i++;
@@ -96,14 +103,26 @@ function appendBuildNote(newVersion, description) {
   }
 }
 
-function autoCommitVersionChanges(newVersion, description) {
+function stageVersionFiles() {
+  execFileSync('git', ['add', '--', 'version.json', 'package.json', 'build-notes.md'], {
+    cwd: rootDir,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    encoding: 'utf8',
+  });
+}
+
+function autoCommitVersionChanges(newVersion, description, stageAll) {
   const commitMsg = `${newVersion}: ${description}`;
   try {
-    execFileSync('git', ['add', '-A'], {
-      cwd: rootDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      encoding: 'utf8',
-    });
+    if (stageAll) {
+      execFileSync('git', ['add', '-A'], {
+        cwd: rootDir,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        encoding: 'utf8',
+      });
+    } else {
+      stageVersionFiles();
+    }
 
     execFileSync('git', ['commit', '-m', commitMsg], {
       cwd: rootDir,
@@ -150,7 +169,7 @@ function main() {
   appendBuildNote(newVersion, description);
 
   // Auto-commit version changes
-  autoCommitVersionChanges(newVersion, description);
+  autoCommitVersionChanges(newVersion, description, args.all);
 
   // Print version to allow other tools/agents to read it easily.
   // Example: node scripts/update-version.js --desc "Fix joystick position"
