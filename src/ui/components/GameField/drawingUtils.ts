@@ -163,6 +163,10 @@ export function drawBoundaryHighlightDots(
   boundaryMarginPx: number,
   dotCount: number,
   tickCount: number,
+  options?: {
+    side?: 'top' | 'bottom' | 'left' | 'right';
+    bounds?: { left: number; right: number; top: number; bottom: number };
+  },
 ) {
   const blinkOn = (tickCount % 12) < 6;
   const alpha = blinkOn ? 1 : 0.35;
@@ -172,6 +176,13 @@ export function drawBoundaryHighlightDots(
 
   const canvasWidth = ctx.canvas.width;
   const canvasHeight = ctx.canvas.height;
+  const left = options?.bounds?.left ?? 0;
+  const right = options?.bounds?.right ?? canvasWidth;
+  const top = options?.bounds?.top ?? 0;
+  const bottom = options?.bounds?.bottom ?? canvasHeight;
+
+  const clampX = (x: number) => Math.max(left, Math.min(right, x));
+  const clampY = (y: number) => Math.max(top, Math.min(bottom, y));
 
   ctx.save();
   ctx.fillStyle = `rgba(255, 200, 100, ${alpha})`;
@@ -182,32 +193,34 @@ export function drawBoundaryHighlightDots(
 
   if (dotCount === 1) {
     dots.push({
-      x: Math.max(0, Math.min(canvasWidth, boundaryX)),
-      y: Math.max(0, Math.min(canvasHeight, boundaryY)),
+      x: clampX(boundaryX),
+      y: clampY(boundaryY),
     });
   } else if (dotCount === 2) {
     // Two dots, slightly offset perpendicular to boundary
     // Determine if boundary is horizontal or vertical
-    const isVertical = boundaryX === 0 || boundaryX === canvasWidth;
+    const isVertical = options?.side
+      ? options.side === 'left' || options.side === 'right'
+      : (boundaryX <= left + 0.5 || boundaryX >= right - 0.5);
     if (isVertical) {
       // Vertical boundary, offset vertically (keep X on boundary)
       dots.push({
-        x: Math.max(0, Math.min(canvasWidth, boundaryX)),
-        y: Math.max(0, Math.min(canvasHeight, boundaryY - boundaryMarginPx)),
+        x: clampX(boundaryX),
+        y: clampY(boundaryY - boundaryMarginPx),
       });
       dots.push({
-        x: Math.max(0, Math.min(canvasWidth, boundaryX)),
-        y: Math.max(0, Math.min(canvasHeight, boundaryY + boundaryMarginPx)),
+        x: clampX(boundaryX),
+        y: clampY(boundaryY + boundaryMarginPx),
       });
     } else {
       // Horizontal boundary, offset horizontally (keep Y on boundary)
       dots.push({
-        x: Math.max(0, Math.min(canvasWidth, boundaryX - boundaryMarginPx)),
-        y: Math.max(0, Math.min(canvasHeight, boundaryY)),
+        x: clampX(boundaryX - boundaryMarginPx),
+        y: clampY(boundaryY),
       });
       dots.push({
-        x: Math.max(0, Math.min(canvasWidth, boundaryX + boundaryMarginPx)),
-        y: Math.max(0, Math.min(canvasHeight, boundaryY)),
+        x: clampX(boundaryX + boundaryMarginPx),
+        y: clampY(boundaryY),
       });
     }
   }

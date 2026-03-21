@@ -126,6 +126,16 @@
   white-space: nowrap;
 }
 
+.tutorial-complete-text {
+  font-size: 13px;
+  color: #c6f5d6;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Complete hint: right-aligned prompt ─────────────────────────────── */
 .tutorial-complete-hint {
   font-size: 11px;

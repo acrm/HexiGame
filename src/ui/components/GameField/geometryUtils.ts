@@ -6,6 +6,13 @@ export const HEX_SIZE = 10; // pixels
 export const HOTBAR_HEX_SIZE = 30;
 export const HOTBAR_RING_RADIUS_MULT = 1.7;
 
+export interface ScreenBoundaryRect {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
 // Helper: axial -> pixel (pointy-top)
 export function hexToPixel(q: number, r: number) {
   const x = HEX_SIZE * 1.5 * q;
@@ -84,17 +91,23 @@ export function isHexFullyVisibleOnScreen(
   scale: number,
   centerX: number,
   centerY: number,
+  boundary?: ScreenBoundaryRect,
 ): boolean {
   const scaledX = centerX + hexWorldPos.x * scale;
   const scaledY = centerY + hexWorldPos.y * scale;
   const hexRadius = HEX_SIZE * scale;
 
+  const left = boundary?.left ?? 0;
+  const right = boundary?.right ?? canvasWidth;
+  const top = boundary?.top ?? 0;
+  const bottom = boundary?.bottom ?? canvasHeight;
+
   const padding = hexRadius;
   return (
-    scaledX - padding >= 0 &&
-    scaledX + padding <= canvasWidth &&
-    scaledY - padding >= 0 &&
-    scaledY + padding <= canvasHeight
+    scaledX - padding >= left &&
+    scaledX + padding <= right &&
+    scaledY - padding >= top &&
+    scaledY + padding <= bottom
   );
 }
 
@@ -109,14 +122,18 @@ export function projectHexOnBoundary(
   scale: number,
   centerX: number,
   centerY: number,
+  boundary?: ScreenBoundaryRect,
 ): { x: number; y: number; side: 'top' | 'bottom' | 'left' | 'right' } {
   const scaledX = centerX + hexWorldPos.x * scale;
   const scaledY = centerY + hexWorldPos.y * scale;
 
-  const halfW = canvasWidth / 2;
-  const halfH = canvasHeight / 2;
-  const centerCanvasX = halfW;
-  const centerCanvasY = halfH;
+  const left = boundary?.left ?? 0;
+  const right = boundary?.right ?? canvasWidth;
+  const top = boundary?.top ?? 0;
+  const bottom = boundary?.bottom ?? canvasHeight;
+
+  const centerCanvasX = (left + right) / 2;
+  const centerCanvasY = (top + bottom) / 2;
 
   // Vector from canvas center to hex
   const dx = scaledX - centerCanvasX;
@@ -124,7 +141,7 @@ export function projectHexOnBoundary(
   const dist = Math.hypot(dx, dy);
 
   if (dist === 0) {
-    return { x: centerCanvasX, y: 0, side: 'top' };
+    return { x: centerCanvasX, y: top, side: 'top' };
   }
 
   // Normalize vector
@@ -141,19 +158,19 @@ export function projectHexOnBoundary(
 
   if (absNx > absNy) {
     // Intersects left or right
-    projX = nx > 0 ? canvasWidth : 0;
+    projX = nx > 0 ? right : left;
     projY = centerCanvasY + ny * (projX - centerCanvasX) / nx;
     side = nx > 0 ? 'right' : 'left';
   } else {
     // Intersects top or bottom
-    projY = ny > 0 ? canvasHeight : 0;
+    projY = ny > 0 ? bottom : top;
     projX = centerCanvasX + nx * (projY - centerCanvasY) / ny;
     side = ny > 0 ? 'bottom' : 'top';
   }
 
   return {
-    x: Math.max(0, Math.min(canvasWidth, projX)),
-    y: Math.max(0, Math.min(canvasHeight, projY)),
+    x: Math.max(left, Math.min(right, projX)),
+    y: Math.max(top, Math.min(bottom, projY)),
     side,
   };
 }

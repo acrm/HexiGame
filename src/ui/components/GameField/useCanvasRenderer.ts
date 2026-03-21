@@ -173,6 +173,13 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         ? canvas.height / 2 - ((activeMinY + activeMaxY) / 2) * scale
         : canvas.height / 2 - hexToPixel(worldViewCenter.q, worldViewCenter.r).y * scale;
 
+      const worldFieldBounds = {
+        left: centerX + worldMinX * scale,
+        right: centerX + worldMaxX * scale,
+        top: centerY + worldMinY * scale,
+        bottom: centerY + worldMaxY * scale,
+      };
+
       scaleRef.current = scale;
       centerXRef.current = centerX;
       centerYRef.current = centerY;
@@ -311,6 +318,7 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
             scale,
             centerX,
             centerY,
+            worldFieldBounds,
           );
 
           if (isFullyVisible) {
@@ -325,6 +333,7 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
               scale,
               centerX,
               centerY,
+              worldFieldBounds,
             );
 
             // Calculate distance to boundary
@@ -340,6 +349,10 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
               boundaryMarginPx,
               dotCount,
               gameState.tick,
+              {
+                side: projection.side,
+                bounds: worldFieldBounds,
+              },
             );
           }
         }

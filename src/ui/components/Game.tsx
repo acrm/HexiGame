@@ -47,7 +47,7 @@ import {
   checkFocusTargetVisit,
   type TutorialFlowState,
 } from '../../appLogic/tutorialFlow';
-import { getHintForMode, getLocalizedText } from '../../tutorial/tutorialState';
+import { getLocalizedText } from '../../tutorial/tutorialState';
 import { useKeyboardInput } from '../hooks/useKeyboardInput';
 import { useGameAudio } from '../hooks/useGameAudio';
 import {
@@ -636,6 +636,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     },
   };
 
+  const tutorialCompleteTextByLabelKey: Record<string, string> = {
+    'tutorial.cellsVisited': t('tutorial.complete.cellsVisited'),
+    'tutorial.colorsCollected': t('tutorial.complete.colorsCollected'),
+    'tutorial.cellsCleared': t('tutorial.complete.cellsCleared'),
+    'tutorial.cellsPlaced': t('tutorial.complete.cellsPlaced'),
+  };
+
   const tutorialWidgetProps = tutorialViewModel.level
     ? {
         phase: tutorialWidgetPhase,
@@ -643,6 +650,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         progressCurrent: tutorialViewModel.progressCurrent,
         progressTotal: tutorialViewModel.progressTotal,
         progressLabel: t(tutorialViewModel.progressLabelKey),
+        completeText:
+          tutorialCompleteTextByLabelKey[tutorialViewModel.progressLabelKey] ??
+          t('tutorial.widget.done'),
         onWidgetClick: handleWidgetClick,
         containerRef: tutorialWidgetRef,
       }

@@ -11,6 +11,7 @@ interface TutorialProgressWidgetProps {
   progressCurrent: number;
   progressTotal: number;
   progressLabel: string;
+  completeText: string;
   onWidgetClick: () => void;
   containerRef?: React.Ref<HTMLDivElement>;
 }
@@ -21,6 +22,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   progressCurrent,
   progressTotal,
   progressLabel,
+  completeText,
   onWidgetClick,
   containerRef,
 }) => {
@@ -51,8 +53,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
         {phase === 'complete' && (
           <div className="tutorial-progress-row">
             <span className="tutorial-progress-checkbox checked" aria-hidden="true">✓</span>
-            <span className="tutorial-progress-count">{progressCurrent} / {progressTotal}</span>
-            <span className="tutorial-progress-label">{progressLabel}</span>
+            <span className="tutorial-complete-text">{completeText}</span>
             <span className="tutorial-complete-hint">{t('tutorial.widget.tapNext')}</span>
           </div>
         )}

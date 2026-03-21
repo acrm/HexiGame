@@ -577,3 +577,5 @@
 - 2026w12-0.17 — Editor: LMB pan, large swatches with % inside, radio base picker, copy button
 
 - 2026w12-0.18 — Editor: anchorCell format, anchor placement mode, anchor marker rendering
+
+- 2026w13-0.1 — tutorial widget phase flow and field-boundary highlights
