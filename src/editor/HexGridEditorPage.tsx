@@ -76,7 +76,11 @@ export default function HexGridEditorPage() {
   const [basePaletteIndex, setBasePaletteIndex] = useState<number>(DefaultParams.PlayerBaseColorIndex);
   const [paintRelativeColor, setPaintRelativeColor] = useState<number | null>(0);
   const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const boardRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef({ x: 0, y: 0 });
+  const dragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
+  const didDragRef = useRef(false);
 
   const gridRadius = useMemo(() => computeGridRadius(documentState), [documentState]);
 
@@ -124,8 +128,30 @@ export default function HexGridEditorPage() {
       e.preventDefault();
       setZoom(z => Math.max(0.25, Math.min(4, z * (e.deltaY < 0 ? 1.1 : 0.9))));
     };
+    const onMouseMove = (e: MouseEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        didDragRef.current = true;
+      }
+      const next = { x: drag.startPanX + dx, y: drag.startPanY + dy };
+      panRef.current = next;
+      setPanOffset(next);
+    };
+    const onMouseUp = () => {
+      dragRef.current = null;
+      board.classList.remove('panning');
+    };
     board.addEventListener('wheel', onWheel, { passive: false });
-    return () => board.removeEventListener('wheel', onWheel);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      board.removeEventListener('wheel', onWheel);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
   }, []);
 
   const handleCoordinatesChange = (rawValue: string) => {
@@ -145,6 +171,7 @@ export default function HexGridEditorPage() {
   };
 
   const handleCellClick = (cell: Axial) => {
+    if (didDragRef.current) return;
     const nextCells = toggleCell(documentState.cells, cell, paintRelativeColor);
     setDocumentState({
       cells: nextCells,
@@ -153,19 +180,16 @@ export default function HexGridEditorPage() {
     });
   };
 
-  const handleBasePaletteIndexChange = (newIndex: number) => {
-    setBasePaletteIndex(newIndex);
-  };
-
-  const handlePaintRelativeColorChange = (rawValue: string) => {
-    const trimmed = rawValue.trim();
-    const nextRelativeColor = trimmed === '' ? null : Number(trimmed);
-
-    if (trimmed !== '' && !Number.isFinite(nextRelativeColor)) {
-      return;
-    }
-
-    setPaintRelativeColor(nextRelativeColor);
+  const handleBoardMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    didDragRef.current = false;
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startPanX: panRef.current.x,
+      startPanY: panRef.current.y,
+    };
+    boardRef.current?.classList.add('panning');
   };
 
   const handlePaletteSwatchClick = (index: number) => {
@@ -192,13 +216,13 @@ export default function HexGridEditorPage() {
 
   return (
     <div className="editor-page">
-      <div className="editor-grid-panel" ref={boardRef}>
+      <div className="editor-grid-panel" ref={boardRef} onMouseDown={handleBoardMouseDown}>
         <div className="editor-zoom-controls">
           <button type="button" className="editor-zoom-btn" onClick={handleZoomOut} title="Zoom out">−</button>
           <span className="editor-zoom-label">{Math.round(zoom * 100)}%</span>
           <button type="button" className="editor-zoom-btn" onClick={handleZoomIn} title="Zoom in">+</button>
         </div>
-        <div className="editor-grid-zoom-wrapper" style={{ transform: `scale(${zoom})` }}>
+        <div className="editor-grid-zoom-wrapper" style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})` }}>
           <svg className="editor-grid-svg" viewBox={gridLayout.viewBox} role="img" aria-label="Editable axial hex grid">
             {gridLayout.positionedCells.map(({ cell, x, y }) => {
               const cellKey = keyOfAxial(cell);
@@ -262,53 +286,45 @@ export default function HexGridEditorPage() {
         </div>
 
         <div className="editor-control-section">
-          <label className="editor-field-label">
-            Palette (click to select paint color)
+          <div className="editor-field-label">
+            Palette
             <div className="editor-palette-row">
               {EDITOR_PALETTE.map((paletteColor, index) => {
                 const relativeColor = getRelativeColorForPaletteIndex(index);
                 const isActive = paintRelativeColor === relativeColor;
                 const isBaseColor = basePaletteIndex === index;
                 return (
-                  <div key={`${paletteColor}-${index}`} className="editor-palette-swatch-wrapper">
-                    <button
-                      type="button"
-                      className={`editor-palette-swatch ${isActive ? 'active' : ''}`}
-                      style={{ backgroundColor: paletteColor }}
-                      onClick={() => handlePaletteSwatchClick(index)}
-                      aria-label={`Paint with relativeColor ${relativeColor.toFixed(2)}%`}
-                      title={`relativeColor: ${relativeColor.toFixed(2)}%`}
-                    />
-                    <div className="editor-palette-label">
-                      {isBaseColor ? '0%' : `${relativeColor.toFixed(0)}%`}
-                    </div>
-                  </div>
+                  <button
+                    key={`${paletteColor}-${index}`}
+                    type="button"
+                    className={`editor-palette-swatch ${isActive ? 'active' : ''} ${isBaseColor ? 'base' : ''}`}
+                    style={{ backgroundColor: paletteColor }}
+                    onClick={() => handlePaletteSwatchClick(index)}
+                    aria-label={`Paint with relativeColor ${relativeColor.toFixed(2)}%`}
+                    title={`relativeColor: ${relativeColor.toFixed(2)}%`}
+                  >
+                    {isBaseColor ? '0%' : `${relativeColor.toFixed(0)}%`}
+                  </button>
                 );
               })}
             </div>
-            <div className="editor-palette-caption">
-              Paint color: {paintRelativeColor?.toFixed(2) ?? 'none'}%
-            </div>
-          </label>
-
-          <label className="editor-field-label editor-slider-label">
-            Base color (0%)
-            <div className="editor-slider-container">
-              <input
-                className="editor-slider-input"
-                type="range"
-                min="0"
-                max={EDITOR_PALETTE.length - 1}
-                value={basePaletteIndex}
-                onChange={(event) => setBasePaletteIndex(Number(event.target.value))}
-                step="1"
-                title="Shift palette: which color counts as 0%"
-              />
+            <div className="editor-palette-row editor-base-radio-row">
+              {EDITOR_PALETTE.map((_, index) => (
+                <label key={index} className="editor-base-radio-label" title={`Set color #${index} as base (0%)`}>
+                  <input
+                    type="radio"
+                    name="base-palette"
+                    className="editor-base-radio"
+                    checked={basePaletteIndex === index}
+                    onChange={() => setBasePaletteIndex(index)}
+                  />
+                </label>
+              ))}
             </div>
             <div className="editor-palette-caption">
-              Base: {EDITOR_PALETTE[basePaletteIndex]}
+              Paint: {paintRelativeColor?.toFixed(0) ?? 'none'}% · Base: #{basePaletteIndex}
             </div>
-          </label>
+          </div>
         </div>
 
         <div className="editor-control-section">
@@ -316,14 +332,24 @@ export default function HexGridEditorPage() {
             <label className="editor-field-label">
               Coordinates (grouped by r, sorted by q)
             </label>
-            <button
-              className="editor-clear-button"
-              type="button"
-              onClick={handleClearCoordinates}
-              title="Clear all coordinates"
-            >
-              Clear
-            </button>
+            <div className="editor-coord-actions">
+              <button
+                className="editor-copy-button"
+                type="button"
+                onClick={() => { void navigator.clipboard.writeText(documentState.rawValue); }}
+                title="Copy coordinates to clipboard"
+              >
+                Copy
+              </button>
+              <button
+                className="editor-clear-button"
+                type="button"
+                onClick={handleClearCoordinates}
+                title="Clear all coordinates"
+              >
+                Clear
+              </button>
+            </div>
           </div>
           <textarea
             className="editor-textarea"

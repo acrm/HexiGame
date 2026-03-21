@@ -51,6 +51,12 @@ textarea {
       transparent 1px,
       transparent 28px
     );
+  cursor: grab;
+}
+
+.editor-grid-panel.panning {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .editor-grid-zoom-wrapper {
@@ -207,11 +213,22 @@ textarea {
 }
 
 .editor-palette-swatch {
-  width: 30px;
-  height: 30px;
+  flex: 1;
+  height: 52px;
   border-radius: 10px;
   border: 2px solid rgba(17, 75, 95, 0.22);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.editor-palette-swatch.base {
+  border-bottom: 4px solid rgba(255, 255, 255, 0.75);
 }
 
 .editor-palette-swatch.active {
@@ -232,6 +249,26 @@ textarea {
   margin-top: 8px;
   font-size: 12px;
   color: #5f5044;
+}
+
+.editor-base-radio-row {
+  margin-top: 6px;
+}
+
+.editor-base-radio-label {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.editor-base-radio {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #114b5f;
+  margin: 0;
 }
 
 .editor-sidebar {
@@ -473,6 +510,33 @@ textarea {
 }
 
 .editor-clear-button:active {
+  transform: scale(0.96);
+}
+
+.editor-coord-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.editor-copy-button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(17, 75, 95, 0.12);
+  color: #114b5f;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 0.15s ease-out;
+}
+
+.editor-copy-button:hover {
+  background: rgba(17, 75, 95, 0.22);
+}
+
+.editor-copy-button:active {
   transform: scale(0.96);
 }
 
