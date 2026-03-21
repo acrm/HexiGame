@@ -150,3 +150,54 @@ export function drawCornerDots(
   }
   ctx.restore();
 }
+
+/**
+ * Draw highlight dots on screen boundary for off-screen target
+ * dotCount determines how many dots to draw
+ */
+export function drawBoundaryHighlightDots(
+  ctx: CanvasRenderingContext2D,
+  boundaryX: number,
+  boundaryY: number,
+  boundaryMarginPx: number,
+  dotCount: number,
+  tickCount: number,
+) {
+  const blinkOn = (tickCount % 12) < 6;
+  const alpha = blinkOn ? 1 : 0.35;
+  const dotRadius = 3;
+
+  if (dotCount === 0) return;
+
+  ctx.save();
+  ctx.fillStyle = `rgba(255, 200, 100, ${alpha})`;
+
+  // Distribute dots along the boundary
+  // Single dot or two dots will be placed strategically
+  const dots: { x: number; y: number }[] = [];
+
+  if (dotCount === 1) {
+    dots.push({ x: boundaryX, y: boundaryY });
+  } else if (dotCount === 2) {
+    // Two dots, slightly offset perpendicular to boundary
+    // Determine if boundary is horizontal or vertical
+    const isVertical = boundaryX === 0 || boundaryX === ctx.canvas.width;
+    if (isVertical) {
+      // Vertical boundary, offset vertically
+      dots.push({ x: boundaryX, y: boundaryY - boundaryMarginPx });
+      dots.push({ x: boundaryX, y: boundaryY + boundaryMarginPx });
+    } else {
+      // Horizontal boundary, offset horizontally
+      dots.push({ x: boundaryX - boundaryMarginPx, y: boundaryY });
+      dots.push({ x: boundaryX + boundaryMarginPx, y: boundaryY });
+    }
+  }
+
+  for (const dot of dots) {
+    ctx.beginPath();
+    ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}

@@ -19,6 +19,7 @@ import { renderTemplateOverlay } from '../TemplateRenderer';
 import {
   drawHex,
   drawCornerDots,
+  drawBoundaryHighlightDots,
   drawFrozenFocus,
   drawRotatingOppositeFaces,
 } from './drawingUtils';
@@ -26,6 +27,10 @@ import {
   HEX_SIZE,
   hexToPixel,
   getHotbarGeometry,
+  isHexFullyVisibleOnScreen,
+  projectHexOnBoundary,
+  calculateDistanceToBoundary,
+  calculateHighlightDotCount,
 } from './geometryUtils';
 
 const GRID_STROKE_COLOR = '#635572ff';
@@ -293,10 +298,50 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         for (const cell of tutorialTargetCells) {
           const cellKey = `${cell.q},${cell.r}`;
           if (visitedTutorialCells.has(cellKey)) continue;
+
           const pos = hexToPixel(cell.q, cell.r);
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
-          drawCornerDots(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick);
+
+          // Check if hex is fully visible on screen
+          const isFullyVisible = isHexFullyVisibleOnScreen(
+            pos,
+            canvas.width,
+            canvas.height,
+            scale,
+            centerX,
+            centerY,
+          );
+
+          if (isFullyVisible) {
+            // Draw all 6 corner dots as normal
+            drawCornerDots(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick);
+          } else {
+            // Hex is off-screen, project to boundary
+            const projection = projectHexOnBoundary(
+              pos,
+              canvas.width,
+              canvas.height,
+              scale,
+              centerX,
+              centerY,
+            );
+
+            // Calculate distance to boundary
+            const distToBoundary = calculateDistanceToBoundary(cell, worldViewCenter, visibleRadius);
+            const dotCount = calculateHighlightDotCount(distToBoundary);
+
+            // Draw dots on boundary with margin
+            const boundaryMarginPx = 15;
+            drawBoundaryHighlightDots(
+              ctx,
+              projection.x,
+              projection.y,
+              boundaryMarginPx,
+              dotCount,
+              gameState.tick,
+            );
+          }
         }
       }
 
