@@ -19,7 +19,7 @@ import { renderTemplateOverlay } from '../TemplateRenderer';
 import {
   drawHex,
   drawCornerDots,
-  drawBoundaryHighlightDots,
+  drawHighlightDotsAtPositions,
   drawFrozenFocus,
   drawRotatingOppositeFaces,
 } from './drawingUtils';
@@ -27,10 +27,11 @@ import {
   HEX_SIZE,
   hexToPixel,
   getHotbarGeometry,
-  isHexFullyVisibleOnScreen,
-  projectHexOnBoundary,
   calculateDistanceToBoundary,
   calculateHighlightDotCount,
+  getFieldCenterScreenPosition,
+  computeVisibleFieldBoundaryVertices,
+  selectBoundaryHighlightVertices,
 } from './geometryUtils';
 
 const GRID_STROKE_COLOR = '#635572ff';
@@ -59,8 +60,8 @@ export interface UseCanvasRendererOptions {
   isInventory: boolean;
   hideHotbar: boolean;
   isLeftHanded: boolean;
-  tutorialTargetCells: Axial[];
-  visitedTutorialCells: Set<string>;
+  highlightTargets: Axial[];
+  visitedHighlightTargets: Set<string>;
   scaleRef: React.MutableRefObject<number>;
   centerXRef: React.MutableRefObject<number>;
   centerYRef: React.MutableRefObject<number>;
@@ -78,8 +79,8 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
     isInventory,
     hideHotbar,
     isLeftHanded,
-    tutorialTargetCells,
-    visitedTutorialCells,
+    highlightTargets,
+    visitedHighlightTargets,
     scaleRef,
     centerXRef,
     centerYRef,
@@ -173,12 +174,14 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         ? canvas.height / 2 - ((activeMinY + activeMaxY) / 2) * scale
         : canvas.height / 2 - hexToPixel(worldViewCenter.q, worldViewCenter.r).y * scale;
 
-      const worldFieldBounds = {
-        left: centerX + worldMinX * scale,
-        right: centerX + worldMaxX * scale,
-        top: centerY + worldMinY * scale,
-        bottom: centerY + worldMaxY * scale,
-      };
+      const fieldCenter = getFieldCenterScreenPosition(worldViewCenter, scale, centerX, centerY);
+      const visibleBoundaryVertices = computeVisibleFieldBoundaryVertices(
+        worldViewCenter,
+        visibleRadius,
+        scale,
+        centerX,
+        centerY,
+      );
 
       scaleRef.current = scale;
       centerXRef.current = centerX;
@@ -301,59 +304,32 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         }
       }
 
-      if (!isInventory && tutorialTargetCells.length > 0) {
-        for (const cell of tutorialTargetCells) {
+      if (!isInventory && highlightTargets.length > 0) {
+        for (const cell of highlightTargets) {
           const cellKey = `${cell.q},${cell.r}`;
-          if (visitedTutorialCells.has(cellKey)) continue;
+          if (visitedHighlightTargets.has(cellKey)) continue;
 
           const pos = hexToPixel(cell.q, cell.r);
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
+          const isInsideVisibleField = axialDistance(cell, worldViewCenter) <= visibleRadius;
 
-          // Check if hex is fully visible on screen
-          const isFullyVisible = isHexFullyVisibleOnScreen(
-            pos,
-            canvas.width,
-            canvas.height,
-            scale,
-            centerX,
-            centerY,
-            worldFieldBounds,
-          );
-
-          if (isFullyVisible) {
+          if (isInsideVisibleField) {
             // Draw all 6 corner dots as normal
             drawCornerDots(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick);
           } else {
-            // Hex is off-screen, project to boundary
-            const projection = projectHexOnBoundary(
-              pos,
-              canvas.width,
-              canvas.height,
-              scale,
-              centerX,
-              centerY,
-              worldFieldBounds,
-            );
-
-            // Calculate distance to boundary
             const distToBoundary = calculateDistanceToBoundary(cell, worldViewCenter, visibleRadius);
-            const dotCount = calculateHighlightDotCount(distToBoundary);
-
-            // Draw dots on boundary with margin
-            const boundaryMarginPx = 15;
-            drawBoundaryHighlightDots(
-              ctx,
-              projection.x,
-              projection.y,
-              boundaryMarginPx,
+            const dotCount = calculateHighlightDotCount(distToBoundary, visibleRadius);
+            const boundaryDots = selectBoundaryHighlightVertices(
+              visibleBoundaryVertices,
+              fieldCenter,
+              { x: scaledX, y: scaledY },
               dotCount,
-              gameState.tick,
-              {
-                side: projection.side,
-                bounds: worldFieldBounds,
-              },
             );
+
+            drawHighlightDotsAtPositions(ctx, boundaryDots, gameState.tick, {
+              dotRadius: Math.max(1.4, scale * 0.12),
+            });
           }
         }
       }
@@ -593,8 +569,8 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
     isInventory,
     hideHotbar,
     isLeftHanded,
-    tutorialTargetCells,
-    visitedTutorialCells,
+    highlightTargets,
+    visitedHighlightTargets,
     scaleRef,
     centerXRef,
     centerYRef,

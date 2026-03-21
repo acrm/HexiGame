@@ -581,3 +581,5 @@
 - 2026w13-0.1 — tutorial widget phase flow and field-boundary highlights
 
 - 2026w13-0.2 — Templates: nest structure object and support staged-only bump workflow
+
+- 2026w13-0.3 — Tutorial flow polish and boundary-safe POI highlights

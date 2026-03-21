@@ -151,6 +151,32 @@ export function drawCornerDots(
   ctx.restore();
 }
 
+export function drawHighlightDotsAtPositions(
+  ctx: CanvasRenderingContext2D,
+  dots: Array<{ x: number; y: number }>,
+  tickCount: number,
+  options?: {
+    color?: string;
+    dotRadius?: number;
+  },
+) {
+  if (dots.length === 0) return;
+
+  const blinkOn = (tickCount % 12) < 6;
+  const alpha = blinkOn ? 1 : 0.35;
+  const dotRadius = options?.dotRadius ?? 3;
+  const color = options?.color ?? '255, 200, 100';
+
+  ctx.save();
+  ctx.fillStyle = `rgba(${color}, ${alpha})`;
+  for (const dot of dots) {
+    ctx.beginPath();
+    ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /**
  * Draw highlight dots on screen boundary for off-screen target
  * dotCount determines how many dots to draw

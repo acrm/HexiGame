@@ -13,6 +13,7 @@ interface TutorialProgressWidgetProps {
   progressLabel: string;
   completeText: string;
   onWidgetClick: () => void;
+  onNavigateToTasks?: () => void;
   containerRef?: React.Ref<HTMLDivElement>;
 }
 
@@ -24,6 +25,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   progressLabel,
   completeText,
   onWidgetClick,
+  onNavigateToTasks,
   containerRef,
 }) => {
   return (
@@ -54,10 +56,23 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           <div className="tutorial-progress-row">
             <span className="tutorial-progress-checkbox checked" aria-hidden="true">✓</span>
             <span className="tutorial-complete-text">{completeText}</span>
-            <span className="tutorial-complete-hint">{t('tutorial.widget.tapNext')}</span>
           </div>
         )}
       </div>
+      {onNavigateToTasks && (
+        <button
+          type="button"
+          className="overlay-widget-edge-button tutorial-info-button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onNavigateToTasks();
+          }}
+          title={t('tutorial.widget.openTasks')}
+          aria-label={t('tutorial.widget.openTasks')}
+        >
+          »
+        </button>
+      )}
     </div>
   );
 };

@@ -13,6 +13,125 @@ export interface ScreenBoundaryRect {
   bottom: number;
 }
 
+export interface ScreenBoundaryVertex {
+  x: number;
+  y: number;
+  key: string;
+  angle: number;
+}
+
+const AXIAL_DIRECTIONS = [
+  { q: 1, r: 0 },
+  { q: 1, r: -1 },
+  { q: 0, r: -1 },
+  { q: -1, r: 0 },
+  { q: -1, r: 1 },
+  { q: 0, r: 1 },
+];
+
+function axialDistanceLocal(a: { q: number; r: number }, b: { q: number; r: number }): number {
+  return (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + Math.abs((a.q + a.r) - (b.q + b.r))) / 2;
+}
+
+function createScreenVertexKey(x: number, y: number): string {
+  return `${Math.round(x)}:${Math.round(y)}`;
+}
+
+function normalizeAngleDiff(a: number, b: number): number {
+  const raw = Math.abs(a - b) % (Math.PI * 2);
+  return raw > Math.PI ? Math.PI * 2 - raw : raw;
+}
+
+function addVertex(
+  map: Map<string, { x: number; y: number }>,
+  x: number,
+  y: number,
+): void {
+  const key = createScreenVertexKey(x, y);
+  if (!map.has(key)) {
+    map.set(key, { x, y });
+  }
+}
+
+export function getFieldCenterScreenPosition(
+  worldViewCenter: { q: number; r: number },
+  scale: number,
+  centerX: number,
+  centerY: number,
+): { x: number; y: number } {
+  const centerWorldPos = hexToPixel(worldViewCenter.q, worldViewCenter.r);
+  return {
+    x: centerX + centerWorldPos.x * scale,
+    y: centerY + centerWorldPos.y * scale,
+  };
+}
+
+export function computeVisibleFieldBoundaryVertices(
+  worldViewCenter: { q: number; r: number },
+  visibleRadius: number,
+  scale: number,
+  centerX: number,
+  centerY: number,
+): ScreenBoundaryVertex[] {
+  const boundaryVertexMap = new Map<string, { x: number; y: number }>();
+  const vertexRadius = HEX_SIZE * scale;
+  const angleStep = Math.PI / 3;
+  const fieldCenter = getFieldCenterScreenPosition(worldViewCenter, scale, centerX, centerY);
+
+  for (let dq = -visibleRadius; dq <= visibleRadius; dq++) {
+    for (let dr = -visibleRadius; dr <= visibleRadius; dr++) {
+      if (axialDistanceLocal({ q: 0, r: 0 }, { q: dq, r: dr }) > visibleRadius) continue;
+
+      const absCell = { q: worldViewCenter.q + dq, r: worldViewCenter.r + dr };
+      const cellPos = hexToPixel(absCell.q, absCell.r);
+      const screenX = centerX + cellPos.x * scale;
+      const screenY = centerY + cellPos.y * scale;
+
+      for (let dirIndex = 0; dirIndex < AXIAL_DIRECTIONS.length; dirIndex++) {
+        const dir = AXIAL_DIRECTIONS[dirIndex];
+        const neighborRel = { q: dq + dir.q, r: dr + dir.r };
+        const neighborInside = axialDistanceLocal({ q: 0, r: 0 }, neighborRel) <= visibleRadius;
+        if (neighborInside) continue;
+
+        const a1 = angleStep * dirIndex;
+        const a2 = angleStep * ((dirIndex + 1) % 6);
+        addVertex(boundaryVertexMap, screenX + vertexRadius * Math.cos(a1), screenY + vertexRadius * Math.sin(a1));
+        addVertex(boundaryVertexMap, screenX + vertexRadius * Math.cos(a2), screenY + vertexRadius * Math.sin(a2));
+      }
+    }
+  }
+
+  return Array.from(boundaryVertexMap.entries())
+    .map(([key, v]) => ({
+      x: v.x,
+      y: v.y,
+      key,
+      angle: Math.atan2(v.y - fieldCenter.y, v.x - fieldCenter.x),
+    }))
+    .sort((a, b) => a.angle - b.angle);
+}
+
+export function selectBoundaryHighlightVertices(
+  boundaryVertices: ScreenBoundaryVertex[],
+  fieldCenter: { x: number; y: number },
+  targetScreen: { x: number; y: number },
+  dotCount: number,
+): Array<{ x: number; y: number }> {
+  if (dotCount <= 0 || boundaryVertices.length === 0) return [];
+
+  const targetAngle = Math.atan2(targetScreen.y - fieldCenter.y, targetScreen.x - fieldCenter.x);
+
+  const ranked = boundaryVertices
+    .map((vertex) => ({
+      vertex,
+      angleDiff: normalizeAngleDiff(vertex.angle, targetAngle),
+    }))
+    .sort((a, b) => a.angleDiff - b.angleDiff);
+
+  const takeCount = Math.min(dotCount, ranked.length);
+  return ranked.slice(0, takeCount).map(({ vertex }) => ({ x: vertex.x, y: vertex.y }));
+}
+
 // Helper: axial -> pixel (pointy-top)
 export function hexToPixel(q: number, r: number) {
   const x = HEX_SIZE * 1.5 * q;
@@ -202,13 +321,13 @@ export function calculateDistanceToBoundary(
  * - Partially visible (distance > 0): show 2 dots
  * - Far away (distance > 3 * diameters): show 1 dot
  */
-export function calculateHighlightDotCount(distanceToBoundary: number): number {
-  const DIAMETER_IN_HEX_UNITS = 2; // Approximate diameter of visible area in hex units
-  const FADE_DISTANCE = 3 * DIAMETER_IN_HEX_UNITS;
+export function calculateHighlightDotCount(distanceToBoundary: number, visibleRadius: number): number {
+  const visibleFieldDiameter = Math.max(2, visibleRadius * 2 + 1);
+  const nearBoundaryThreshold = Math.max(1, Math.round(visibleFieldDiameter / 2));
 
   if (distanceToBoundary <= 0) {
     return 6; // Fully visible, all corners
-  } else if (distanceToBoundary <= FADE_DISTANCE) {
+  } else if (distanceToBoundary <= nearBoundaryThreshold) {
     return 2; // Close to boundary, 2 dots
   } else {
     return 1; // Far away, 1 dot

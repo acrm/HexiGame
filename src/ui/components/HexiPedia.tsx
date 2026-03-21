@@ -110,8 +110,6 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   const lang = getLanguage();
   const locale = lang === 'ru' ? 'ru-RU' : 'en-US';
   const progress = gameState.tutorialProgress;
-  const hint = tutorialLevel ? getHintForMode(tutorialLevel.hints, interactionMode, lang) : '';
-  const fullHint = hint ? `${hint} ${t('tutorial.followFocusNote')}` : t('tutorial.followFocusNote');
 
   const targetCells = tutorialLevel?.targetCells ?? [];
   const targetKeys = tutorialLevel ? targetCells.map(axialToKey) : [];
@@ -401,9 +399,10 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                     <div className="hexipedia-accordion-list">
                       {allLevels.map(level => {
                         const isCurrent = tutorialLevelId === level.id;
-                        const isCompleted = completedLevelIds.has(level.id) || (isCurrent && isTutorialTaskComplete);
-                        const hintText = isCurrent ? fullHint : getHintForMode(level.hints, interactionMode, lang);
-                        const levelTargetCells = isCurrent ? targetCells : (level.targetCells ?? []);
+                        const isActive = gameState.tutorialLevelId === level.id;
+                        const isCompleted = completedLevelIds.has(level.id) || (isActive && isTutorialTaskComplete);
+                        const hintText = getHintForMode(level.hints, interactionMode, lang);
+                        const levelTargetCells = isActive ? targetCells : (level.targetCells ?? []);
                         const baseLevelProgress = level.getProgress
                           ? level.getProgress(
                               gameState,
@@ -415,7 +414,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                               total: levelTargetCells.length,
                               labelKey: 'tutorial.cellsVisited',
                             };
-                        const levelProgress = isCurrent && progress
+                        const levelProgress = isActive && progress
                           ? (level.getProgress
                             ? level.getProgress(gameState, params, progress)
                             : {
@@ -436,7 +435,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                 {isCompleted ? '✓' : ''}
                               </span>
                               <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
-                                {getLocalizedText(level.objective, lang)}
+                                {getLocalizedText(level.name, lang)}
                               </span>
                               <div className="hexipedia-task-actions">
                                 {!isCompleted ? (
@@ -468,6 +467,21 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                             {expandedLevelId === level.id && (
                               <div className="hexipedia-accordion-content">
                                 <div className="hexipedia-section">
+                                  <div className="hexipedia-section-title">{t('tutorial.story')}</div>
+                                  <div className="hexipedia-text">{getLocalizedText(level.setup, lang)}</div>
+                                </div>
+
+                                <div className="hexipedia-section">
+                                  <div className="hexipedia-section-title">{t('tutorial.goal')}</div>
+                                  <div className="hexipedia-text">{getLocalizedText(level.objective, lang)}</div>
+                                </div>
+
+                                <div className="hexipedia-section">
+                                  <div className="hexipedia-section-title">{t('tutorial.progress')}</div>
+                                  <div className="hexipedia-text">{levelProgress.current} / {levelProgress.total} {t(levelProgress.labelKey)}</div>
+                                </div>
+
+                                <div className="hexipedia-section">
                                   <div className="hexipedia-section-title">{t('tutorial.hint')}</div>
                                   <div className="hexipedia-text">
                                     {hintText.includes('HexiMap') ? (
@@ -488,11 +502,6 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                                       hintText
                                     )}
                                   </div>
-                                </div>
-
-                                <div className="hexipedia-section">
-                                  <div className="hexipedia-section-title">{t('tutorial.progress')}</div>
-                                  <div className="hexipedia-text">{levelProgress.current} / {levelProgress.total} {t(levelProgress.labelKey)}</div>
                                 </div>
                               </div>
                             )}

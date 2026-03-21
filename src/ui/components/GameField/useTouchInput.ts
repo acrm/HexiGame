@@ -28,6 +28,7 @@ export interface TouchInputOptions extends TouchInputHandlers {
   hideHotbar: boolean;
   isLeftHanded: boolean;
   pixelToAxial: (px: number, py: number) => { q: number; r: number };
+  isCellInteractable: (q: number, r: number) => boolean;
   detectHotbarSlotClick: (px: number, py: number) => number | null;
 }
 
@@ -39,6 +40,7 @@ export function useTouchInput(options: TouchInputOptions): void {
     hideHotbar,
     isLeftHanded,
     pixelToAxial,
+    isCellInteractable,
     detectHotbarSlotClick,
     onHotbarSlotClick,
     onCapture,
@@ -88,6 +90,9 @@ export function useTouchInput(options: TouchInputOptions): void {
 
         if (!consumed) {
           const axial = pixelToAxial(x, y);
+          if (!isCellInteractable(axial.q, axial.r)) {
+            continue;
+          }
           if (onCellClickDown) {
             onCellClickDown(axial.q, axial.r);
           }
@@ -137,6 +142,7 @@ export function useTouchInput(options: TouchInputOptions): void {
     hideHotbar,
     isLeftHanded,
     pixelToAxial,
+    isCellInteractable,
     detectHotbarSlotClick,
     onHotbarSlotClick,
     onCapture,

@@ -3,6 +3,11 @@
   margin: 8px;
 }
 
+.tutorial-info-button {
+  font-size: 16px;
+  letter-spacing: -0.03em;
+}
+
 .tutorial-progress-widget {
   display: flex;
   align-items: center;
@@ -134,14 +139,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-right: auto;
 }
 
 /* ── Complete hint: right-aligned prompt ─────────────────────────────── */
-.tutorial-complete-hint {
-  font-size: 11px;
-  color: #6de09a;
-  margin-left: auto;
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-weight: 500;
-}

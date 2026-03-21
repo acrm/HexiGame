@@ -47,6 +47,7 @@ import {
   checkFocusTargetVisit,
   type TutorialFlowState,
 } from '../../appLogic/tutorialFlow';
+import { getTutorialLevel } from '../../tutorial/tutorialLevels';
 import { getLocalizedText } from '../../tutorial/tutorialState';
 import { useKeyboardInput } from '../hooks/useKeyboardInput';
 import { useGameAudio } from '../hooks/useGameAudio';
@@ -123,6 +124,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'stats', 'templates', 'colors']);
   const [tutorialIntroModal, setTutorialIntroModal] = useState<TutorialIntroModalState | null>(null);
   const [tutorialWidgetPhase, setTutorialWidgetPhase] = useState<TutorialWidgetPhase>('pending');
+  const [activeTutorialLevelId, setActiveTutorialLevelId] = useState<string | null>(null);
+  const [pendingForceResetLevelId, setPendingForceResetLevelId] = useState<string | null>(null);
   const tutorialWidgetRef = useRef<HTMLDivElement | null>(null);
 
   // Game session state
@@ -172,10 +175,20 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setGameState(fresh);
   };
 
-  // Compute tutorial view model
+  const selectedTutorialLevel = useMemo(
+    () => (tutorialFlowState.currentLevelId ? getTutorialLevel(tutorialFlowState.currentLevelId) : null),
+    [tutorialFlowState.currentLevelId],
+  );
+
+  const activeTutorialFlowState = useMemo<TutorialFlowState>(
+    () => ({ currentLevelId: activeTutorialLevelId }),
+    [activeTutorialLevelId],
+  );
+
+  // Compute tutorial view model for ACTIVE task only
   const tutorialViewModel = useMemo(
-    () => computeTutorialViewModel(tutorialFlowState, gameState, mergedParams),
-    [tutorialFlowState, gameState, mergedParams],
+    () => computeTutorialViewModel(activeTutorialFlowState, gameState, mergedParams),
+    [activeTutorialFlowState, gameState, mergedParams],
   );
 
   // Tutorial actions
@@ -207,9 +220,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Sync tutorial level into gameState when tutorialFlowState changes
   useEffect(() => {
-    dispatch({ type: 'SET_TUTORIAL_LEVEL', levelId: tutorialFlowState.currentLevelId });
+    const forceReset =
+      activeTutorialLevelId !== null && pendingForceResetLevelId === activeTutorialLevelId;
+
+    dispatch({
+      type: 'SET_TUTORIAL_LEVEL',
+      levelId: activeTutorialLevelId,
+      forceReset,
+    });
+
+    if (forceReset) {
+      setPendingForceResetLevelId(null);
+    }
+
     dispatch({ type: 'SET_TUTORIAL_INTERACTION_MODE', mode: interactionMode });
-  }, [tutorialFlowState.currentLevelId, interactionMode, dispatch]);
+  }, [activeTutorialLevelId, pendingForceResetLevelId, interactionMode, dispatch]);
 
   // Pause/resume on tab visibility change
   useEffect(() => {
@@ -271,6 +296,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     setTutorialWidgetPhase('pending');
     setTutorialIntroModal(null);
+    setActiveTutorialLevelId(null);
+    setPendingForceResetLevelId(null);
     prevTutorialCompleteRef.current = false;
   }, [tutorialFlowState.currentLevelId]);
 
@@ -278,17 +305,27 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     if (guestStarted) return;
     setTutorialIntroModal(null);
+    setActiveTutorialLevelId(null);
+    setPendingForceResetLevelId(null);
   }, [guestStarted]);
 
   // Tutorial handlers
   const handleSelectTutorialLevel = (levelId: string) => {
     if (tutorialViewModel.completedLevelIds.has(levelId)) return;
     tutorialActions.selectLevel(levelId);
+    setTutorialWidgetPhase('pending');
+    setTutorialIntroModal(null);
+    setActiveTutorialLevelId(null);
+    setPendingForceResetLevelId(null);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
   const handleRestartTutorialLevel = (levelId: string) => {
-    tutorialActions.restartLevel(levelId);
+    tutorialActions.selectLevel(levelId);
+    setTutorialWidgetPhase('pending');
+    setTutorialIntroModal(null);
+    setActiveTutorialLevelId(null);
+    setPendingForceResetLevelId(levelId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
@@ -312,11 +349,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       // Advance to next level
       playUiClick();
       setTutorialIntroModal(null);
+      setActiveTutorialLevelId(null);
+      setPendingForceResetLevelId(null);
       tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
       return;
     }
     // pending or active: open the task description modal
-    const level = tutorialViewModel.level;
+    const level = selectedTutorialLevel;
     if (!level) return;
     const language = getLanguage();
     setTutorialIntroModal({
@@ -358,6 +397,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setEnabledHexiPediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
     setFocusHexiPediaSection(sectionId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+  };
+
+  const handleViewTutorialTask = () => {
+    openHexiPediaSection('tasks');
   };
 
   const isMobileLayout = true;
@@ -410,6 +453,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'hexilab' : isInventory;
 
+  const isFirstTutorialLevelSelected = tutorialFlowState.currentLevelId === 'tutorial_1_movement';
+  const shouldForceColorWidget =
+    activeTutorialLevelId !== null && activeTutorialLevelId !== 'tutorial_1_movement';
+  const effectiveShowColorWidget = isFirstTutorialLevelSelected
+    ? false
+    : (shouldForceColorWidget ? true : showColorWidget);
+  const effectiveShowTutorialWidget = tutorialFlowState.currentLevelId
+    ? true
+    : showTutorialWidget;
+  const effectiveHideHotbar =
+    isFirstTutorialLevelSelected || (tutorialViewModel.level?.hideHotbar ?? false);
+
   // Determine background color based on active tab
   const backgroundColor = isMobileLayout 
     ? (mobileTab === 'heximap' ? ColorScheme.outside.background : mobileTab === 'hexilab' ? ColorScheme.inside.background : '#2f2f2f')
@@ -458,7 +513,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     gameState,
     params: mergedParams,
     interactionMode,
-    tutorialLevel: tutorialViewModel.level,
+    tutorialLevel: selectedTutorialLevel,
     tutorialLevelId: tutorialFlowState.currentLevelId,
     isTutorialTaskComplete: tutorialViewModel.isTaskComplete,
     completedTutorialLevelIds: tutorialViewModel.completedLevelIds,
@@ -498,11 +553,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     onColorSelect: (index: number) => {
       dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index });
     },
-    showColorWidget,
+    showColorWidget: effectiveShowColorWidget,
     onToggleColorWidget: (visible: boolean) => {
       dispatchSettings({ type: 'SET_SHOW_COLOR_WIDGET', visible });
     },
-    showTutorialWidget,
+    showTutorialWidget: effectiveShowTutorialWidget,
     onToggleTutorialWidget: (visible: boolean) => {
       dispatchSettings({ type: 'SET_SHOW_TUTORIAL_WIDGET', visible });
     },
@@ -590,12 +645,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       dispatch({ type: 'EXCHANGE_HOTBAR_SLOT', slotIndex: slotIdx });
     },
     isLeftHanded,
-    tutorialTargetCells:
+    highlightTargets:
       tutorialViewModel.level && (!isMobileLayout || mobileTab === 'heximap')
         ? (tutorialViewModel.level.targetCells ?? [])
         : [],
-    visitedTutorialCells: gameState.tutorialProgress?.visitedTargetKeys ?? new Set(),
-    hideHotbar: tutorialViewModel.level?.hideHotbar ?? false,
+    visitedHighlightTargets: gameState.tutorialProgress?.visitedTargetKeys ?? new Set(),
+    hideHotbar: effectiveHideHotbar,
   };
 
   const settingsProps: React.ComponentProps<typeof Settings> = {
@@ -643,10 +698,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     'tutorial.cellsPlaced': t('tutorial.complete.cellsPlaced'),
   };
 
-  const tutorialWidgetProps = tutorialViewModel.level
+  const tutorialWidgetProps = selectedTutorialLevel
     ? {
         phase: tutorialWidgetPhase,
-        taskName: getLocalizedText(tutorialViewModel.level.name, getLanguage()),
+        taskName: getLocalizedText(selectedTutorialLevel.name, getLanguage()),
         progressCurrent: tutorialViewModel.progressCurrent,
         progressTotal: tutorialViewModel.progressTotal,
         progressLabel: t(tutorialViewModel.progressLabelKey),
@@ -654,11 +709,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           tutorialCompleteTextByLabelKey[tutorialViewModel.progressLabelKey] ??
           t('tutorial.widget.done'),
         onWidgetClick: handleWidgetClick,
+        onNavigateToTasks: handleViewTutorialTask,
         containerRef: tutorialWidgetRef,
       }
     : null;
 
-  const visibleTutorialWidgetProps = showTutorialWidget ? tutorialWidgetProps : null;
+  const visibleTutorialWidgetProps = effectiveShowTutorialWidget ? tutorialWidgetProps : null;
 
   const tutorialIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null = tutorialIntroModal
     ? {
@@ -669,6 +725,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         getFlyToRect: () => tutorialWidgetRef.current?.getBoundingClientRect() ?? null,
         onStart: () => {
           setTutorialWidgetPhase('active');
+          setActiveTutorialLevelId(tutorialIntroModal.levelId);
           setTutorialIntroModal(null);
         },
         onPostpone: () => {
@@ -677,7 +734,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       }
     : null;
 
-  const colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null = showColorWidget
+  const colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null = effectiveShowColorWidget
     ? {
         colorPalette: mergedParams.ColorPalette,
         selectedColorIndex: selectedColorIndex ?? mergedParams.PlayerBaseColorIndex,

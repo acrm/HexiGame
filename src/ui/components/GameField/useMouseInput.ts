@@ -22,6 +22,7 @@ export interface MouseInputHandlers {
 export interface MouseInputOptions extends MouseInputHandlers {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   pixelToAxial: (px: number, py: number) => { q: number; r: number };
+  isCellInteractable: (q: number, r: number) => boolean;
   detectHotbarSlotClick: (px: number, py: number) => number | null;
 }
 
@@ -29,6 +30,7 @@ export function useMouseInput(options: MouseInputOptions): void {
   const {
     canvasRef,
     pixelToAxial,
+    isCellInteractable,
     detectHotbarSlotClick,
     onSetCursor,
     onCellClickDown,
@@ -56,6 +58,10 @@ export function useMouseInput(options: MouseInputOptions): void {
       }
 
       const axial = pixelToAxial(x, y);
+      if (!isCellInteractable(axial.q, axial.r)) {
+        lastAxial = null;
+        return;
+      }
       lastAxial = axial;
       onSetCursor(axial.q, axial.r);
       if (onCellClickDown) {
@@ -69,6 +75,7 @@ export function useMouseInput(options: MouseInputOptions): void {
       const x = ev.clientX - rect.left;
       const y = ev.clientY - rect.top;
       const axial = pixelToAxial(x, y);
+      if (!isCellInteractable(axial.q, axial.r)) return;
       // Only call drag if we moved to a different cell
       if (axial.q !== lastAxial.q || axial.r !== lastAxial.r) {
         lastAxial = axial;
@@ -84,9 +91,10 @@ export function useMouseInput(options: MouseInputOptions): void {
       const x = ev.clientX - rect.left;
       const y = ev.clientY - rect.top;
       const axial = pixelToAxial(x, y);
+      const releaseAxial = isCellInteractable(axial.q, axial.r) ? axial : lastAxial;
       lastAxial = null; // End drag
-      if (onCellClickUp) {
-        onCellClickUp(axial.q, axial.r);
+      if (onCellClickUp && releaseAxial) {
+        onCellClickUp(releaseAxial.q, releaseAxial.r);
       }
     }
 
@@ -98,5 +106,5 @@ export function useMouseInput(options: MouseInputOptions): void {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [canvasRef, pixelToAxial, detectHotbarSlotClick, onSetCursor, onCellClickDown, onCellClickUp, onCellDrag, onHotbarSlotClick]);
+  }, [canvasRef, pixelToAxial, isCellInteractable, detectHotbarSlotClick, onSetCursor, onCellClickDown, onCellClickUp, onCellDrag, onHotbarSlotClick]);
 }

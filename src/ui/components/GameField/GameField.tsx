@@ -37,8 +37,8 @@ interface GameFieldProps {
   onCellDrag?: (q: number, r: number) => void;
   onHotbarSlotClick?: (slotIdx: number) => void;
   isLeftHanded?: boolean;
-  tutorialTargetCells?: Axial[];
-  visitedTutorialCells?: Set<string>;
+  highlightTargets?: Axial[];
+  visitedHighlightTargets?: Set<string>;
   hideHotbar?: boolean;
 }
 
@@ -59,8 +59,8 @@ export const GameField: React.FC<GameFieldProps> = ({
   onCellDrag,
   onHotbarSlotClick,
   isLeftHanded = false,
-  tutorialTargetCells = [],
-  visitedTutorialCells = new Set(),
+  highlightTargets = [],
+  visitedHighlightTargets = new Set(),
   hideHotbar = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -75,6 +75,20 @@ export const GameField: React.FC<GameFieldProps> = ({
   });
   const { scaleRef, centerXRef, centerYRef, pixelToAxial, detectHotbarSlotClick } = viewport;
 
+  const isCellInteractable = (q: number, r: number) => {
+    if (isInventory) {
+      return gameState.inventoryGrid.has(`${q},${r}`);
+    }
+
+    const worldCenter = gameState.worldViewCenter ?? gameState.protagonist;
+    const isWithinVisibleDisk = axialDistance({ q, r }, worldCenter) <= params.GridRadius;
+    if (!isWithinVisibleDisk) {
+      return false;
+    }
+
+    return gameState.grid.has(`${q},${r}`);
+  };
+
   // Touch input handling
   useTouchInput({
     canvasRef,
@@ -83,6 +97,7 @@ export const GameField: React.FC<GameFieldProps> = ({
     hideHotbar,
     isLeftHanded,
     pixelToAxial,
+    isCellInteractable,
     detectHotbarSlotClick,
     onHotbarSlotClick,
     onCapture,
@@ -94,6 +109,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   useMouseInput({
     canvasRef,
     pixelToAxial,
+    isCellInteractable,
     detectHotbarSlotClick,
     onSetCursor,
     onCellClickDown,
@@ -113,8 +129,8 @@ export const GameField: React.FC<GameFieldProps> = ({
     isInventory,
     hideHotbar,
     isLeftHanded,
-    tutorialTargetCells,
-    visitedTutorialCells,
+    highlightTargets,
+    visitedHighlightTargets,
     scaleRef,
     centerXRef,
     centerYRef,

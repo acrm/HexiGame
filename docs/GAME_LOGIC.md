@@ -180,9 +180,12 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Tutorial tasks are freely selectable in HexiPedia; completed tasks are tracked and can be restarted on demand.
 - Tutorial task flow is widget-driven and uses three UI phases: `pending` (orange pulsing inner glow with short task name), `active` (live progress), and `complete` (green pulsing inner glow with completion message).
 - Clicking the tutorial widget in `pending`/`active` opens a short intro modal with turtle setup + objective and two actions: `Postpone` (close modal, keep current widget state) and `Start` (close modal, switch widget to `active`).
+- Tutorial level setup is start-gated: until the player presses `Start`, the selected task does not apply sandbox cell changes, target markers, or task-bound UI conditions.
 - Tutorial completion only fires on state transition (incomplete → complete), but advancing to the next task happens only after the player clicks the widget in `complete` phase.
+- First tutorial task (`tutorial_1_movement`) hides all overlay widgets except the tutorial widget and also hides the hotbar; other standard UI remains visible. The same state is used at the beginning of a new game session.
+- Later tutorial tasks force-enable color widget and hotbar only after task start (`Start` action).
 - Tutorial levels use deterministic scripted sandbox setups; free-play world generation remains procedural.
-- Top overlay widgets are intentionally asymmetric: tutorial widget is fully clickable and controls tutorial flow directly, while color widget keeps the `»` edge button for quick navigation to the `Colors` panel in HexiPedia.
+- Top overlay widgets share the standard `»` edge button for quick navigation to the corresponding HexiPedia panel. Tutorial widget body controls tutorial flow, while its edge button opens the `Tasks` panel.
 - HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Templates`, `Colors`) start disabled (not rendered).
 - Enabled panels that are not pinned auto-hide after leaving HexiPedia; pinned panels remain enabled across tab switches.
 - Disabled panels are completely removed from the DOM (not just collapsed). They can be restored via the search bar dropdown which lists all panels. Clicking a panel in the dropdown enables and scrolls to it.
@@ -195,6 +198,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Protagonist focus animation *disappears* during auto-move; reappears with normal rotating-edges animation when auto-move completes.
   - Path is computed only across walkable empty cells and stored in `GameState.autoMovePath` for rendering.
   - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
+- World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
+- Off-screen point-of-interest highlighting uses existing vertices of the visible field contour (no synthetic margin offsets): visible targets show 6 corner dots; near-outside targets show 2 contour vertices; far targets show 1 contour vertex.
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:
@@ -409,13 +414,17 @@ Defined in `src/templates/templateLogic.ts`:
 - **TutorialProgressWidget**: Displays tutorial level progress using level-defined metrics (visited cells, collected colors, excavated cells, placed template cells)
   - **Pending phase**: orange pulsing inner highlight, start icon, and short task name (1-2 words)
   - **Active phase**: numeric progress and metric label
-  - **Complete phase**: green pulsing inner highlight with explicit completion phrase (e.g., "All target cells visited") and tap-to-continue hint
+  - **Complete phase**: green pulsing inner highlight with explicit completion phrase (e.g., "All target cells visited")
   - Widget click behavior is phase-dependent (`pending`/`active` opens task modal, `complete` advances to next level)
+  - Standard right-edge `»` button opens the `Tasks` section in HexiPedia in every phase
 - **Tutorial intro modal**:
   - Opened by clicking the tutorial widget (instead of automatic delayed popup)
   - Contains short turtle story setup + objective text
   - Action buttons: left `Postpone`, right `Start`
-  - `Postpone` closes modal without state change; `Start` closes modal and switches widget to active progress tracking
+  - `Postpone` closes modal without state change; `Start` closes modal, applies task setup, and switches widget to active progress tracking
+- **HexiPedia task entries**:
+  - Each task row uses the same short localized name as the tutorial widget pending phase
+  - Expanded content shows turtle story setup, goal text, current progress, and the level-specific action hint
 - **Scripted tutorial flow**:
   - `tutorial_1_movement`: visit three target cells
   - `tutorial_2_collect_colors`: gather one hex of each palette color into the hotbar
