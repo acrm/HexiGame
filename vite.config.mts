@@ -26,6 +26,14 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     base: '', // generate relative paths: assets/...
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          editor: path.resolve(__dirname, 'editor/index.html'),
+        },
+      },
+    },
     server: {
       port: 7777,
     },
