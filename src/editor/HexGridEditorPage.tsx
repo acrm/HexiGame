@@ -169,6 +169,11 @@ export default function HexGridEditorPage() {
     });
   };
 
+  const getRelativeColorForPaletteIndex = (colorIndex: number): number => {
+    const offset = (colorIndex - basePaletteIndex + EDITOR_PALETTE.length) % EDITOR_PALETTE.length;
+    return (offset * 100) / EDITOR_PALETTE.length;
+  };
+
   return (
     <div className="editor-page">
       <section className="editor-stage">
@@ -251,18 +256,23 @@ export default function HexGridEditorPage() {
             Palette (click to select paint color)
             <div className="editor-palette-row">
               {EDITOR_PALETTE.map((paletteColor, index) => {
-                const relativeColor = (index * 100) / EDITOR_PALETTE.length;
+                const relativeColor = getRelativeColorForPaletteIndex(index);
                 const isActive = paintRelativeColor === relativeColor;
+                const isBaseColor = basePaletteIndex === index;
                 return (
-                  <button
-                    key={`${paletteColor}-${index}`}
-                    type="button"
-                    className={`editor-palette-swatch ${isActive ? 'active' : ''}`}
-                    style={{ backgroundColor: paletteColor }}
-                    onClick={() => handlePaletteSwatchClick(index)}
-                    aria-label={`Paint with relativeColor ${relativeColor.toFixed(2)}%`}
-                    title={`Color ${index}: relativeColor ${relativeColor.toFixed(2)}%`}
-                  />
+                  <div key={`${paletteColor}-${index}`} className="editor-palette-swatch-wrapper">
+                    <button
+                      type="button"
+                      className={`editor-palette-swatch ${isActive ? 'active' : ''}`}
+                      style={{ backgroundColor: paletteColor }}
+                      onClick={() => handlePaletteSwatchClick(index)}
+                      aria-label={`Paint with relativeColor ${relativeColor.toFixed(2)}%`}
+                      title={`relativeColor: ${relativeColor.toFixed(2)}%`}
+                    />
+                    <div className="editor-palette-label">
+                      {isBaseColor ? '0%' : `${relativeColor.toFixed(0)}%`}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -270,23 +280,23 @@ export default function HexGridEditorPage() {
               Paint color: {paintRelativeColor?.toFixed(2) ?? 'none'}%
             </div>
           </label>
-        </div>
 
-        <div className="editor-control-section">
-          <label className="editor-field-label">
+          <label className="editor-field-label editor-slider-label">
             Base color (0%)
-            <input
-              className="editor-slider-input"
-              type="range"
-              min="0"
-              max={EDITOR_PALETTE.length - 1}
-              value={basePaletteIndex}
-              onChange={(event) => setBasePaletteIndex(Number(event.target.value))}
-              step="1"
-              title="Shift palette: which color counts as 0%"
-            />
+            <div className="editor-slider-container">
+              <input
+                className="editor-slider-input"
+                type="range"
+                min="0"
+                max={EDITOR_PALETTE.length - 1}
+                value={basePaletteIndex}
+                onChange={(event) => setBasePaletteIndex(Number(event.target.value))}
+                step="1"
+                title="Shift palette: which color counts as 0%"
+              />
+            </div>
             <div className="editor-palette-caption">
-              Palette index: {basePaletteIndex} ({EDITOR_PALETTE[basePaletteIndex]})
+              Base: {EDITOR_PALETTE[basePaletteIndex]}
             </div>
           </label>
         </div>

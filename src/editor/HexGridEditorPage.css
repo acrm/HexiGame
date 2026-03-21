@@ -169,6 +169,13 @@ textarea {
   flex-wrap: wrap;
 }
 
+.editor-palette-swatch-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 .editor-palette-swatch {
   width: 30px;
   height: 30px;
@@ -180,6 +187,15 @@ textarea {
 .editor-palette-swatch.active {
   border-color: #114b5f;
   box-shadow: 0 0 0 2px rgba(17, 75, 95, 0.18);
+}
+
+.editor-palette-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4d4034;
+  text-align: center;
+  min-width: 30px;
+  line-height: 1.2;
 }
 
 .editor-palette-caption {
@@ -347,27 +363,37 @@ textarea {
   background: rgba(17, 75, 95, 0.15);
   outline: none;
   -webkit-appearance: none;
+  margin: 0;
 }
 
 .editor-slider-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   background: #114b5f;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(17, 75, 95, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.6);
 }
 
 .editor-slider-input::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   background: #114b5f;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(17, 75, 95, 0.3);
-  border: none;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+.editor-slider-label {
+  margin-top: 12px;
+}
+
+.editor-slider-container {
+  width: 100%;
 }
 
 .editor-textarea {

@@ -569,3 +569,5 @@
 - 2026w12-0.13 — Palette UI rework: click colors for paintColor, slider for baseColor; Yin-Yang pattern default; Clear button
 
 - 2026w12-0.14 — clamp highlight dots to canvas bounds
+
+- 2026w12-0.15 — Palette UI refinement: relative% labels, discrete slider alignment
