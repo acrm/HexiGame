@@ -154,6 +154,7 @@ export function drawCornerDots(
 /**
  * Draw highlight dots on screen boundary for off-screen target
  * dotCount determines how many dots to draw
+ * Dots are clamped to stay within canvas bounds
  */
 export function drawBoundaryHighlightDots(
   ctx: CanvasRenderingContext2D,
@@ -169,6 +170,9 @@ export function drawBoundaryHighlightDots(
 
   if (dotCount === 0) return;
 
+  const canvasWidth = ctx.canvas.width;
+  const canvasHeight = ctx.canvas.height;
+
   ctx.save();
   ctx.fillStyle = `rgba(255, 200, 100, ${alpha})`;
 
@@ -177,19 +181,34 @@ export function drawBoundaryHighlightDots(
   const dots: { x: number; y: number }[] = [];
 
   if (dotCount === 1) {
-    dots.push({ x: boundaryX, y: boundaryY });
+    dots.push({
+      x: Math.max(0, Math.min(canvasWidth, boundaryX)),
+      y: Math.max(0, Math.min(canvasHeight, boundaryY)),
+    });
   } else if (dotCount === 2) {
     // Two dots, slightly offset perpendicular to boundary
     // Determine if boundary is horizontal or vertical
-    const isVertical = boundaryX === 0 || boundaryX === ctx.canvas.width;
+    const isVertical = boundaryX === 0 || boundaryX === canvasWidth;
     if (isVertical) {
-      // Vertical boundary, offset vertically
-      dots.push({ x: boundaryX, y: boundaryY - boundaryMarginPx });
-      dots.push({ x: boundaryX, y: boundaryY + boundaryMarginPx });
+      // Vertical boundary, offset vertically (keep X on boundary)
+      dots.push({
+        x: Math.max(0, Math.min(canvasWidth, boundaryX)),
+        y: Math.max(0, Math.min(canvasHeight, boundaryY - boundaryMarginPx)),
+      });
+      dots.push({
+        x: Math.max(0, Math.min(canvasWidth, boundaryX)),
+        y: Math.max(0, Math.min(canvasHeight, boundaryY + boundaryMarginPx)),
+      });
     } else {
-      // Horizontal boundary, offset horizontally
-      dots.push({ x: boundaryX - boundaryMarginPx, y: boundaryY });
-      dots.push({ x: boundaryX + boundaryMarginPx, y: boundaryY });
+      // Horizontal boundary, offset horizontally (keep Y on boundary)
+      dots.push({
+        x: Math.max(0, Math.min(canvasWidth, boundaryX - boundaryMarginPx)),
+        y: Math.max(0, Math.min(canvasHeight, boundaryY)),
+      });
+      dots.push({
+        x: Math.max(0, Math.min(canvasWidth, boundaryX + boundaryMarginPx)),
+        y: Math.max(0, Math.min(canvasHeight, boundaryY)),
+      });
     }
   }
 

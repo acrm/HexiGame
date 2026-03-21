@@ -565,3 +565,5 @@
 - 2026w12-0.11 — Simplified editor: unified coordinates input, basePaletteIndex slider, paintColor number field
 
 - 2026w12-0.12 — implement points of interest highlighting system for off-screen targets and structures
+
+- 2026w12-0.13 — Palette UI rework: click colors for paintColor, slider for baseColor; Yin-Yang pattern default; Clear button

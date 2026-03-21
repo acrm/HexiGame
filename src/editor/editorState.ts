@@ -152,9 +152,36 @@ export function parseCells(rawValue: string): { cells: EditorCell[]; parseError:
 }
 
 export function createInitialEditorDocument(): EditorDocumentState {
+  const defaultCells: EditorCell[] = [
+    // Yin-Yang pattern (Инь-Янь)
+    { q: 0, r: -4, relativeColor: 50 },
+    { q: 1, r: -4, relativeColor: 50 },
+    { q: 2, r: -4, relativeColor: 50 },
+
+    { q: -1, r: -3, relativeColor: 50 },
+    { q: 0, r: -3, relativeColor: 50 },
+    { q: 1, r: -3, relativeColor: 50 },
+    { q: 2, r: -3, relativeColor: 0 },
+
+    { q: -2, r: -2, relativeColor: 50 },
+    { q: -1, r: -2, relativeColor: 50 },
+    { q: 0, r: -2, relativeColor: 0 },
+    { q: 1, r: -2, relativeColor: 50 },
+    { q: 2, r: -2, relativeColor: 0 },
+
+    { q: -2, r: -1, relativeColor: 50 },
+    { q: -1, r: -1, relativeColor: 0 },
+    { q: 0, r: -1, relativeColor: 0 },
+    { q: 1, r: -1, relativeColor: 0 },
+
+    { q: -2, r: 0, relativeColor: 0 },
+    { q: -1, r: 0, relativeColor: 0 },
+    { q: 0, r: 0, relativeColor: 0 },
+  ];
+
   return {
-    cells: [],
-    rawValue: '[\n  \n]',
+    cells: defaultCells,
+    rawValue: serializeCells(defaultCells),
     parseError: null,
   };
 }

@@ -340,6 +340,36 @@ textarea {
   color: #231a12;
 }
 
+.editor-slider-input {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(17, 75, 95, 0.15);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.editor-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #114b5f;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(17, 75, 95, 0.3);
+}
+
+.editor-slider-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #114b5f;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(17, 75, 95, 0.3);
+  border: none;
+}
+
 .editor-textarea {
   resize: vertical;
   min-height: 220px;
@@ -368,6 +398,35 @@ textarea {
 
 .editor-control-section {
   padding: 0;
+}
+
+.editor-coordinates-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.editor-clear-button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(194, 65, 12, 0.14);
+  color: #7c2d12;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 0.15s ease-out;
+}
+
+.editor-clear-button:hover {
+  background: rgba(194, 65, 12, 0.24);
+}
+
+.editor-clear-button:active {
+  transform: scale(0.96);
 }
 
 @media (max-width: 1100px) {

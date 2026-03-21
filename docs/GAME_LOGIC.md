@@ -412,6 +412,17 @@ Defined in `src/templates/templateLogic.ts`:
   - `tutorial_5_yin_yang`: assemble the larger two-color yin-yang with mirrored eyes
   - `tutorial_6_rainbow`: complete the full-palette rainbow figure
 
+### 8.1.1 Points of Interest Highlighting
+- **Off-screen target indication**: Tutorial target cells (and completed structures) outside the visible area are indicated with highlight dots on the screen boundary.
+- **Visibility states**:
+  - **Fully visible target**: All 6 corner dots of the target hex are highlighted (white, blinking).
+  - **Partially off-screen target** (within 3 visible-radius diameters): 2 orange highlight dots appear on the screen boundary, positioned perpendicular to the boundary edge.
+  - **Far target** (>3 diameters beyond boundary): 1 orange highlight dot appears on the screen boundary at the projection point.
+- **Structural highlighting**:
+  - **Completed template structures**: Highlighted with dots along the structure's perimeter in the direction of the player.
+  - **Off-screen structures**: Number of highlight dots reduced proportionally to distance (1 dot per 3 diameters of the visible area), but always at least 1 dot.
+- **Visual feedback**: Highlight dots use warm orange color (`rgba(255, 200, 100, alpha)`) to distinguish from world navigation elements; they blink with the same 12-tick cycle as target cells (6 ticks on, 6 ticks at 35% opacity).
+
 ### 8.1.1 Input reliability
 - **Hotbar hit-testing**:
   - Mobile hotbar click/tap detection uses the same geometry values as hotbar rendering

@@ -155,6 +155,20 @@ export default function HexGridEditorPage() {
     setPaintRelativeColor(nextRelativeColor);
   };
 
+  const handlePaletteSwatchClick = (index: number) => {
+    // Clicking a palette swatch sets the paintRelativeColor to that palette position
+    const relativeColor = (index * 100) / EDITOR_PALETTE.length;
+    setPaintRelativeColor(relativeColor);
+  };
+
+  const handleClearCoordinates = () => {
+    setDocumentState({
+      cells: [],
+      rawValue: '[\n  \n]',
+      parseError: null,
+    });
+  };
+
   return (
     <div className="editor-page">
       <section className="editor-stage">
@@ -234,53 +248,71 @@ export default function HexGridEditorPage() {
 
         <div className="editor-control-section">
           <label className="editor-field-label">
-            Base palette color (0%)
+            Palette (click to select paint color)
             <div className="editor-palette-row">
-              {EDITOR_PALETTE.map((paletteColor, index) => (
-                <button
-                  key={`${paletteColor}-${index}`}
-                  type="button"
-                  className={`editor-palette-swatch ${index === basePaletteIndex ? 'active' : ''}`}
-                  style={{ backgroundColor: paletteColor }}
-                  onClick={() => handleBasePaletteIndexChange(index)}
-                  aria-label={`Use palette color ${index} as 0%`}
-                  title={`Palette ${index}: ${paletteColor}`}
-                />
-              ))}
+              {EDITOR_PALETTE.map((paletteColor, index) => {
+                const relativeColor = (index * 100) / EDITOR_PALETTE.length;
+                const isActive = paintRelativeColor === relativeColor;
+                return (
+                  <button
+                    key={`${paletteColor}-${index}`}
+                    type="button"
+                    className={`editor-palette-swatch ${isActive ? 'active' : ''}`}
+                    style={{ backgroundColor: paletteColor }}
+                    onClick={() => handlePaletteSwatchClick(index)}
+                    aria-label={`Paint with relativeColor ${relativeColor.toFixed(2)}%`}
+                    title={`Color ${index}: relativeColor ${relativeColor.toFixed(2)}%`}
+                  />
+                );
+              })}
             </div>
             <div className="editor-palette-caption">
-              Index {basePaletteIndex}
+              Paint color: {paintRelativeColor?.toFixed(2) ?? 'none'}%
             </div>
           </label>
         </div>
 
         <div className="editor-control-section">
           <label className="editor-field-label">
-            Paint relativeColor (%)
+            Base color (0%)
             <input
-              className="editor-text-input"
-              type="number"
-              value={paintRelativeColor ?? ''}
-              onChange={(event) => handlePaintRelativeColorChange(event.target.value)}
-              placeholder="0"
+              className="editor-slider-input"
+              type="range"
+              min="0"
+              max={EDITOR_PALETTE.length - 1}
+              value={basePaletteIndex}
+              onChange={(event) => setBasePaletteIndex(Number(event.target.value))}
               step="1"
-              spellCheck={false}
+              title="Shift palette: which color counts as 0%"
             />
+            <div className="editor-palette-caption">
+              Palette index: {basePaletteIndex} ({EDITOR_PALETTE[basePaletteIndex]})
+            </div>
           </label>
         </div>
 
         <div className="editor-control-section">
-          <label className="editor-field-label">
-            Coordinates (grouped by r, sorted by q)
-            <textarea
-              className="editor-textarea"
-              value={documentState.rawValue}
-              onChange={(event) => handleCoordinatesChange(event.target.value)}
-              onBlur={handleCoordinatesBlur}
-              spellCheck={false}
-              rows={14}
-            />
-          </label>
+          <div className="editor-coordinates-header">
+            <label className="editor-field-label">
+              Coordinates (grouped by r, sorted by q)
+            </label>
+            <button
+              className="editor-clear-button"
+              type="button"
+              onClick={handleClearCoordinates}
+              title="Clear all coordinates"
+            >
+              Clear
+            </button>
+          </div>
+          <textarea
+            className="editor-textarea"
+            value={documentState.rawValue}
+            onChange={(event) => handleCoordinatesChange(event.target.value)}
+            onBlur={handleCoordinatesBlur}
+            spellCheck={false}
+            rows={14}
+          />
           {documentState.parseError && (
             <div className="editor-inline-error">{documentState.parseError}</div>
           )}
