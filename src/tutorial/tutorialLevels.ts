@@ -39,9 +39,13 @@ function computeExcavationProgress(state: GameState): TutorialProgressMetrics {
 
 export const tutorialLevel1Movement: TutorialLevel = {
   id: 'tutorial_1_movement',
+  setup: {
+    en: 'The turtle wakes up in a strange, colorful world and wants to explore it.',
+    ru: 'Черепаша проснулась в странном цветном мире и хочет его исследовать.',
+  },
   objective: {
-    en: 'Visit all 3 target cells with the focus',
-    ru: 'Посетите фокусом все 3 целевые клетки',
+    en: 'Visit all 3 target areas to explore the world.',
+    ru: 'Посетите все 3 территории, чтобы исследовать мир.',
   },
   hints: {
     desktop: {
@@ -69,9 +73,13 @@ export const tutorialLevel1Movement: TutorialLevel = {
 
 export const tutorialLevel2CollectColors: TutorialLevel = {
   id: 'tutorial_2_collect_colors',
+  setup: {
+    en: 'The turtle sees all the beautiful colors around and wants to gather them all.',
+    ru: 'Черепаша видит все прекрасные цвета вокруг и хочет их все собрать.',
+  },
   objective: {
-    en: 'Collect one hex of each color in the hotbar',
-    ru: 'Соберите в хотбар по одному гексу каждого цвета',
+    en: 'Collect one hex of each color available here.',
+    ru: 'Соберите по одному гексу каждого цвета.',
   },
   hints: {
     desktop: {
@@ -95,9 +103,13 @@ export const tutorialLevel2CollectColors: TutorialLevel = {
 
 export const tutorialLevel3Excavation: TutorialLevel = {
   id: 'tutorial_3_excavation',
+  setup: {
+    en: 'The turtle senses a mysterious power hidden deep within the earth.',
+    ru: 'Черепаша чувствует таинственную силу, спрятанную в глубине земли.',
+  },
   objective: {
-    en: 'Excavate the hidden hex behind the outer layers',
-    ru: 'Откопайте скрытый гекс за внешними слоями',
+    en: 'Dig through the layers and extract the hidden power.',
+    ru: 'Откопайте слои и извлеките скрытую силу.',
   },
   hints: {
     desktop: {
@@ -119,9 +131,13 @@ export const tutorialLevel3Excavation: TutorialLevel = {
 
 export const tutorialLevel4Shelter: TutorialLevel = {
   id: 'tutorial_4_shelter',
+  setup: {
+    en: 'The turtle is tired from exploring and needs a safe place to rest.',
+    ru: 'Черепаша устала от исследований и нуждается в безопасном месте для отдыха.',
+  },
   objective: {
-    en: 'Build the horseshoe shelter from one color',
-    ru: 'Соберите подковообразное убежище из одного цвета',
+    en: 'Build a horseshoe shelter from a single color.',
+    ru: 'Постройте подковообразное убежище из одного цвета.',
   },
   hints: {
     desktop: {
@@ -142,9 +158,13 @@ export const tutorialLevel4Shelter: TutorialLevel = {
 
 export const tutorialLevel5YinYang: TutorialLevel = {
   id: 'tutorial_5_yin_yang',
+  setup: {
+    en: 'The turtle learns that balance exists between light and darkness in all things.',
+    ru: 'Черепаша узнает, что баланс существует между светом и тьмой во всём.',
+  },
   objective: {
-    en: 'Build the large yin-yang from two colors',
-    ru: 'Соберите большой инь-янь из двух цветов',
+    en: 'Create the symbol of yin and yang using two opposite colors.',
+    ru: 'Создайте символ инь-янь, используя два противоположных цвета.',
   },
   hints: {
     desktop: {
@@ -165,9 +185,13 @@ export const tutorialLevel5YinYang: TutorialLevel = {
 
 export const tutorialLevel6Rainbow: TutorialLevel = {
   id: 'tutorial_6_rainbow',
+  setup: {
+    en: 'The turtle has learned all the lessons of this world. Now comes the greatest creation.',
+    ru: 'Черепаша научилась всему в этом мире. Теперь наступил момент для величайшего творения.',
+  },
   objective: {
-    en: 'Build the rainbow figure from all colors',
-    ru: 'Соберите радужную фигуру из всех цветов',
+    en: 'Build the grand rainbow spiral using all colors available.',
+    ru: 'Постройте грандиозную радужную спираль, используя все цвета.',
   },
   hints: {
     desktop: {

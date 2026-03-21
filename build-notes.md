@@ -557,3 +557,5 @@
 - 2026w12-0.7 — add tutorial task intro modal and widget fly-out animation
 
 - 2026w12-0.8 — Add standalone hex grid editor
+
+- 2026w12-0.9 — redesign tutorial intro modal and rewrite all tutorial levels with turtle story

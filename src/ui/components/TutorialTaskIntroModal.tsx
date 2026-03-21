@@ -2,22 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import './TutorialTaskIntroModal.css';
 
 interface TutorialTaskIntroModalProps {
-  title: string;
-  taskLabel: string;
-  taskText: string;
-  goalLabel: string;
-  goalText: string;
+  setupText: string;      // "Turtle wanted..."
+  objectiveText: string;  // "Do this..."
   dismissLabel: string;
   getFlyToRect?: () => DOMRect | null;
   onDismissed: () => void;
 }
 
 export const TutorialTaskIntroModal: React.FC<TutorialTaskIntroModalProps> = ({
-  title,
-  taskLabel,
-  taskText,
-  goalLabel,
-  goalText,
+  setupText,
+  objectiveText,
   dismissLabel,
   getFlyToRect,
   onDismissed,
@@ -29,7 +23,7 @@ export const TutorialTaskIntroModal: React.FC<TutorialTaskIntroModalProps> = ({
   useEffect(() => {
     setIsClosing(false);
     setFlightStyle({});
-  }, [title, taskText, goalText]);
+  }, [setupText, objectiveText]);
 
   const handleDismiss = () => {
     if (isClosing) return;
@@ -83,21 +77,14 @@ export const TutorialTaskIntroModal: React.FC<TutorialTaskIntroModalProps> = ({
         }}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="tutorial-intro-title"
+        aria-labelledby="tutorial-intro-setup"
       >
-        <div className="tutorial-intro-header">
-          <div className="tutorial-intro-badge">{title}</div>
-          <h2 id="tutorial-intro-title" className="tutorial-intro-title">{taskText}</h2>
+        <div className="tutorial-intro-setup" id="tutorial-intro-setup">
+          {setupText}
         </div>
 
-        <div className="tutorial-intro-section">
-          <div className="tutorial-intro-label">{taskLabel}</div>
-          <div className="tutorial-intro-text">{taskText}</div>
-        </div>
-
-        <div className="tutorial-intro-section">
-          <div className="tutorial-intro-label">{goalLabel}</div>
-          <div className="tutorial-intro-text tutorial-intro-text-secondary">{goalText}</div>
+        <div className="tutorial-intro-objective">
+          {objectiveText}
         </div>
 
         <button

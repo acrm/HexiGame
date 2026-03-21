@@ -27,6 +27,7 @@ export interface AdaptiveHint {
  */
 export interface TutorialLevel {
   id: string;
+  setup: LocalizedText;        // Story setup/motivation text (what the turtle wanted...)
   objective: LocalizedText;    // Goal to display to the player
   hints: AdaptiveHint;         // Hints adapted for control mode
   targetCells?: Axial[];       // Cells required to visit for this task

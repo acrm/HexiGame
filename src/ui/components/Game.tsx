@@ -63,8 +63,8 @@ type HexiPediaSectionId = 'tasks' | 'stats' | 'templates' | 'colors';
 
 interface TutorialIntroModalState {
   levelId: string;
-  taskText: string;
-  goalText: string;
+  setupText: string;
+  objectiveText: string;
 }
 
 // React component
@@ -308,8 +308,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       shownTutorialIntroLevelIdsRef.current.add(level.id);
       setTutorialIntroModal({
         levelId: level.id,
-        taskText: getLocalizedText(level.objective, language),
-        goalText: getHintForMode(level.hints, interactionMode, language),
+        setupText: getLocalizedText(level.setup, language),
+        objectiveText: getLocalizedText(level.objective, language),
       });
       setDelayedIntroLevelId((current) => (current === level.id ? null : current));
       introDelayTimeoutRef.current = null;
@@ -703,11 +703,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const tutorialIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null = tutorialIntroModal
     ? {
-        title: t('tutorial.modal.title'),
-        taskLabel: t('tutorial.modal.taskLabel'),
-        taskText: tutorialIntroModal.taskText,
-        goalLabel: t('tutorial.modal.goalLabel'),
-        goalText: tutorialIntroModal.goalText,
+        setupText: tutorialIntroModal.setupText,
+        objectiveText: tutorialIntroModal.objectiveText,
         dismissLabel: t('tutorial.modal.dismiss'),
         getFlyToRect: () => tutorialWidgetRef.current?.getBoundingClientRect() ?? null,
         onDismissed: () => {

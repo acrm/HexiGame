@@ -10,10 +10,7 @@
   justify-content: center;
   padding: 18px;
   box-sizing: border-box;
-  background:
-    radial-gradient(circle at 50% 28%, rgba(255, 153, 51, 0.14), transparent 42%),
-    rgba(11, 14, 18, 0.76);
-  backdrop-filter: blur(6px);
+  background: transparent;
   z-index: 320;
 }
 
@@ -22,16 +19,16 @@
 }
 
 .tutorial-intro-card {
-  width: min(100%, 360px);
+  width: min(100%, 280px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
+  gap: 12px;
+  padding: 16px;
   box-sizing: border-box;
-  background: linear-gradient(180deg, rgba(45, 45, 45, 0.98) 0%, rgba(30, 30, 30, 0.98) 100%);
-  border: 1px solid rgba(255, 183, 94, 0.7);
+  background: linear-gradient(180deg, rgba(45, 45, 45, 0.96) 0%, rgba(30, 30, 30, 0.96) 100%);
+  border: 1px solid rgba(255, 183, 94, 0.6);
   box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.38),
+    0 16px 40px rgba(0, 0, 0, 0.42),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   color: #f7f2eb;
   transform-origin: center center;
@@ -42,53 +39,18 @@
   animation: tutorialIntroFlyToWidget 0.68s cubic-bezier(0.64, 0, 0.18, 1) forwards;
 }
 
-.tutorial-intro-header {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.tutorial-intro-badge {
-  align-self: flex-start;
-  padding: 4px 9px;
-  background: rgba(255, 170, 80, 0.12);
-  border: 1px solid rgba(255, 183, 94, 0.45);
-  color: #ffc98c;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.tutorial-intro-title {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.1;
+.tutorial-intro-setup {
+  font-size: 16px;
+  line-height: 1.35;
   color: #ffffff;
+  font-weight: 500;
 }
 
-.tutorial-intro-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tutorial-intro-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #8bb9ff;
-}
-
-.tutorial-intro-text {
-  font-size: 15px;
+.tutorial-intro-objective {
+  font-size: 14px;
   line-height: 1.4;
-  color: #f6f1e8;
-}
-
-.tutorial-intro-text-secondary {
   color: #d9e7ff;
+  padding: 6px 0;
 }
 
 .tutorial-intro-dismiss {
@@ -96,11 +58,12 @@
   border: 1px solid #7eaaf1;
   background: linear-gradient(180deg, #2d4f7a 0%, #243a57 100%);
   color: #ffffff;
-  padding: 10px 12px;
-  font-size: 14px;
+  padding: 8px 12px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+  margin-top: 4px;
 }
 
 .tutorial-intro-dismiss:hover {
@@ -149,10 +112,15 @@
   }
 
   .tutorial-intro-card {
-    padding: 16px;
+    padding: 14px;
+    width: min(100%, 260px);
   }
 
-  .tutorial-intro-title {
-    font-size: 22px;
+  .tutorial-intro-setup {
+    font-size: 15px;
+  }
+
+  .tutorial-intro-objective {
+    font-size: 13px;
   }
 }
