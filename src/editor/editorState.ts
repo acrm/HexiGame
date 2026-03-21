@@ -5,29 +5,11 @@ export interface EditorCell extends Axial {
   relativeColor: number | null;
 }
 
-export interface EditorLayer {
-  id: string;
-  color: string;
-  rawValue: string;
+export interface EditorDocumentState {
   cells: EditorCell[];
-  paintRelativeColor: number | null;
+  rawValue: string;
   parseError: string | null;
 }
-
-export interface EditorDocumentState {
-  layers: EditorLayer[];
-  selectedLayerId: string;
-}
-
-export interface CellOwner {
-  layerId: string;
-  color: string;
-  relativeColor: number | null;
-}
-
-const DEFAULT_LAYER_COLORS = ['black', 'white', '#f97316', '#2563eb', '#16a34a', '#a855f7'];
-
-let nextLayerId = 1;
 
 export function normalizeCells(cells: EditorCell[]): EditorCell[] {
   const unique = new Map<string, EditorCell>();
@@ -40,27 +22,49 @@ export function normalizeCells(cells: EditorCell[]): EditorCell[] {
     });
   }
 
-  return Array.from(unique.values()).sort((left, right) => {
-    if (left.q !== right.q) return left.q - right.q;
-    return right.r - left.r;
-  });
+  // Group by r, sort by q within each group
+  const grouped = new Map<number, EditorCell[]>();
+  for (const cell of unique.values()) {
+    if (!grouped.has(cell.r)) {
+      grouped.set(cell.r, []);
+    }
+    grouped.get(cell.r)!.push(cell);
+  }
+
+  // Sort each r-group by q
+  for (const cellGroup of grouped.values()) {
+    cellGroup.sort((a, b) => a.q - b.q);
+  }
+
+  // Return sorted by r (ascending)
+  const sortedRValues = Array.from(grouped.keys()).sort((a, b) => a - b);
+  const result: EditorCell[] = [];
+  for (const r of sortedRValues) {
+    result.push(...grouped.get(r)!);
+  }
+
+  return result;
 }
 
 export function serializeCells(cells: EditorCell[]): string {
   const normalized = normalizeCells(cells);
-  const serializable = normalized.map(cell => {
+  const lines: string[] = [];
+
+  for (const cell of normalized) {
     if (cell.relativeColor === null) {
-      return { q: cell.q, r: cell.r };
+      lines.push(`{ q: ${cell.q}, r: ${cell.r} },`);
+    } else {
+      lines.push(`{ q: ${cell.q}, r: ${cell.r}, relativeColor: ${cell.relativeColor} },`);
     }
+  }
 
-    return {
-      q: cell.q,
-      r: cell.r,
-      relativeColor: cell.relativeColor,
-    };
-  });
+  // Remove trailing comma from last line if present
+  if (lines.length > 0) {
+    const lastLine = lines[lines.length - 1];
+    lines[lines.length - 1] = lastLine.replace(/,\s*$/, '');
+  }
 
-  return JSON.stringify(serializable, null, 2);
+  return `[\n  ${lines.join('\n  ')}\n]`;
 }
 
 function parseRelaxedArray(rawValue: string): unknown {
@@ -147,175 +151,24 @@ export function parseCells(rawValue: string): { cells: EditorCell[]; parseError:
   }
 }
 
-export function createEditorLayer(
-  color: string = 'black',
-  cells: EditorCell[] = [],
-  paintRelativeColor: number | null = 0,
-): EditorLayer {
-  const normalizedCells = normalizeCells(cells);
-
+export function createInitialEditorDocument(): EditorDocumentState {
   return {
-    id: `layer-${nextLayerId++}`,
-    color,
-    rawValue: serializeCells(normalizedCells),
-    cells: normalizedCells,
-    paintRelativeColor,
+    cells: [],
+    rawValue: '[\n  \n]',
     parseError: null,
   };
 }
 
-export function createInitialEditorDocument(): EditorDocumentState {
-  const initialLayer = createEditorLayer('black');
-  return {
-    layers: [initialLayer],
-    selectedLayerId: initialLayer.id,
-  };
-}
-
-export function getNextLayerColor(layers: EditorLayer[]): string {
-  for (const color of DEFAULT_LAYER_COLORS) {
-    if (!layers.some(layer => layer.color === color)) {
-      return color;
-    }
-  }
-
-  const hue = (layers.length * 47) % 360;
-  return `hsl(${hue} 75% 52%)`;
-}
-
-export function updateLayerColor(layers: EditorLayer[], layerId: string, color: string): EditorLayer[] {
-  return layers.map(layer => {
-    if (layer.id !== layerId) return layer;
-    return {
-      ...layer,
-      color,
-    };
-  });
-}
-
-export function updateLayerRawValue(layers: EditorLayer[], layerId: string, rawValue: string): EditorLayer[] {
-  return layers.map(layer => {
-    if (layer.id !== layerId) return layer;
-
-    const parsed = parseCells(rawValue);
-    if (parsed.parseError) {
-      return {
-        ...layer,
-        rawValue,
-        parseError: parsed.parseError,
-      };
-    }
-
-    const firstRelativeColor = parsed.cells.find(cell => cell.relativeColor !== null)?.relativeColor ?? null;
-
-    return {
-      ...layer,
-      rawValue,
-      cells: parsed.cells,
-      paintRelativeColor: firstRelativeColor ?? layer.paintRelativeColor,
-      parseError: null,
-    };
-  });
-}
-
-export function updateLayerPaintRelativeColor(
-  layers: EditorLayer[],
-  layerId: string,
-  relativeColor: number | null,
-): EditorLayer[] {
-  return layers.map(layer => {
-    if (layer.id !== layerId) return layer;
-    return {
-      ...layer,
-      paintRelativeColor: relativeColor,
-    };
-  });
-}
-
-export function normalizeLayerRawValue(layers: EditorLayer[], layerId: string): EditorLayer[] {
-  return layers.map(layer => {
-    if (layer.id !== layerId || layer.parseError) return layer;
-    return {
-      ...layer,
-      rawValue: serializeCells(layer.cells),
-    };
-  });
-}
-
-export function removeLayer(layers: EditorLayer[], layerId: string): EditorLayer[] {
-  if (layers.length <= 1) return layers;
-  return layers.filter(layer => layer.id !== layerId);
-}
-
-export function toggleCellInLayer(layers: EditorLayer[], layerId: string, cell: Axial): EditorLayer[] {
+export function toggleCell(cells: EditorCell[], cell: Axial, relativeColor: number | null): EditorCell[] {
   const cellKey = keyOfAxial(cell);
-  const selectedLayer = layers.find(layer => layer.id === layerId);
-  if (!selectedLayer) return layers;
+  const normalized = normalizeCells(cells);
 
-  const selectedHasCell = selectedLayer.cells.some(candidate => keyOfAxial(candidate) === cellKey);
-
-  return layers.map(layer => {
-    const filteredCells = layer.cells.filter(candidate => keyOfAxial(candidate) !== cellKey);
-
-    if (selectedHasCell) {
-      if (layer.id !== layerId) return layer;
-      const nextCells = normalizeCells(filteredCells);
-      return {
-        ...layer,
-        cells: nextCells,
-        rawValue: serializeCells(nextCells),
-        parseError: null,
-      };
-    }
-
-    if (layer.id === layerId) {
-      const nextCells = normalizeCells([
-        ...filteredCells,
-        {
-          q: cell.q,
-          r: cell.r,
-          relativeColor: selectedLayer.paintRelativeColor,
-        },
-      ]);
-      return {
-        ...layer,
-        cells: nextCells,
-        rawValue: serializeCells(nextCells),
-        parseError: null,
-      };
-    }
-
-    if (filteredCells.length === layer.cells.length) {
-      return layer;
-    }
-
-    const nextCells = normalizeCells(filteredCells);
-    return {
-      ...layer,
-      cells: nextCells,
-      rawValue: serializeCells(nextCells),
-      parseError: null,
-    };
-  });
-}
-
-export function buildCellOwnership(layers: EditorLayer[]): { ownership: Map<string, CellOwner>; duplicates: Set<string> } {
-  const ownership = new Map<string, CellOwner>();
-  const duplicates = new Set<string>();
-
-  for (const layer of layers) {
-    for (const cell of layer.cells) {
-      const key = keyOfAxial(cell);
-      if (ownership.has(key)) {
-        duplicates.add(key);
-      }
-      ownership.set(key, {
-        layerId: layer.id,
-        color: layer.color,
-        relativeColor: cell.relativeColor,
-      });
-    }
+  const existingIndex = normalized.findIndex(c => keyOfAxial(c) === cellKey);
+  if (existingIndex >= 0) {
+    // Remove cell
+    return normalized.filter((_, i) => i !== existingIndex);
   }
 
-  return { ownership, duplicates };
+  // Add cell
+  return normalizeCells([...normalized, { q: cell.q, r: cell.r, relativeColor }]);
 }

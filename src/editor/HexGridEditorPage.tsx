@@ -4,17 +4,12 @@ import type { Axial } from '../gameLogic/core/types';
 import { DefaultParams } from '../gameLogic/core/params';
 import { getAbsoluteColor } from '../templates/templateLogic';
 import {
-  buildCellOwnership,
-  createEditorLayer,
   createInitialEditorDocument,
-  getNextLayerColor,
-  normalizeLayerRawValue,
-  removeLayer,
-  toggleCellInLayer,
-  updateLayerColor,
-  updateLayerPaintRelativeColor,
-  updateLayerRawValue,
+  parseCells,
+  serializeCells,
+  toggleCell,
   type EditorDocumentState,
+  type EditorCell,
 } from './editorState';
 import './HexGridEditorPage.css';
 
@@ -69,10 +64,8 @@ function getPaletteColorByRelative(relativeColor: number, basePaletteIndex: numb
 }
 
 function computeGridRadius(state: EditorDocumentState): number {
-  const farthestCellDistance = state.layers.reduce((maxDistance, layer) => {
-    return layer.cells.reduce((layerMaxDistance, cell) => {
-      return Math.max(layerMaxDistance, axialDistance(ORIGIN, cell));
-    }, maxDistance);
+  const farthestCellDistance = state.cells.reduce((maxDistance, cell) => {
+    return Math.max(maxDistance, axialDistance(ORIGIN, cell));
   }, MIN_GRID_RADIUS - 2);
 
   return Math.max(MIN_GRID_RADIUS, farthestCellDistance + 2);
@@ -81,8 +74,8 @@ function computeGridRadius(state: EditorDocumentState): number {
 export default function HexGridEditorPage() {
   const [documentState, setDocumentState] = useState<EditorDocumentState>(createInitialEditorDocument);
   const [basePaletteIndex, setBasePaletteIndex] = useState<number>(DefaultParams.PlayerBaseColorIndex);
+  const [paintRelativeColor, setPaintRelativeColor] = useState<number | null>(0);
 
-  const activeLayer = documentState.layers.find(layer => layer.id === documentState.selectedLayerId) ?? documentState.layers[0];
   const gridRadius = useMemo(() => computeGridRadius(documentState), [documentState]);
 
   const gridLayout = useMemo(() => {
@@ -114,66 +107,44 @@ export default function HexGridEditorPage() {
     };
   }, [gridRadius]);
 
-  const { ownership, duplicates } = useMemo(() => buildCellOwnership(documentState.layers), [documentState.layers]);
-  const activeCellCount = activeLayer?.cells.length ?? 0;
-  const totalCellCount = documentState.layers.reduce((count, layer) => count + layer.cells.length, 0);
+  const cellMap = useMemo(() => {
+    const map = new Map<string, EditorCell>();
+    for (const cell of documentState.cells) {
+      map.set(keyOfAxial(cell), cell);
+    }
+    return map;
+  }, [documentState.cells]);
 
-  const selectLayer = (layerId: string) => {
-    setDocumentState(previousState => ({
-      ...previousState,
-      selectedLayerId: layerId,
-    }));
-  };
-
-  const handleAddLayer = () => {
-    setDocumentState(previousState => {
-      const nextLayer = createEditorLayer(getNextLayerColor(previousState.layers));
-      return {
-        layers: [...previousState.layers, nextLayer],
-        selectedLayerId: nextLayer.id,
-      };
+  const handleCoordinatesChange = (rawValue: string) => {
+    const { cells, parseError } = parseCells(rawValue);
+    setDocumentState({
+      cells,
+      rawValue,
+      parseError,
     });
   };
 
-  const handleRemoveLayer = (layerId: string) => {
-    setDocumentState(previousState => {
-      if (previousState.layers.length <= 1) return previousState;
+  const handleCoordinatesBlur = () => {
+    setDocumentState(previousState => ({
+      ...previousState,
+      rawValue: serializeCells(previousState.cells),
+    }));
+  };
 
-      const removedIndex = previousState.layers.findIndex(layer => layer.id === layerId);
-      const nextLayers = removeLayer(previousState.layers, layerId);
-      const nextSelectedLayerId = previousState.selectedLayerId === layerId
-        ? nextLayers[Math.max(0, removedIndex - 1)]?.id ?? nextLayers[0].id
-        : previousState.selectedLayerId;
-
-      return {
-        layers: nextLayers,
-        selectedLayerId: nextSelectedLayerId,
-      };
+  const handleCellClick = (cell: Axial) => {
+    const nextCells = toggleCell(documentState.cells, cell, paintRelativeColor);
+    setDocumentState({
+      cells: nextCells,
+      rawValue: serializeCells(nextCells),
+      parseError: null,
     });
   };
 
-  const handleColorChange = (layerId: string, color: string) => {
-    setDocumentState(previousState => ({
-      ...previousState,
-      layers: updateLayerColor(previousState.layers, layerId, color),
-    }));
+  const handleBasePaletteIndexChange = (newIndex: number) => {
+    setBasePaletteIndex(newIndex);
   };
 
-  const handleCoordinatesChange = (layerId: string, rawValue: string) => {
-    setDocumentState(previousState => ({
-      ...previousState,
-      layers: updateLayerRawValue(previousState.layers, layerId, rawValue),
-    }));
-  };
-
-  const handleCoordinatesBlur = (layerId: string) => {
-    setDocumentState(previousState => ({
-      ...previousState,
-      layers: normalizeLayerRawValue(previousState.layers, layerId),
-    }));
-  };
-
-  const handlePaintRelativeColorChange = (layerId: string, rawValue: string) => {
+  const handlePaintRelativeColorChange = (rawValue: string) => {
     const trimmed = rawValue.trim();
     const nextRelativeColor = trimmed === '' ? null : Number(trimmed);
 
@@ -181,19 +152,7 @@ export default function HexGridEditorPage() {
       return;
     }
 
-    setDocumentState(previousState => ({
-      ...previousState,
-      layers: updateLayerPaintRelativeColor(previousState.layers, layerId, nextRelativeColor),
-    }));
-  };
-
-  const handleCellClick = (cell: Axial) => {
-    if (!activeLayer) return;
-
-    setDocumentState(previousState => ({
-      ...previousState,
-      layers: toggleCellInLayer(previousState.layers, previousState.selectedLayerId, cell),
-    }));
+    setPaintRelativeColor(nextRelativeColor);
   };
 
   return (
@@ -204,13 +163,12 @@ export default function HexGridEditorPage() {
             <div className="editor-kicker">Auxiliary Tool</div>
             <h1 className="editor-title">Hex Grid Editor</h1>
             <p className="editor-description">
-              Click hexes to toggle them for the active layer. The coordinates panel updates instantly and supports
-              optional relativeColor values for template-style editing.
+              Click hexes to toggle them. The coordinates panel updates instantly. Choose a palette base color (0%)
+              and a painting color (relativeColor %), then click cells to add them.
             </p>
           </div>
           <div className="editor-stage-actions">
-            <div className="editor-stat-pill">Active cells: {activeCellCount}</div>
-            <div className="editor-stat-pill">Total cells: {totalCellCount}</div>
+            <div className="editor-stat-pill">Cells: {documentState.cells.length}</div>
             <a className="editor-back-link" href="../">
               Open game
             </a>
@@ -221,20 +179,13 @@ export default function HexGridEditorPage() {
           <svg className="editor-grid-svg" viewBox={gridLayout.viewBox} role="img" aria-label="Editable axial hex grid">
             {gridLayout.positionedCells.map(({ cell, x, y }) => {
               const cellKey = keyOfAxial(cell);
-              const owner = ownership.get(cellKey);
-              const isActiveLayerCell = owner?.layerId === activeLayer?.id;
-              const isDuplicate = duplicates.has(cellKey);
-              const fillColor = owner
-                ? (owner.relativeColor === null
-                  ? getDisplayColor(owner.color)
-                  : getPaletteColorByRelative(owner.relativeColor, basePaletteIndex))
+              const cellData = cellMap.get(cellKey);
+              const isEditorCell = cellData !== undefined;
+              const fillColor = isEditorCell
+                ? getPaletteColorByRelative(cellData!.relativeColor ?? 0, basePaletteIndex)
                 : '#f5efe2';
-              const strokeColor = isDuplicate
-                ? '#c2410c'
-                : isActiveLayerCell
-                  ? '#114b5f'
-                  : '#7c6a58';
-              const strokeWidth = isDuplicate ? 4 : isActiveLayerCell ? 3 : 1.6;
+              const strokeColor = isEditorCell ? '#114b5f' : '#7c6a58';
+              const strokeWidth = isEditorCell ? 3 : 1.6;
 
               return (
                 <g
@@ -255,7 +206,7 @@ export default function HexGridEditorPage() {
                     fill={fillColor}
                     stroke={strokeColor}
                     strokeWidth={strokeWidth}
-                    opacity={owner ? 0.96 : 1}
+                    opacity={isEditorCell ? 0.96 : 1}
                   />
                   <text
                     x={x}
@@ -276,131 +227,63 @@ export default function HexGridEditorPage() {
       <aside className="editor-sidebar">
         <div className="editor-sidebar-header">
           <div>
-            <h2 className="editor-sidebar-title">Color layers</h2>
-            <p className="editor-sidebar-note">Choose a palette base color for 0%, then paint cells with relativeColor values.</p>
-          </div>
-          <button className="editor-add-button" type="button" onClick={handleAddLayer}>
-            Add color
-          </button>
-        </div>
-
-        <div className="editor-palette-card">
-          <div className="editor-palette-title">Base palette color (0%)</div>
-          <div className="editor-palette-row">
-            {EDITOR_PALETTE.map((paletteColor, index) => (
-              <button
-                key={`${paletteColor}-${index}`}
-                type="button"
-                className={`editor-palette-swatch ${index === basePaletteIndex ? 'active' : ''}`}
-                style={{ backgroundColor: paletteColor }}
-                onClick={() => setBasePaletteIndex(index)}
-                aria-label={`Use palette color ${index} as 0%`}
-                title={`Palette ${index}: ${paletteColor}`}
-              />
-            ))}
-          </div>
-          <div className="editor-palette-caption">
-            Selected 0%: index {basePaletteIndex} ({EDITOR_PALETTE[basePaletteIndex]})
+            <h2 className="editor-sidebar-title">Pattern</h2>
+            <p className="editor-sidebar-note">Edit coordinates and palette settings</p>
           </div>
         </div>
 
-        {duplicates.size > 0 && (
-          <div className="editor-warning-banner">
-            Duplicate coordinates detected: {duplicates.size}. The last layer wins visually, but the orange outline shows
-            conflicts.
-          </div>
-        )}
+        <div className="editor-control-section">
+          <label className="editor-field-label">
+            Base palette color (0%)
+            <div className="editor-palette-row">
+              {EDITOR_PALETTE.map((paletteColor, index) => (
+                <button
+                  key={`${paletteColor}-${index}`}
+                  type="button"
+                  className={`editor-palette-swatch ${index === basePaletteIndex ? 'active' : ''}`}
+                  style={{ backgroundColor: paletteColor }}
+                  onClick={() => handleBasePaletteIndexChange(index)}
+                  aria-label={`Use palette color ${index} as 0%`}
+                  title={`Palette ${index}: ${paletteColor}`}
+                />
+              ))}
+            </div>
+            <div className="editor-palette-caption">
+              Index {basePaletteIndex}
+            </div>
+          </label>
+        </div>
 
-        <div className="editor-layer-list">
-          {documentState.layers.map(layer => {
-            const isActive = layer.id === activeLayer?.id;
-            const isValidColor = isColorSupported(layer.color);
-            const hasInvalidFallback = layer.paintRelativeColor === null && !isValidColor;
-            const swatchColor = layer.paintRelativeColor === null
-              ? getDisplayColor(layer.color)
-              : getPaletteColorByRelative(layer.paintRelativeColor, basePaletteIndex);
+        <div className="editor-control-section">
+          <label className="editor-field-label">
+            Paint relativeColor (%)
+            <input
+              className="editor-text-input"
+              type="number"
+              value={paintRelativeColor ?? ''}
+              onChange={(event) => handlePaintRelativeColorChange(event.target.value)}
+              placeholder="0"
+              step="1"
+              spellCheck={false}
+            />
+          </label>
+        </div>
 
-            return (
-              <section
-                key={layer.id}
-                className={`editor-layer-card ${isActive ? 'active' : ''}`}
-                onClick={() => selectLayer(layer.id)}
-              >
-                <div className="editor-layer-header">
-                  <div className="editor-layer-heading">
-                    <span
-                      className={`editor-layer-swatch ${hasInvalidFallback ? 'invalid' : ''}`}
-                      style={{ backgroundColor: swatchColor }}
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="editor-layer-name">{layer.color || 'Unnamed color'}</div>
-                      <div className="editor-layer-meta">
-                        {layer.cells.length} cells · paint {layer.paintRelativeColor ?? 'none'}%{isActive ? ' · active' : ''}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    className="editor-remove-button"
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleRemoveLayer(layer.id);
-                    }}
-                    disabled={documentState.layers.length === 1}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <label className="editor-field-label">
-                  Paint relativeColor (%)
-                  <input
-                    className="editor-text-input"
-                    type="number"
-                    value={layer.paintRelativeColor ?? ''}
-                    onChange={(event) => handlePaintRelativeColorChange(layer.id, event.target.value)}
-                    onClick={(event) => event.stopPropagation()}
-                    placeholder="0"
-                    step="1"
-                    spellCheck={false}
-                  />
-                </label>
-
-                <label className="editor-field-label">
-                  Fallback color (used when relativeColor is missing)
-                  <input
-                    className="editor-text-input"
-                    type="text"
-                    value={layer.color}
-                    onChange={(event) => handleColorChange(layer.id, event.target.value)}
-                    onClick={(event) => event.stopPropagation()}
-                    placeholder="black"
-                    spellCheck={false}
-                  />
-                </label>
-
-                {hasInvalidFallback && (
-                  <div className="editor-inline-warning">This color name is not supported by the browser. A fallback swatch is used.</div>
-                )}
-
-                <label className="editor-field-label">
-                  Coordinates
-                  <textarea
-                    className="editor-textarea"
-                    value={layer.rawValue}
-                    onChange={(event) => handleCoordinatesChange(layer.id, event.target.value)}
-                    onBlur={() => handleCoordinatesBlur(layer.id)}
-                    onClick={(event) => event.stopPropagation()}
-                    spellCheck={false}
-                    rows={10}
-                  />
-                </label>
-
-                {layer.parseError && <div className="editor-inline-error">{layer.parseError}</div>}
-              </section>
-            );
-          })}
+        <div className="editor-control-section">
+          <label className="editor-field-label">
+            Coordinates (grouped by r, sorted by q)
+            <textarea
+              className="editor-textarea"
+              value={documentState.rawValue}
+              onChange={(event) => handleCoordinatesChange(event.target.value)}
+              onBlur={handleCoordinatesBlur}
+              spellCheck={false}
+              rows={14}
+            />
+          </label>
+          {documentState.parseError && (
+            <div className="editor-inline-error">{documentState.parseError}</div>
+          )}
         </div>
       </aside>
     </div>

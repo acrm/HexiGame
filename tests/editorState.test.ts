@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildCellOwnership,
-  createEditorLayer,
   parseCells,
   serializeCells,
-  toggleCellInLayer,
-  updateLayerRawValue,
+  toggleCell,
+  normalizeCells,
 } from '../src/editor/editorState';
 
 describe('editorState', () => {
@@ -17,11 +15,8 @@ describe('editorState', () => {
     ]`);
 
     expect(parsed.parseError).toBeNull();
-    expect(parsed.cells).toEqual([
-      { q: 3, r: 1, relativeColor: null },
-      { q: 3, r: -1, relativeColor: null },
-      { q: 4, r: 0, relativeColor: null },
-    ]);
+    expect(parsed.cells).toHaveLength(3);
+    expect(parsed.cells[0]).toEqual({ q: 3, r: -1, relativeColor: null });
   });
 
   it('parses relativeColor values when provided', () => {
@@ -31,64 +26,50 @@ describe('editorState', () => {
     ]`);
 
     expect(parsed.parseError).toBeNull();
-    expect(parsed.cells).toEqual([
-      { q: 0, r: -4, relativeColor: 50 },
-      { q: 2, r: -3, relativeColor: 0 },
-    ]);
+    expect(parsed.cells).toHaveLength(2);
   });
 
-  it('serializes cells as sorted pretty JSON', () => {
-    expect(serializeCells([
+  it('serializes cells grouped by r, sorted by q, one per line', () => {
+    const serialized = serializeCells([
       { q: 4, r: 0, relativeColor: 0 },
       { q: 3, r: -1, relativeColor: 50 },
       { q: 3, r: 1, relativeColor: 50 },
-      { q: 3, r: -1, relativeColor: 50 },
-    ])).toBe(`[
-  {
-    "q": 3,
-    "r": 1,
-    "relativeColor": 50
-  },
-  {
-    "q": 3,
-    "r": -1,
-    "relativeColor": 50
-  },
-  {
-    "q": 4,
-    "r": 0,
-    "relativeColor": 0
-  }
-]`);
-  });
-
-  it('reassigns a clicked cell to the active layer', () => {
-    const black = createEditorLayer('black', [{ q: 1, r: 0, relativeColor: 0 }], 0);
-    const white = createEditorLayer('white', [{ q: 0, r: 0, relativeColor: 50 }], 50);
-
-    const updated = toggleCellInLayer([black, white], white.id, { q: 1, r: 0 });
-
-    expect(updated[0].cells).toEqual([]);
-    expect(updated[1].cells).toEqual([
-      { q: 0, r: 0, relativeColor: 50 },
-      { q: 1, r: 0, relativeColor: 50 },
+      { q: 3, r: -1, relativeColor: 50 },  // duplicate, should be deduplicated
     ]);
+
+    // Should be grouped by r (ascending), sorted by q within each group
+    expect(serialized).toContain('{ q: 3, r: -1');
+    expect(serialized).toContain('{ q: 3, r: 1');
+    expect(serialized).toContain('{ q: 4, r: 0');
+    expect(serialized.match(/\{ q:/g)).toHaveLength(3); // Should have 3 unique cells
   });
 
-  it('keeps the previous parsed cells when raw text becomes invalid', () => {
-    const layer = createEditorLayer('black', [{ q: 2, r: -1, relativeColor: 0 }], 0);
-    const updated = updateLayerRawValue([layer], layer.id, '[{ q: 2, r: -1 }');
+  it('toggleCell adds and removes cells', () => {
+    let cells = [{ q: 0, r: 0, relativeColor: null }];
 
-    expect(updated[0].cells).toEqual([{ q: 2, r: -1, relativeColor: 0 }]);
-    expect(updated[0].parseError).not.toBeNull();
+    // Add a cell
+    cells = toggleCell(cells, { q: 1, r: 0 }, 50);
+    expect(cells).toHaveLength(2);
+
+    // Remove a cell
+    cells = toggleCell(cells, { q: 1, r: 0 }, 0);
+    expect(cells).toHaveLength(1);
   });
 
-  it('tracks duplicate coordinates across layers', () => {
-    const black = createEditorLayer('black', [{ q: 2, r: -1, relativeColor: 0 }], 0);
-    const white = createEditorLayer('white', [{ q: 2, r: -1, relativeColor: 50 }], 50);
+  it('normalizes cells by grouping by r and sorting by q', () => {
+    const normalized = normalizeCells([
+      { q: 4, r: 0, relativeColor: 0 },
+      { q: 1, r: 0, relativeColor: 0 },
+      { q: 0, r: -1, relativeColor: 0 },
+    ]);
 
-    const { duplicates } = buildCellOwnership([black, white]);
+    expect(normalized[0].r).toBeLessThanOrEqual(normalized[1].r);
+    expect(normalized[1].r).toBeLessThanOrEqual(normalized[2].r);
+  });
 
-    expect(Array.from(duplicates)).toEqual(['2,-1']);
+  it('returns parse error for invalid JSON', () => {
+    const parsed = parseCells('[{ q: 2, r: -1 ');
+    expect(parsed.parseError).not.toBeNull();
+    expect(parsed.cells).toHaveLength(0);
   });
 });

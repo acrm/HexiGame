@@ -561,3 +561,5 @@
 - 2026w12-0.9 — redesign tutorial intro modal and rewrite all tutorial levels with turtle story
 
 - 2026w12-0.10 — Editor relativeColor palette mode
+
+- 2026w12-0.11 — Simplified editor: unified coordinates input, basePaletteIndex slider, paintColor number field
