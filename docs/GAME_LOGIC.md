@@ -178,6 +178,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Hex size (`HEX_SIZE = 10`) influences rendering only; not part of pure logic.
 - HUD shows dynamic chance string; logic only supplies numeric chance.
 - Tutorial tasks are freely selectable in HexiPedia; completed tasks are tracked and can be restarted on demand.
+- Activating a tutorial task opens a blocking intro modal over the game field with a short task summary and goal hint; dismissing it animates the card into the tutorial progress widget. The first task intro appears 2 seconds after the startup animation finishes.
 - Tutorial completion only fires on state transition (incomplete → complete), then auto-advances to the next task in order.
 - Tutorial levels use deterministic scripted sandbox setups; free-play world generation remains procedural.
 - Top overlay widgets use `»` navigation button to open HexiPedia and auto-scroll to the matching panel (`Tasks` or `Colors`). Both widgets use the same `»` icon for visual consistency.

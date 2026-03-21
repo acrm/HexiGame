@@ -12,6 +12,8 @@ export interface UseKeyboardInputOptions {
   dispatch: (command: GameCommand) => void;
   /** Only process keyboard events in 'desktop' mode. */
   interactionMode: 'desktop' | 'mobile';
+  /** When true, keyboard controls are temporarily disabled. */
+  isInputBlocked?: boolean;
   /** When true, Tab-key inventory toggle is disabled (tutorial lock). */
   isInventoryLocked?: boolean;
   /** Current number of hotbar slots (default 6). */
@@ -34,13 +36,14 @@ export interface UseKeyboardInputOptions {
 export function useKeyboardInput({
   dispatch,
   interactionMode,
+  isInputBlocked = false,
   isInventoryLocked = false,
   hotbarSize = 6,
 }: UseKeyboardInputOptions): void {
   const spaceDownRef = useRef(false);
 
   useEffect(() => {
-    if (interactionMode !== 'desktop') return;
+    if (interactionMode !== 'desktop' || isInputBlocked) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
@@ -95,5 +98,5 @@ export function useKeyboardInput({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [dispatch, interactionMode, isInventoryLocked, hotbarSize]);
+  }, [dispatch, interactionMode, isInputBlocked, isInventoryLocked, hotbarSize]);
 }

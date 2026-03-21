@@ -11,7 +11,7 @@ import Settings from './Settings';
 import GameMobileTabs from './Game/GameMobileTabs';
 import GamePanels from './Game/GamePanels';
 import GameOverlays from './Game/GameOverlays';
-import { t } from '../i18n';
+import { getLanguage, t } from '../i18n';
 import { integration } from '../../appLogic/integration';
 import {
   appShellReducer,
@@ -36,6 +36,7 @@ import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../colorScheme';
 import TutorialProgressWidget from './TutorialProgressWidget';
+import TutorialTaskIntroModal from './TutorialTaskIntroModal';
 import ColorPaletteWidget from './ColorPaletteWidget';
 import { hoveredCellActive } from '../../gameLogic/systems/capture';
 import {
@@ -46,6 +47,7 @@ import {
   checkFocusTargetVisit,
   type TutorialFlowState,
 } from '../../appLogic/tutorialFlow';
+import { getHintForMode, getLocalizedText } from '../../tutorial/tutorialState';
 import { useKeyboardInput } from '../hooks/useKeyboardInput';
 import { useGameAudio } from '../hooks/useGameAudio';
 import {
@@ -58,6 +60,12 @@ import { clearSession } from '../../appLogic/sessionRepository';
 
 const MASCOT_FACING_DIR_INDEX = 1;
 type HexiPediaSectionId = 'tasks' | 'stats' | 'templates' | 'colors';
+
+interface TutorialIntroModalState {
+  levelId: string;
+  taskText: string;
+  goalText: string;
+}
 
 // React component
 export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ params, seed }) => {
@@ -113,6 +121,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   ]);
   const [focusHexiPediaSection, setFocusHexiPediaSection] = useState<HexiPediaSectionId | null>(null);
   const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'stats', 'templates', 'colors']);
+  const [tutorialIntroModal, setTutorialIntroModal] = useState<TutorialIntroModalState | null>(null);
+  const [delayedIntroLevelId, setDelayedIntroLevelId] = useState<string | null>(null);
+  const tutorialWidgetRef = useRef<HTMLDivElement | null>(null);
+  const shownTutorialIntroLevelIdsRef = useRef<Set<string>>(new Set());
+  const introDelayTimeoutRef = useRef<number | null>(null);
 
   // Game session state
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -150,8 +163,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Update pause state
   useEffect(() => {
-    controllerRef.current?.setPaused(isPaused);
-  }, [isPaused]);
+    controllerRef.current?.setPaused(isPaused || tutorialIntroModal !== null);
+  }, [isPaused, tutorialIntroModal]);
 
   // Reset session wrapper
   const resetSession = () => {
@@ -179,6 +192,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useKeyboardInput({
     dispatch,
     interactionMode,
+    isInputBlocked: tutorialIntroModal !== null,
     isInventoryLocked: isHexiLabLockedForKeyboard,
     hotbarSize: 6,
   });
@@ -240,12 +254,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Gameplay lifecycle (start/stop based on game state and menu)
   // Note: integration.init() and onGameReady() are called once in index.tsx
   useEffect(() => {
-    if (guestStarted && !isPaused && !isSettingsOpen && !isMascotOpen) {
+    if (guestStarted && !isPaused && !isSettingsOpen && !isMascotOpen && !tutorialIntroModal) {
       integration.onGameplayStart();
     } else if (guestStarted) {
       integration.onGameplayStop();
     }
-  }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen]);
+  }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen, tutorialIntroModal]);
 
   // Derived HUD data
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
@@ -255,14 +269,84 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Track previous completion state for auto-advance
   const prevTutorialCompleteRef = useRef<boolean>(tutorialViewModel.isTaskComplete);
 
+  useEffect(() => {
+    return () => {
+      if (introDelayTimeoutRef.current !== null) {
+        window.clearTimeout(introDelayTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (guestStarted) return;
+
+    shownTutorialIntroLevelIdsRef.current.clear();
+    setTutorialIntroModal(null);
+    setDelayedIntroLevelId(null);
+    if (introDelayTimeoutRef.current !== null) {
+      window.clearTimeout(introDelayTimeoutRef.current);
+      introDelayTimeoutRef.current = null;
+    }
+  }, [guestStarted]);
+
+  useEffect(() => {
+    const level = tutorialViewModel.level;
+    if (!guestStarted || !startupAnimationShown || !level) {
+      return;
+    }
+
+    if (tutorialIntroModal?.levelId === level.id) {
+      return;
+    }
+
+    if (shownTutorialIntroLevelIdsRef.current.has(level.id)) {
+      return;
+    }
+
+    const language = getLanguage();
+    const presentIntro = () => {
+      shownTutorialIntroLevelIdsRef.current.add(level.id);
+      setTutorialIntroModal({
+        levelId: level.id,
+        taskText: getLocalizedText(level.objective, language),
+        goalText: getHintForMode(level.hints, interactionMode, language),
+      });
+      setDelayedIntroLevelId((current) => (current === level.id ? null : current));
+      introDelayTimeoutRef.current = null;
+    };
+
+    if (delayedIntroLevelId === level.id) {
+      introDelayTimeoutRef.current = window.setTimeout(presentIntro, 2000);
+      return () => {
+        if (introDelayTimeoutRef.current !== null) {
+          window.clearTimeout(introDelayTimeoutRef.current);
+          introDelayTimeoutRef.current = null;
+        }
+      };
+    }
+
+    presentIntro();
+    return undefined;
+  }, [
+    delayedIntroLevelId,
+    guestStarted,
+    interactionMode,
+    startupAnimationShown,
+    tutorialIntroModal,
+    tutorialViewModel.level,
+  ]);
+
   // Tutorial handlers
   const handleSelectTutorialLevel = (levelId: string) => {
     if (tutorialViewModel.completedLevelIds.has(levelId)) return;
     tutorialActions.selectLevel(levelId);
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
   const handleRestartTutorialLevel = (levelId: string) => {
+    shownTutorialIntroLevelIdsRef.current.delete(levelId);
     tutorialActions.restartLevel(levelId);
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
   // Auto-complete tutorial level when task is done
@@ -414,6 +498,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const handleStartupAnimationComplete = () => {
     dispatch({ type: 'MOVE_CURSOR_DIRECTION', dirIndex: MASCOT_FACING_DIR_INDEX });
+    if (tutorialFlowState.currentLevelId) {
+      setDelayedIntroLevelId(tutorialFlowState.currentLevelId);
+    }
     dispatchApp({ type: 'STARTUP_ANIMATION_COMPLETE' });
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
@@ -608,10 +695,26 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         isComplete: tutorialViewModel.isTaskComplete,
         onComplete: handleTutorialCompleteClick,
         onViewTask: handleViewTutorialTask,
+        containerRef: tutorialWidgetRef,
       }
     : null;
 
   const visibleTutorialWidgetProps = showTutorialWidget ? tutorialWidgetProps : null;
+
+  const tutorialIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null = tutorialIntroModal
+    ? {
+        title: t('tutorial.modal.title'),
+        taskLabel: t('tutorial.modal.taskLabel'),
+        taskText: tutorialIntroModal.taskText,
+        goalLabel: t('tutorial.modal.goalLabel'),
+        goalText: tutorialIntroModal.goalText,
+        dismissLabel: t('tutorial.modal.dismiss'),
+        getFlyToRect: () => tutorialWidgetRef.current?.getBoundingClientRect() ?? null,
+        onDismissed: () => {
+          setTutorialIntroModal(null);
+        },
+      }
+    : null;
 
   const colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null = showColorWidget
     ? {
@@ -666,6 +769,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         isMobileLayout={isMobileLayout}
         mobileTab={mobileTab}
         tutorialWidgetProps={visibleTutorialWidgetProps}
+        tutorialIntroModalProps={tutorialIntroModalProps}
         colorPaletteWidgetProps={colorPaletteWidgetProps}
         sectionOrder={sectionOrder}
         showGuestStart={!guestStarted}

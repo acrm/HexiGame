@@ -553,3 +553,5 @@
 - 2026w12-0.5 — Scripted tutorial and blocked pathing
 
 - 2026w12-0.6 — unify HexiPedia localization across language modes
+
+- 2026w12-0.7 — add tutorial task intro modal and widget fly-out animation

@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '../i18n';
 import './OverlayWidget.css';
 import './TutorialProgressWidget.css';
 
@@ -9,6 +10,7 @@ interface TutorialProgressWidgetProps {
   isComplete: boolean;
   onComplete: () => void;
   onViewTask?: () => void;
+  containerRef?: React.Ref<HTMLDivElement>;
 }
 
 export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
@@ -18,6 +20,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   isComplete,
   onComplete,
   onViewTask,
+  containerRef,
 }) => {
   const handleClick = () => {
     if (isComplete) {
@@ -28,7 +31,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   };
 
   return (
-    <div className="overlay-widget-shell tutorial-progress-container">
+    <div ref={containerRef} className="overlay-widget-shell tutorial-progress-container">
       <div
         className={`overlay-widget-body tutorial-progress-widget ${isComplete ? 'complete' : 'clickable'}`}
         onClick={handleClick}
@@ -51,8 +54,8 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           onViewTask?.();
         }}
         disabled={!onViewTask}
-        title="Open tasks in HexiPedia"
-        aria-label="Open tasks in HexiPedia"
+        title={t('tutorial.widget.openTasks')}
+        aria-label={t('tutorial.widget.openTasks')}
       >
         »
       </button>
