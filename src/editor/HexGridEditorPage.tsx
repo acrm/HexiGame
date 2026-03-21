@@ -68,13 +68,18 @@ function computeGridRadius(state: EditorDocumentState): number {
     return Math.max(maxDistance, axialDistance(ORIGIN, cell));
   }, MIN_GRID_RADIUS - 2);
 
-  return Math.max(MIN_GRID_RADIUS, farthestCellDistance + 2);
+  const farthestAnchorDistance = state.anchorCell === null
+    ? MIN_GRID_RADIUS - 2
+    : axialDistance(ORIGIN, state.anchorCell);
+
+  return Math.max(MIN_GRID_RADIUS, Math.max(farthestCellDistance, farthestAnchorDistance) + 2);
 }
 
 export default function HexGridEditorPage() {
   const [documentState, setDocumentState] = useState<EditorDocumentState>(createInitialEditorDocument);
   const [basePaletteIndex, setBasePaletteIndex] = useState<number>(DefaultParams.PlayerBaseColorIndex);
   const [paintRelativeColor, setPaintRelativeColor] = useState<number | null>(0);
+  const [isAnchorMode, setIsAnchorMode] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const boardRef = useRef<HTMLDivElement>(null);
@@ -155,9 +160,10 @@ export default function HexGridEditorPage() {
   }, []);
 
   const handleCoordinatesChange = (rawValue: string) => {
-    const { cells, parseError } = parseCells(rawValue);
+    const { cells, anchorCell, parseError } = parseCells(rawValue);
     setDocumentState({
       cells,
+      anchorCell,
       rawValue,
       parseError,
     });
@@ -166,16 +172,29 @@ export default function HexGridEditorPage() {
   const handleCoordinatesBlur = () => {
     setDocumentState(previousState => ({
       ...previousState,
-      rawValue: serializeCells(previousState.cells),
+      rawValue: serializeCells(previousState.cells, previousState.anchorCell),
     }));
   };
 
   const handleCellClick = (cell: Axial) => {
     if (didDragRef.current) return;
+
+    if (isAnchorMode) {
+      const nextAnchorCell = { q: cell.q, r: cell.r };
+      setDocumentState(previousState => ({
+        ...previousState,
+        anchorCell: nextAnchorCell,
+        rawValue: serializeCells(previousState.cells, nextAnchorCell),
+        parseError: null,
+      }));
+      return;
+    }
+
     const nextCells = toggleCell(documentState.cells, cell, paintRelativeColor);
     setDocumentState({
       cells: nextCells,
-      rawValue: serializeCells(nextCells),
+      anchorCell: documentState.anchorCell,
+      rawValue: serializeCells(nextCells, documentState.anchorCell),
       parseError: null,
     });
   };
@@ -194,14 +213,16 @@ export default function HexGridEditorPage() {
 
   const handlePaletteSwatchClick = (index: number) => {
     // Clicking a palette swatch sets the paintRelativeColor to that palette position
-    const relativeColor = (index * 100) / EDITOR_PALETTE.length;
+    const relativeColor = getRelativeColorForPaletteIndex(index);
     setPaintRelativeColor(relativeColor);
   };
 
   const handleClearCoordinates = () => {
+    const nextAnchorCell = null;
     setDocumentState({
       cells: [],
-      rawValue: '[\n  \n]',
+      anchorCell: nextAnchorCell,
+      rawValue: serializeCells([], nextAnchorCell),
       parseError: null,
     });
   };
@@ -228,6 +249,9 @@ export default function HexGridEditorPage() {
               const cellKey = keyOfAxial(cell);
               const cellData = cellMap.get(cellKey);
               const isEditorCell = cellData !== undefined;
+              const isAnchorCell = documentState.anchorCell !== null
+                && documentState.anchorCell.q === cell.q
+                && documentState.anchorCell.r === cell.r;
               const fillColor = isEditorCell
                 ? getPaletteColorByRelative(cellData!.relativeColor ?? 0, basePaletteIndex)
                 : '#f5efe2';
@@ -255,6 +279,14 @@ export default function HexGridEditorPage() {
                     strokeWidth={strokeWidth}
                     opacity={isEditorCell ? 0.96 : 1}
                   />
+                  {isAnchorCell && (
+                    <circle
+                      className="editor-anchor-ring"
+                      cx={x}
+                      cy={y}
+                      r={12}
+                    />
+                  )}
                   <text
                     x={x}
                     y={y + 4}
@@ -281,6 +313,9 @@ export default function HexGridEditorPage() {
           </p>
           <div className="editor-stage-actions">
             <div className="editor-stat-pill">Cells: {documentState.cells.length}</div>
+            <div className="editor-stat-pill">
+              Anchor: {documentState.anchorCell === null ? 'none' : `(${documentState.anchorCell.q}, ${documentState.anchorCell.r})`}
+            </div>
             <a className="editor-back-link" href="../">Open game</a>
           </div>
         </div>
@@ -288,6 +323,18 @@ export default function HexGridEditorPage() {
         <div className="editor-control-section">
           <div className="editor-field-label">
             Palette
+            <div className="editor-anchor-controls">
+              <button
+                type="button"
+                className={`editor-anchor-mode-button ${isAnchorMode ? 'active' : ''}`}
+                onClick={() => setIsAnchorMode(value => !value)}
+              >
+                {isAnchorMode ? 'Anchor mode: ON' : 'Anchor mode: OFF'}
+              </button>
+              <div className="editor-palette-caption">
+                {isAnchorMode ? 'Click a cell to place anchor' : 'Click a cell to paint/remove'}
+              </div>
+            </div>
             <div className="editor-palette-row">
               {EDITOR_PALETTE.map((paletteColor, index) => {
                 const relativeColor = getRelativeColorForPaletteIndex(index);
@@ -322,7 +369,7 @@ export default function HexGridEditorPage() {
               ))}
             </div>
             <div className="editor-palette-caption">
-              Paint: {paintRelativeColor?.toFixed(0) ?? 'none'}% · Base: #{basePaletteIndex}
+              Paint: {paintRelativeColor?.toFixed(0) ?? 'none'}% · Base: #{basePaletteIndex} · Anchor: {documentState.anchorCell === null ? 'none' : `(${documentState.anchorCell.q}, ${documentState.anchorCell.r})`}
             </div>
           </div>
         </div>
@@ -330,7 +377,7 @@ export default function HexGridEditorPage() {
         <div className="editor-control-section">
           <div className="editor-coordinates-header">
             <label className="editor-field-label">
-              Coordinates (grouped by r, sorted by q)
+              Coordinates (array or object with anchorCell and cells)
             </label>
             <div className="editor-coord-actions">
               <button

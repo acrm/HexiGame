@@ -7,6 +7,7 @@ export interface EditorCell extends Axial {
 
 export interface EditorDocumentState {
   cells: EditorCell[];
+  anchorCell: Axial | null;
   rawValue: string;
   parseError: string | null;
 }
@@ -46,36 +47,57 @@ export function normalizeCells(cells: EditorCell[]): EditorCell[] {
   return result;
 }
 
-export function serializeCells(cells: EditorCell[]): string {
+function buildSerializedCellLines(cells: EditorCell[], indent: string): string[] {
   const normalized = normalizeCells(cells);
   const lines: string[] = [];
 
   for (const cell of normalized) {
     if (cell.relativeColor === null) {
-      lines.push(`{ q: ${cell.q}, r: ${cell.r} },`);
+      lines.push(`${indent}{ q: ${cell.q}, r: ${cell.r} },`);
     } else {
-      lines.push(`{ q: ${cell.q}, r: ${cell.r}, relativeColor: ${cell.relativeColor} },`);
+      lines.push(`${indent}{ q: ${cell.q}, r: ${cell.r}, relativeColor: ${cell.relativeColor} },`);
     }
   }
 
-  // Remove trailing comma from last line if present
   if (lines.length > 0) {
     const lastLine = lines[lines.length - 1];
     lines[lines.length - 1] = lastLine.replace(/,\s*$/, '');
   }
 
-  return `[\n  ${lines.join('\n  ')}\n]`;
+  return lines;
 }
 
-function parseRelaxedArray(rawValue: string): unknown {
+export function serializeCells(cells: EditorCell[], anchorCell: Axial | null = null): string {
+  if (anchorCell !== null) {
+    const cellLines = buildSerializedCellLines(cells, '    ');
+    const serializedCellsBlock = cellLines.length > 0 ? `${cellLines.join('\n')}\n` : '    \n';
+
+    return `{
+  anchorCell: { q: ${anchorCell.q}, r: ${anchorCell.r} },
+  cells: [
+${serializedCellsBlock}  ]
+}`;
+  }
+
+  const cellLines = buildSerializedCellLines(cells, '  ');
+  const serializedCellsBlock = cellLines.length > 0 ? `${cellLines.join('\n')}\n` : '  \n';
+
+  return `[\n${serializedCellsBlock}]`;
+}
+
+function parseRelaxedValue(rawValue: string): unknown {
   const trimmed = rawValue.trim();
   if (!trimmed) return [];
 
+  const normalizedSource = /^[a-zA-Z_$][\w$]*\s*:/.test(trimmed)
+    ? `{${trimmed}}`
+    : trimmed;
+
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(normalizedSource);
   } catch {
-    const relaxedJson = trimmed
-      .replace(/([{,]\s*)(q|r|relativeColor)(\s*:)/g, '$1"$2"$3')
+    const relaxedJson = normalizedSource
+      .replace(/([{,]\s*)(q|r|relativeColor|anchorCell|cells)(\s*:)/g, '$1"$2"$3')
       .replace(/'/g, '"')
       .replace(/,\s*}/g, '}')
       .replace(/,\s*]/g, ']');
@@ -84,74 +106,157 @@ function parseRelaxedArray(rawValue: string): unknown {
   }
 }
 
-export function parseCells(rawValue: string): { cells: EditorCell[]; parseError: string | null } {
-  try {
-    const parsed = parseRelaxedArray(rawValue);
-    if (!Array.isArray(parsed)) {
+function parseCellArray(parsed: unknown): { cells: EditorCell[]; parseError: string | null } {
+  if (!Array.isArray(parsed)) {
+    return {
+      cells: [],
+      parseError: 'Coordinates must be an array of { q, r, relativeColor? } objects.',
+    };
+  }
+
+  const cells: EditorCell[] = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== 'object') {
       return {
         cells: [],
-        parseError: 'Coordinates must be an array of { q, r, relativeColor? } objects.',
+        parseError: 'Each coordinate must be an object with numeric q and r fields and optional relativeColor.',
       };
     }
 
-    const cells: EditorCell[] = [];
-    for (const item of parsed) {
-      if (!item || typeof item !== 'object') {
+    const candidate = item as Partial<Record<'q' | 'r' | 'relativeColor', unknown>>;
+    if (typeof candidate.q !== 'number' || typeof candidate.r !== 'number') {
+      return {
+        cells: [],
+        parseError: 'Each coordinate must contain numeric q and r values.',
+      };
+    }
+
+    if (!Number.isFinite(candidate.q) || !Number.isFinite(candidate.r)) {
+      return {
+        cells: [],
+        parseError: 'q and r values must be finite numbers.',
+      };
+    }
+
+    let relativeColor: number | null = null;
+    if ('relativeColor' in candidate && candidate.relativeColor !== undefined) {
+      if (candidate.relativeColor === null) {
+        relativeColor = null;
+      } else if (typeof candidate.relativeColor === 'number' && Number.isFinite(candidate.relativeColor)) {
+        relativeColor = candidate.relativeColor;
+      } else {
         return {
           cells: [],
-          parseError: 'Each coordinate must be an object with numeric q and r fields and optional relativeColor.',
+          parseError: 'relativeColor must be a finite number or null.',
         };
       }
+    }
 
-      const candidate = item as Partial<Record<'q' | 'r' | 'relativeColor', unknown>>;
-      if (typeof candidate.q !== 'number' || typeof candidate.r !== 'number') {
-        return {
-          cells: [],
-          parseError: 'Each coordinate must contain numeric q and r values.',
-        };
-      }
+    cells.push({
+      q: candidate.q,
+      r: candidate.r,
+      relativeColor,
+    });
+  }
 
-      if (!Number.isFinite(candidate.q) || !Number.isFinite(candidate.r)) {
-        return {
-          cells: [],
-          parseError: 'q and r values must be finite numbers.',
-        };
-      }
+  return {
+    cells: normalizeCells(cells),
+    parseError: null,
+  };
+}
 
-      let relativeColor: number | null = null;
-      if ('relativeColor' in candidate && candidate.relativeColor !== undefined) {
-        if (candidate.relativeColor === null) {
-          relativeColor = null;
-        } else if (typeof candidate.relativeColor === 'number' && Number.isFinite(candidate.relativeColor)) {
-          relativeColor = candidate.relativeColor;
-        } else {
-          return {
-            cells: [],
-            parseError: 'relativeColor must be a finite number or null.',
-          };
-        }
-      }
+function parseAnchorCell(candidate: unknown): { anchorCell: Axial | null; parseError: string | null } {
+  if (candidate === null || candidate === undefined) {
+    return {
+      anchorCell: null,
+      parseError: null,
+    };
+  }
 
-      cells.push({
-        q: candidate.q,
-        r: candidate.r,
-        relativeColor,
-      });
+  if (typeof candidate !== 'object') {
+    return {
+      anchorCell: null,
+      parseError: 'anchorCell must be an object with numeric q and r values.',
+    };
+  }
+
+  const anchor = candidate as Partial<Record<'q' | 'r', unknown>>;
+  if (typeof anchor.q !== 'number' || typeof anchor.r !== 'number') {
+    return {
+      anchorCell: null,
+      parseError: 'anchorCell must contain numeric q and r values.',
+    };
+  }
+
+  if (!Number.isFinite(anchor.q) || !Number.isFinite(anchor.r)) {
+    return {
+      anchorCell: null,
+      parseError: 'anchorCell q and r values must be finite numbers.',
+    };
+  }
+
+  return {
+    anchorCell: { q: anchor.q, r: anchor.r },
+    parseError: null,
+  };
+}
+
+export function parseCells(rawValue: string): { cells: EditorCell[]; anchorCell: Axial | null; parseError: string | null } {
+  try {
+    const parsed = parseRelaxedValue(rawValue);
+
+    if (Array.isArray(parsed)) {
+      const parsedCells = parseCellArray(parsed);
+      return {
+        cells: parsedCells.cells,
+        anchorCell: null,
+        parseError: parsedCells.parseError,
+      };
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      return {
+        cells: [],
+        anchorCell: null,
+        parseError: 'Coordinates must be either an array or an object with anchorCell and cells.',
+      };
+    }
+
+    const parsedObject = parsed as Partial<Record<'anchorCell' | 'cells', unknown>>;
+    const parsedCells = parseCellArray(parsedObject.cells);
+    if (parsedCells.parseError !== null) {
+      return {
+        cells: [],
+        anchorCell: null,
+        parseError: parsedCells.parseError,
+      };
+    }
+
+    const parsedAnchorCell = parseAnchorCell(parsedObject.anchorCell);
+    if (parsedAnchorCell.parseError !== null) {
+      return {
+        cells: [],
+        anchorCell: null,
+        parseError: parsedAnchorCell.parseError,
+      };
     }
 
     return {
-      cells: normalizeCells(cells),
+      cells: parsedCells.cells,
+      anchorCell: parsedAnchorCell.anchorCell,
       parseError: null,
     };
   } catch {
     return {
       cells: [],
-      parseError: 'Unable to parse coordinates. Paste a JSON array or a TypeScript-style array of { q, r, relativeColor? } objects.',
+      anchorCell: null,
+      parseError: 'Unable to parse coordinates. Paste an array of cells or an object with anchorCell and cells.',
     };
   }
 }
 
 export function createInitialEditorDocument(): EditorDocumentState {
+  const defaultAnchorCell: Axial = { q: -1, r: -1 };
   const defaultCells: EditorCell[] = [
     // Yin-Yang pattern (Инь-Янь)
     { q: 0, r: -4, relativeColor: 50 },
@@ -181,7 +286,8 @@ export function createInitialEditorDocument(): EditorDocumentState {
 
   return {
     cells: defaultCells,
-    rawValue: serializeCells(defaultCells),
+    anchorCell: defaultAnchorCell,
+    rawValue: serializeCells(defaultCells, defaultAnchorCell),
     parseError: null,
   };
 }

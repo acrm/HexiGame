@@ -71,6 +71,46 @@
   transform: translateY(-1px);
 }
 
+/* ── Two-button row ───────────────────────────────────────────────────── */
+.tutorial-intro-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tutorial-intro-btn {
+  appearance: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+  flex: 1;
+}
+
+.tutorial-intro-btn-postpone {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #aabbcc;
+}
+
+.tutorial-intro-btn-postpone:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.tutorial-intro-btn-start {
+  background: linear-gradient(180deg, #2d4f7a 0%, #243a57 100%);
+  border: 1px solid #7eaaf1;
+  color: #ffffff;
+}
+
+.tutorial-intro-btn-start:hover {
+  background: linear-gradient(180deg, #365f92 0%, #29476a 100%);
+  transform: translateY(-1px);
+}
+
+
 @keyframes tutorialIntroEnter {
   from {
     opacity: 0;

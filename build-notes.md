@@ -575,3 +575,5 @@
 - 2026w12-0.16 — Editor: fix TS test type, zoom on scroll/buttons, full-height grid layout
 
 - 2026w12-0.17 — Editor: LMB pan, large swatches with % inside, radio base picker, copy button
+
+- 2026w12-0.18 — Editor: anchorCell format, anchor placement mode, anchor marker rendering

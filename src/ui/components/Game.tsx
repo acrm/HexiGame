@@ -35,7 +35,7 @@ import StartupAnimation from './StartupAnimation';
 import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../colorScheme';
-import TutorialProgressWidget from './TutorialProgressWidget';
+import TutorialProgressWidget, { type TutorialWidgetPhase } from './TutorialProgressWidget';
 import TutorialTaskIntroModal from './TutorialTaskIntroModal';
 import ColorPaletteWidget from './ColorPaletteWidget';
 import { hoveredCellActive } from '../../gameLogic/systems/capture';
@@ -122,10 +122,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [focusHexiPediaSection, setFocusHexiPediaSection] = useState<HexiPediaSectionId | null>(null);
   const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'stats', 'templates', 'colors']);
   const [tutorialIntroModal, setTutorialIntroModal] = useState<TutorialIntroModalState | null>(null);
-  const [delayedIntroLevelId, setDelayedIntroLevelId] = useState<string | null>(null);
+  const [tutorialWidgetPhase, setTutorialWidgetPhase] = useState<TutorialWidgetPhase>('pending');
   const tutorialWidgetRef = useRef<HTMLDivElement | null>(null);
-  const shownTutorialIntroLevelIdsRef = useRef<Set<string>>(new Set());
-  const introDelayTimeoutRef = useRef<number | null>(null);
 
   // Game session state
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -266,75 +264,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
   const widgetRelativeBaseColorIndex = autoBaseColorEnabled ? hoverColorIndex : selectedColorIndex;
 
-  // Track previous completion state for auto-advance
+  // Track previous completion state
   const prevTutorialCompleteRef = useRef<boolean>(tutorialViewModel.isTaskComplete);
 
+  // Reset widget phase when tutorial level changes
   useEffect(() => {
-    return () => {
-      if (introDelayTimeoutRef.current !== null) {
-        window.clearTimeout(introDelayTimeoutRef.current);
-      }
-    };
-  }, []);
+    setTutorialWidgetPhase('pending');
+    setTutorialIntroModal(null);
+    prevTutorialCompleteRef.current = false;
+  }, [tutorialFlowState.currentLevelId]);
 
+  // Close modal and reset when guest logs out
   useEffect(() => {
     if (guestStarted) return;
-
-    shownTutorialIntroLevelIdsRef.current.clear();
     setTutorialIntroModal(null);
-    setDelayedIntroLevelId(null);
-    if (introDelayTimeoutRef.current !== null) {
-      window.clearTimeout(introDelayTimeoutRef.current);
-      introDelayTimeoutRef.current = null;
-    }
   }, [guestStarted]);
-
-  useEffect(() => {
-    const level = tutorialViewModel.level;
-    if (!guestStarted || !startupAnimationShown || !level) {
-      return;
-    }
-
-    if (tutorialIntroModal?.levelId === level.id) {
-      return;
-    }
-
-    if (shownTutorialIntroLevelIdsRef.current.has(level.id)) {
-      return;
-    }
-
-    const language = getLanguage();
-    const presentIntro = () => {
-      shownTutorialIntroLevelIdsRef.current.add(level.id);
-      setTutorialIntroModal({
-        levelId: level.id,
-        setupText: getLocalizedText(level.setup, language),
-        objectiveText: getLocalizedText(level.objective, language),
-      });
-      setDelayedIntroLevelId((current) => (current === level.id ? null : current));
-      introDelayTimeoutRef.current = null;
-    };
-
-    if (delayedIntroLevelId === level.id) {
-      introDelayTimeoutRef.current = window.setTimeout(presentIntro, 2000);
-      return () => {
-        if (introDelayTimeoutRef.current !== null) {
-          window.clearTimeout(introDelayTimeoutRef.current);
-          introDelayTimeoutRef.current = null;
-        }
-      };
-    }
-
-    presentIntro();
-    return undefined;
-  }, [
-    delayedIntroLevelId,
-    guestStarted,
-    interactionMode,
-    startupAnimationShown,
-    tutorialIntroModal,
-    tutorialViewModel.level,
-  ]);
 
   // Tutorial handlers
   const handleSelectTutorialLevel = (levelId: string) => {
@@ -344,12 +288,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const handleRestartTutorialLevel = (levelId: string) => {
-    shownTutorialIntroLevelIdsRef.current.delete(levelId);
     tutorialActions.restartLevel(levelId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
-  // Auto-complete tutorial level when task is done
+  // Set widget to "complete" phase when task is done (do NOT auto-advance)
   useEffect(() => {
     if (!tutorialFlowState.currentLevelId) {
       prevTutorialCompleteRef.current = false;
@@ -358,16 +301,29 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const wasComplete = prevTutorialCompleteRef.current;
     if (!wasComplete && tutorialViewModel.isTaskComplete) {
       playSound('audio/mixkit-small-win-2020.wav');
-      tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
+      setTutorialWidgetPhase('complete');
     }
     prevTutorialCompleteRef.current = tutorialViewModel.isTaskComplete;
-  }, [tutorialViewModel.isTaskComplete, tutorialFlowState.currentLevelId, tutorialActions, playSound]);
+  }, [tutorialViewModel.isTaskComplete, tutorialFlowState.currentLevelId, playSound]);
 
-  const handleTutorialCompleteClick = () => {
-    if (!tutorialFlowState.currentLevelId || !tutorialViewModel.level) return;
-    if (!tutorialViewModel.isTaskComplete) return;
-    playUiClick();
-    tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
+  // Widget click handler — drives the pending → active → complete flow
+  const handleWidgetClick = () => {
+    if (tutorialWidgetPhase === 'complete' && tutorialFlowState.currentLevelId) {
+      // Advance to next level
+      playUiClick();
+      setTutorialIntroModal(null);
+      tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
+      return;
+    }
+    // pending or active: open the task description modal
+    const level = tutorialViewModel.level;
+    if (!level) return;
+    const language = getLanguage();
+    setTutorialIntroModal({
+      levelId: level.id,
+      setupText: getLocalizedText(level.setup, language),
+      objectiveText: getLocalizedText(level.objective, language),
+    });
   };
 
   const setHexiPediaSectionEnabled = (sectionId: HexiPediaSectionId, enabled: boolean) => {
@@ -402,10 +358,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setEnabledHexiPediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
     setFocusHexiPediaSection(sectionId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
-  };
-
-  const handleViewTutorialTask = () => {
-    openHexiPediaSection('tasks');
   };
 
   const isMobileLayout = true;
@@ -498,9 +450,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const handleStartupAnimationComplete = () => {
     dispatch({ type: 'MOVE_CURSOR_DIRECTION', dirIndex: MASCOT_FACING_DIR_INDEX });
-    if (tutorialFlowState.currentLevelId) {
-      setDelayedIntroLevelId(tutorialFlowState.currentLevelId);
-    }
     dispatchApp({ type: 'STARTUP_ANIMATION_COMPLETE' });
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
@@ -689,12 +638,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const tutorialWidgetProps = tutorialViewModel.level
     ? {
+        phase: tutorialWidgetPhase,
+        taskName: getLocalizedText(tutorialViewModel.level.name, getLanguage()),
         progressCurrent: tutorialViewModel.progressCurrent,
         progressTotal: tutorialViewModel.progressTotal,
         progressLabel: t(tutorialViewModel.progressLabelKey),
-        isComplete: tutorialViewModel.isTaskComplete,
-        onComplete: handleTutorialCompleteClick,
-        onViewTask: handleViewTutorialTask,
+        onWidgetClick: handleWidgetClick,
         containerRef: tutorialWidgetRef,
       }
     : null;
@@ -705,9 +654,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     ? {
         setupText: tutorialIntroModal.setupText,
         objectiveText: tutorialIntroModal.objectiveText,
-        dismissLabel: t('tutorial.modal.dismiss'),
+        startLabel: t('tutorial.modal.start'),
+        postponeLabel: t('tutorial.modal.postpone'),
         getFlyToRect: () => tutorialWidgetRef.current?.getBoundingClientRect() ?? null,
-        onDismissed: () => {
+        onStart: () => {
+          setTutorialWidgetPhase('active');
+          setTutorialIntroModal(null);
+        },
+        onPostpone: () => {
           setTutorialIntroModal(null);
         },
       }

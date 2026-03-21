@@ -16,6 +16,7 @@ describe('editorState', () => {
     ]`);
 
     expect(parsed.parseError).toBeNull();
+    expect(parsed.anchorCell).toBeNull();
     expect(parsed.cells).toHaveLength(3);
     expect(parsed.cells[0]).toEqual({ q: 3, r: -1, relativeColor: null });
   });
@@ -27,6 +28,35 @@ describe('editorState', () => {
     ]`);
 
     expect(parsed.parseError).toBeNull();
+    expect(parsed.anchorCell).toBeNull();
+    expect(parsed.cells).toHaveLength(2);
+  });
+
+  it('parses object format with anchorCell and cells', () => {
+    const parsed = parseCells(`{
+      anchorCell: { q: -1, r: -1 },
+      cells: [
+        { q: -1, r: -4, relativeColor: 50 },
+        { q: 2, r: -4, relativeColor: 0 }
+      ]
+    }`);
+
+    expect(parsed.parseError).toBeNull();
+    expect(parsed.anchorCell).toEqual({ q: -1, r: -1 });
+    expect(parsed.cells).toHaveLength(2);
+  });
+
+  it('parses anchorCell/cells snippet without outer braces', () => {
+    const parsed = parseCells(`
+      anchorCell: { q: -1, r: -1 },
+      cells: [
+        { q: -1, r: -4, relativeColor: 50 },
+        { q: 2, r: -4, relativeColor: 0 },
+      ],
+    `);
+
+    expect(parsed.parseError).toBeNull();
+    expect(parsed.anchorCell).toEqual({ q: -1, r: -1 });
     expect(parsed.cells).toHaveLength(2);
   });
 
@@ -43,6 +73,20 @@ describe('editorState', () => {
     expect(serialized).toContain('{ q: 3, r: 1');
     expect(serialized).toContain('{ q: 4, r: 0');
     expect(serialized.match(/\{ q:/g)).toHaveLength(3); // Should have 3 unique cells
+  });
+
+  it('serializes anchorCell object format when anchor is set', () => {
+    const serialized = serializeCells(
+      [
+        { q: -1, r: -1, relativeColor: 0 },
+        { q: 0, r: 0, relativeColor: 50 },
+      ],
+      { q: -1, r: -1 },
+    );
+
+    expect(serialized).toContain('anchorCell: { q: -1, r: -1 }');
+    expect(serialized).toContain('cells: [');
+    expect(serialized).toContain('{ q: 0, r: 0, relativeColor: 50 }');
   });
 
   it('toggleCell adds and removes cells', () => {
@@ -71,6 +115,7 @@ describe('editorState', () => {
   it('returns parse error for invalid JSON', () => {
     const parsed = parseCells('[{ q: 2, r: -1 ');
     expect(parsed.parseError).not.toBeNull();
+    expect(parsed.anchorCell).toBeNull();
     expect(parsed.cells).toHaveLength(0);
   });
 });

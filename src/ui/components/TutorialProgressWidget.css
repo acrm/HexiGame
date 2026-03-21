@@ -7,64 +7,113 @@
   display: flex;
   align-items: center;
   flex: 1;
-  background: #333333;
+  background: #2b2b2b;
   border: 1px solid #555555;
   padding: 6px 10px;
   box-sizing: border-box;
   text-align: left;
-  cursor: default;
+  cursor: pointer;
   color: #cccccc;
   font-size: 16px;
   font-weight: bold;
   line-height: 1.2;
+  transition: background 0.2s;
+  user-select: none;
+  outline: none;
 }
 
-.tutorial-progress-widget.complete {
-  cursor: pointer;
-  background: #3a3a3a;
-  border-color: #666666;
+/* ── Pending state: orange inner glow + pulse ─────────────────────────── */
+.tutorial-progress-widget.phase-pending {
+  border-color: rgba(255, 160, 60, 0.7);
+  animation: tutorialWidgetPendingPulse 1.8s ease-in-out infinite;
 }
 
-.tutorial-progress-widget.clickable {
-  cursor: pointer;
-  background: #3a3a3a;
-  border-color: #666666;
+@keyframes tutorialWidgetPendingPulse {
+  0%, 100% {
+    box-shadow: inset 0 0 12px 2px rgba(255, 140, 30, 0.18);
+    border-color: rgba(255, 160, 60, 0.55);
+  }
+  50% {
+    box-shadow: inset 0 0 24px 6px rgba(255, 150, 40, 0.42);
+    border-color: rgba(255, 180, 80, 0.9);
+  }
 }
 
-.tutorial-info-button {
-  font-size: 16px;
-  letter-spacing: -0.03em;
+/* ── Active (in-progress) state ───────────────────────────────────────── */
+.tutorial-progress-widget.phase-active {
+  border-color: #555555;
+  box-shadow: none;
 }
 
+/* ── Complete state: green inner glow + pulse ─────────────────────────── */
+.tutorial-progress-widget.phase-complete {
+  border-color: rgba(80, 220, 120, 0.7);
+  animation: tutorialWidgetCompletePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tutorialWidgetCompletePulse {
+  0%, 100% {
+    box-shadow: inset 0 0 12px 2px rgba(60, 210, 100, 0.18);
+    border-color: rgba(80, 220, 120, 0.55);
+  }
+  50% {
+    box-shadow: inset 0 0 24px 6px rgba(60, 210, 100, 0.40);
+    border-color: rgba(100, 240, 140, 0.9);
+  }
+}
+
+/* ── Row layout ───────────────────────────────────────────────────────── */
 .tutorial-progress-row {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  width: 100%;
 }
 
+/* ── Pending: start icon + task name ─────────────────────────────────── */
+.tutorial-task-icon {
+  font-size: 13px;
+  color: #ffaa44;
+  flex-shrink: 0;
+}
+
+.tutorial-task-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe0b2;
+  letter-spacing: 0.02em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Active / Complete: checkbox + count + label ─────────────────────── */
 .tutorial-progress-checkbox {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: 1px solid #cccccc;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .tutorial-progress-checkbox.checked {
-  background: #ffffff;
-  color: #111111;
+  background: #4dc87a;
+  border-color: #4dc87a;
+  color: #ffffff;
 }
 
 .tutorial-progress-count {
-  font-size: 16px;
+  font-size: 15px;
   color: #ffffff;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .tutorial-progress-label {
@@ -72,4 +121,17 @@
   color: #999999;
   font-weight: 600;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Complete hint: right-aligned prompt ─────────────────────────────── */
+.tutorial-complete-hint {
+  font-size: 11px;
+  color: #6de09a;
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 500;
 }

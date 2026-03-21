@@ -27,6 +27,7 @@ export interface AdaptiveHint {
  */
 export interface TutorialLevel {
   id: string;
+  name: LocalizedText;         // Short task name (1-2 words) displayed in the widget
   setup: LocalizedText;        // Story setup/motivation text (what the turtle wanted...)
   objective: LocalizedText;    // Goal to display to the player
   hints: AdaptiveHint;         // Hints adapted for control mode

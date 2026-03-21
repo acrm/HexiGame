@@ -184,6 +184,13 @@ textarea {
   pointer-events: none;
 }
 
+.editor-anchor-ring {
+  fill: none;
+  stroke: #111111;
+  stroke-width: 2.4;
+  pointer-events: none;
+}
+
 .editor-palette-card {
   border-radius: 18px;
   padding: 14px;
@@ -249,6 +256,30 @@ textarea {
   margin-top: 8px;
   font-size: 12px;
   color: #5f5044;
+}
+
+.editor-anchor-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editor-anchor-mode-button {
+  border: 1px solid rgba(17, 75, 95, 0.28);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(17, 75, 95, 0.08);
+  color: #114b5f;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.editor-anchor-mode-button.active {
+  background: #114b5f;
+  color: #f6f9fb;
+  border-color: #114b5f;
 }
 
 .editor-base-radio-row {

@@ -2,31 +2,39 @@ import React, { useEffect, useRef, useState } from 'react';
 import './TutorialTaskIntroModal.css';
 
 interface TutorialTaskIntroModalProps {
-  setupText: string;      // "Turtle wanted..."
-  objectiveText: string;  // "Do this..."
-  dismissLabel: string;
+  setupText: string;       // "Turtle wanted..."
+  objectiveText: string;   // "Do this..."
+  startLabel: string;      // Right button — "Начать"
+  postponeLabel: string;   // Left button — "Отложить"
   getFlyToRect?: () => DOMRect | null;
-  onDismissed: () => void;
+  onStart: () => void;
+  onPostpone: () => void;
 }
 
 export const TutorialTaskIntroModal: React.FC<TutorialTaskIntroModalProps> = ({
   setupText,
   objectiveText,
-  dismissLabel,
+  startLabel,
+  postponeLabel,
   getFlyToRect,
-  onDismissed,
+  onStart,
+  onPostpone,
 }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [flightStyle, setFlightStyle] = useState<React.CSSProperties>({});
+  const pendingCallbackRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     setIsClosing(false);
     setFlightStyle({});
+    pendingCallbackRef.current = null;
   }, [setupText, objectiveText]);
 
-  const handleDismiss = () => {
+  const triggerClose = (callback: () => void) => {
     if (isClosing) return;
+
+    pendingCallbackRef.current = callback;
 
     const cardRect = cardRef.current?.getBoundingClientRect();
     const targetRect = getFlyToRect?.() ?? null;
@@ -63,7 +71,7 @@ export const TutorialTaskIntroModal: React.FC<TutorialTaskIntroModalProps> = ({
   return (
     <div
       className={`tutorial-intro-overlay ${isClosing ? 'closing' : ''}`}
-      onClick={handleDismiss}
+      onClick={() => triggerClose(onPostpone)}
     >
       <div
         ref={cardRef}
@@ -71,8 +79,8 @@ export const TutorialTaskIntroModal: React.FC<TutorialTaskIntroModalProps> = ({
         style={flightStyle}
         onClick={(event) => event.stopPropagation()}
         onAnimationEnd={() => {
-          if (isClosing) {
-            onDismissed();
+          if (isClosing && pendingCallbackRef.current) {
+            pendingCallbackRef.current();
           }
         }}
         role="dialog"
@@ -87,16 +95,28 @@ export const TutorialTaskIntroModal: React.FC<TutorialTaskIntroModalProps> = ({
           {objectiveText}
         </div>
 
-        <button
-          type="button"
-          className="tutorial-intro-dismiss"
-          onClick={(event) => {
-            event.stopPropagation();
-            handleDismiss();
-          }}
-        >
-          {dismissLabel}
-        </button>
+        <div className="tutorial-intro-buttons">
+          <button
+            type="button"
+            className="tutorial-intro-btn tutorial-intro-btn-postpone"
+            onClick={(event) => {
+              event.stopPropagation();
+              triggerClose(onPostpone);
+            }}
+          >
+            {postponeLabel}
+          </button>
+          <button
+            type="button"
+            className="tutorial-intro-btn tutorial-intro-btn-start"
+            onClick={(event) => {
+              event.stopPropagation();
+              triggerClose(onStart);
+            }}
+          >
+            {startLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

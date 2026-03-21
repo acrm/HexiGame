@@ -39,6 +39,7 @@ function computeExcavationProgress(state: GameState): TutorialProgressMetrics {
 
 export const tutorialLevel1Movement: TutorialLevel = {
   id: 'tutorial_1_movement',
+  name: { en: 'Explore', ru: 'Исследование' },
   setup: {
     en: 'The turtle wakes up in a strange, colorful world and wants to explore it.',
     ru: 'Черепаша проснулась в странном цветном мире и хочет его исследовать.',
@@ -73,6 +74,7 @@ export const tutorialLevel1Movement: TutorialLevel = {
 
 export const tutorialLevel2CollectColors: TutorialLevel = {
   id: 'tutorial_2_collect_colors',
+  name: { en: 'Harvest', ru: 'Сбор цветов' },
   setup: {
     en: 'The turtle sees all the beautiful colors around and wants to gather them all.',
     ru: 'Черепаша видит все прекрасные цвета вокруг и хочет их все собрать.',
@@ -103,6 +105,7 @@ export const tutorialLevel2CollectColors: TutorialLevel = {
 
 export const tutorialLevel3Excavation: TutorialLevel = {
   id: 'tutorial_3_excavation',
+  name: { en: 'Excavate', ru: 'Раскопки' },
   setup: {
     en: 'The turtle senses a mysterious power hidden deep within the earth.',
     ru: 'Черепаша чувствует таинственную силу, спрятанную в глубине земли.',
@@ -131,6 +134,7 @@ export const tutorialLevel3Excavation: TutorialLevel = {
 
 export const tutorialLevel4Shelter: TutorialLevel = {
   id: 'tutorial_4_shelter',
+  name: { en: 'Build', ru: 'Укрытие' },
   setup: {
     en: 'The turtle is tired from exploring and needs a safe place to rest.',
     ru: 'Черепаша устала от исследований и нуждается в безопасном месте для отдыха.',
@@ -158,6 +162,7 @@ export const tutorialLevel4Shelter: TutorialLevel = {
 
 export const tutorialLevel5YinYang: TutorialLevel = {
   id: 'tutorial_5_yin_yang',
+  name: { en: 'Balance', ru: 'Равновесие' },
   setup: {
     en: 'The turtle learns that balance exists between light and darkness in all things.',
     ru: 'Черепаша узнает, что баланс существует между светом и тьмой во всём.',
@@ -185,6 +190,7 @@ export const tutorialLevel5YinYang: TutorialLevel = {
 
 export const tutorialLevel6Rainbow: TutorialLevel = {
   id: 'tutorial_6_rainbow',
+  name: { en: 'Creation', ru: 'Творение' },
   setup: {
     en: 'The turtle has learned all the lessons of this world. Now comes the greatest creation.',
     ru: 'Черепаша научилась всему в этом мире. Теперь наступил момент для величайшего творения.',
