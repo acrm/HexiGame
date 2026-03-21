@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { axialDistance, keyOfAxial } from '../gameLogic/core/grid';
 import type { Axial } from '../gameLogic/core/types';
+import { DefaultParams } from '../gameLogic/core/params';
+import { getAbsoluteColor } from '../templates/templateLogic';
 import {
   buildCellOwnership,
   createEditorLayer,
@@ -10,6 +12,7 @@ import {
   removeLayer,
   toggleCellInLayer,
   updateLayerColor,
+  updateLayerPaintRelativeColor,
   updateLayerRawValue,
   type EditorDocumentState,
 } from './editorState';
@@ -18,6 +21,7 @@ import './HexGridEditorPage.css';
 const ORIGIN: Axial = { q: 0, r: 0 };
 const HEX_SIZE = 34;
 const MIN_GRID_RADIUS = 8;
+const EDITOR_PALETTE = DefaultParams.ColorPalette;
 
 function projectAxial(cell: Axial): { x: number; y: number } {
   return {
@@ -58,6 +62,12 @@ function getDisplayColor(value: string): string {
   return isColorSupported(value) ? value : '#111827';
 }
 
+function getPaletteColorByRelative(relativeColor: number, basePaletteIndex: number): string {
+  if (EDITOR_PALETTE.length === 0) return '#111827';
+  const resolvedIndex = getAbsoluteColor(relativeColor, basePaletteIndex, EDITOR_PALETTE.length);
+  return EDITOR_PALETTE[resolvedIndex] ?? '#111827';
+}
+
 function computeGridRadius(state: EditorDocumentState): number {
   const farthestCellDistance = state.layers.reduce((maxDistance, layer) => {
     return layer.cells.reduce((layerMaxDistance, cell) => {
@@ -70,6 +80,7 @@ function computeGridRadius(state: EditorDocumentState): number {
 
 export default function HexGridEditorPage() {
   const [documentState, setDocumentState] = useState<EditorDocumentState>(createInitialEditorDocument);
+  const [basePaletteIndex, setBasePaletteIndex] = useState<number>(DefaultParams.PlayerBaseColorIndex);
 
   const activeLayer = documentState.layers.find(layer => layer.id === documentState.selectedLayerId) ?? documentState.layers[0];
   const gridRadius = useMemo(() => computeGridRadius(documentState), [documentState]);
@@ -162,6 +173,20 @@ export default function HexGridEditorPage() {
     }));
   };
 
+  const handlePaintRelativeColorChange = (layerId: string, rawValue: string) => {
+    const trimmed = rawValue.trim();
+    const nextRelativeColor = trimmed === '' ? null : Number(trimmed);
+
+    if (trimmed !== '' && !Number.isFinite(nextRelativeColor)) {
+      return;
+    }
+
+    setDocumentState(previousState => ({
+      ...previousState,
+      layers: updateLayerPaintRelativeColor(previousState.layers, layerId, nextRelativeColor),
+    }));
+  };
+
   const handleCellClick = (cell: Axial) => {
     if (!activeLayer) return;
 
@@ -179,8 +204,8 @@ export default function HexGridEditorPage() {
             <div className="editor-kicker">Auxiliary Tool</div>
             <h1 className="editor-title">Hex Grid Editor</h1>
             <p className="editor-description">
-              Click hexes to toggle them for the active color. The coordinates panel updates instantly and accepts
-              both JSON arrays and TypeScript-style arrays with q/r objects.
+              Click hexes to toggle them for the active layer. The coordinates panel updates instantly and supports
+              optional relativeColor values for template-style editing.
             </p>
           </div>
           <div className="editor-stage-actions">
@@ -199,7 +224,11 @@ export default function HexGridEditorPage() {
               const owner = ownership.get(cellKey);
               const isActiveLayerCell = owner?.layerId === activeLayer?.id;
               const isDuplicate = duplicates.has(cellKey);
-              const fillColor = owner ? getDisplayColor(owner.color) : '#f5efe2';
+              const fillColor = owner
+                ? (owner.relativeColor === null
+                  ? getDisplayColor(owner.color)
+                  : getPaletteColorByRelative(owner.relativeColor, basePaletteIndex))
+                : '#f5efe2';
               const strokeColor = isDuplicate
                 ? '#c2410c'
                 : isActiveLayerCell
@@ -230,16 +259,12 @@ export default function HexGridEditorPage() {
                   />
                   <text
                     x={x}
-                    y={y - 4}
+                    y={y + 4}
                     textAnchor="middle"
                     className="editor-grid-label"
-                    fill="#ffffff"
-                    stroke="#1a120a"
-                    strokeWidth={1.4}
-                    paintOrder="stroke"
+                    fill="#1a120a"
                   >
-                    <tspan x={x} dy="0">q:{cell.q}</tspan>
-                    <tspan x={x} dy="1.2em">r:{cell.r}</tspan>
+                    ({cell.q}, {cell.r})
                   </text>
                 </g>
               );
@@ -252,11 +277,31 @@ export default function HexGridEditorPage() {
         <div className="editor-sidebar-header">
           <div>
             <h2 className="editor-sidebar-title">Color layers</h2>
-            <p className="editor-sidebar-note">Add a layer, select it, then paint cells directly on the grid.</p>
+            <p className="editor-sidebar-note">Choose a palette base color for 0%, then paint cells with relativeColor values.</p>
           </div>
           <button className="editor-add-button" type="button" onClick={handleAddLayer}>
             Add color
           </button>
+        </div>
+
+        <div className="editor-palette-card">
+          <div className="editor-palette-title">Base palette color (0%)</div>
+          <div className="editor-palette-row">
+            {EDITOR_PALETTE.map((paletteColor, index) => (
+              <button
+                key={`${paletteColor}-${index}`}
+                type="button"
+                className={`editor-palette-swatch ${index === basePaletteIndex ? 'active' : ''}`}
+                style={{ backgroundColor: paletteColor }}
+                onClick={() => setBasePaletteIndex(index)}
+                aria-label={`Use palette color ${index} as 0%`}
+                title={`Palette ${index}: ${paletteColor}`}
+              />
+            ))}
+          </div>
+          <div className="editor-palette-caption">
+            Selected 0%: index {basePaletteIndex} ({EDITOR_PALETTE[basePaletteIndex]})
+          </div>
         </div>
 
         {duplicates.size > 0 && (
@@ -270,6 +315,10 @@ export default function HexGridEditorPage() {
           {documentState.layers.map(layer => {
             const isActive = layer.id === activeLayer?.id;
             const isValidColor = isColorSupported(layer.color);
+            const hasInvalidFallback = layer.paintRelativeColor === null && !isValidColor;
+            const swatchColor = layer.paintRelativeColor === null
+              ? getDisplayColor(layer.color)
+              : getPaletteColorByRelative(layer.paintRelativeColor, basePaletteIndex);
 
             return (
               <section
@@ -280,14 +329,14 @@ export default function HexGridEditorPage() {
                 <div className="editor-layer-header">
                   <div className="editor-layer-heading">
                     <span
-                      className={`editor-layer-swatch ${isValidColor ? '' : 'invalid'}`}
-                      style={{ backgroundColor: getDisplayColor(layer.color) }}
+                      className={`editor-layer-swatch ${hasInvalidFallback ? 'invalid' : ''}`}
+                      style={{ backgroundColor: swatchColor }}
                       aria-hidden="true"
                     />
                     <div>
                       <div className="editor-layer-name">{layer.color || 'Unnamed color'}</div>
                       <div className="editor-layer-meta">
-                        {layer.cells.length} cells{isActive ? ' · active' : ''}
+                        {layer.cells.length} cells · paint {layer.paintRelativeColor ?? 'none'}%{isActive ? ' · active' : ''}
                       </div>
                     </div>
                   </div>
@@ -305,7 +354,21 @@ export default function HexGridEditorPage() {
                 </div>
 
                 <label className="editor-field-label">
-                  Color
+                  Paint relativeColor (%)
+                  <input
+                    className="editor-text-input"
+                    type="number"
+                    value={layer.paintRelativeColor ?? ''}
+                    onChange={(event) => handlePaintRelativeColorChange(layer.id, event.target.value)}
+                    onClick={(event) => event.stopPropagation()}
+                    placeholder="0"
+                    step="1"
+                    spellCheck={false}
+                  />
+                </label>
+
+                <label className="editor-field-label">
+                  Fallback color (used when relativeColor is missing)
                   <input
                     className="editor-text-input"
                     type="text"
@@ -317,7 +380,7 @@ export default function HexGridEditorPage() {
                   />
                 </label>
 
-                {!isValidColor && (
+                {hasInvalidFallback && (
                   <div className="editor-inline-warning">This color name is not supported by the browser. A fallback swatch is used.</div>
                 )}
 

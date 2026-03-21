@@ -559,3 +559,5 @@
 - 2026w12-0.8 — Add standalone hex grid editor
 
 - 2026w12-0.9 — redesign tutorial intro modal and rewrite all tutorial levels with turtle story
+
+- 2026w12-0.10 — Editor relativeColor palette mode

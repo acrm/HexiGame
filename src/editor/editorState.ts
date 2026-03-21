@@ -1,11 +1,16 @@
 import { keyOfAxial } from '../gameLogic/core/grid';
 import type { Axial } from '../gameLogic/core/types';
 
+export interface EditorCell extends Axial {
+  relativeColor: number | null;
+}
+
 export interface EditorLayer {
   id: string;
   color: string;
   rawValue: string;
-  cells: Axial[];
+  cells: EditorCell[];
+  paintRelativeColor: number | null;
   parseError: string | null;
 }
 
@@ -17,17 +22,22 @@ export interface EditorDocumentState {
 export interface CellOwner {
   layerId: string;
   color: string;
+  relativeColor: number | null;
 }
 
 const DEFAULT_LAYER_COLORS = ['black', 'white', '#f97316', '#2563eb', '#16a34a', '#a855f7'];
 
 let nextLayerId = 1;
 
-export function normalizeCells(cells: Axial[]): Axial[] {
-  const unique = new Map<string, Axial>();
+export function normalizeCells(cells: EditorCell[]): EditorCell[] {
+  const unique = new Map<string, EditorCell>();
 
   for (const cell of cells) {
-    unique.set(keyOfAxial(cell), { q: cell.q, r: cell.r });
+    unique.set(keyOfAxial(cell), {
+      q: cell.q,
+      r: cell.r,
+      relativeColor: cell.relativeColor ?? null,
+    });
   }
 
   return Array.from(unique.values()).sort((left, right) => {
@@ -36,8 +46,21 @@ export function normalizeCells(cells: Axial[]): Axial[] {
   });
 }
 
-export function serializeCells(cells: Axial[]): string {
-  return JSON.stringify(normalizeCells(cells), null, 2);
+export function serializeCells(cells: EditorCell[]): string {
+  const normalized = normalizeCells(cells);
+  const serializable = normalized.map(cell => {
+    if (cell.relativeColor === null) {
+      return { q: cell.q, r: cell.r };
+    }
+
+    return {
+      q: cell.q,
+      r: cell.r,
+      relativeColor: cell.relativeColor,
+    };
+  });
+
+  return JSON.stringify(serializable, null, 2);
 }
 
 function parseRelaxedArray(rawValue: string): unknown {
@@ -48,7 +71,7 @@ function parseRelaxedArray(rawValue: string): unknown {
     return JSON.parse(trimmed);
   } catch {
     const relaxedJson = trimmed
-      .replace(/([{,]\s*)(q|r)(\s*:)/g, '$1"$2"$3')
+      .replace(/([{,]\s*)(q|r|relativeColor)(\s*:)/g, '$1"$2"$3')
       .replace(/'/g, '"')
       .replace(/,\s*}/g, '}')
       .replace(/,\s*]/g, ']');
@@ -57,26 +80,26 @@ function parseRelaxedArray(rawValue: string): unknown {
   }
 }
 
-export function parseCells(rawValue: string): { cells: Axial[]; parseError: string | null } {
+export function parseCells(rawValue: string): { cells: EditorCell[]; parseError: string | null } {
   try {
     const parsed = parseRelaxedArray(rawValue);
     if (!Array.isArray(parsed)) {
       return {
         cells: [],
-        parseError: 'Coordinates must be an array of { q, r } objects.',
+        parseError: 'Coordinates must be an array of { q, r, relativeColor? } objects.',
       };
     }
 
-    const cells: Axial[] = [];
+    const cells: EditorCell[] = [];
     for (const item of parsed) {
       if (!item || typeof item !== 'object') {
         return {
           cells: [],
-          parseError: 'Each coordinate must be an object with numeric q and r fields.',
+          parseError: 'Each coordinate must be an object with numeric q and r fields and optional relativeColor.',
         };
       }
 
-      const candidate = item as Partial<Record<'q' | 'r', unknown>>;
+      const candidate = item as Partial<Record<'q' | 'r' | 'relativeColor', unknown>>;
       if (typeof candidate.q !== 'number' || typeof candidate.r !== 'number') {
         return {
           cells: [],
@@ -91,7 +114,25 @@ export function parseCells(rawValue: string): { cells: Axial[]; parseError: stri
         };
       }
 
-      cells.push({ q: candidate.q, r: candidate.r });
+      let relativeColor: number | null = null;
+      if ('relativeColor' in candidate && candidate.relativeColor !== undefined) {
+        if (candidate.relativeColor === null) {
+          relativeColor = null;
+        } else if (typeof candidate.relativeColor === 'number' && Number.isFinite(candidate.relativeColor)) {
+          relativeColor = candidate.relativeColor;
+        } else {
+          return {
+            cells: [],
+            parseError: 'relativeColor must be a finite number or null.',
+          };
+        }
+      }
+
+      cells.push({
+        q: candidate.q,
+        r: candidate.r,
+        relativeColor,
+      });
     }
 
     return {
@@ -101,12 +142,16 @@ export function parseCells(rawValue: string): { cells: Axial[]; parseError: stri
   } catch {
     return {
       cells: [],
-      parseError: 'Unable to parse coordinates. Paste a JSON array or a TypeScript-style array of { q, r } objects.',
+      parseError: 'Unable to parse coordinates. Paste a JSON array or a TypeScript-style array of { q, r, relativeColor? } objects.',
     };
   }
 }
 
-export function createEditorLayer(color: string = 'black', cells: Axial[] = []): EditorLayer {
+export function createEditorLayer(
+  color: string = 'black',
+  cells: EditorCell[] = [],
+  paintRelativeColor: number | null = 0,
+): EditorLayer {
   const normalizedCells = normalizeCells(cells);
 
   return {
@@ -114,6 +159,7 @@ export function createEditorLayer(color: string = 'black', cells: Axial[] = []):
     color,
     rawValue: serializeCells(normalizedCells),
     cells: normalizedCells,
+    paintRelativeColor,
     parseError: null,
   };
 }
@@ -160,11 +206,28 @@ export function updateLayerRawValue(layers: EditorLayer[], layerId: string, rawV
       };
     }
 
+    const firstRelativeColor = parsed.cells.find(cell => cell.relativeColor !== null)?.relativeColor ?? null;
+
     return {
       ...layer,
       rawValue,
       cells: parsed.cells,
+      paintRelativeColor: firstRelativeColor ?? layer.paintRelativeColor,
       parseError: null,
+    };
+  });
+}
+
+export function updateLayerPaintRelativeColor(
+  layers: EditorLayer[],
+  layerId: string,
+  relativeColor: number | null,
+): EditorLayer[] {
+  return layers.map(layer => {
+    if (layer.id !== layerId) return layer;
+    return {
+      ...layer,
+      paintRelativeColor: relativeColor,
     };
   });
 }
@@ -206,7 +269,14 @@ export function toggleCellInLayer(layers: EditorLayer[], layerId: string, cell: 
     }
 
     if (layer.id === layerId) {
-      const nextCells = normalizeCells([...filteredCells, cell]);
+      const nextCells = normalizeCells([
+        ...filteredCells,
+        {
+          q: cell.q,
+          r: cell.r,
+          relativeColor: selectedLayer.paintRelativeColor,
+        },
+      ]);
       return {
         ...layer,
         cells: nextCells,
@@ -242,6 +312,7 @@ export function buildCellOwnership(layers: EditorLayer[]): { ownership: Map<stri
       ownership.set(key, {
         layerId: layer.id,
         color: layer.color,
+        relativeColor: cell.relativeColor,
       });
     }
   }
