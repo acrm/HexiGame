@@ -171,6 +171,74 @@ function findClosestBoundarySegmentIndex(
   return bestIndex;
 }
 
+function findClosestBoundaryVertexToPoint(
+  boundaryVertices: ScreenBoundaryVertex[],
+  point: { x: number; y: number },
+): { vertex: ScreenBoundaryVertex; distanceSq: number } | null {
+  let bestVertex: ScreenBoundaryVertex | null = null;
+  let bestDistanceSq = Infinity;
+
+  for (const vertex of boundaryVertices) {
+    const dx = point.x - vertex.x;
+    const dy = point.y - vertex.y;
+    const distanceSq = dx * dx + dy * dy;
+    if (distanceSq < bestDistanceSq) {
+      bestDistanceSq = distanceSq;
+      bestVertex = vertex;
+    }
+  }
+
+  return bestVertex ? { vertex: bestVertex, distanceSq: bestDistanceSq } : null;
+}
+
+function selectBoundaryVerticesByClosestSegment(
+  boundaryVertices: ScreenBoundaryVertex[],
+  fieldCenter: { x: number; y: number },
+  targetScreen: { x: number; y: number },
+  targetHexRadius: number,
+  dotCount: number,
+): Array<{ x: number; y: number }> {
+  const sortedBoundary = sortBoundaryVerticesAroundCenter(boundaryVertices, fieldCenter);
+  const targetFace = getTargetFacingEdgePoints(fieldCenter, targetScreen, targetHexRadius);
+  const selectedDots: Array<{ x: number; y: number }> = [];
+  const usedKeys = new Set<string>();
+
+  const pushUniqueVertex = (vertex: ScreenBoundaryVertex | undefined) => {
+    if (!vertex || usedKeys.has(vertex.key)) return;
+    usedKeys.add(vertex.key);
+    selectedDots.push({ x: vertex.x, y: vertex.y });
+  };
+
+  const segmentIndex = findClosestBoundarySegmentIndex(sortedBoundary, targetFace.edgeMidpoint);
+  const segmentStart = sortedBoundary[segmentIndex];
+  const segmentEnd = sortedBoundary[(segmentIndex + 1) % sortedBoundary.length];
+  if (!segmentStart || !segmentEnd) return [];
+
+  const distStartSq = (segmentStart.x - targetFace.edgeMidpoint.x) ** 2 + (segmentStart.y - targetFace.edgeMidpoint.y) ** 2;
+  const distEndSq = (segmentEnd.x - targetFace.edgeMidpoint.x) ** 2 + (segmentEnd.y - targetFace.edgeMidpoint.y) ** 2;
+  const primary = distStartSq <= distEndSq ? segmentStart : segmentEnd;
+  const secondary = distStartSq <= distEndSq ? segmentEnd : segmentStart;
+
+  pushUniqueVertex(primary);
+  if (dotCount >= 2) {
+    pushUniqueVertex(secondary);
+  }
+
+  if (dotCount >= 3) {
+    const prevVertex = sortedBoundary[(segmentIndex - 1 + sortedBoundary.length) % sortedBoundary.length];
+    const nextVertex = sortedBoundary[(segmentIndex + 2) % sortedBoundary.length];
+    const distA = prevVertex
+      ? (prevVertex.x - targetFace.edgeMidpoint.x) ** 2 + (prevVertex.y - targetFace.edgeMidpoint.y) ** 2
+      : Infinity;
+    const distB = nextVertex
+      ? (nextVertex.x - targetFace.edgeMidpoint.x) ** 2 + (nextVertex.y - targetFace.edgeMidpoint.y) ** 2
+      : Infinity;
+    pushUniqueVertex(distA <= distB ? prevVertex : nextVertex);
+  }
+
+  return selectedDots.slice(0, dotCount);
+}
+
 export function getFieldCenterScreenPosition(
   worldViewCenter: { q: number; r: number },
   scale: number,
@@ -242,52 +310,61 @@ export function selectBoundaryHighlightVertices(
     return onlyVertex ? [{ x: onlyVertex.x, y: onlyVertex.y }] : [];
   }
 
-  const sortedBoundary = sortBoundaryVerticesAroundCenter(boundaryVertices, fieldCenter);
-  const targetFace = getTargetFacingEdgePoints(fieldCenter, targetScreen, targetHexRadius);
-  const selectedDots: Array<{ x: number; y: number }> = [];
-  const usedKeys = new Set<string>();
-
-  const pushUniqueVertex = (vertex: ScreenBoundaryVertex | undefined) => {
-    if (!vertex || usedKeys.has(vertex.key)) return;
-    usedKeys.add(vertex.key);
-    selectedDots.push({ x: vertex.x, y: vertex.y });
-  };
-
-  const segmentIndex = findClosestBoundarySegmentIndex(sortedBoundary, targetFace.edgeMidpoint);
-  const segmentStart = sortedBoundary[segmentIndex];
-  const segmentEnd = sortedBoundary[(segmentIndex + 1) % sortedBoundary.length];
-
-  if (!segmentStart || !segmentEnd) return [];
-
-  const distStartSq = (segmentStart.x - targetFace.edgeMidpoint.x) ** 2 + (segmentStart.y - targetFace.edgeMidpoint.y) ** 2;
-  const distEndSq = (segmentEnd.x - targetFace.edgeMidpoint.x) ** 2 + (segmentEnd.y - targetFace.edgeMidpoint.y) ** 2;
-  const primary = distStartSq <= distEndSq ? segmentStart : segmentEnd;
-  const secondary = distStartSq <= distEndSq ? segmentEnd : segmentStart;
-
-  if (dotCount <= 1) {
-    pushUniqueVertex(primary);
-    return selectedDots;
+  const projectedRequiredCorners = dotCount >= 3 ? 3 : 2;
+  const toCenterX = fieldCenter.x - targetScreen.x;
+  const toCenterY = fieldCenter.y - targetScreen.y;
+  const centerDistance = Math.hypot(toCenterX, toCenterY);
+  if (centerDistance < 1e-6) {
+    return selectBoundaryVerticesByClosestSegment(boundaryVertices, fieldCenter, targetScreen, targetHexRadius, dotCount);
   }
 
-  // Projection mode: two primary markers are the endpoints of the closest boundary segment.
-  pushUniqueVertex(primary);
-  pushUniqueVertex(secondary);
+  const dirX = toCenterX / centerDistance;
+  const dirY = toCenterY / centerDistance;
+  const maxShift = centerDistance + targetHexRadius * 3;
+  const shiftStep = Math.max(0.5, targetHexRadius * 0.08);
+  const snapTolerance = Math.max(1.2, targetHexRadius * 0.28);
+  const snapToleranceSq = snapTolerance * snapTolerance;
 
-  if (dotCount >= 3) {
-    const prevVertex = sortedBoundary[(segmentIndex - 1 + sortedBoundary.length) % sortedBoundary.length];
-    const nextVertex = sortedBoundary[(segmentIndex + 2) % sortedBoundary.length];
-    const candidateA = prevVertex;
-    const candidateB = nextVertex;
-    const distA = candidateA
-      ? (candidateA.x - targetFace.edgeMidpoint.x) ** 2 + (candidateA.y - targetFace.edgeMidpoint.y) ** 2
-      : Infinity;
-    const distB = candidateB
-      ? (candidateB.x - targetFace.edgeMidpoint.x) ** 2 + (candidateB.y - targetFace.edgeMidpoint.y) ** 2
-      : Infinity;
-    pushUniqueVertex(distA <= distB ? candidateA : candidateB);
+  let bestPartialMatch: Array<{ vertex: ScreenBoundaryVertex; distanceSq: number }> = [];
+
+  for (let shift = 0; shift <= maxShift; shift += shiftStep) {
+    const projectedCenter = {
+      x: targetScreen.x + dirX * shift,
+      y: targetScreen.y + dirY * shift,
+    };
+    const projectedCorners = computeHexScreenVertices(projectedCenter.x, projectedCenter.y, targetHexRadius);
+
+    const uniqueMatches = new Map<string, { vertex: ScreenBoundaryVertex; distanceSq: number }>();
+    for (const corner of projectedCorners) {
+      const closest = findClosestBoundaryVertexToPoint(boundaryVertices, corner);
+      if (!closest || closest.distanceSq > snapToleranceSq) continue;
+
+      const existing = uniqueMatches.get(closest.vertex.key);
+      if (!existing || closest.distanceSq < existing.distanceSq) {
+        uniqueMatches.set(closest.vertex.key, closest);
+      }
+    }
+
+    const rankedMatches = Array.from(uniqueMatches.values()).sort((a, b) => a.distanceSq - b.distanceSq);
+
+    if (rankedMatches.length >= projectedRequiredCorners) {
+      return rankedMatches
+        .slice(0, Math.min(dotCount, rankedMatches.length))
+        .map(({ vertex }) => ({ x: vertex.x, y: vertex.y }));
+    }
+
+    if (rankedMatches.length > bestPartialMatch.length) {
+      bestPartialMatch = rankedMatches;
+    }
   }
 
-  return selectedDots.slice(0, dotCount);
+  if (bestPartialMatch.length > 0) {
+    return bestPartialMatch
+      .slice(0, Math.min(dotCount, bestPartialMatch.length))
+      .map(({ vertex }) => ({ x: vertex.x, y: vertex.y }));
+  }
+
+  return selectBoundaryVerticesByClosestSegment(boundaryVertices, fieldCenter, targetScreen, targetHexRadius, dotCount);
 }
 
 // Helper: axial -> pixel (pointy-top)
