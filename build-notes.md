@@ -587,3 +587,5 @@
 - 2026w13-0.4 — Clamp world interaction radius to visible viewport minimum
 
 - 2026w13-0.5 — Snap off-screen POI highlights to contour face
+
+- 2026w13-0.6 — Boost hidden target markers and snap to rendered boundary dots

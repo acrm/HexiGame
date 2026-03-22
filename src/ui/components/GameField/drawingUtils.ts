@@ -158,16 +158,26 @@ export function drawHighlightDotsAtPositions(
   options?: {
     color?: string;
     dotRadius?: number;
+    alphaOn?: number;
+    alphaOff?: number;
+    glowBlur?: number;
   },
 ) {
   if (dots.length === 0) return;
 
   const blinkOn = (tickCount % 12) < 6;
-  const alpha = blinkOn ? 1 : 0.35;
+  const alphaOn = options?.alphaOn ?? 1;
+  const alphaOff = options?.alphaOff ?? 0.35;
+  const alpha = blinkOn ? alphaOn : alphaOff;
   const dotRadius = options?.dotRadius ?? 3;
   const color = options?.color ?? '255, 200, 100';
+  const glowBlur = options?.glowBlur ?? 0;
 
   ctx.save();
+  if (glowBlur > 0) {
+    ctx.shadowBlur = glowBlur;
+    ctx.shadowColor = `rgba(${color}, ${Math.min(1, alpha * 0.95)})`;
+  }
   ctx.fillStyle = `rgba(${color}, ${alpha})`;
   for (const dot of dots) {
     ctx.beginPath();
