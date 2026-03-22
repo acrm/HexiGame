@@ -1,13 +1,13 @@
 {
   "name": "hexigame",
-  "version": "2026w13-0.20",
+  "version": "2026w13-0.21",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:yandex": "vite --mode yandex",
     "build": "vite build && bash scripts/copy-metadata.sh",
-    "build:yandex": "VITE_MODE=yandex vite build --mode yandex && VITE_MODE=yandex bash scripts/copy-metadata.sh",
+    "build:yandex": "bash -lc \"VITE_MODE=yandex npx vite build --mode yandex && VITE_MODE=yandex bash scripts/copy-metadata.sh\"",
     "bump:build": "node scripts/update-version.js",
     "bump:minor": "node scripts/update-version.js --minor",
     "preview": "vite preview",

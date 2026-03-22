@@ -617,3 +617,5 @@
 - 2026w13-0.19 — Balance task accepts any opposite 3+3 pair
 
 - 2026w13-0.20 — Clip structure template and highlight offscreen filled cells
+
+- 2026w13-0.21 — 25w12-0.51: update all platform docs/metadata for mobile-only, touch-first release
