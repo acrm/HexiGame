@@ -615,3 +615,5 @@
 - 2026w13-0.18 — touch release movement targeting
 
 - 2026w13-0.19 — Balance task accepts any opposite 3+3 pair
+
+- 2026w13-0.20 — Clip structure template and highlight offscreen filled cells

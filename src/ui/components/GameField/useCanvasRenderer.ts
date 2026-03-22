@@ -48,6 +48,16 @@ function isAutoMoveInProgress(protagonist: Axial, autoFocusTarget?: Axial | null
   return axialDistance(protagonist, autoFocusTarget) > 1;
 }
 
+function parseAxialKey(key: string): Axial | null {
+  const [qToken, rToken] = key.split(',');
+  const q = Number(qToken);
+  const r = Number(rToken);
+  if (!Number.isFinite(q) || !Number.isFinite(r)) {
+    return null;
+  }
+  return { q, r };
+}
+
 export interface UseCanvasRendererOptions {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   canvasContainerRef: React.RefObject<HTMLDivElement>;
@@ -354,6 +364,49 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         }
       }
 
+      if (!isInventory && gameState.activeTemplate?.filledCells && gameState.activeTemplate.filledCells.size > 0) {
+        const offscreenFilledBoundaryDots = new Map<string, { x: number; y: number }>();
+
+        for (const cellKey of gameState.activeTemplate.filledCells) {
+          const filledCell = parseAxialKey(cellKey);
+          if (!filledCell) continue;
+          if (axialDistance(filledCell, worldViewCenter) <= visibleRadius) continue;
+
+          const boundaryDots = selectBoundaryHighlightVertices(
+            highlightBoundaryVertices,
+            protagonistCell,
+            filledCell,
+            worldViewCenter,
+            visibleRadius,
+            scale,
+            centerX,
+            centerY,
+          );
+
+          for (const dot of boundaryDots) {
+            const dotKey = createScreenVertexKey(dot.x, dot.y);
+            if (!offscreenFilledBoundaryDots.has(dotKey)) {
+              offscreenFilledBoundaryDots.set(dotKey, dot);
+            }
+          }
+        }
+
+        if (offscreenFilledBoundaryDots.size > 0) {
+          drawHighlightDotsAtPositions(
+            ctx,
+            Array.from(offscreenFilledBoundaryDots.values()),
+            gameState.tick,
+            {
+              color: '120, 220, 180',
+              dotRadius: Math.max(2.2, scale * 0.22),
+              alphaOn: 0.95,
+              alphaOff: 0.45,
+              glowBlur: Math.max(8, scale * 2.8),
+            },
+          );
+        }
+      }
+
       if (!isInventory) {
         const pivotPos = hexToPixel(protagonistCell.q, protagonistCell.r);
         const pivotX = centerX + pivotPos.x * scale;
@@ -518,7 +571,19 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         frameData.last = now;
       }
 
-      renderTemplateOverlay(ctx, gameState, params, centerX, centerY, gameState.tick, scale);
+      if (!isInventory) {
+        renderTemplateOverlay(
+          ctx,
+          gameState,
+          params,
+          centerX,
+          centerY,
+          gameState.tick,
+          scale,
+          worldViewCenter,
+          visibleRadius,
+        );
+      }
 
       const drawFocusOverlay = shouldDrawWorldFocusOverlay(isInventory, Boolean(isTurtleMoving), Boolean(gameState.autoFocusTarget));
       if (drawFocusOverlay) {

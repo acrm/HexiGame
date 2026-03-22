@@ -2,7 +2,7 @@
 
 import type { GameState, Axial } from '../../gameLogic/core/types';
 import type { Params } from '../../gameLogic/core/params';
-import { getCell } from '../../gameLogic/core/grid';
+import { axialDistance, getCell } from '../../gameLogic/core/grid';
 import { getTemplateById } from '../../templates/templateLibrary';
 import { getTemplateCellsWithWorldPos, validateTemplate } from '../../templates/templateLogic';
 
@@ -74,7 +74,9 @@ export function renderTemplateOverlay(
   offsetX: number,
   offsetY: number,
   tick: number,
-  scale: number
+  scale: number,
+  visibleCenter?: Axial,
+  visibleRadius?: number,
 ) {
   if (!state.activeTemplate) return;
 
@@ -137,6 +139,13 @@ export function renderTemplateOverlay(
   // Render each template cell
   for (const cell of cells) {
     const { worldPos, expectedColorIndex, templateCell } = cell;
+
+    const isOutsideVisibleField =
+      visibleCenter !== undefined &&
+      visibleRadius !== undefined &&
+      axialDistance(worldPos, visibleCenter) > visibleRadius;
+    if (isOutsideVisibleField) continue;
+
     const { x, y } = hexToPixel(worldPos.q, worldPos.r);
     const screenX = offsetX + x * scale;
     const screenY = offsetY + y * scale;
