@@ -1,0 +1,71 @@
+.structure-progress-widget-shell {
+  margin: 0 8px 8px;
+}
+
+.structure-progress-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #2b2b2b;
+  border: 1px solid #555555;
+  color: #d8d8d8;
+  text-align: left;
+  cursor: pointer;
+}
+
+.structure-progress-widget.is-invalid {
+  border-color: rgba(240, 120, 120, 0.85);
+  box-shadow: inset 0 0 14px rgba(180, 70, 70, 0.18);
+}
+
+.structure-progress-widget.is-complete {
+  border-color: rgba(108, 220, 132, 0.85);
+  box-shadow: inset 0 0 14px rgba(76, 184, 100, 0.18);
+}
+
+.structure-progress-widget:disabled {
+  cursor: default;
+}
+
+.structure-progress-widget__header,
+.structure-progress-widget__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.structure-progress-widget__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f0f0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.structure-progress-widget__status,
+.structure-progress-widget__progress {
+  font-size: 11px;
+  font-weight: 600;
+  color: #bdbdbd;
+  flex-shrink: 0;
+}
+
+.structure-progress-widget__meta {
+  justify-content: flex-start;
+}
+
+.structure-progress-widget__swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  flex-shrink: 0;
+}
+
+.structure-progress-widget__navigate-button {
+  font-size: 18px;
+}

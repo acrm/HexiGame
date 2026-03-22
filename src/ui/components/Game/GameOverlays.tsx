@@ -6,15 +6,17 @@ import Settings from '../Settings';
 import TutorialProgressWidget from '../TutorialProgressWidget';
 import TutorialTaskIntroModal from '../TutorialTaskIntroModal';
 import ColorPaletteWidget from '../ColorPaletteWidget';
+import StructureProgressWidget from '../StructureProgressWidget';
 
-type HexiPediaSectionId = 'tasks' | 'stats' | 'templates' | 'colors';
+type HexiPediaSectionId = 'tasks' | 'stats' | 'structures' | 'colors';
 
 interface GameOverlaysProps {
   isMobileLayout: boolean;
   mobileTab: MobileTab;
-  tutorialWidgetProps: React.ComponentProps<typeof TutorialProgressWidget> | null;
-  tutorialIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null;
+  taskWidgetProps: React.ComponentProps<typeof TutorialProgressWidget> | null;
+  taskIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null;
   colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null;
+  structureWidgetProps: React.ComponentProps<typeof StructureProgressWidget> | null;
   sectionOrder: HexiPediaSectionId[];
   showGuestStart: boolean;
   onGuestStart: () => void;
@@ -27,9 +29,10 @@ interface GameOverlaysProps {
 export const GameOverlays: React.FC<GameOverlaysProps> = ({
   isMobileLayout,
   mobileTab,
-  tutorialWidgetProps,
-  tutorialIntroModalProps,
+  taskWidgetProps,
+  taskIntroModalProps,
   colorPaletteWidgetProps,
+  structureWidgetProps,
   sectionOrder,
   showGuestStart,
   onGuestStart,
@@ -43,18 +46,21 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
       {isMobileLayout && mobileTab === 'heximap' && (
         <div className="widget-stack-overlay">
           {sectionOrder.map(sectionId => {
-            if (sectionId === 'tasks' && tutorialWidgetProps) {
-              return <TutorialProgressWidget key="tasks" {...tutorialWidgetProps} />;
+            if (sectionId === 'tasks' && taskWidgetProps) {
+              return <TutorialProgressWidget key="tasks" {...taskWidgetProps} />;
             }
             if (sectionId === 'colors' && colorPaletteWidgetProps) {
               return <ColorPaletteWidget key="colors" {...colorPaletteWidgetProps} />;
+            }
+            if (sectionId === 'structures' && structureWidgetProps) {
+              return <StructureProgressWidget key="structures" {...structureWidgetProps} />;
             }
             return null;
           })}
         </div>
       )}
 
-      {tutorialIntroModalProps && <TutorialTaskIntroModal {...tutorialIntroModalProps} />}
+      {taskIntroModalProps && <TutorialTaskIntroModal {...taskIntroModalProps} />}
 
       {showGuestStart && <GuestStart onStart={onGuestStart} />}
 

@@ -9,19 +9,57 @@ import {
 } from '../../templates/templateLogic';
 import { getTemplateById } from '../../templates/templateLibrary';
 
+function createStructureInstanceId(state: GameState, templateId: string): string {
+  return `${templateId}_${state.tick}_${(state.structureInstances?.length ?? 0) + 1}`;
+}
+
+function syncStructureInstance(state: GameState): GameState {
+  if (!state.activeTemplate) return state;
+
+  const structureInstances = (state.structureInstances ?? []).map(instance => {
+    if (instance.instanceId !== state.activeTemplate?.instanceId) {
+      return instance;
+    }
+
+    return {
+      ...instance,
+      anchoredAt: state.activeTemplate.anchoredAt,
+      hasErrors: state.activeTemplate.hasErrors,
+      filledCells: new Set(state.activeTemplate.filledCells),
+      completedAtTick: state.activeTemplate.completedAtTick,
+    };
+  });
+
+  return { ...state, structureInstances };
+}
+
 export function activateTemplate(state: GameState, templateId: string): GameState {
   const template = getTemplateById(templateId);
   if (!template) return state;
 
+  const instanceId = createStructureInstanceId(state, templateId);
+
   return {
     ...state,
     activeTemplate: {
+      instanceId,
       templateId,
       anchoredAt: null,
       hasErrors: false,
       filledCells: new Set(),
     },
     completedTemplates: state.completedTemplates || new Set(),
+    structureInstances: [
+      ...(state.structureInstances ?? []),
+      {
+        instanceId,
+        templateId,
+        startedAtTick: state.tick,
+        anchoredAt: null,
+        hasErrors: false,
+        filledCells: new Set(),
+      },
+    ],
   };
 }
 
@@ -140,5 +178,5 @@ export function updateTemplateState(
     }
   }
 
-  return { state: nextState, event };
+  return { state: syncStructureInstance(nextState), event };
 }

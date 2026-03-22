@@ -11,6 +11,7 @@
 
 import type { GameState } from '../gameLogic/core/types';
 import { clearActiveSessionMeta } from './sessionHistory';
+import { getTaskDefinition } from '../tasks/taskLevels';
 
 // ─── Storage key ───────────────────────────────────────────────────────────────
 
@@ -20,15 +21,26 @@ const SESSION_KEY = 'hexigame.session.state';
 
 type SerializedCell = { q: number; r: number; colorIndex: number | null };
 type SerializedActiveTemplate = {
+  instanceId: string;
   templateId: string;
   anchoredAt: { q: number; r: number; baseColorIndex: number; rotation: number } | null;
   hasErrors: boolean;
   filledCells: string[];
   completedAtTick?: number;
 };
-type SerializedTutorialProgress = {
+type SerializedTaskProgress = {
   visitedTargetKeys: string[];
+  collectedTargetKeys?: string[];
   startTick: number;
+  completedAtTick?: number;
+};
+type SerializedStructureInstance = {
+  instanceId: string;
+  templateId: string;
+  startedAtTick: number;
+  anchoredAt: { q: number; r: number; baseColorIndex: number; rotation: number } | null;
+  hasErrors: boolean;
+  filledCells: string[];
   completedAtTick?: number;
 };
 type SerializedGameState = Partial<{
@@ -52,8 +64,13 @@ type SerializedGameState = Partial<{
   cameraLastMoveTick: number;
   activeTemplate: SerializedActiveTemplate | null;
   completedTemplates: string[];
+  structureInstances: SerializedStructureInstance[];
+  taskId: string | null;
+  taskProgress: SerializedTaskProgress;
+  taskInteractionMode: 'desktop' | 'mobile';
+  taskCompletedIds: string[];
   tutorialLevelId: string | null;
-  tutorialProgress: SerializedTutorialProgress;
+  tutorialProgress: SerializedTaskProgress;
   tutorialInteractionMode: 'desktop' | 'mobile';
   tutorialCompletedLevelIds: string[];
 }>;
@@ -74,6 +91,12 @@ function deserializeGrid(cells: SerializedCell[] | undefined): Map<string, { q: 
   const m = new Map<string, { q: number; r: number; colorIndex: number | null }>();
   for (const c of cells) m.set(`${c.q},${c.r}`, c);
   return m;
+}
+
+function normalizeTaskId(taskId: string | null | undefined): string | null | undefined {
+  if (taskId === undefined) return undefined;
+  if (taskId === null) return null;
+  return getTaskDefinition(taskId)?.id ?? taskId;
 }
 
 function serializeState(state: GameState): SerializedGameState {
@@ -98,6 +121,7 @@ function serializeState(state: GameState): SerializedGameState {
     cameraLastMoveTick: state.cameraLastMoveTick,
     activeTemplate: state.activeTemplate
       ? {
+          instanceId: state.activeTemplate.instanceId,
           templateId: state.activeTemplate.templateId,
           anchoredAt: state.activeTemplate.anchoredAt,
           hasErrors: state.activeTemplate.hasErrors,
@@ -106,16 +130,26 @@ function serializeState(state: GameState): SerializedGameState {
         }
       : (state.activeTemplate ?? null),
     completedTemplates: Array.from(state.completedTemplates ?? []),
-    tutorialLevelId: state.tutorialLevelId ?? null,
-    tutorialProgress: state.tutorialProgress
+    structureInstances: (state.structureInstances ?? []).map(instance => ({
+      instanceId: instance.instanceId,
+      templateId: instance.templateId,
+      startedAtTick: instance.startedAtTick,
+      anchoredAt: instance.anchoredAt,
+      hasErrors: instance.hasErrors,
+      filledCells: Array.from(instance.filledCells),
+      completedAtTick: instance.completedAtTick,
+    })),
+    taskId: state.taskId ?? null,
+    taskProgress: state.taskProgress
       ? {
-          visitedTargetKeys: Array.from(state.tutorialProgress.visitedTargetKeys),
-          startTick: state.tutorialProgress.startTick,
-          completedAtTick: state.tutorialProgress.completedAtTick,
+          visitedTargetKeys: Array.from(state.taskProgress.visitedTargetKeys),
+          collectedTargetKeys: Array.from(state.taskProgress.collectedTargetKeys),
+          startTick: state.taskProgress.startTick,
+          completedAtTick: state.taskProgress.completedAtTick,
         }
       : undefined,
-    tutorialInteractionMode: state.tutorialInteractionMode,
-    tutorialCompletedLevelIds: Array.from(state.tutorialCompletedLevelIds ?? []),
+    taskInteractionMode: state.taskInteractionMode,
+    taskCompletedIds: Array.from(state.taskCompletedIds ?? []),
   };
 }
 
@@ -127,6 +161,16 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
     : s.activeTemplate
       ? { ...s.activeTemplate, filledCells: new Set(s.activeTemplate.filledCells ?? []) }
       : null;
+  const structureInstances = s.structureInstances === undefined
+    ? fallback.structureInstances
+    : s.structureInstances.map(instance => ({
+        ...instance,
+        filledCells: new Set(instance.filledCells ?? []),
+      }));
+  const serializedTaskProgress = s.taskProgress ?? s.tutorialProgress;
+  const serializedTaskCompletedIds = s.taskCompletedIds ?? s.tutorialCompletedLevelIds;
+  const taskId = normalizeTaskId(s.taskId ?? s.tutorialLevelId ?? fallback.taskId);
+
   return {
     ...fallback,
     tick: s.tick ?? fallback.tick,
@@ -149,16 +193,18 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
     cameraLastMoveTick: s.cameraLastMoveTick ?? fallback.cameraLastMoveTick,
     activeTemplate,
     completedTemplates: new Set(s.completedTemplates ?? Array.from(fallback.completedTemplates ?? [])),
-    tutorialLevelId: s.tutorialLevelId ?? fallback.tutorialLevelId,
-    tutorialProgress: s.tutorialProgress
+    structureInstances,
+    taskId,
+    taskProgress: serializedTaskProgress
       ? {
-          visitedTargetKeys: new Set(s.tutorialProgress.visitedTargetKeys),
-          startTick: s.tutorialProgress.startTick,
-          completedAtTick: s.tutorialProgress.completedAtTick,
+          visitedTargetKeys: new Set(serializedTaskProgress.visitedTargetKeys),
+          collectedTargetKeys: new Set(serializedTaskProgress.collectedTargetKeys ?? []),
+          startTick: serializedTaskProgress.startTick,
+          completedAtTick: serializedTaskProgress.completedAtTick,
         }
-      : fallback.tutorialProgress,
-    tutorialInteractionMode: s.tutorialInteractionMode ?? fallback.tutorialInteractionMode,
-    tutorialCompletedLevelIds: new Set(s.tutorialCompletedLevelIds ?? Array.from(fallback.tutorialCompletedLevelIds ?? [])),
+      : fallback.taskProgress,
+    taskInteractionMode: s.taskInteractionMode ?? s.tutorialInteractionMode ?? fallback.taskInteractionMode,
+    taskCompletedIds: new Set(serializedTaskCompletedIds ?? Array.from(fallback.taskCompletedIds ?? [])),
   };
 }
 
@@ -192,6 +238,7 @@ export function clearSession(): void {
   clearActiveSessionMeta(localStorage);
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem('hexigame.guest.started');
+  localStorage.removeItem('hexigame.task.started');
   localStorage.removeItem('hexigame.tutorial.started');
 }
 

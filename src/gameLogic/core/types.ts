@@ -1,4 +1,4 @@
-import type { ActiveTemplateState } from '../../templates/templateTypes';
+import type { ActiveTemplateState, StructureInstanceState } from '../../templates/templateTypes';
 
 export type Axial = { q: number; r: number };
 
@@ -44,9 +44,21 @@ export interface GameState {
   worldViewCenter?: Axial;
   cameraLastMoveTick?: number;
 
+  taskId?: string | null;
+  taskProgress?: {
+    visitedTargetKeys: Set<string>;
+    collectedTargetKeys: Set<string>;
+    startTick: number;
+    completedAtTick?: number;
+  };
+  taskInteractionMode?: 'desktop' | 'mobile';
+  taskCompletedIds?: Set<string>;
+
+  // Legacy compatibility aliases for deprecated tutorial-only modules.
   tutorialLevelId?: string | null;
   tutorialProgress?: {
     visitedTargetKeys: Set<string>;
+    collectedTargetKeys: Set<string>;
     startTick: number;
     completedAtTick?: number;
   };
@@ -55,4 +67,5 @@ export interface GameState {
 
   activeTemplate?: ActiveTemplateState | null;
   completedTemplates?: Set<string>;
+  structureInstances?: StructureInstanceState[];
 }

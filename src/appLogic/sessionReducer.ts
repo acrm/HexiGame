@@ -6,7 +6,7 @@
  * decoupled from individual logic modules.
  *
  * Phase 8 deliverable (architecture plan section 7.2).
- * Phase 9 addition: full command set covering drag, hotbar, template, tutorial.
+ * Phase 9 addition: full command set covering drag, hotbar, template, tasks.
  */
 
 import type { GameState } from '../gameLogic/core/types';
@@ -31,7 +31,46 @@ import {
   activateTemplate,
   deactivateTemplate,
 } from '../gameLogic/systems/template';
-import { applyTutorialLevelSetup } from '../tutorial/tutorialSandbox';
+import { getCell } from '../gameLogic/core/grid';
+import { applyTaskSetup } from '../tasks/taskSandbox';
+import { getNextTaskDefinition, getTaskDefinition } from '../tasks/taskLevels';
+import { axialToKey } from '../tasks/taskState';
+
+function normalizeTaskId(taskId: string | null): string | null {
+  if (!taskId) return null;
+  return getTaskDefinition(taskId)?.id ?? taskId;
+}
+
+function syncCollectedTaskTargets(state: GameState): GameState {
+  if (!state.taskId || !state.taskProgress) return state;
+
+  const task = getTaskDefinition(state.taskId);
+  if (!task?.targetHexes?.length) return state;
+
+  const nextCollectedKeys = new Set(state.taskProgress.collectedTargetKeys);
+
+  for (const targetHex of task.targetHexes) {
+    const targetKey = axialToKey(targetHex.position);
+    if (nextCollectedKeys.has(targetKey)) continue;
+
+    const cell = getCell(state.grid, targetHex.position);
+    if (cell?.colorIndex !== targetHex.colorIndex) {
+      nextCollectedKeys.add(targetKey);
+    }
+  }
+
+  if (nextCollectedKeys.size === state.taskProgress.collectedTargetKeys.size) {
+    return state;
+  }
+
+  return {
+    ...state,
+    taskProgress: {
+      ...state.taskProgress,
+      collectedTargetKeys: nextCollectedKeys,
+    },
+  };
+}
 
 // ─── Command Types ────────────────────────────────────────────────────────────
 
@@ -58,7 +97,13 @@ export type GameCommand =
   // Templates
   | { type: 'ACTIVATE_TEMPLATE'; templateId: string }
   | { type: 'DEACTIVATE_TEMPLATE' }
-  // Tutorial
+  // Tasks
+  | { type: 'SELECT_TASK'; taskId: string | null }
+  | { type: 'START_TASK'; taskId: string; forceReset?: boolean }
+  | { type: 'MARK_TASK_TARGET_VISITED'; key: string }
+  | { type: 'COMPLETE_TASK'; taskId: string }
+  | { type: 'SET_TASK_INTERACTION_MODE'; mode: 'desktop' | 'mobile' }
+  // Legacy tutorial aliases
   | { type: 'SET_TUTORIAL_LEVEL'; levelId: string | null; forceReset?: boolean }
   | { type: 'MARK_TUTORIAL_TARGET_VISITED'; key: string }
   | { type: 'COMPLETE_TUTORIAL_LEVEL'; levelId: string; nextLevelId: string | null }
@@ -79,113 +124,266 @@ export function sessionReducer(
   params: Params,
   command: GameCommand,
 ): GameState {
+  let nextState: GameState;
+
   switch (command.type) {
     case 'TICK':
-      return tick(state, params, command.rng);
+      nextState = tick(state, params, command.rng);
+      break;
 
     case 'MOVE_CURSOR_DELTA':
-      return attemptMoveByDelta(state, params, command.dq, command.dr);
+      nextState = attemptMoveByDelta(state, params, command.dq, command.dr);
+      break;
 
     case 'MOVE_CURSOR_DELTA_ON_ACTIVE':
-      return attemptMoveByDeltaOnActive(state, params, command.dq, command.dr);
+      nextState = attemptMoveByDeltaOnActive(state, params, command.dq, command.dr);
+      break;
 
     case 'MOVE_CURSOR_DIRECTION':
-      return attemptMoveByDirectionIndex(state, params, command.dirIndex);
+      nextState = attemptMoveByDirectionIndex(state, params, command.dirIndex);
+      break;
 
     case 'MOVE_CURSOR_TO':
-      return attemptMoveTo(state, params, command.target);
+      nextState = attemptMoveTo(state, params, command.target);
+      break;
 
     case 'ACTION_PRESSED':
-      return performContextAction(state, params);
+      nextState = performContextAction(state, params);
+      break;
 
     case 'EAT_REQUESTED':
-      return eatToHotbar(state, params);
+      nextState = eatToHotbar(state, params);
+      break;
 
     case 'TOGGLE_INVENTORY': {
       const next = state.activeField === 'inventory' ? 'world' : 'inventory';
-      return { ...state, activeField: next };
+      nextState = { ...state, activeField: next };
+      break;
     }
 
     case 'SET_ACTIVE_FIELD':
-      return { ...state, activeField: command.field };
+      nextState = { ...state, activeField: command.field };
+      break;
 
     case 'SET_HOTBAR_INDEX':
-      return { ...state, selectedHotbarIndex: command.index };
+      nextState = { ...state, selectedHotbarIndex: command.index };
+      break;
 
     case 'EXCHANGE_HOTBAR_SLOT':
-      return exchangeWithHotbarSlot(state, params, command.slotIndex);
+      nextState = exchangeWithHotbarSlot(state, params, command.slotIndex);
+      break;
 
     case 'START_DRAG':
-      return startDrag(state);
+      nextState = startDrag(state);
+      break;
 
     case 'END_DRAG':
-      return endDrag(state);
+      nextState = endDrag(state);
+      break;
 
     case 'DRAG_MOVE':
-      return dragMoveProtagonist(state, params, command.dq, command.dr);
+      nextState = dragMoveProtagonist(state, params, command.dq, command.dr);
+      break;
 
     case 'ACTIVATE_TEMPLATE':
-      return activateTemplate(state, command.templateId);
+      nextState = activateTemplate(state, command.templateId);
+      break;
 
     case 'DEACTIVATE_TEMPLATE':
-      return deactivateTemplate(state);
+      nextState = deactivateTemplate(state);
+      break;
 
-    case 'SET_TUTORIAL_LEVEL': {
-      if (!command.levelId) {
-        if (!state.tutorialLevelId && !state.tutorialProgress) return state;
-        return { ...state, tutorialLevelId: null, tutorialProgress: undefined };
+    case 'SELECT_TASK': {
+      const taskId = normalizeTaskId(command.taskId);
+      if (!taskId) {
+        nextState = !state.taskId && !state.taskProgress
+          ? state
+          : { ...state, taskId: null, taskProgress: undefined };
+        break;
       }
-      if (state.tutorialLevelId === command.levelId && !command.forceReset) return state;
-      const preparedState = applyTutorialLevelSetup(state, params, command.levelId);
-      const updatedCompletedIds = new Set(preparedState.tutorialCompletedLevelIds ?? []);
+
+      if (state.taskId === taskId && !state.taskProgress) {
+        nextState = state;
+        break;
+      }
+
+      nextState = {
+        ...state,
+        taskId,
+        taskProgress: undefined,
+      };
+      break;
+    }
+
+    case 'START_TASK': {
+      const taskId = normalizeTaskId(command.taskId);
+      if (!taskId) {
+        nextState = state;
+        break;
+      }
+
+      if (state.taskId === taskId && state.taskProgress && !command.forceReset) {
+        nextState = state;
+        break;
+      }
+
+      const preparedState = applyTaskSetup(state, params, taskId);
+      const updatedCompletedIds = new Set(preparedState.taskCompletedIds ?? []);
       if (command.forceReset) {
-        updatedCompletedIds.delete(command.levelId);
+        updatedCompletedIds.delete(taskId);
       }
-      return {
+
+      nextState = {
         ...preparedState,
-        tutorialLevelId: command.levelId,
-        tutorialCompletedLevelIds: updatedCompletedIds,
-        tutorialProgress: {
+        taskId,
+        taskCompletedIds: updatedCompletedIds,
+        taskProgress: {
           visitedTargetKeys: new Set(),
+          collectedTargetKeys: new Set(),
           startTick: state.tick,
         },
       };
+      break;
     }
 
-    case 'MARK_TUTORIAL_TARGET_VISITED': {
-      if (!state.tutorialProgress) return state;
-      if (state.tutorialProgress.visitedTargetKeys.has(command.key)) return state;
-      const nextVisited = new Set(state.tutorialProgress.visitedTargetKeys);
+    case 'MARK_TASK_TARGET_VISITED': {
+      if (!state.taskProgress) {
+        nextState = state;
+        break;
+      }
+      if (state.taskProgress.visitedTargetKeys.has(command.key)) {
+        nextState = state;
+        break;
+      }
+
+      const nextVisited = new Set(state.taskProgress.visitedTargetKeys);
       nextVisited.add(command.key);
-      return {
+
+      nextState = {
         ...state,
-        tutorialProgress: { ...state.tutorialProgress, visitedTargetKeys: nextVisited },
+        taskProgress: { ...state.taskProgress, visitedTargetKeys: nextVisited },
       };
+      break;
     }
 
-    case 'COMPLETE_TUTORIAL_LEVEL': {
-      const completedSet = new Set(state.tutorialCompletedLevelIds ?? []);
-      completedSet.add(command.levelId);
-      const progress = state.tutorialProgress;
+    case 'COMPLETE_TASK': {
+      const taskId = normalizeTaskId(command.taskId);
+      if (!taskId) {
+        nextState = state;
+        break;
+      }
+
+      const completedSet = new Set(state.taskCompletedIds ?? []);
+      completedSet.add(taskId);
+      const progress = state.taskProgress;
       const nextProgress = progress && !progress.completedAtTick
         ? { ...progress, completedAtTick: state.tick }
         : progress;
-      const nextState: GameState = {
+      nextState = {
         ...state,
-        tutorialCompletedLevelIds: completedSet,
-        tutorialProgress: nextProgress,
-        tutorialLevelId: command.nextLevelId ? state.tutorialLevelId : null,
+        taskCompletedIds: completedSet,
+        taskProgress: nextProgress,
+        taskId: getNextTaskDefinition(taskId)?.id ?? null,
       };
-      return nextState;
+      nextState = {
+        ...nextState,
+        taskProgress: undefined,
+      };
+      break;
+    }
+
+    case 'SET_TASK_INTERACTION_MODE':
+      nextState = { ...state, taskInteractionMode: command.mode };
+      break;
+
+    case 'SET_TUTORIAL_LEVEL': {
+      const legacyTaskId = normalizeTaskId(command.levelId);
+      if (!legacyTaskId) {
+        nextState = !state.taskId && !state.taskProgress
+          ? state
+          : { ...state, taskId: null, taskProgress: undefined };
+        break;
+      }
+
+      const preparedState = applyTaskSetup(state, params, legacyTaskId);
+      const updatedCompletedIds = new Set(preparedState.taskCompletedIds ?? []);
+      if (command.forceReset) {
+        updatedCompletedIds.delete(legacyTaskId);
+      }
+
+      nextState = {
+        ...preparedState,
+        taskId: legacyTaskId,
+        taskCompletedIds: updatedCompletedIds,
+        taskProgress: {
+          visitedTargetKeys: new Set(),
+          collectedTargetKeys: new Set(),
+          startTick: state.tick,
+        },
+      };
+      break;
+    }
+
+    case 'MARK_TUTORIAL_TARGET_VISITED': {
+      if (!state.taskProgress) {
+        nextState = state;
+        break;
+      }
+
+      if (state.taskProgress.visitedTargetKeys.has(command.key)) {
+        nextState = state;
+        break;
+      }
+
+      const nextVisited = new Set(state.taskProgress.visitedTargetKeys);
+      nextVisited.add(command.key);
+      nextState = {
+        ...state,
+        taskProgress: { ...state.taskProgress, visitedTargetKeys: nextVisited },
+      };
+      break;
+    }
+
+    case 'COMPLETE_TUTORIAL_LEVEL': {
+      const taskId = normalizeTaskId(command.levelId);
+      if (!taskId) {
+        nextState = state;
+        break;
+      }
+
+      const completedSet = new Set(state.taskCompletedIds ?? []);
+      completedSet.add(taskId);
+      const progress = state.taskProgress;
+      const nextProgress = progress && !progress.completedAtTick
+        ? { ...progress, completedAtTick: state.tick }
+        : progress;
+      nextState = {
+        ...state,
+        taskCompletedIds: completedSet,
+        taskProgress: undefined,
+        taskId: normalizeTaskId(command.nextLevelId) ?? null,
+      };
+      if (nextProgress) {
+        nextState = {
+          ...nextState,
+          taskProgress: undefined,
+        };
+      }
+      break;
     }
 
     case 'SET_TUTORIAL_INTERACTION_MODE':
-      return { ...state, tutorialInteractionMode: command.mode };
+      nextState = { ...state, taskInteractionMode: command.mode };
+      break;
 
     case 'RESET_STATE':
-      return command.newState;
+      nextState = command.newState;
+      break;
 
     default:
-      return state;
+      nextState = state;
+      break;
   }
+
+  return syncCollectedTaskTargets(nextState);
 }

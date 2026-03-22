@@ -68,6 +68,7 @@ export interface BuildTemplate {
  * Active template state in the game
  */
 export interface ActiveTemplateState {
+  instanceId: string;
   templateId: string;
   
   /**
@@ -94,5 +95,20 @@ export interface ActiveTemplateState {
   /**
    * Tick when template was completed
    */
+  completedAtTick?: number;
+}
+
+export interface StructureInstanceState {
+  instanceId: string;
+  templateId: string;
+  startedAtTick: number;
+  anchoredAt: {
+    q: number;
+    r: number;
+    baseColorIndex: number;
+    rotation: number;
+  } | null;
+  hasErrors: boolean;
+  filledCells: Set<string>;
   completedAtTick?: number;
 }

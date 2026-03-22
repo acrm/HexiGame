@@ -56,8 +56,8 @@ exports[`Golden: auto-move to target > matches snapshot after moveToTarget + 20 
 
 exports[`Golden: color conservation over 60 ticks > total color count equals snapshot after 60 ticks (seed=42, denseParams) 1`] = `
 {
-  "final": 331,
-  "initial": 331,
+  "final": 319,
+  "initial": 319,
 }
 `;
 
@@ -84,7 +84,7 @@ exports[`Golden: dense grid progression > matches snapshot after 12 ticks (seed=
   "remainingSeconds": 299,
   "selectedHotbarIndex": 0,
   "tick": 12,
-  "totalColorCount": 331,
+  "totalColorCount": 319,
 }
 `;
 

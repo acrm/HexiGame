@@ -347,6 +347,7 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     autoFocusTarget: null,
     worldViewCenter: initialViewCenter,
     cameraLastMoveTick: 0,
-    tutorialCompletedLevelIds: new Set(),
+    taskCompletedIds: new Set(),
+    structureInstances: [],
   };
 }

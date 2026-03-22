@@ -177,21 +177,20 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Randomness via `Math.random()`; no seed or reproducible sequence.
 - Hex size (`HEX_SIZE = 10`) influences rendering only; not part of pure logic.
 - HUD shows dynamic chance string; logic only supplies numeric chance.
-- Tutorial tasks are freely selectable in HexiPedia; completed tasks are tracked and can be restarted on demand.
-- Tutorial task flow is widget-driven and uses three UI phases: `pending` (orange pulsing inner glow with short task name), `active` (live progress), and `complete` (green pulsing inner glow with completion message).
-- Clicking the tutorial widget in `pending`/`active` opens a short intro modal with turtle setup + objective and two actions: `Postpone` (close modal, keep current widget state) and `Start` (close modal, switch widget to `active`).
-- Tutorial level setup is start-gated: until the player presses `Start`, the selected task does not apply sandbox cell changes, target markers, or task-bound UI conditions.
-- Tutorial completion only fires on state transition (incomplete → complete), but advancing to the next task happens only after the player clicks the widget in `complete` phase.
-- First tutorial task (`tutorial_1_movement`) hides all overlay widgets except the tutorial widget and also hides the hotbar; other standard UI remains visible. The same state is used at the beginning of a new game session.
-- Later tutorial tasks force-enable color widget and hotbar only after task start (`Start` action).
-- Tutorial levels use deterministic scripted sandbox setups; free-play world generation remains procedural.
-- Top overlay widgets share the standard `»` edge button for quick navigation to the corresponding HexiPedia panel. Tutorial widget body controls tutorial flow, while its edge button opens the `Tasks` panel.
-- HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Templates`, `Colors`) start disabled (not rendered).
+- Optional tasks are freely selectable in HexiPedia; each task can be `pending`, `active`, or `complete`, and completed tasks can be restarted on demand.
+- Task flow is widget-driven and uses three UI phases: `pending` (orange pulsing inner glow with short task name), `active` (live progress), and `complete` (green pulsing inner glow with completion message).
+- Clicking the task widget in `pending` opens a short intro modal with turtle setup + objective and two actions: `Postpone` (close modal, keep task pending) and `Start` (apply task setup, close modal, switch widget to `active`).
+- Task setup is start-gated: until the player presses `Start`, the selected task does not apply sandbox cell changes, target markers, or task-bound UI conditions.
+- Task completion only fires on state transition (incomplete → complete), but advancing to the next pending task happens only after the player clicks the widget in `complete` phase.
+- The first task (`task_1_explore`) hides other overlay widgets, locks HexiLab, and hides the hotbar; the palette widget becomes available from task 4 onward, and the structures widget appears during the final Yin-Yang task.
+- Tasks use deterministic scripted sandbox setups; free-play world generation remains procedural.
+- Top overlay widgets share the standard `»` edge button for quick navigation to the corresponding HexiPedia panel. The task widget body controls task flow, and the structure widget opens the `Structures` panel.
+- HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Structures`, `Colors`) start disabled (not rendered).
 - Enabled panels that are not pinned auto-hide after leaving HexiPedia; pinned panels remain enabled across tab switches.
 - Disabled panels are completely removed from the DOM (not just collapsed). They can be restored via the search bar dropdown which lists all panels. Clicking a panel in the dropdown enables and scrolls to it.
-- Panel header controls (left → right): widget visibility toggle (tasks/colors only) | ▲▼ reorder | 📌 pin. No enable/disable toggle button — panel disappears automatically when not pinned and not active.
-- Panel section order is synced between HexiPedia and GameOverlays; overlay widgets (tutorial, palette) stack in section order.
-- The `Tasks` panel includes a toggle for the tutorial progress widget (eye icon); the `Colors` panel includes a toggle for the palette widget.
+- Panel header controls (left → right): widget visibility toggle (tasks/structures/colors) | ▲▼ reorder | 📌 pin. No enable/disable toggle button — panel disappears automatically when not pinned and not active.
+- Panel section order is synced between HexiPedia and GameOverlays; overlay widgets (task, palette, structure) stack in section order.
+- The `Tasks`, `Structures`, and `Colors` panels include eye-toggle controls for their corresponding overlay widgets.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).
@@ -238,9 +237,9 @@ PaletteDistance = |cell.colorIndex - PlayerBaseColorIndex|
 ```
 
 ---
-## 7. Build Template System
+## 7. Structure System
 
-The build template system allows players to create spatial color patterns following predefined templates. Templates provide puzzle-like challenges that reward careful color matching and spatial planning. Players optionally select templates in HexiPedia to earn completion bonuses.
+The structure system allows players to create spatial color patterns following predefined templates. Internally these authored patterns are still stored as templates, but the player-facing UX treats them as structures. Structures provide puzzle-like challenges that reward careful color matching and spatial planning, and each started structure is tracked as a separate in-session instance.
 
 ### 7.1 Core Concepts
 
@@ -284,10 +283,11 @@ absoluteColorIndex = (baseColorIndex + round(relativeColor/100 × paletteSize) +
 ### 7.2 Template Lifecycle
 
 **Phase 1: Activation**
-1. Player selects template in HexiPedia UI
-2. `activateTemplate(state, templateId)` called
-3. Template enters **flickering mode**: attached to focus position, opacity = 0.4 + 0.2 × sin((tick/6) × π)
-4. Rotates with `facingDirIndex` (0–5)
+1. Player selects a structure type in HexiPedia UI and presses `Start new`
+2. `activateTemplate(state, templateId)` is called
+3. A new `instanceId` is created and appended to `structureInstances`
+4. The active structure enters **flickering mode**: attached to focus position, opacity = 0.4 + 0.2 × sin((tick/6) × π)
+5. It rotates with `facingDirIndex` (0–5)
 
 **Phase 2: Anchoring**
 1. Player places hex at an expected template cell position
@@ -305,12 +305,12 @@ absoluteColorIndex = (baseColorIndex + round(relativeColor/100 × paletteSize) +
 3. `filledCells` set updates with all correctly filled cell keys ("q,r" format)
 
 **Phase 4: Completion & Reset**
-1. When all required cells correctly filled:
+1. When all required cells are correctly filled:
    - `isTemplateCompleted()` returns true
-   - `completedAtTick` set to current tick
-   - Template ID added to `completedTemplates` set
+   - `completedAtTick` is set on both `activeTemplate` and the matching structure instance
+   - Template ID is added to `completedTemplates`
    - `template_completed` audio event fires (fanfare)
-2. If player removes all cells → template resets to **flickering mode**
+2. If the player removes all cells, the structure resets to **flickering mode**, but the started instance remains in `structureInstances`
 
 ### 7.3 Rotation System
 
@@ -343,9 +343,10 @@ worldPos = anchorPos + rotate(localOffset)
 ```typescript
 // In GameState:
 activeTemplate?: {
+  instanceId: string;                  // Session-scoped active structure instance
   templateId: string;
   anchoredAt: {
-    q: number; r: number;             // World coordinates
+    q: number; r: number;              // World coordinates
     baseColorIndex: number;            // Anchor color
     rotation: number;                  // 0–5 (facing direction)
   } | null;                            // null = flickering
@@ -353,20 +354,29 @@ activeTemplate?: {
   filledCells: Set<string>;            // "q,r" format
   completedAtTick?: number;            // Completion timestamp
 };
-completedTemplates?: Set<string>;      // Finished template IDs
+structureInstances?: Array<{
+  instanceId: string;
+  templateId: string;
+  startedAtTick: number;
+  anchoredAt: { q: number; r: number; baseColorIndex: number; rotation: number } | null;
+  hasErrors: boolean;
+  filledCells: Set<string>;
+  completedAtTick?: number;
+}>;
+completedTemplates?: Set<string>;      // Finished template IDs within the active session
 ```
 
-### 7.6 Available Templates (Standard Library)
+### 7.6 Available Structures (Template Library)
 
 | Template ID | Name | Difficulty | Cells | Description |
 |-------------|------|-----------|-------|-------------|
-| `ring_r1` | Simple Ring | Easy | 7 | Center + 6 adjacent, all same color. Tutorial intro. |
+| `ring_r1` | Simple Ring | Easy | 7 | Center + 6 adjacent, all same color. Simple starter structure. |
 | `triangle` | Rainbow Triangle | Easy | 3 | Small triangle with gradient: 0%, 12.5%, 25% |
 | `flower` | Flower | Medium | 7 | Center (0%) + 6 petals alternating (0%, 25%) |
-| `yin_yang` | Yin-Yang | Hard | 7 | Balanced opposites: 0%, 25%, 50%, -25%. Complex pattern. |
-| `horseshoe_shelter` | Horseshoe Shelter | Easy | 5 | One-color horseshoe used in the shelter tutorial step. |
-| `yin_yang_v2` | Yin-Yang | Hard | 19 | Large two-color yin-yang with mirrored eyes for the advanced tutorial step. |
-| `rainbow_spiral` | Rainbow Spiral | Hard | 10 | Multi-color spiral that requires the full palette. |
+| `yin_yang` | Yin-Yang | Hard | 7 | Balanced opposites: 0%, 25%, 50%, -25%. Compact legacy variant. |
+| `horseshoe_shelter` | Horseshoe Shelter | Easy | 5 | One-color horseshoe structure available from the Structures panel. |
+| `yin_yang_v2` | Yin-Yang | Hard | 19 | Large two-color yin-yang with mirrored eyes used as the final scripted task. |
+| `rainbow_spiral` | Rainbow Spiral | Hard | 10 | Optional full-palette spiral; not part of the active scripted task chain. |
 
 Each template includes localized name/description and optional hints array.
 
@@ -397,11 +407,11 @@ Defined in `src/templates/templateLogic.ts`:
 
 ### 7.9 Design Extensibility
 
-- **More Templates**: Add to `templateLibrary.ts` following `BuildTemplate` interface
+- **More Structures**: Add to `templateLibrary.ts` following `BuildTemplate` interface
 - **Custom Difficulty**: Difficulty filter already implemented in UI
 - **Hints Localization**: `hints` array supports multi-language strings
-- **Persistence**: `completedTemplates` persists across sessions
-- **Future: User-Created Templates**: Architecture supports dynamic template definition
+- **Persistence**: `completedTemplates` and `structureInstances` persist for the active session and across reloads
+- **Future: User-Created Structures**: Architecture supports dynamic template definition
 
 ---
 ## 8. User Interface & UX (v0.22–0.26)
@@ -414,31 +424,34 @@ Defined in `src/templates/templateLogic.ts`:
 - Initial world focus is aligned to the mascot-facing direction so the turtle on HexiMap looks in the same direction at session start.
 - Mobile default tab at startup is **HexiMap** (world view), not HexiPedia.
 
-### 8.1 Tutorial System enhancements
-- **TutorialProgressWidget**: Displays tutorial level progress using level-defined metrics (visited cells, collected colors, excavated cells, placed template cells)
+### 8.1 Task & Structure UX
+- **TaskProgressWidget**: Displays active task progress using task-defined metrics (visited cells, collected marked hexes, excavated cells, opposite-color pair, placed structure cells)
   - **Pending phase**: orange pulsing inner highlight, start icon, and short task name (1-2 words)
   - **Active phase**: numeric progress and metric label
-  - **Complete phase**: green pulsing inner highlight with explicit completion phrase (e.g., "All target cells visited")
-  - Widget click behavior is phase-dependent (`pending`/`active` opens task modal, `complete` advances to next level)
+  - **Complete phase**: green pulsing inner highlight with explicit completion phrase (for example, `All target cells visited`)
+  - Widget click behavior is phase-dependent (`pending` opens the task modal, `complete` advances to the next pending task; `active` only shows live progress)
   - Standard right-edge `»` button opens the `Tasks` section in HexiPedia in every phase
-- **Tutorial intro modal**:
-  - Opened by clicking the tutorial widget (instead of automatic delayed popup)
+- **Task intro modal**:
+  - Opened by clicking the pending task widget
   - Contains short turtle story setup + objective text
   - Action buttons: left `Postpone`, right `Start`
   - `Postpone` closes modal without state change; `Start` closes modal, applies task setup, and switches widget to active progress tracking
 - **HexiPedia task entries**:
-  - Each task row uses the same short localized name as the tutorial widget pending phase
-  - Expanded content shows turtle story setup, goal text, current progress, and the level-specific action hint
-- **Scripted tutorial flow**:
-  - `tutorial_1_movement`: visit three target cells
-  - `tutorial_2_collect_colors`: gather one hex of each palette color into the hotbar
-  - `tutorial_3_excavation`: clear blocking layers and extract the hidden hex
-  - `tutorial_4_shelter`: build the one-color horseshoe shelter
-  - `tutorial_5_yin_yang`: assemble the larger two-color yin-yang with mirrored eyes
-  - `tutorial_6_rainbow`: complete the full-palette rainbow figure
+  - Each task row uses the same short localized name as the task widget pending phase
+  - Expanded content shows turtle story setup, goal text, current progress, and the task-specific action hint
+- **Scripted task flow**:
+  - `task_1_explore`: visit three distant target sectors
+  - `task_2_collect_beyond_visibility`: collect four marked hexes hidden beyond the visible frontier
+  - `task_3_excavate_rings`: clear both debris rings and extract the hidden core
+  - `task_4_collect_opposites`: hold one base color and its opposite in the hotbar at the same time
+  - `task_5_yin_yang`: complete the large two-color Yin-Yang structure
+- **StructureProgressWidget**:
+  - Appears when an active structure exists during the final scripted task
+  - Shows structure name, progress, validation state, and locked base color swatch
+  - Standard right-edge `»` button opens the `Structures` section in HexiPedia
 
 ### 8.1.1 Points of Interest Highlighting
-- **Off-screen target indication**: Tutorial target cells (and completed structures) outside the visible area are indicated with highlight dots on the boundary of the visible game field (not in non-playable canvas gutters).
+- **Off-screen target indication**: Active task target cells (and completed structures) outside the visible area are indicated with highlight dots on the boundary of the visible game field (not in non-playable canvas gutters).
 - **Visibility states**:
   - **Fully visible target**: All 6 corner dots of the target hex are highlighted (white, blinking).
   - **Partially off-screen target** (within 3 visible-radius diameters): 2 orange highlight dots appear on the field boundary, positioned perpendicular to the boundary edge.
@@ -455,16 +468,16 @@ Defined in `src/templates/templateLogic.ts`:
 
 ### 8.2 HexiPedia (Information Hub)
 - **Section Management**:
-  - Three collapsible sections: Tasks, Stats, Build Templates
+  - Four collapsible sections: Tasks, Stats, Structures, Colors
   - Each section can be collapsed with toggle arrow (▼/▶)
   - Section order customizable with up/down arrows (▲/▼)
   - Section selector remains fixed; all section content below it scrolls as one area
   - Collapsible sections persist in component state during session
 
 - **Task List**:
-  - Shows all tutorial levels with completion status (✓)
+  - Shows all scripted tasks with completion status (✓)
   - Display format: checkpoint + name + action button
-  - Current level highlighted; completed levels show restart option
+  - Current task highlighted; completed tasks show restart option
   - Expandable task details show objective, hints, and progress
 
 - **Statistics**:
@@ -472,10 +485,11 @@ Defined in `src/templates/templateLogic.ts`:
   - Session tick count (raw game ticks)
   - Real-time updates as game progresses
 
-- **Build Templates**:
-  - Radio button selection for active template
-  - Template metadata: name, difficulty (●●●), completion status (✓)
-  - Expandable details with description, hints, and cell count
+- **Structures**:
+  - Structure-type dropdown chooses which authored structure family to inspect
+  - `Start new` creates a fresh in-session structure instance; `Deactivate` clears the current active structure
+  - Only structures started in the current session are listed for the selected type
+  - Each instance row shows progress, validation, completion state, and base-color lock status
 
 ### 8.3 ColorPaletteWidget (Palette Visualization)
 - **Display**: 9-cell color bar showing entire palette
@@ -490,8 +504,8 @@ Defined in `src/templates/templateLogic.ts`:
 - **Styling**:
   - Consistent with HexiPedia widget aesthetic
   - Framed with border, background, and shadow
-  - Positioned directly below tutorial progress widget when tutorial is active
-  - Uses the same content width as the tutorial progress widget
+  - Positioned directly below the task progress widget when both widgets are visible
+  - Uses the same content width as the task progress widget
 
 ### 8.4 Session Persistence
 - **Session History Tracking**:
@@ -501,9 +515,9 @@ Defined in `src/templates/templateLogic.ts`:
   - Auto-saves every 360 ticks (~30 seconds) via updating existing session record
   - History stores last 20 sessions in localStorage
   - User can toggle session tracking in settings
-- **Tutorial Progress**: Tracks per-level scripted metrics in-session (visited targets, hotbar colors, excavation clears, template fill counts)
-- **Completed Templates**: Persists across sessions (set of completed template IDs)
-- **Tutorial Level State**: Current level + completion status maintained in GameState
+- **Task Progress**: Tracks selected task, completed task IDs, interaction mode, and in-session scripted metrics (visited targets, collected marked hexes, excavation clears, opposite-color pair, structure fill counts)
+- **Structure Instances**: Active structure instance and the per-session structure history survive page reload inside the same active session
+- **Completed Templates**: Finished structure IDs persist for the duration of the active session and across reloads
 
 ### 8.5 Audio resume behavior
 - **Music state persistence**:
@@ -513,11 +527,11 @@ Defined in `src/templates/templateLogic.ts`:
 
 ---
 ## 9. Not Implemented (Scope Notes)
-Still absent: delivery targets, long-form level objectives beyond tutorial/template tasks, hard end conditions, and persistence beyond templates/tutorial progress.
+Still absent: delivery targets, long-form level objectives beyond the scripted task/structure chain, hard end conditions, and persistence beyond active-session task/structure progress.
 
 ---
 ## 10. Summary
-The prototype's gameplay centers on probabilistic single-color capture and spatial transport constrained by empty-cell walkability. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate. The template system adds creative spatial pattern challenges as an optional gameplay layer, and the scripted tutorial now teaches navigation, collection, excavation, and construction patterns without relying on random map luck.
+The prototype's gameplay centers on probabilistic single-color capture and spatial transport constrained by empty-cell walkability. All time-sensitive behaviors have been normalized to discrete ticks (12 per second) enabling consistent tuning independent of visual frame rate. The structure system adds creative spatial pattern challenges as an optional gameplay layer, and the scripted task chain now teaches exploration, off-screen collection, excavation, palette opposites, and Yin-Yang construction without relying on random map luck.
 
 ---
 ## 11. Potential Future Parameters (Extensions)
@@ -526,7 +540,7 @@ The prototype's gameplay centers on probabilistic single-color capture and spati
 - `CaptureChanceMinClamp` (percent)
 - `MaxSimultaneousFlashes` (int)
 - `TemplateHintRevealCost` (int, ticks spent to unlock hints)
-- `TutorialSystemLocalization` (language selection for UI/hints)
+- `TaskSystemLocalization` (language selection for UI/hints)
 - `HexiPediaSectionDefaults` (initial collapse state, custom section order)
 - `TemplateRotationAllowed` (bool, can player modify template orientation after anchoring)
 

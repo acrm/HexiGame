@@ -12,6 +12,7 @@ import GameMobileTabs from './Game/GameMobileTabs';
 import GamePanels from './Game/GamePanels';
 import GameOverlays from './Game/GameOverlays';
 import { getLanguage, t } from '../i18n';
+import { getTemplateById } from '../../templates/templateLibrary';
 import { integration } from '../../appLogic/integration';
 import {
   appShellReducer,
@@ -40,17 +41,21 @@ import { ColorScheme } from '../colorScheme';
 import TutorialProgressWidget, { type TutorialWidgetPhase } from './TutorialProgressWidget';
 import TutorialTaskIntroModal from './TutorialTaskIntroModal';
 import ColorPaletteWidget from './ColorPaletteWidget';
+import StructureProgressWidget from './StructureProgressWidget';
 import { hoveredCellActive } from '../../gameLogic/systems/capture';
 import {
-  createInitialTutorialFlowState,
-  computeTutorialViewModel,
-  createTutorialFlowActions,
+  canOpenTaskIntroModal,
   shouldTrackFocusVisit,
   checkFocusTargetVisit,
-  type TutorialFlowState,
-} from '../../appLogic/tutorialFlow';
-import { getTutorialLevel } from '../../tutorial/tutorialLevels';
-import { getLocalizedText } from '../../tutorial/tutorialState';
+  computeTaskViewModel,
+  getInitialPendingTaskId,
+  getNextPendingTaskId,
+  getTaskUiGate,
+  getTaskWidgetPhase,
+  markTaskSequenceCompleted,
+} from '../../appLogic/taskFlow';
+import { getTaskDefinition } from '../../tasks/taskLevels';
+import { getLocalizedText } from '../../tasks/taskState';
 import { useKeyboardInput } from '../hooks/useKeyboardInput';
 import { useGameAudio } from '../hooks/useGameAudio';
 import {
@@ -62,10 +67,10 @@ import { mulberry32 } from '../../gameLogic/core/params';
 import { clearSession } from '../../appLogic/sessionRepository';
 
 const MASCOT_FACING_DIR_INDEX = 1;
-type HexiPediaSectionId = 'tasks' | 'stats' | 'templates' | 'colors';
+type HexiPediaSectionId = 'tasks' | 'stats' | 'structures' | 'colors';
 
-interface TutorialIntroModalState {
-  levelId: string;
+interface TaskIntroModalState {
+  taskId: string;
   setupText: string;
   objectiveText: string;
 }
@@ -109,12 +114,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     selectedColorIndex,
     autoBaseColorEnabled,
     showColorWidget,
-    showTutorialWidget,
+    showTaskWidget,
+    showStructureWidget,
   } = settingsState;
-  // Tutorial flow state
-  const [tutorialFlowState, setTutorialFlowState] = useState<TutorialFlowState>(() =>
-    createInitialTutorialFlowState(),
-  );
   const [enabledHexiPediaSections, setEnabledHexiPediaSections] = useState<HexiPediaSectionId[]>([
     'tasks',
   ]);
@@ -122,12 +124,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     'tasks',
   ]);
   const [focusHexiPediaSection, setFocusHexiPediaSection] = useState<HexiPediaSectionId | null>(null);
-  const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'stats', 'templates', 'colors']);
-  const [tutorialIntroModal, setTutorialIntroModal] = useState<TutorialIntroModalState | null>(null);
-  const [tutorialWidgetPhase, setTutorialWidgetPhase] = useState<TutorialWidgetPhase>('pending');
-  const [activeTutorialLevelId, setActiveTutorialLevelId] = useState<string | null>(null);
-  const [pendingForceResetLevelId, setPendingForceResetLevelId] = useState<string | null>(null);
-  const tutorialWidgetRef = useRef<HTMLDivElement | null>(null);
+  const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'stats', 'structures', 'colors']);
+  const [taskIntroModal, setTaskIntroModal] = useState<TaskIntroModalState | null>(null);
+  const [pendingForceResetTaskId, setPendingForceResetTaskId] = useState<string | null>(null);
+  const taskWidgetRef = useRef<HTMLDivElement | null>(null);
 
   // Game session state
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -165,8 +165,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Update pause state
   useEffect(() => {
-    controllerRef.current?.setPaused(isPaused || tutorialIntroModal !== null);
-  }, [isPaused, tutorialIntroModal]);
+    controllerRef.current?.setPaused(isPaused || taskIntroModal !== null);
+  }, [isPaused, taskIntroModal]);
 
   // Reset session wrapper
   const resetSession = () => {
@@ -176,35 +176,53 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setGameState(fresh);
   };
 
-  const selectedTutorialLevel = useMemo(
-    () => (tutorialFlowState.currentLevelId ? getTutorialLevel(tutorialFlowState.currentLevelId) : null),
-    [tutorialFlowState.currentLevelId],
+  const currentTask = useMemo(
+    () => (gameState.taskId ? getTaskDefinition(gameState.taskId) : null),
+    [gameState.taskId],
   );
 
-  const activeTutorialFlowState = useMemo<TutorialFlowState>(
-    () => ({ currentLevelId: activeTutorialLevelId }),
-    [activeTutorialLevelId],
+  const activeTaskId = gameState.taskProgress ? (gameState.taskId ?? null) : null;
+
+  const activeTask = useMemo(
+    () => (activeTaskId ? getTaskDefinition(activeTaskId) : null),
+    [activeTaskId],
   );
 
-  // Compute tutorial view model for ACTIVE task only
-  const tutorialViewModel = useMemo(
-    () => computeTutorialViewModel(activeTutorialFlowState, gameState, mergedParams),
-    [activeTutorialFlowState, gameState, mergedParams],
+  const taskViewModel = useMemo(
+    () => computeTaskViewModel(gameState.taskId ?? null, gameState, mergedParams),
+    [gameState.taskId, gameState, mergedParams],
   );
 
-  // Tutorial actions
-  const tutorialActions = useMemo(
-    () => createTutorialFlowActions(setTutorialFlowState, dispatch, dispatchApp),
-    [dispatch, dispatchApp],
+  const taskWidgetPhase = getTaskWidgetPhase(
+    gameState.taskId ?? null,
+    gameState.taskProgress,
+    taskViewModel.isTaskComplete,
   );
 
-  // Keyboard input (desktop mode only)
-  const isHexiLabLockedForKeyboard = tutorialViewModel.isHexiLabLocked;
+  const taskUiGate = useMemo(
+    () => getTaskUiGate(activeTaskId),
+    [activeTaskId],
+  );
+
+  useEffect(() => {
+    dispatch({ type: 'SET_TASK_INTERACTION_MODE', mode: interactionMode });
+  }, [interactionMode, dispatch]);
+
+  useEffect(() => {
+    if (!guestStarted || gameState.taskId) return;
+
+    const initialTaskId = getInitialPendingTaskId(gameState.taskCompletedIds ?? new Set<string>(), localStorage);
+    if (!initialTaskId) return;
+
+    dispatch({ type: 'SELECT_TASK', taskId: initialTaskId });
+  }, [guestStarted, gameState.taskId, gameState.taskCompletedIds, dispatch]);
+
+  const isHexiLabLockedForKeyboard = taskUiGate.isHexiLabLocked;
 
   useKeyboardInput({
     dispatch,
     interactionMode,
-    isInputBlocked: tutorialIntroModal !== null,
+    isInputBlocked: taskIntroModal !== null,
     isInventoryLocked: isHexiLabLockedForKeyboard,
     hotbarSize: 6,
   });
@@ -218,24 +236,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     activeTemplate: gameState.activeTemplate,
     invalidMoveTarget: gameState.invalidMoveTarget,
   });
-
-  // Sync tutorial level into gameState when tutorialFlowState changes
-  useEffect(() => {
-    const forceReset =
-      activeTutorialLevelId !== null && pendingForceResetLevelId === activeTutorialLevelId;
-
-    dispatch({
-      type: 'SET_TUTORIAL_LEVEL',
-      levelId: activeTutorialLevelId,
-      forceReset,
-    });
-
-    if (forceReset) {
-      setPendingForceResetLevelId(null);
-    }
-
-    dispatch({ type: 'SET_TUTORIAL_INTERACTION_MODE', mode: interactionMode });
-  }, [activeTutorialLevelId, pendingForceResetLevelId, interactionMode, dispatch]);
 
   // Pause/resume on tab visibility change
   useEffect(() => {
@@ -316,91 +316,79 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Gameplay lifecycle (start/stop based on game state and menu)
   // Note: integration.init() and onGameReady() are called once in index.tsx
   useEffect(() => {
-    if (guestStarted && !isPaused && !isSettingsOpen && !isMascotOpen && !tutorialIntroModal) {
+    if (guestStarted && !isPaused && !isSettingsOpen && !isMascotOpen && !taskIntroModal) {
       integration.onGameplayStart();
     } else if (guestStarted) {
       integration.onGameplayStop();
     }
-  }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen, tutorialIntroModal]);
+  }, [guestStarted, isPaused, isSettingsOpen, isMascotOpen, taskIntroModal]);
 
   // Derived HUD data
   const hoverColorIndex = hoveredCellActive(gameState)?.colorIndex ?? null;
   const hoverColor = hoverColorIndex !== null ? mergedParams.ColorPalette[hoverColorIndex] : '#000';
   const widgetRelativeBaseColorIndex = autoBaseColorEnabled ? hoverColorIndex : selectedColorIndex;
 
-  // Track previous completion state
-  const prevTutorialCompleteRef = useRef<boolean>(tutorialViewModel.isTaskComplete);
-
-  // Reset widget phase when tutorial level changes
-  useEffect(() => {
-    setTutorialWidgetPhase('pending');
-    setTutorialIntroModal(null);
-    setActiveTutorialLevelId(null);
-    setPendingForceResetLevelId(null);
-    prevTutorialCompleteRef.current = false;
-  }, [tutorialFlowState.currentLevelId]);
+  const prevTaskCompleteRef = useRef<boolean>(taskViewModel.isTaskComplete);
 
   // Close modal and reset when guest logs out
   useEffect(() => {
     if (guestStarted) return;
-    setTutorialIntroModal(null);
-    setActiveTutorialLevelId(null);
-    setPendingForceResetLevelId(null);
+    setTaskIntroModal(null);
+    setPendingForceResetTaskId(null);
   }, [guestStarted]);
 
-  // Tutorial handlers
-  const handleSelectTutorialLevel = (levelId: string) => {
-    if (tutorialViewModel.completedLevelIds.has(levelId)) return;
-    tutorialActions.selectLevel(levelId);
-    setTutorialWidgetPhase('pending');
-    setTutorialIntroModal(null);
-    setActiveTutorialLevelId(null);
-    setPendingForceResetLevelId(null);
+  const handleSelectTask = (taskId: string) => {
+    if (taskViewModel.completedTaskIds.has(taskId)) return;
+    dispatch({ type: 'SELECT_TASK', taskId });
+    setTaskIntroModal(null);
+    setPendingForceResetTaskId(null);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
-  const handleRestartTutorialLevel = (levelId: string) => {
-    tutorialActions.selectLevel(levelId);
-    setTutorialWidgetPhase('pending');
-    setTutorialIntroModal(null);
-    setActiveTutorialLevelId(null);
-    setPendingForceResetLevelId(levelId);
+  const handleRestartTask = (taskId: string) => {
+    dispatch({ type: 'SELECT_TASK', taskId });
+    setTaskIntroModal(null);
+    setPendingForceResetTaskId(taskId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
 
   // Set widget to "complete" phase when task is done (do NOT auto-advance)
   useEffect(() => {
-    if (!tutorialFlowState.currentLevelId) {
-      prevTutorialCompleteRef.current = false;
+    if (!gameState.taskId) {
+      prevTaskCompleteRef.current = false;
       return;
     }
-    const wasComplete = prevTutorialCompleteRef.current;
-    if (!wasComplete && tutorialViewModel.isTaskComplete) {
+    const wasComplete = prevTaskCompleteRef.current;
+    if (!wasComplete && taskViewModel.isTaskComplete) {
       playSound('audio/mixkit-small-win-2020.wav');
-      setTutorialWidgetPhase('complete');
     }
-    prevTutorialCompleteRef.current = tutorialViewModel.isTaskComplete;
-  }, [tutorialViewModel.isTaskComplete, tutorialFlowState.currentLevelId, playSound]);
+    prevTaskCompleteRef.current = taskViewModel.isTaskComplete;
+  }, [taskViewModel.isTaskComplete, gameState.taskId, playSound]);
 
   // Widget click handler — drives the pending → active → complete flow
   const handleWidgetClick = () => {
-    if (tutorialWidgetPhase === 'complete' && tutorialFlowState.currentLevelId) {
-      // Advance to next level
+    if (taskWidgetPhase === 'complete' && gameState.taskId) {
       playUiClick();
-      setTutorialIntroModal(null);
-      setActiveTutorialLevelId(null);
-      setPendingForceResetLevelId(null);
-      tutorialActions.completeLevel(tutorialFlowState.currentLevelId);
+      const nextTaskId = getNextPendingTaskId(gameState.taskId);
+      dispatch({ type: 'COMPLETE_TASK', taskId: gameState.taskId });
+      if (!nextTaskId) {
+        markTaskSequenceCompleted(localStorage);
+      }
+      setTaskIntroModal(null);
+      setPendingForceResetTaskId(null);
       return;
     }
-    // pending or active: open the task description modal
-    const level = selectedTutorialLevel;
-    if (!level) return;
+
+    if (!canOpenTaskIntroModal(taskWidgetPhase)) return;
+
+    const task = currentTask;
+    if (!task) return;
+
     const language = getLanguage();
-    setTutorialIntroModal({
-      levelId: level.id,
-      setupText: getLocalizedText(level.setup, language),
-      objectiveText: getLocalizedText(level.objective, language),
+    setTaskIntroModal({
+      taskId: task.id,
+      setupText: getLocalizedText(task.setup, language),
+      objectiveText: getLocalizedText(task.objective, language),
     });
   };
 
@@ -438,40 +426,40 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
-  const handleViewTutorialTask = () => {
+  const handleViewCurrentTask = () => {
     openHexiPediaSection('tasks');
   };
 
   const isMobileLayout = true;
 
-  const isHexiLabLocked = tutorialViewModel.isHexiLabLocked;
+  const isHexiLabLocked = taskUiGate.isHexiLabLocked;
 
   useEffect(() => {
-    if (!tutorialViewModel.isHexiLabLocked) return;
+    if (!isHexiLabLocked) return;
     dispatch({ type: 'SET_ACTIVE_FIELD', field: 'world' });
     if (mobileTab === 'hexilab') {
       dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
     }
-  }, [tutorialViewModel.isHexiLabLocked, mobileTab, dispatch]);
+  }, [isHexiLabLocked, mobileTab, dispatch]);
 
   // Track focus visits on target cells
   useEffect(() => {
-    if (!shouldTrackFocusVisit(tutorialFlowState.currentLevelId, gameState, isMobileLayout, mobileTab)) {
+    if (!shouldTrackFocusVisit(activeTaskId, gameState, isMobileLayout, mobileTab)) {
       return;
     }
 
     const visitedKey = checkFocusTargetVisit(
-      tutorialFlowState.currentLevelId!,
+      activeTaskId!,
       gameState.focus,
-      gameState.tutorialProgress?.visitedTargetKeys ?? new Set(),
+      gameState.taskProgress?.visitedTargetKeys ?? new Set(),
     );
 
     if (!visitedKey) return;
 
     // Play service bell sound on target cell visit
     playSound('audio/mixkit-service-bell-931.wav');
-    dispatch({ type: 'MARK_TUTORIAL_TARGET_VISITED', key: visitedKey });
-  }, [gameState.focus, gameState.activeField, gameState.tutorialProgress, tutorialFlowState.currentLevelId, isMobileLayout, mobileTab, dispatch, playSound]);
+    dispatch({ type: 'MARK_TASK_TARGET_VISITED', key: visitedKey });
+  }, [gameState.focus, gameState.activeField, gameState.taskProgress, activeTaskId, isMobileLayout, mobileTab, dispatch, playSound]);
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
@@ -492,24 +480,17 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'hexilab' : isInventory;
 
-  const isFirstTutorialLevelSelected = tutorialFlowState.currentLevelId === 'tutorial_1_movement';
-  const shouldForceColorWidget =
-    activeTutorialLevelId !== null && activeTutorialLevelId !== 'tutorial_1_movement';
-  const effectiveShowColorWidget = isFirstTutorialLevelSelected
-    ? false
-    : (shouldForceColorWidget ? true : showColorWidget);
-  const effectiveShowTutorialWidget = tutorialFlowState.currentLevelId
-    ? true
-    : showTutorialWidget;
-  const effectiveHideHotbar =
-    isFirstTutorialLevelSelected || (tutorialViewModel.level?.hideHotbar ?? false);
+  const effectiveShowColorWidget = taskUiGate.canShowPaletteWidget && showColorWidget;
+  const effectiveShowTaskWidget = !!gameState.taskId && showTaskWidget;
+  const effectiveShowStructureWidget = taskUiGate.canShowStructureWidget && showStructureWidget;
+  const effectiveHideHotbar = taskUiGate.hideHotbar || (activeTask?.hideHotbar ?? false);
 
   // Determine background color based on active tab
   const backgroundColor = isMobileLayout 
     ? (mobileTab === 'heximap' ? ColorScheme.outside.background : mobileTab === 'hexilab' ? ColorScheme.inside.background : '#2f2f2f')
     : '#370152ff';
 
-  const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && tutorialViewModel.level ? 56 : 8;
+  const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && activeTask ? 56 : 8;
 
   const handleOpenSettings = () => {
     playUiClick();
@@ -554,16 +535,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     gameState,
     params: mergedParams,
     interactionMode,
-    tutorialLevel: selectedTutorialLevel,
-    tutorialLevelId: tutorialFlowState.currentLevelId,
-    isTutorialTaskComplete: tutorialViewModel.isTaskComplete,
-    completedTutorialLevelIds: tutorialViewModel.completedLevelIds,
+    task: currentTask,
+    currentTaskId: gameState.taskId ?? null,
+    isCurrentTaskComplete: taskViewModel.isTaskComplete,
+    completedTaskIds: taskViewModel.completedTaskIds,
     sessionHistory,
     trackSessionHistory,
     soundEnabled,
     soundVolume,
-    onSelectTutorialLevel: handleSelectTutorialLevel,
-    onRestartTutorialLevel: handleRestartTutorialLevel,
+    onSelectTask: handleSelectTask,
+    onRestartTask: handleRestartTask,
     onToggleTrackHistory: (enabled: boolean) => {
       dispatchApp({ type: 'SET_TRACK_SESSION_HISTORY', enabled });
     },
@@ -582,6 +563,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       if (tab === 'colors') {
         openHexiPediaSection('colors');
       }
+      if (tab === 'structures') {
+        openHexiPediaSection('structures');
+      }
     },
     onActivateTemplate: (templateId: string) => {
       if (templateId === '') {
@@ -598,9 +582,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     onToggleColorWidget: (visible: boolean) => {
       dispatchSettings({ type: 'SET_SHOW_COLOR_WIDGET', visible });
     },
-    showTutorialWidget: effectiveShowTutorialWidget,
-    onToggleTutorialWidget: (visible: boolean) => {
-      dispatchSettings({ type: 'SET_SHOW_TUTORIAL_WIDGET', visible });
+    showTaskWidget: effectiveShowTaskWidget,
+    onToggleTaskWidget: (visible: boolean) => {
+      dispatchSettings({ type: 'SET_SHOW_TASK_WIDGET', visible });
+    },
+    showStructureWidget: effectiveShowStructureWidget,
+    onToggleStructureWidget: (visible: boolean) => {
+      dispatchSettings({ type: 'SET_SHOW_STRUCTURE_WIDGET', visible });
     },
     enabledSections: enabledHexiPediaSections,
     pinnedSections: pinnedHexiPediaSections,
@@ -687,10 +675,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     },
     isLeftHanded,
     highlightTargets:
-      tutorialViewModel.level && (!isMobileLayout || mobileTab === 'heximap')
-        ? (tutorialViewModel.level.targetCells ?? [])
+      activeTask && (!isMobileLayout || mobileTab === 'heximap')
+        ? (activeTask.targetCells ?? [])
         : [],
-    visitedHighlightTargets: gameState.tutorialProgress?.visitedTargetKeys ?? new Set(),
+    visitedHighlightTargets: gameState.taskProgress?.visitedTargetKeys ?? new Set(),
     hideHotbar: effectiveHideHotbar,
   };
 
@@ -699,7 +687,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     onResetSession: () => {
       resetSession();
       dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
-      setTutorialFlowState({ currentLevelId: 'tutorial_1_movement' });
+      setTaskIntroModal(null);
+      setPendingForceResetTaskId(null);
       dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
     },
     onShowMascot: () => {
@@ -732,45 +721,50 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     },
   };
 
-  const tutorialCompleteTextByLabelKey: Record<string, string> = {
-    'tutorial.cellsVisited': t('tutorial.complete.cellsVisited'),
-    'tutorial.colorsCollected': t('tutorial.complete.colorsCollected'),
-    'tutorial.cellsCleared': t('tutorial.complete.cellsCleared'),
-    'tutorial.cellsPlaced': t('tutorial.complete.cellsPlaced'),
+  const taskCompleteTextByLabelKey: Record<string, string> = {
+    'task.cellsVisited': t('task.complete.cellsVisited'),
+    'task.targetHexesCollected': t('task.complete.targetHexesCollected'),
+    'task.cellsCleared': t('task.complete.cellsCleared'),
+    'task.oppositeColorsCollected': t('task.complete.oppositeColorsCollected'),
+    'task.cellsPlaced': t('task.complete.cellsPlaced'),
   };
 
-  const tutorialWidgetProps = selectedTutorialLevel
+  const taskWidgetProps = currentTask && taskWidgetPhase !== 'hidden'
     ? {
-        phase: tutorialWidgetPhase,
-        taskName: getLocalizedText(selectedTutorialLevel.name, getLanguage()),
-        progressCurrent: tutorialViewModel.progressCurrent,
-        progressTotal: tutorialViewModel.progressTotal,
-        progressLabel: t(tutorialViewModel.progressLabelKey),
+        phase: taskWidgetPhase as TutorialWidgetPhase,
+        taskName: getLocalizedText(currentTask.name, getLanguage()),
+        progressCurrent: taskViewModel.progressCurrent,
+        progressTotal: taskViewModel.progressTotal,
+        progressLabel: t(taskViewModel.progressLabelKey),
         completeText:
-          tutorialCompleteTextByLabelKey[tutorialViewModel.progressLabelKey] ??
-          t('tutorial.widget.done'),
+          taskCompleteTextByLabelKey[taskViewModel.progressLabelKey] ??
+          t('task.widget.done'),
         onWidgetClick: handleWidgetClick,
-        onNavigateToTasks: handleViewTutorialTask,
-        containerRef: tutorialWidgetRef,
+        onNavigateToTasks: handleViewCurrentTask,
+        containerRef: taskWidgetRef,
       }
     : null;
 
-  const visibleTutorialWidgetProps = effectiveShowTutorialWidget ? tutorialWidgetProps : null;
+  const visibleTaskWidgetProps = effectiveShowTaskWidget ? taskWidgetProps : null;
 
-  const tutorialIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null = tutorialIntroModal
+  const taskIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null = taskIntroModal
     ? {
-        setupText: tutorialIntroModal.setupText,
-        objectiveText: tutorialIntroModal.objectiveText,
-        startLabel: t('tutorial.modal.start'),
-        postponeLabel: t('tutorial.modal.postpone'),
-        getFlyToRect: () => tutorialWidgetRef.current?.getBoundingClientRect() ?? null,
+        setupText: taskIntroModal.setupText,
+        objectiveText: taskIntroModal.objectiveText,
+        startLabel: t('task.modal.start'),
+        postponeLabel: t('task.modal.postpone'),
+        getFlyToRect: () => taskWidgetRef.current?.getBoundingClientRect() ?? null,
         onStart: () => {
-          setTutorialWidgetPhase('active');
-          setActiveTutorialLevelId(tutorialIntroModal.levelId);
-          setTutorialIntroModal(null);
+          dispatch({
+            type: 'START_TASK',
+            taskId: taskIntroModal.taskId,
+            forceReset: pendingForceResetTaskId === taskIntroModal.taskId,
+          });
+          setPendingForceResetTaskId((current) => current === taskIntroModal.taskId ? null : current);
+          setTaskIntroModal(null);
         },
         onPostpone: () => {
-          setTutorialIntroModal(null);
+          setTaskIntroModal(null);
         },
       }
     : null;
@@ -787,6 +781,26 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         onNavigateToPalette: () => { openHexiPediaSection('colors'); },
       }
     : null;
+
+  const activeStructureTemplate = gameState.activeTemplate
+    ? getTemplateById(gameState.activeTemplate.templateId)
+    : undefined;
+
+  const structureWidgetProps: React.ComponentProps<typeof StructureProgressWidget> | null =
+    effectiveShowStructureWidget && gameState.activeTemplate && activeStructureTemplate
+      ? {
+          structureName: activeStructureTemplate.name[getLanguage()],
+          progressCurrent: gameState.activeTemplate.filledCells.size,
+          progressTotal: activeStructureTemplate.structure.cells.length,
+          hasErrors: gameState.activeTemplate.hasErrors,
+          isCompleted: !!gameState.activeTemplate.completedAtTick,
+          baseColor:
+            gameState.activeTemplate.anchoredAt
+              ? mergedParams.ColorPalette[gameState.activeTemplate.anchoredAt.baseColorIndex] ?? null
+              : null,
+          onNavigateToStructures: () => { openHexiPediaSection('structures'); },
+        }
+      : null;
 
   return (
     <div
@@ -827,9 +841,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       <GameOverlays
         isMobileLayout={isMobileLayout}
         mobileTab={mobileTab}
-        tutorialWidgetProps={visibleTutorialWidgetProps}
-        tutorialIntroModalProps={tutorialIntroModalProps}
+        taskWidgetProps={visibleTaskWidgetProps}
+        taskIntroModalProps={taskIntroModalProps}
         colorPaletteWidgetProps={colorPaletteWidgetProps}
+        structureWidgetProps={structureWidgetProps}
         sectionOrder={sectionOrder}
         showGuestStart={!guestStarted}
         onGuestStart={handleGuestStart}

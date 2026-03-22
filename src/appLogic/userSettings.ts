@@ -18,7 +18,9 @@ export const SETTINGS_KEYS = {
   selectedColorIndex: 'hexigame.selectedColorIndex',
   autoBaseColorEnabled: 'hexigame.autoBaseColorEnabled',
   showColorWidget: 'hexigame.showColorWidget',
-  showTutorialWidget: 'hexigame.showTutorialWidget',
+  showTaskWidget: 'hexigame.showTaskWidget',
+  showStructureWidget: 'hexigame.showStructureWidget',
+  legacyShowTutorialWidget: 'hexigame.showTutorialWidget',
   legacySound: 'hexigame.sound',
 } as const;
 
@@ -32,7 +34,8 @@ export interface UserSettingsState {
   selectedColorIndex: number;
   autoBaseColorEnabled: boolean;
   showColorWidget: boolean;
-  showTutorialWidget: boolean;
+  showTaskWidget: boolean;
+  showStructureWidget: boolean;
 }
 
 export type UserSettingsCommand =
@@ -45,6 +48,8 @@ export type UserSettingsCommand =
   | { type: 'SET_SELECTED_COLOR_INDEX'; index: number }
   | { type: 'SET_AUTO_BASE_COLOR_ENABLED'; enabled: boolean }
   | { type: 'SET_SHOW_COLOR_WIDGET'; visible: boolean }
+  | { type: 'SET_SHOW_TASK_WIDGET'; visible: boolean }
+  | { type: 'SET_SHOW_STRUCTURE_WIDGET'; visible: boolean }
   | { type: 'SET_SHOW_TUTORIAL_WIDGET'; visible: boolean }
   | { type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' };
 
@@ -75,6 +80,14 @@ function loadMusicEnabled(storage: StorageReader): boolean {
   return true;
 }
 
+function loadTaskWidgetPreference(storage: StorageReader): boolean {
+  const direct = storage.getItem(SETTINGS_KEYS.showTaskWidget);
+  if (direct !== null) return direct === 'true';
+  const legacy = storage.getItem(SETTINGS_KEYS.legacyShowTutorialWidget);
+  if (legacy !== null) return legacy === 'true';
+  return true;
+}
+
 export function createInitialUserSettingsState(
   storage: StorageReader,
   playerBaseColorIndex: number,
@@ -89,7 +102,8 @@ export function createInitialUserSettingsState(
     selectedColorIndex: parseNumber(storage.getItem(SETTINGS_KEYS.selectedColorIndex), playerBaseColorIndex),
     autoBaseColorEnabled: parseBool(storage.getItem(SETTINGS_KEYS.autoBaseColorEnabled), false),
     showColorWidget: parseBool(storage.getItem(SETTINGS_KEYS.showColorWidget), true),
-    showTutorialWidget: parseBool(storage.getItem(SETTINGS_KEYS.showTutorialWidget), true),
+    showTaskWidget: loadTaskWidgetPreference(storage),
+    showStructureWidget: parseBool(storage.getItem(SETTINGS_KEYS.showStructureWidget), true),
   };
 }
 
@@ -125,8 +139,14 @@ export function userSettingsReducer(
     case 'SET_SHOW_COLOR_WIDGET':
       return { ...state, showColorWidget: command.visible };
 
+    case 'SET_SHOW_TASK_WIDGET':
+      return { ...state, showTaskWidget: command.visible };
+
+    case 'SET_SHOW_STRUCTURE_WIDGET':
+      return { ...state, showStructureWidget: command.visible };
+
     case 'SET_SHOW_TUTORIAL_WIDGET':
-      return { ...state, showTutorialWidget: command.visible };
+      return { ...state, showTaskWidget: command.visible };
 
     case 'TOGGLE_AUTO_BASE_COLOR_ENABLED':
       return { ...state, autoBaseColorEnabled: !state.autoBaseColorEnabled };
@@ -146,5 +166,6 @@ export function persistUserSettings(storage: StorageWriter, state: UserSettingsS
   storage.setItem(SETTINGS_KEYS.selectedColorIndex, String(state.selectedColorIndex));
   storage.setItem(SETTINGS_KEYS.autoBaseColorEnabled, String(state.autoBaseColorEnabled));
   storage.setItem(SETTINGS_KEYS.showColorWidget, String(state.showColorWidget));
-  storage.setItem(SETTINGS_KEYS.showTutorialWidget, String(state.showTutorialWidget));
+  storage.setItem(SETTINGS_KEYS.showTaskWidget, String(state.showTaskWidget));
+  storage.setItem(SETTINGS_KEYS.showStructureWidget, String(state.showStructureWidget));
 }
