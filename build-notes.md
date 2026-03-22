@@ -595,3 +595,5 @@
 - 2026w13-0.8 — Use projected boundary segments for hidden target markers
 
 - 2026w13-0.9 — Project hidden target contour until boundary corners snap
+
+- 2026w13-0.10 — Pathfind hidden markers from turtle and use last visible cell corners

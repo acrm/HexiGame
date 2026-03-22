@@ -27,8 +27,6 @@ import {
   HEX_SIZE,
   hexToPixel,
   getHotbarGeometry,
-  calculateDistanceToBoundary,
-  calculateHighlightDotCount,
   getFieldCenterScreenPosition,
   computeVisibleFieldBoundaryVertices,
   createScreenVertexKey,
@@ -333,15 +331,17 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
             drawCornerDots(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick);
           } else {
             if (highlightBoundaryVertices.length === 0) continue;
-            const distToBoundary = calculateDistanceToBoundary(cell, worldViewCenter, visibleRadius);
-            const dotCount = calculateHighlightDotCount(distToBoundary, visibleRadius);
             const boundaryDots = selectBoundaryHighlightVertices(
               highlightBoundaryVertices,
-              fieldCenter,
-              { x: scaledX, y: scaledY },
-              HEX_SIZE * scale,
-              dotCount,
+              protagonistCell,
+              cell,
+              worldViewCenter,
+              visibleRadius,
+              scale,
+              centerX,
+              centerY,
             );
+            if (boundaryDots.length === 0) continue;
 
             drawHighlightDotsAtPositions(ctx, boundaryDots, gameState.tick, {
               color: '255, 255, 255',

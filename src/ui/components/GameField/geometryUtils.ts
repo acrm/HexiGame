@@ -299,72 +299,95 @@ export function computeVisibleFieldBoundaryVertices(
 
 export function selectBoundaryHighlightVertices(
   boundaryVertices: ScreenBoundaryVertex[],
-  fieldCenter: { x: number; y: number },
-  targetScreen: { x: number; y: number },
-  targetHexRadius: number,
-  dotCount: number,
+  turtleAxial: { q: number; r: number },
+  targetAxial: { q: number; r: number },
+  worldViewCenter: { q: number; r: number },
+  visibleRadius: number,
+  scale: number,
+  centerX: number,
+  centerY: number,
 ): Array<{ x: number; y: number }> {
-  if (dotCount <= 0 || boundaryVertices.length === 0) return [];
-  if (boundaryVertices.length === 1) {
-    const onlyVertex = boundaryVertices[0];
-    return onlyVertex ? [{ x: onlyVertex.x, y: onlyVertex.y }] : [];
+  if (boundaryVertices.length === 0) return [];
+
+  const boundaryByKey = new Map<string, ScreenBoundaryVertex>();
+  for (const vertex of boundaryVertices) {
+    boundaryByKey.set(vertex.key, vertex);
   }
 
-  const projectedRequiredCorners = dotCount >= 3 ? 3 : 2;
-  const toCenterX = fieldCenter.x - targetScreen.x;
-  const toCenterY = fieldCenter.y - targetScreen.y;
-  const centerDistance = Math.hypot(toCenterX, toCenterY);
-  if (centerDistance < 1e-6) {
-    return selectBoundaryVerticesByClosestSegment(boundaryVertices, fieldCenter, targetScreen, targetHexRadius, dotCount);
-  }
+  function axialRound(qFloat: number, rFloat: number): { q: number; r: number } {
+    let q = qFloat;
+    let r = rFloat;
+    let s = -q - r;
 
-  const dirX = toCenterX / centerDistance;
-  const dirY = toCenterY / centerDistance;
-  const maxShift = centerDistance + targetHexRadius * 3;
-  const shiftStep = Math.max(0.5, targetHexRadius * 0.08);
-  const snapTolerance = Math.max(1.2, targetHexRadius * 0.28);
-  const snapToleranceSq = snapTolerance * snapTolerance;
+    const rq = Math.round(q);
+    const rr = Math.round(r);
+    const rs = Math.round(s);
 
-  let bestPartialMatch: Array<{ vertex: ScreenBoundaryVertex; distanceSq: number }> = [];
+    const qDiff = Math.abs(rq - q);
+    const rDiff = Math.abs(rr - r);
+    const sDiff = Math.abs(rs - s);
 
-  for (let shift = 0; shift <= maxShift; shift += shiftStep) {
-    const projectedCenter = {
-      x: targetScreen.x + dirX * shift,
-      y: targetScreen.y + dirY * shift,
-    };
-    const projectedCorners = computeHexScreenVertices(projectedCenter.x, projectedCenter.y, targetHexRadius);
-
-    const uniqueMatches = new Map<string, { vertex: ScreenBoundaryVertex; distanceSq: number }>();
-    for (const corner of projectedCorners) {
-      const closest = findClosestBoundaryVertexToPoint(boundaryVertices, corner);
-      if (!closest || closest.distanceSq > snapToleranceSq) continue;
-
-      const existing = uniqueMatches.get(closest.vertex.key);
-      if (!existing || closest.distanceSq < existing.distanceSq) {
-        uniqueMatches.set(closest.vertex.key, closest);
-      }
+    if (qDiff > rDiff && qDiff > sDiff) {
+      q = -rr - rs;
+    } else if (rDiff > sDiff) {
+      r = -rq - rs;
     }
 
-    const rankedMatches = Array.from(uniqueMatches.values()).sort((a, b) => a.distanceSq - b.distanceSq);
+    return { q: Math.round(q), r: Math.round(r) };
+  }
 
-    if (rankedMatches.length >= projectedRequiredCorners) {
-      return rankedMatches
-        .slice(0, Math.min(dotCount, rankedMatches.length))
-        .map(({ vertex }) => ({ x: vertex.x, y: vertex.y }));
+  function buildHexLinePath(start: { q: number; r: number }, end: { q: number; r: number }): Array<{ q: number; r: number }> {
+    const distance = axialDistanceLocal(start, end);
+    if (distance <= 0) return [{ q: start.q, r: start.r }];
+
+    const result: Array<{ q: number; r: number }> = [];
+    const seen = new Set<string>();
+    for (let i = 0; i <= distance; i++) {
+      const t = i / distance;
+      const qFloat = start.q + (end.q - start.q) * t;
+      const rFloat = start.r + (end.r - start.r) * t;
+      const rounded = axialRound(qFloat, rFloat);
+      const key = `${rounded.q},${rounded.r}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(rounded);
+    }
+    return result;
+  }
+
+  function getBoundaryCornersForCell(cell: { q: number; r: number }): Array<{ x: number; y: number }> {
+    const pos = hexToPixel(cell.q, cell.r);
+    const cellCenterX = centerX + pos.x * scale;
+    const cellCenterY = centerY + pos.y * scale;
+    const cellCorners = computeHexScreenVertices(cellCenterX, cellCenterY, HEX_SIZE * scale);
+    const unique = new Set<string>();
+    const result: Array<{ x: number; y: number }> = [];
+
+    for (const corner of cellCorners) {
+      const key = createScreenVertexKey(corner.x, corner.y);
+      if (unique.has(key)) continue;
+      const boundaryVertex = boundaryByKey.get(key);
+      if (!boundaryVertex) continue;
+      unique.add(key);
+      result.push({ x: boundaryVertex.x, y: boundaryVertex.y });
     }
 
-    if (rankedMatches.length > bestPartialMatch.length) {
-      bestPartialMatch = rankedMatches;
+    return result;
+  }
+
+  const path = buildHexLinePath(turtleAxial, targetAxial);
+  for (let i = path.length - 1; i >= 0; i--) {
+    const cell = path[i];
+    if (!cell) continue;
+    if (axialDistanceLocal(cell, worldViewCenter) > visibleRadius) continue;
+
+    const boundaryCorners = getBoundaryCornersForCell(cell);
+    if (boundaryCorners.length > 0) {
+      return boundaryCorners;
     }
   }
 
-  if (bestPartialMatch.length > 0) {
-    return bestPartialMatch
-      .slice(0, Math.min(dotCount, bestPartialMatch.length))
-      .map(({ vertex }) => ({ x: vertex.x, y: vertex.y }));
-  }
-
-  return selectBoundaryVerticesByClosestSegment(boundaryVertices, fieldCenter, targetScreen, targetHexRadius, dotCount);
+  return [];
 }
 
 // Helper: axial -> pixel (pointy-top)
