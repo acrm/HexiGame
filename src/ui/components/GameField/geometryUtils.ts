@@ -29,6 +29,18 @@ const AXIAL_DIRECTIONS = [
   { q: 0, r: 1 },
 ];
 
+// For pointy-top hex with vertices at angles [0, 60, 120, 180, 240, 300],
+// this maps each axial neighbor direction to the two vertex indices of the
+// outward edge facing that neighbor.
+const DIRECTION_TO_EDGE_VERTEX_INDICES: Array<[number, number]> = [
+  [0, 1], // (1, 0)
+  [5, 0], // (1, -1)
+  [4, 5], // (0, -1)
+  [3, 4], // (-1, 0)
+  [2, 3], // (-1, 1)
+  [1, 2], // (0, 1)
+];
+
 const SCREEN_VERTEX_KEY_PRECISION = 100;
 
 function axialDistanceLocal(a: { q: number; r: number }, b: { q: number; r: number }): number {
@@ -261,7 +273,6 @@ export function computeVisibleFieldBoundaryVertices(
 ): ScreenBoundaryVertex[] {
   const boundaryVertexMap = new Map<string, { x: number; y: number }>();
   const vertexRadius = HEX_SIZE * scale;
-  const angleStep = Math.PI / 3;
   const fieldCenter = getFieldCenterScreenPosition(worldViewCenter, scale, centerX, centerY);
 
   for (let dq = -visibleRadius; dq <= visibleRadius; dq++) {
@@ -279,10 +290,14 @@ export function computeVisibleFieldBoundaryVertices(
         const neighborInside = axialDistanceLocal({ q: 0, r: 0 }, neighborRel) <= visibleRadius;
         if (neighborInside) continue;
 
-        const a1 = angleStep * dirIndex;
-        const a2 = angleStep * ((dirIndex + 1) % 6);
-        addVertex(boundaryVertexMap, screenX + vertexRadius * Math.cos(a1), screenY + vertexRadius * Math.sin(a1));
-        addVertex(boundaryVertexMap, screenX + vertexRadius * Math.cos(a2), screenY + vertexRadius * Math.sin(a2));
+        const edgeVertices = DIRECTION_TO_EDGE_VERTEX_INDICES[dirIndex];
+        if (!edgeVertices) continue;
+
+        const [vertexIndexA, vertexIndexB] = edgeVertices;
+        const angleA = (Math.PI / 180) * (60 * vertexIndexA);
+        const angleB = (Math.PI / 180) * (60 * vertexIndexB);
+        addVertex(boundaryVertexMap, screenX + vertexRadius * Math.cos(angleA), screenY + vertexRadius * Math.sin(angleA));
+        addVertex(boundaryVertexMap, screenX + vertexRadius * Math.cos(angleB), screenY + vertexRadius * Math.sin(angleB));
       }
     }
   }
