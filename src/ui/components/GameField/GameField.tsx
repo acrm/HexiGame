@@ -74,6 +74,7 @@ export const GameField: React.FC<GameFieldProps> = ({
     isLeftHanded,
   });
   const { scaleRef, centerXRef, centerYRef, pixelToAxial, detectHotbarSlotClick } = viewport;
+  const visibleRadius = Math.max(1, params.GridRadius);
 
   const isCellInteractable = (q: number, r: number) => {
     if (isInventory) {
@@ -81,7 +82,7 @@ export const GameField: React.FC<GameFieldProps> = ({
     }
 
     const worldCenter = gameState.worldViewCenter ?? gameState.protagonist;
-    const isWithinVisibleDisk = axialDistance({ q, r }, worldCenter) <= params.GridRadius;
+    const isWithinVisibleDisk = axialDistance({ q, r }, worldCenter) <= visibleRadius;
     if (!isWithinVisibleDisk) {
       return false;
     }
