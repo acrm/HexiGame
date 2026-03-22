@@ -58,14 +58,14 @@ Click **Embed options** for the uploaded file:
 - **Frame options**: 
   - ✅ Automatically start on page load
   - ✅ Fullscreen button
-  - Mobile friendly: Test (currently keyboard-only)
+   - Mobile friendly: Required (touch-first controls)
 
 ## Step 5: Add Metadata
 
 ### Details Tab
 - **Short description**: (see `ITCH_METADATA.md`)
 - **Genre**: Puzzle, Strategy
-- **Tags**: puzzle, hexagonal, grid-based, minimalist, strategy, color-matching, time-attack, browser, keyboard, singleplayer
+- **Tags**: puzzle, hexagonal, grid-based, minimalist, strategy, color-matching, time-attack, browser, touch-controls, mobile-only, singleplayer, multilingual
 - **Release status**: Released
 - **Pricing**: Free (or Pay What You Want)
 
@@ -75,9 +75,9 @@ Click **Embed options** for the uploaded file:
   - Release: Released
   - Platforms: HTML5 ✅
   - Multiplayer: Singleplayer only
-  - Accessibility: Keyboard, Color-based gameplay
-  - Input methods: Keyboard ✅
-- **Language**: English ✅
+   - Accessibility: Touch-first controls, Color-based gameplay
+   - Input methods: Touch ✅
+- **Language**: English ✅, Russian ✅
 - **Made with**: React, TypeScript, Vite
 - **AI Disclosure**: Does not use generative AI ❌
 - **Adult content**: No ❌
@@ -185,9 +185,9 @@ Update your itch.io description with current version after each upload.
 - Consider adding responsive design
 
 ### Controls don't work
-- Ensure iframe has focus (click inside game)
+- Ensure touch input is not blocked by browser overlays
 - Test in different browsers
-- Check itch.io embed captures keyboard events
+- Check embed scaling and touch hit areas on real devices
 
 ## Quality Guidelines Compliance
 

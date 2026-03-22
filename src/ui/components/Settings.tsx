@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { getLanguage, setLanguage, t } from '../i18n';
+import { t, type Lang } from '../i18n';
 import version from '../../../version.json';
 import { audioController } from '../../appLogic/audioController';
 
 interface SettingsProps {
+  language: Lang;
+  onLanguageChange: (lang: Lang) => void;
   onClose: () => void;
   onResetSession: () => void;
   onShowMascot: () => void;
@@ -22,6 +24,8 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
+  language,
+  onLanguageChange,
   onClose, 
   onResetSession, 
   onShowMascot,
@@ -38,7 +42,6 @@ export const Settings: React.FC<SettingsProps> = ({
   isLeftHanded,
   onToggleLeftHanded,
 }) => {
-  const lang = getLanguage();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleReset = () => {
@@ -63,11 +66,10 @@ export const Settings: React.FC<SettingsProps> = ({
         <div className="settings-row">
           <label>{t('settings.language')}</label>
           <select
-            value={lang}
+            value={language}
             onChange={(e) => {
               audioController.playRandomSound(soundEnabled, soundVolume);
-              setLanguage(e.target.value as any);
-              window.location.reload();
+              onLanguageChange(e.target.value as Lang);
             }}
           >
             <option value="en">{t('language.en')}</option>

@@ -3,6 +3,7 @@ import { CONFIG } from '../config';
 export type Lang = 'en' | 'ru';
 
 const STORAGE_KEY = 'hexigame.lang';
+const listeners = new Set<(lang: Lang) => void>();
 
 let current: Lang | null = null;
 
@@ -29,6 +30,13 @@ const dict: Record<Lang, Record<string, string>> = {
     'language.en': '🇬🇧 English',
     'language.ru': '🇷🇺 Русский',
     'action.startGuest': 'Start as Guest',
+    'action.continueSession': 'Continue session',
+    'action.restartSession': 'Restart session',
+    'action.startNewSession': 'Start new session',
+    'start.title': 'Choose your next move',
+    'start.newLead': 'Begin a fresh run, pick your language first, and keep the interface in sync from the first screen onward.',
+    'start.resumeLead': 'A previous run is available. Continue where you left off, or restart from a clean session.',
+    'start.languageLabel': 'Language',
     'wiki.elapsed': 'Elapsed Time',
     'wiki.instructions.title': 'How to Play',
     'wiki.instructions.desktop.step1': 'Move the turtle using arrow keys',
@@ -189,6 +197,13 @@ const dict: Record<Lang, Record<string, string>> = {
     'language.en': '🇬🇧 English',
     'language.ru': '🇷🇺 Русский',
     'action.startGuest': 'Начать как гость',
+    'action.continueSession': 'Продолжить сессию',
+    'action.restartSession': 'Перезапустить сессию',
+    'action.startNewSession': 'Начать новую сессию',
+    'start.title': 'Выберите следующий шаг',
+    'start.newLead': 'Начните новую сессию, заранее выберите язык и сразу получите локализованный интерфейс без перезагрузки.',
+    'start.resumeLead': 'Найдена предыдущая сессия. Можно продолжить с сохраненного места или перезапустить игру с чистого состояния.',
+    'start.languageLabel': 'Язык',
     'wiki.elapsed': 'Прошло времени',
     'wiki.instructions.title': 'Как играть',
     'wiki.instructions.desktop.step1': 'Перемещайте черепашку стрелками на клавиатуре',
@@ -351,6 +366,18 @@ export function getLanguage(): Lang {
 }
 
 export function setLanguage(lang: Lang) {
+  if (current === lang) {
+    localStorage.setItem(STORAGE_KEY, lang);
+    return;
+  }
   current = lang;
   localStorage.setItem(STORAGE_KEY, lang);
+  listeners.forEach((listener) => listener(lang));
+}
+
+export function subscribeToLanguageChange(listener: (lang: Lang) => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }

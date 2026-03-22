@@ -18,12 +18,13 @@ This file contains recommended metadata for publishing on itch.io.
 - **Release status**: Released
 - **Multiplayer**: Singleplayer only
 - **Accessibility features**: 
-  - Configurable controls (keyboard only)
+  - Touch-first controls optimized for mobile browsers
   - Color-based gameplay (note for colorblind users)
   - No time pressure options (could be added)
 
 ### Platforms
-- **HTML5 (Browser)**: ✅ YES (primary platform)
+- **HTML5 (Browser)**: ✅ YES (mobile-first, current public build is touch-only)
+- **Mobile browsers**: ✅ YES (primary target)
 - **Windows/Mac/Linux downloadable**: NO (web-only currently)
 
 ### Tags (Use Suggested Tags)
@@ -36,17 +37,21 @@ Recommended tags (in order of relevance):
 6. `color-matching`
 7. `time-attack`
 8. `browser`
-9. `keyboard`
-10. `singleplayer`
+9. `touch-controls`
+10. `mobile-only`
+11. `singleplayer`
+12. `multilingual`
 
 **Do NOT use**: game name as tag, developer name, generic terms like "fun", "cool", etc.
 
 ### Language
 - **English**: ✅ YES (UI and mechanics)
+- **Russian**: ✅ YES (selectable on the start screen, switches instantly)
 - **No text**: ❌ NO (game contains text labels and instructions)
 
 ### Input Methods
-- **Keyboard**: ✅ YES (primary control method)
+- **Keyboard**: ❌ NO (not used in current public mobile build)
+- **Touch**: ✅ YES (drag-to-move + center `SPAWN`/`DROP` action + hotbar ring interactions)
 - **Mouse**: ❌ NO
 
 ### Pricing
@@ -75,7 +80,7 @@ Recommended tags (in order of relevance):
 ### Recommended Embed Settings
 - **Viewport dimensions**: 1200x800 (adjust based on your game's canvas size)
 - **Orientation**: Landscape
-- **Mobile friendly**: Test on mobile browsers (currently keyboard-only)
+- **Mobile friendly**: Required (touch controls are primary)
 
 ## Media Requirements
 
@@ -131,7 +136,7 @@ Before publishing the page publicly:
 - [ ] Platform set to HTML5 only
 - [ ] Embed settings configured and tested
 - [ ] Controls clearly documented
-- [ ] Language set to English only
+- [ ] Language set to English + Russian
 - [ ] Genre and classification accurate
 - [ ] AI disclosure set to "no"
 - [ ] Adult content set to "no"

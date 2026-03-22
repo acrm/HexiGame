@@ -1,5 +1,6 @@
 import React from 'react';
 import type { MobileTab } from '../../../appLogic/appShellReducer';
+import type { Lang } from '../../i18n';
 import GuestStart from '../GuestStart';
 import Mascot from '../Mascot';
 import Settings from '../Settings';
@@ -19,7 +20,12 @@ interface GameOverlaysProps {
   structureWidgetProps: React.ComponentProps<typeof StructureProgressWidget> | null;
   sectionOrder: HexiPediaSectionId[];
   showGuestStart: boolean;
-  onGuestStart: () => void;
+  currentLanguage: Lang;
+  onLanguageChange: (lang: Lang) => void;
+  hasResumableSession: boolean;
+  onContinueSession: () => void;
+  onRestartSession: () => void;
+  onStartNewSession: () => void;
   isSettingsOpen: boolean;
   settingsProps: React.ComponentProps<typeof Settings>;
   isMascotOpen: boolean;
@@ -35,7 +41,12 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   structureWidgetProps,
   sectionOrder,
   showGuestStart,
-  onGuestStart,
+  currentLanguage,
+  onLanguageChange,
+  hasResumableSession,
+  onContinueSession,
+  onRestartSession,
+  onStartNewSession,
   isSettingsOpen,
   settingsProps,
   isMascotOpen,
@@ -62,7 +73,16 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 
       {taskIntroModalProps && <TutorialTaskIntroModal {...taskIntroModalProps} />}
 
-      {showGuestStart && <GuestStart onStart={onGuestStart} />}
+      {showGuestStart && (
+        <GuestStart
+          currentLanguage={currentLanguage}
+          onLanguageChange={onLanguageChange}
+          hasResumableSession={hasResumableSession}
+          onContinue={onContinueSession}
+          onRestart={onRestartSession}
+          onStartNew={onStartNewSession}
+        />
+      )}
 
       {isSettingsOpen && <Settings {...settingsProps} />}
 

@@ -65,13 +65,15 @@ describe('appShellReducer', () => {
   it('restores active session identity when guest session already started', () => {
     const storage = createStorage({
       'hexigame.guest.started': '1',
+      'hexigame.session.state': JSON.stringify({ gameState: { cells: [], cursor: { q: 0, r: 0 } } }),
       'hexigame.session.active.id': 'session_abc',
       'hexigame.session.active.startTick': '128',
     });
 
     const state = createInitialAppShellState(storage);
 
-    expect(state.guestStarted).toBe(true);
+    expect(state.guestStarted).toBe(false);  // always false until user acts on start screen
+    expect(state.resumeAvailable).toBe(true); // session exists → Continue/Restart offered
     expect(state.currentSessionId).toBe('session_abc');
     expect(state.currentSessionStartTick).toBe(128);
     expect(state.lastSessionSaveTick).toBe(128);
@@ -80,6 +82,7 @@ describe('appShellReducer', () => {
   it('falls back to latest session history record when active metadata is missing', () => {
     const storage = createStorage({
       'hexigame.guest.started': '1',
+      'hexigame.session.state': JSON.stringify({ gameState: { cells: [], cursor: { q: 0, r: 0 } } }),
       'hexigame.session.history': JSON.stringify([
         {
           id: 'session_latest',
@@ -93,6 +96,7 @@ describe('appShellReducer', () => {
 
     const state = createInitialAppShellState(storage);
 
+    expect(state.resumeAvailable).toBe(true);
     expect(state.currentSessionId).toBe('session_latest');
     expect(state.currentSessionStartTick).toBe(24);
   });

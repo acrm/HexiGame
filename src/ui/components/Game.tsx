@@ -11,7 +11,7 @@ import Settings from './Settings';
 import GameMobileTabs from './Game/GameMobileTabs';
 import GamePanels from './Game/GamePanels';
 import GameOverlays from './Game/GameOverlays';
-import { getLanguage, t } from '../i18n';
+import { getLanguage, setLanguage, subscribeToLanguageChange, t, type Lang } from '../i18n';
 import { getTemplateById } from '../../templates/templateLibrary';
 import { integration } from '../../appLogic/integration';
 import {
@@ -33,7 +33,6 @@ import {
   persistUserSettings,
   userSettingsReducer,
 } from '../../appLogic/userSettings';
-import GuestStart from './GuestStart';
 import StartupAnimation from './StartupAnimation';
 import HexiPedia from './HexiPedia';
 import Mascot from './Mascot';
@@ -64,15 +63,12 @@ import {
   type SessionController,
 } from '../../appLogic/sessionController';
 import { mulberry32 } from '../../gameLogic/core/params';
-import { clearSession } from '../../appLogic/sessionRepository';
 
 const MASCOT_FACING_DIR_INDEX = 1;
 type HexiPediaSectionId = 'tasks' | 'stats' | 'structures' | 'colors';
 
 interface TaskIntroModalState {
   taskId: string;
-  setupText: string;
-  objectiveText: string;
 }
 
 // React component
@@ -91,6 +87,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     isPaused,
     interactionMode,
     guestStarted,
+    resumeAvailable,
     startupAnimationShown,
     isSettingsOpen,
     isMascotOpen,
@@ -128,6 +125,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const [taskIntroModal, setTaskIntroModal] = useState<TaskIntroModalState | null>(null);
   const [pendingForceResetTaskId, setPendingForceResetTaskId] = useState<string | null>(null);
   const taskWidgetRef = useRef<HTMLDivElement | null>(null);
+  const [language, setLanguageState] = useState<Lang>(() => getLanguage());
 
   // Game session state
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -146,6 +144,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     });
   }
   const { dispatch, resetSession: resetSessionController } = controllerRef.current;
+
+  useEffect(() => subscribeToLanguageChange(setLanguageState), []);
 
   // Start/stop tick loop based on guest started
   useEffect(() => {
@@ -170,10 +170,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Reset session wrapper
   const resetSession = () => {
-    clearSession();
-    const rng = mulberry32(seed ?? Date.now());
-    const fresh = initializeGameState(mergedParams, rng);
-    setGameState(fresh);
+    resetSessionController();
   };
 
   const currentTask = useMemo(
@@ -385,12 +382,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const task = currentTask;
     if (!task) return;
 
-    const language = getLanguage();
-    setTaskIntroModal({
-      taskId: task.id,
-      setupText: getLocalizedText(task.setup, language),
-      objectiveText: getLocalizedText(task.objective, language),
-    });
+    setTaskIntroModal({ taskId: task.id });
   };
 
   const setHexiPediaSectionEnabled = (sectionId: HexiPediaSectionId, enabled: boolean) => {
@@ -526,10 +518,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
-  const handleGuestStart = () => {
+  const handleLanguageChange = (lang: Lang) => {
+    setLanguage(lang);
+  };
+
+  const persistGuestStartFlag = () => {
     localStorage.setItem('hexigame.guest.started', '1');
+  };
+
+  const handleStartNewSession = () => {
+    resetSession();
+    persistGuestStartFlag();
     dispatchApp({ type: 'GUEST_STARTED' });
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    setTaskIntroModal(null);
+    setPendingForceResetTaskId(null);
 
     const newSession = createNewSessionHistoryRecord();
     saveActiveSessionMeta(localStorage, { id: newSession.id, startTick: 0 });
@@ -540,6 +543,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       dispatchApp({ type: 'SET_SESSION_HISTORY', history });
     }
 
+    playUiClick();
+    playMusicFromInteraction();
+  };
+
+  const handleContinueSession = () => {
+    persistGuestStartFlag();
+    dispatchApp({ type: 'GUEST_CONTINUED' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    setTaskIntroModal(null);
+    setPendingForceResetTaskId(null);
     playUiClick();
     playMusicFromInteraction();
   };
@@ -714,6 +727,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const settingsProps: React.ComponentProps<typeof Settings> = {
+    language,
+    onLanguageChange: handleLanguageChange,
     onClose: () => dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden }),
     onResetSession: () => {
       resetSession();
@@ -763,7 +778,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const taskWidgetProps = currentTask && taskWidgetPhase !== 'hidden'
     ? {
         phase: taskWidgetPhase as TutorialWidgetPhase,
-        taskName: getLocalizedText(currentTask.name, getLanguage()),
+        taskName: getLocalizedText(currentTask.name, language),
         progressCurrent: taskViewModel.progressCurrent,
         progressTotal: taskViewModel.progressTotal,
         progressLabel: t(taskViewModel.progressLabelKey),
@@ -778,10 +793,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const visibleTaskWidgetProps = effectiveShowTaskWidget ? taskWidgetProps : null;
 
-  const taskIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null = taskIntroModal
+  const taskIntroDefinition = taskIntroModal ? getTaskDefinition(taskIntroModal.taskId) : null;
+
+  const taskIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null = taskIntroModal && taskIntroDefinition
     ? {
-        setupText: taskIntroModal.setupText,
-        objectiveText: taskIntroModal.objectiveText,
+        setupText: getLocalizedText(taskIntroDefinition.setup, language),
+        objectiveText: getLocalizedText(taskIntroDefinition.objective, language),
         startLabel: t('task.modal.start'),
         postponeLabel: t('task.modal.postpone'),
         getFlyToRect: () => taskWidgetRef.current?.getBoundingClientRect() ?? null,
@@ -820,7 +837,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const structureWidgetProps: React.ComponentProps<typeof StructureProgressWidget> | null =
     effectiveShowStructureWidget && gameState.activeTemplate && activeStructureTemplate
       ? {
-          structureName: activeStructureTemplate.name[getLanguage()],
+          structureName: activeStructureTemplate.name[language],
           progressCurrent: gameState.activeTemplate.filledCells.size,
           progressTotal: activeStructureTemplate.structure.cells.length,
           hasErrors: gameState.activeTemplate.hasErrors,
@@ -878,7 +895,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         structureWidgetProps={structureWidgetProps}
         sectionOrder={sectionOrder}
         showGuestStart={!guestStarted}
-        onGuestStart={handleGuestStart}
+        currentLanguage={language}
+        onLanguageChange={handleLanguageChange}
+        hasResumableSession={resumeAvailable}
+        onContinueSession={handleContinueSession}
+        onRestartSession={handleStartNewSession}
+        onStartNewSession={handleStartNewSession}
         isSettingsOpen={isSettingsOpen}
         settingsProps={settingsProps}
         isMascotOpen={isMascotOpen}

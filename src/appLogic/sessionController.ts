@@ -48,7 +48,8 @@ export interface SessionController {
 export function createSessionController(options: SessionControllerOptions): SessionController {
   const { onStateChange, getMobileTab } = options;
   const params: Params = { ...DefaultParams, ...(options.params ?? {}) };
-  const rng: RNG = mulberry32(options.seed ?? Date.now());
+  const createRng = (): RNG => mulberry32(options.seed ?? Date.now());
+  let rng: RNG = createRng();
 
   let currentState: GameState = createInitialState(params, rng);
   let tickIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -100,6 +101,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   function resetSession(): void {
     clearSession();
+    rng = createRng();
     const fresh = createInitialState(params, rng);
     setState(fresh);
   }

@@ -5,6 +5,7 @@ import {
   type SessionHistoryRecord,
   type StorageReader,
 } from './sessionHistory';
+import { canResumeSession } from './sessionRepository';
 
 const GUEST_STARTED_KEY = 'hexigame.guest.started';
 
@@ -17,6 +18,7 @@ export interface AppShellState {
   isPaused: boolean;
   interactionMode: InteractionMode;
   guestStarted: boolean;
+  resumeAvailable: boolean;
   startupAnimationShown: boolean;
   isSettingsOpen: boolean;
   isMascotOpen: boolean;
@@ -36,6 +38,7 @@ export type AppShellCommand =
   | { type: 'CLOSE_MASCOT' }
   | { type: 'VISIBILITY_CHANGED'; hidden: boolean }
   | { type: 'GUEST_STARTED' }
+  | { type: 'GUEST_CONTINUED' }
   | { type: 'STARTUP_ANIMATION_COMPLETE' }
   | { type: 'RESET_AFTER_SESSION_RESET' }
   | { type: 'SET_TRACK_SESSION_HISTORY'; enabled: boolean }
@@ -45,9 +48,9 @@ export type AppShellCommand =
   | { type: 'CLEAR_ACTIVE_SESSION' };
 
 export function createInitialAppShellState(storage: StorageReader): AppShellState {
-  const hasGuestStarted = !!storage.getItem(GUEST_STARTED_KEY);
+  const hasResumeAvailable = canResumeSession(storage);
   const history = loadSessionHistory(storage);
-  const activeSession = hasGuestStarted
+  const activeSession = hasResumeAvailable
     ? (loadActiveSessionMeta(storage)
       ?? (history[0]
         ? {
@@ -62,8 +65,9 @@ export function createInitialAppShellState(storage: StorageReader): AppShellStat
     mobileTab: 'heximap',
     isPaused: false,
     interactionMode: 'mobile',
-    guestStarted: hasGuestStarted,
-    startupAnimationShown: hasGuestStarted, // Skip animation if already started before
+    guestStarted: false,
+    resumeAvailable: hasResumeAvailable,
+    startupAnimationShown: hasResumeAvailable,
     isSettingsOpen: false,
     isMascotOpen: false,
     sessionHistory: history,
@@ -134,6 +138,17 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
       return {
         ...state,
         guestStarted: true,
+        resumeAvailable: true,
+        startupAnimationShown: false,
+        isPaused: state.isSettingsOpen ? true : false,
+      };
+
+    case 'GUEST_CONTINUED':
+      return {
+        ...state,
+        guestStarted: true,
+        resumeAvailable: true,
+        startupAnimationShown: true,
         isPaused: state.isSettingsOpen ? true : false,
       };
 
@@ -148,6 +163,7 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
       return {
         ...state,
         guestStarted: false,
+        resumeAvailable: false,
         startupAnimationShown: false,
         isPaused: true,
         isInventory: false,

@@ -12,14 +12,17 @@ A minimalist puzzle game where you navigate a hexagonal grid, capture colored ti
 - 🎲 **Risk & Reward**: Harder-to-capture colors have lower success chances
 - ⏱️ **Time Challenge**: 5-minute sessions test your decision-making speed
 - 🖼️ **Clean Minimalist Design**: Focus on gameplay without distractions
-- 🎮 **Simple Controls**: Just arrow keys and spacebar
+- 🎮 **Mobile Touch Controls**: Touch-first interface with drag-to-move navigation and context actions on the on-screen control ring
+- 🌐 **English & Russian**: Language selector on the start screen — switch instantly without reload
+- 💾 **Session Continuity**: Return to an unfinished session or start fresh — the choice is yours
 
 ### How to Play
 
-1. **Move** using arrow keys to navigate the hexagonal grid
-2. **Capture** colored tiles by holding Space for 0.5 seconds
-3. **Place** captured tiles into empty cells to build patterns
-4. **Refine** your layout by repositioning tiles
+**Mobile (touch)**
+1. **Navigate** by touching a reachable hex; you can drag your finger to preview focus and release to commit movement
+2. **Use the center action button** (`SPAWN` / `DROP`) to perform the context action on the focused cell
+3. **Use the 6-slot ring** around the center button to transfer colors (`EAT` / `PUT` / `SWAP` hints appear by context)
+4. **Refine** your layout by moving colors between cells and hotbar slots
 5. **Strategy**: Tiles closer to your base color are easier to capture
 
 ### Gameplay Mechanics
@@ -37,9 +40,10 @@ A minimalist puzzle game where you navigate a hexagonal grid, capture colored ti
 
 ## Technical Details
 
-- **Platform**: Web browser (HTML5)
+- **Platform**: Mobile web browser (HTML5)
 - **Engine**: Built with React + TypeScript + Vite
-- **Controls**: Keyboard only
+- **Controls**: Touch only (mobile release)
+- **Languages**: English, Russian
 - **Requirements**: Modern web browser with JavaScript enabled
 - **No Installation Required**: Play directly in your browser
 
@@ -49,7 +53,7 @@ This game is an indie project focused on exploring hexagonal grid mechanics and 
 
 ---
 
-**Current Version**: 2025w51-0.20  
-**Last Updated**: December 2025
+**Current Version**: see build-notes.md  
+**Last Updated**: March 2026
 
 *No ads, no in-app purchases, no third-party tracking — just pure puzzle gameplay.*

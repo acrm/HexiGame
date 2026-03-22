@@ -11,11 +11,13 @@
 
 import type { GameState } from '../gameLogic/core/types';
 import { clearActiveSessionMeta } from './sessionHistory';
+import type { StorageReader, StorageRemover, StorageWriter } from './sessionHistory';
 import { getTaskDefinition } from '../tasks/taskLevels';
 
 // ─── Storage key ───────────────────────────────────────────────────────────────
 
 const SESSION_KEY = 'hexigame.session.state';
+const GUEST_STARTED_KEY = 'hexigame.guest.started';
 
 // ─── Serialization types ───────────────────────────────────────────────────────
 
@@ -225,9 +227,9 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
 
 // ─── Public API ────────────────────────────────────────────────────────────────
 
-export function loadSession(): SessionState | null {
+export function loadSession(storage: StorageReader = localStorage): SessionState | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = storage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // Legacy format: gameState was stored at root level
@@ -240,26 +242,42 @@ export function loadSession(): SessionState | null {
   }
 }
 
-export function saveSession(state: GameState, ui?: SessionState['ui']): void {
+export function saveSession(
+  state: GameState,
+  ui?: SessionState['ui'],
+  storage: StorageWriter = localStorage,
+): void {
   try {
     const session: SessionState = { gameState: serializeState(state), ui };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    storage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch {
     // ignore write errors
   }
 }
 
-export function clearSession(): void {
-  clearActiveSessionMeta(localStorage);
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem('hexigame.guest.started');
-  localStorage.removeItem('hexigame.task.started');
-  localStorage.removeItem('hexigame.tutorial.started');
+export function clearSession(storage: StorageRemover & StorageReader = localStorage): void {
+  clearActiveSessionMeta(storage);
+  storage.removeItem(SESSION_KEY);
+  storage.removeItem(GUEST_STARTED_KEY);
+  storage.removeItem('hexigame.task.started');
+  storage.removeItem('hexigame.tutorial.started');
 }
 
-export function restoreGameState(fallbackState: GameState): GameState {
-  const session = loadSession();
-  const isGuestStarted = !!localStorage.getItem('hexigame.guest.started');
+export function canResumeSession(storage: StorageReader = localStorage): boolean {
+  if (!storage.getItem(GUEST_STARTED_KEY)) {
+    return false;
+  }
+
+  const session = loadSession(storage);
+  return !!session?.gameState;
+}
+
+export function restoreGameState(
+  fallbackState: GameState,
+  storage: StorageReader = localStorage,
+): GameState {
+  const session = loadSession(storage);
+  const isGuestStarted = !!storage.getItem(GUEST_STARTED_KEY);
   if (!isGuestStarted || !session?.gameState) {
     return fallbackState;
   }

@@ -25,13 +25,12 @@ function computeTemplateProgress(state: GameState, templateId: string): TaskProg
 }
 
 function computeExcavationProgress(state: GameState, center: { q: number; r: number }): TaskProgressMetrics {
+  // Only count the center cell for progress
   const excavationLayout = getExcavationLayout(center);
-  const excavationCells = [...excavationLayout.ring1, ...excavationLayout.ring2, excavationLayout.center];
-  const clearedCount = excavationCells.filter(cell => getCell(state.grid, cell)?.colorIndex === null).length;
-
+  const centerCleared = getCell(state.grid, excavationLayout.center)?.colorIndex === null ? 1 : 0;
   return {
-    current: clearedCount,
-    total: excavationCells.length,
+    current: centerCleared,
+    total: 1,
     labelKey: 'task.cellsCleared',
   };
 }

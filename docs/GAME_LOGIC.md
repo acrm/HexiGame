@@ -199,8 +199,13 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
 - World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
-- Session lifecycle contract: a game session starts only after `Start as Guest`, persists continuously on every game-state update, survives page reload with the same active session identity, and is terminated only through `Reset Session` in Settings.
+- **Start screen** (shown before any session begins) presents: language selector (EN / RU, switches instantly without reload), and context-aware actions:
+  - If a prior session exists in localStorage: **Continue session** (resumes exactly where left off) and **Restart session** (wipes old state, starts fresh with a new random seed).
+  - If no prior session: **Start new session** (only option).
+- Language is persisted in `hexigame.lang` (localStorage) and propagated reactively via a subscriber set in `i18n.ts`; all UI components re-render without a page reload.
+- Session lifecycle contract: a game session starts only after the player acts on the start screen (Continue, Restart, or Start new), persists continuously on every game-state update via `hexigame.session.state` and `hexigame.session.active.*`, survives page reload (the start screen detects `hexigame.guest.started` and shows Continue/Restart if a session exists), and is terminated only through `Reset Session` in Settings.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
+- `Restart session` creates a fresh RNG from `Date.now()` seed so each new game has a different procedural world.
 - Startup animation timings are accelerated by a factor of 3 while preserving the same phase order and visual beats.
 - Initial and dynamic world generation both use the reduced color density (`InitialColorProbability = 0.05`).
 
