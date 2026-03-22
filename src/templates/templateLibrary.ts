@@ -216,7 +216,7 @@ export const TEMPLATE_YIN_YANG_V2: BuildTemplate = {
   },
   difficulty: 'hard',
   structure: {
-    anchorCell: { q: -1, r: -1 },
+    anchorCell: { q: -1, r: 1 },
     cells: [
       { q: -1, r: -4, relativeColor: 50 },
       { q: 0, r: -4, relativeColor: 50 },
