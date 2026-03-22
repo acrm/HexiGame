@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   addSessionToHistory,
+  clearActiveSessionMeta,
   clearSessionHistory,
   createNewSessionHistoryRecord,
   deleteSessionHistoryRecord,
   formatGameTime,
+  loadActiveSessionMeta,
   loadSessionHistory,
+  saveActiveSessionMeta,
   saveSessionHistoryRecord,
 } from '../src/appLogic/sessionHistory';
 
@@ -15,6 +18,9 @@ function createStorage(initial: Record<string, string> = {}) {
     getItem: (key: string) => data.get(key) ?? null,
     setItem: (key: string, value: string) => {
       data.set(key, value);
+    },
+    removeItem: (key: string) => {
+      data.delete(key);
     },
   };
 }
@@ -66,5 +72,24 @@ describe('sessionHistory', () => {
     const afterClear = clearSessionHistory(storage);
     expect(afterClear).toEqual([]);
     expect(loadSessionHistory(storage)).toEqual([]);
+  });
+
+  it('saves and restores active session metadata', () => {
+    const storage = createStorage();
+
+    saveActiveSessionMeta(storage, { id: 'session_abc', startTick: 42 });
+
+    expect(loadActiveSessionMeta(storage)).toEqual({ id: 'session_abc', startTick: 42 });
+  });
+
+  it('clears active session metadata', () => {
+    const storage = createStorage({
+      'hexigame.session.active.id': 'session_abc',
+      'hexigame.session.active.startTick': '42',
+    });
+
+    clearActiveSessionMeta(storage);
+
+    expect(loadActiveSessionMeta(storage)).toBeNull();
   });
 });

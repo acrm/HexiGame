@@ -22,6 +22,8 @@ import {
   clearSessionHistory,
   createNewSessionHistoryRecord,
   deleteSessionHistoryRecord,
+  loadActiveSessionMeta,
+  saveActiveSessionMeta,
   saveSessionHistoryRecord,
   saveTrackSessionHistoryPreference,
 } from '../../appLogic/sessionHistory';
@@ -88,7 +90,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     isSettingsOpen,
     isMascotOpen,
     sessionHistory,
-    lastSessionSaveTick,
     trackSessionHistory,
     currentSessionId,
     currentSessionStartTick,
@@ -253,16 +254,54 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [guestStarted, isSettingsOpen]);
 
-  // Save session history every 360 ticks (~30 seconds) if enabled
+  // Ensure active session identity exists while a guest session is running.
   useEffect(() => {
-    if (!guestStarted || !trackSessionHistory || !currentSessionId) return;
-    const ticksSinceLastSave = gameState.tick - lastSessionSaveTick;
-    if (ticksSinceLastSave >= 360) {
-      const history = saveSessionHistoryRecord(localStorage, currentSessionId, gameState.tick);
-      dispatchApp({ type: 'SESSION_SAVE_TICK', tick: gameState.tick });
+    if (!guestStarted || currentSessionId) return;
+
+    const restored = loadActiveSessionMeta(localStorage);
+    if (restored) {
+      dispatchApp({
+        type: 'SESSION_STARTED',
+        sessionId: restored.id,
+        startTick: restored.startTick,
+      });
+      return;
+    }
+
+    const startTick = gameState.tick;
+    const fallbackSession = createNewSessionHistoryRecord();
+    saveActiveSessionMeta(localStorage, { id: fallbackSession.id, startTick });
+    dispatchApp({
+      type: 'SESSION_STARTED',
+      sessionId: fallbackSession.id,
+      startTick,
+    });
+
+    if (trackSessionHistory) {
+      const history = saveSessionHistoryRecord(localStorage, fallbackSession.id, startTick);
       dispatchApp({ type: 'SET_SESSION_HISTORY', history });
     }
-  }, [gameState.tick, guestStarted, trackSessionHistory, currentSessionId, lastSessionSaveTick]);
+  }, [guestStarted, currentSessionId, gameState.tick, trackSessionHistory]);
+
+  // Persist active session identity to survive page reloads.
+  useEffect(() => {
+    if (!guestStarted || !currentSessionId) return;
+    saveActiveSessionMeta(localStorage, {
+      id: currentSessionId,
+      startTick: currentSessionStartTick,
+    });
+  }, [guestStarted, currentSessionId, currentSessionStartTick]);
+
+  // Persist session history on every game-state change while the session is active.
+  useEffect(() => {
+    if (!guestStarted || !currentSessionId) return;
+
+    dispatchApp({ type: 'SESSION_SAVE_TICK', tick: gameState.tick });
+    if (!trackSessionHistory) return;
+
+    const history = saveSessionHistoryRecord(localStorage, currentSessionId, gameState.tick);
+    dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+  }, [gameState, guestStarted, trackSessionHistory, currentSessionId]);
 
   // Save track session history setting
   useEffect(() => {
@@ -492,10 +531,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'GUEST_STARTED' });
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
 
+    const newSession = createNewSessionHistoryRecord();
+    saveActiveSessionMeta(localStorage, { id: newSession.id, startTick: 0 });
+    dispatchApp({ type: 'SESSION_STARTED', sessionId: newSession.id, startTick: 0 });
+
     if (trackSessionHistory) {
-      const newSession = createNewSessionHistoryRecord();
       const history = addSessionToHistory(localStorage, newSession);
-      dispatchApp({ type: 'SESSION_STARTED', sessionId: newSession.id, startTick: 0 });
       dispatchApp({ type: 'SET_SESSION_HISTORY', history });
     }
 

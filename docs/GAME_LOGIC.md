@@ -200,6 +200,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
 - World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
+- Session lifecycle contract: a game session starts only after `Start as Guest`, persists continuously on every game-state update, survives page reload with the same active session identity, and is terminated only through `Reset Session` in Settings.
+- Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:

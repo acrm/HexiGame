@@ -10,6 +10,7 @@
  */
 
 import type { GameState } from '../gameLogic/core/types';
+import { clearActiveSessionMeta } from './sessionHistory';
 
 // ─── Storage key ───────────────────────────────────────────────────────────────
 
@@ -188,6 +189,7 @@ export function saveSession(state: GameState, ui?: SessionState['ui']): void {
 }
 
 export function clearSession(): void {
+  clearActiveSessionMeta(localStorage);
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem('hexigame.guest.started');
   localStorage.removeItem('hexigame.tutorial.started');

@@ -601,3 +601,5 @@
 - 2026w13-0.11 — Use stepwise hex path for last visible boundary marker cell
 
 - 2026w13-0.12 — Fix one-point boundary edge mapping for hidden target markers
+
+- 2026w13-0.13 — Session lifecycle persistence and reload continuity

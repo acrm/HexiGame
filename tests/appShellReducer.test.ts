@@ -61,4 +61,39 @@ describe('appShellReducer', () => {
     expect(hexilab.isInventory).toBe(true);
     expect(heximap.isInventory).toBe(false);
   });
+
+  it('restores active session identity when guest session already started', () => {
+    const storage = createStorage({
+      'hexigame.guest.started': '1',
+      'hexigame.session.active.id': 'session_abc',
+      'hexigame.session.active.startTick': '128',
+    });
+
+    const state = createInitialAppShellState(storage);
+
+    expect(state.guestStarted).toBe(true);
+    expect(state.currentSessionId).toBe('session_abc');
+    expect(state.currentSessionStartTick).toBe(128);
+    expect(state.lastSessionSaveTick).toBe(128);
+  });
+
+  it('falls back to latest session history record when active metadata is missing', () => {
+    const storage = createStorage({
+      'hexigame.guest.started': '1',
+      'hexigame.session.history': JSON.stringify([
+        {
+          id: 'session_latest',
+          startTime: 100,
+          endTime: 200,
+          gameTicks: 24,
+          gameTime: '0:02',
+        },
+      ]),
+    });
+
+    const state = createInitialAppShellState(storage);
+
+    expect(state.currentSessionId).toBe('session_latest');
+    expect(state.currentSessionStartTick).toBe(24);
+  });
 });

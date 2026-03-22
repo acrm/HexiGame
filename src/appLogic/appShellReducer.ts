@@ -1,4 +1,5 @@
 import {
+  loadActiveSessionMeta,
   loadSessionHistory,
   loadTrackSessionHistoryPreference,
   type SessionHistoryRecord,
@@ -45,6 +46,17 @@ export type AppShellCommand =
 
 export function createInitialAppShellState(storage: StorageReader): AppShellState {
   const hasGuestStarted = !!storage.getItem(GUEST_STARTED_KEY);
+  const history = loadSessionHistory(storage);
+  const activeSession = hasGuestStarted
+    ? (loadActiveSessionMeta(storage)
+      ?? (history[0]
+        ? {
+            id: history[0].id,
+            startTick: Math.max(0, Math.floor(history[0].gameTicks)),
+          }
+        : null))
+    : null;
+
   return {
     isInventory: false,
     mobileTab: 'heximap',
@@ -54,11 +66,11 @@ export function createInitialAppShellState(storage: StorageReader): AppShellStat
     startupAnimationShown: hasGuestStarted, // Skip animation if already started before
     isSettingsOpen: false,
     isMascotOpen: false,
-    sessionHistory: loadSessionHistory(storage),
-    lastSessionSaveTick: 0,
+    sessionHistory: history,
+    lastSessionSaveTick: activeSession?.startTick ?? 0,
     trackSessionHistory: loadTrackSessionHistoryPreference(storage, true),
-    currentSessionId: null,
-    currentSessionStartTick: 0,
+    currentSessionId: activeSession?.id ?? null,
+    currentSessionStartTick: activeSession?.startTick ?? 0,
   };
 }
 

@@ -6,10 +6,16 @@ export interface StorageWriter {
   setItem: (key: string, value: string) => void;
 }
 
+export interface StorageRemover {
+  removeItem: (key: string) => void;
+}
+
 export type StorageLike = StorageReader & StorageWriter;
 
 export const SESSION_HISTORY_KEY = 'hexigame.session.history';
 export const TRACK_SESSION_HISTORY_KEY = 'hexigame.trackSessionHistory';
+export const ACTIVE_SESSION_ID_KEY = 'hexigame.session.active.id';
+export const ACTIVE_SESSION_START_TICK_KEY = 'hexigame.session.active.startTick';
 
 const DEFAULT_TICKS_PER_SECOND = 12;
 const DEFAULT_HISTORY_LIMIT = 20;
@@ -20,6 +26,11 @@ export type SessionHistoryRecord = {
   endTime: number;
   gameTicks: number;
   gameTime: string;
+};
+
+export type ActiveSessionMeta = {
+  id: string;
+  startTick: number;
 };
 
 export function formatGameTime(ticks: number, ticksPerSecond = DEFAULT_TICKS_PER_SECOND): string {
@@ -76,6 +87,29 @@ export function loadTrackSessionHistoryPreference(storage: StorageReader, fallba
   const saved = storage.getItem(TRACK_SESSION_HISTORY_KEY);
   if (saved === null) return fallback;
   return saved === 'true';
+}
+
+export function loadActiveSessionMeta(storage: StorageReader): ActiveSessionMeta | null {
+  const id = storage.getItem(ACTIVE_SESSION_ID_KEY);
+  if (!id) return null;
+
+  const rawStartTick = storage.getItem(ACTIVE_SESSION_START_TICK_KEY);
+  const parsedStartTick = rawStartTick !== null ? Number(rawStartTick) : 0;
+  const startTick = Number.isFinite(parsedStartTick) && parsedStartTick >= 0
+    ? Math.floor(parsedStartTick)
+    : 0;
+
+  return { id, startTick };
+}
+
+export function saveActiveSessionMeta(storage: StorageWriter, session: ActiveSessionMeta): void {
+  storage.setItem(ACTIVE_SESSION_ID_KEY, session.id);
+  storage.setItem(ACTIVE_SESSION_START_TICK_KEY, String(Math.max(0, Math.floor(session.startTick))));
+}
+
+export function clearActiveSessionMeta(storage: StorageRemover): void {
+  storage.removeItem(ACTIVE_SESSION_ID_KEY);
+  storage.removeItem(ACTIVE_SESSION_START_TICK_KEY);
 }
 
 export function saveTrackSessionHistoryPreference(storage: StorageWriter, enabled: boolean): void {
