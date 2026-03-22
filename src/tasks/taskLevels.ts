@@ -5,10 +5,8 @@ import { getTemplateById } from '../templates/templateLibrary';
 import {
   TASK_COLOR_HUNT_TARGETS,
   TASK_EXCAVATION_CENTER,
-  TASK_EXCAVATION_RING_1,
-  TASK_EXCAVATION_RING_2,
-  TASK_EXCAVATION_TARGET_COLOR_INDEX,
   TASK_EXPLORATION_TARGETS,
+  getExcavationLayout,
 } from './taskSandbox';
 import { TaskDefinition, TaskProgressMetrics, axialToKey } from './taskState';
 
@@ -26,8 +24,9 @@ function computeTemplateProgress(state: GameState, templateId: string): TaskProg
   };
 }
 
-function computeExcavationProgress(state: GameState): TaskProgressMetrics {
-  const excavationCells = [...TASK_EXCAVATION_RING_1, ...TASK_EXCAVATION_RING_2, TASK_EXCAVATION_CENTER];
+function computeExcavationProgress(state: GameState, center: { q: number; r: number }): TaskProgressMetrics {
+  const excavationLayout = getExcavationLayout(center);
+  const excavationCells = [...excavationLayout.ring1, ...excavationLayout.ring2, excavationLayout.center];
   const clearedCount = excavationCells.filter(cell => getCell(state.grid, cell)?.colorIndex === null).length;
 
   return {
@@ -41,6 +40,33 @@ function countCollectedTargetHexes(state: GameState, targetKeys: Set<string>): n
   const progress = state.taskProgress;
   if (!progress) return 0;
   return Array.from(progress.collectedTargetKeys).filter(key => targetKeys.has(key)).length;
+}
+
+function computeOppositePairProgress(state: GameState, paletteSize: number): number {
+  if (paletteSize < 2 || paletteSize % 2 !== 0) return 0;
+
+  const oppositeOffset = paletteSize / 2;
+  const colorCounts = new Array<number>(paletteSize).fill(0);
+
+  for (const slot of state.hotbarSlots) {
+    if (slot === null) continue;
+    if (slot < 0 || slot >= paletteSize) continue;
+    colorCounts[slot] += 1;
+  }
+
+  let bestProgress = 0;
+
+  for (let colorIndex = 0; colorIndex < oppositeOffset; colorIndex += 1) {
+    const oppositeColorIndex = colorIndex + oppositeOffset;
+    const current = Math.min(3, colorCounts[colorIndex]) + Math.min(3, colorCounts[oppositeColorIndex]);
+    if (current > bestProgress) bestProgress = current;
+  }
+
+  return bestProgress;
+}
+
+function getTaskTargetHexes(state: GameState): Array<{ position: { q: number; r: number }; colorIndex: number }> {
+  return state.taskProgress?.targetHexes ?? TASK_COLOR_HUNT_TARGETS;
 }
 
 export const task1Explore: TaskDefinition = {
@@ -68,17 +94,16 @@ export const task1Explore: TaskDefinition = {
   disableInventory: true,
   hideHotbar: true,
   getProgress: (_state, _params, progressData) => ({
-    current: TASK_EXPLORATION_TARGETS.filter(cell => progressData.visitedTargetKeys.has(axialToKey(cell))).length,
-    total: TASK_EXPLORATION_TARGETS.length,
+    current: (progressData.targetCells ?? TASK_EXPLORATION_TARGETS)
+      .filter(cell => progressData.visitedTargetKeys.has(axialToKey(cell))).length,
+    total: (progressData.targetCells ?? TASK_EXPLORATION_TARGETS).length,
     labelKey: 'task.cellsVisited',
   }),
   winCondition: (_state, _params, progressData) => {
-    const targetKeys = TASK_EXPLORATION_TARGETS.map(axialToKey);
+    const targetKeys = (progressData.targetCells ?? TASK_EXPLORATION_TARGETS).map(axialToKey);
     return targetKeys.every(key => progressData.visitedTargetKeys.has(key));
   },
 };
-
-const task2TargetKeys = new Set(TASK_COLOR_HUNT_TARGETS.map(({ position }) => axialToKey(position)));
 
 export const task2CollectBeyondVisibility: TaskDefinition = {
   id: 'task_2_collect_beyond_visibility',
@@ -103,40 +128,51 @@ export const task2CollectBeyondVisibility: TaskDefinition = {
   },
   targetCells: TASK_COLOR_HUNT_TARGETS.map(({ position }) => position),
   targetHexes: TASK_COLOR_HUNT_TARGETS,
-  getProgress: (state) => ({
-    current: countCollectedTargetHexes(state, task2TargetKeys),
-    total: TASK_COLOR_HUNT_TARGETS.length,
-    labelKey: 'task.targetHexesCollected',
-  }),
-  winCondition: (state) => countCollectedTargetHexes(state, task2TargetKeys) >= TASK_COLOR_HUNT_TARGETS.length,
+  getProgress: (state) => {
+    const targetHexes = getTaskTargetHexes(state);
+    const targetKeys = new Set(targetHexes.map(({ position }) => axialToKey(position)));
+
+    return {
+      current: countCollectedTargetHexes(state, targetKeys),
+      total: targetHexes.length,
+      labelKey: 'task.targetHexesCollected',
+    };
+  },
+  winCondition: (state) => {
+    const targetHexes = getTaskTargetHexes(state);
+    const targetKeys = new Set(targetHexes.map(({ position }) => axialToKey(position)));
+    return countCollectedTargetHexes(state, targetKeys) >= targetHexes.length;
+  },
 };
 
 export const task3ExcavateRings: TaskDefinition = {
   id: 'task_3_excavate_rings',
   name: { en: 'Excavate', ru: 'Раскопки' },
   setup: {
-    en: 'A bright core is trapped inside two concentric rings of debris.',
-    ru: 'Яркое ядро зажато внутри двух концентрических колец из завалов.',
+    en: 'A bright core is trapped inside two concentric rings of debris somewhere beyond your current view.',
+    ru: 'Яркое ядро зажато внутри двух концентрических колец завалов где-то за пределами текущего обзора.',
   },
   objective: {
-    en: 'Break through both rings and extract the hidden core into the hotbar.',
-    ru: 'Прорвитесь через оба кольца и вынесите скрытое ядро в хотбар.',
+    en: 'Find the layered site and clear the hidden core hex from the map.',
+    ru: 'Найдите область со слоями и уберите скрытый центральный гекс с карты.',
   },
   hints: {
     desktop: {
-      en: 'Clear the outer and inner ring first, then extract the center hex into the hotbar.',
-      ru: 'Сначала расчистите внешнее и внутреннее кольцо, а затем заберите центральный гекс в хотбар.',
+      en: 'Follow the highlighted target cell, break both rings, then clear the center hex.',
+      ru: 'Следуйте по подсвеченной целевой клетке, разберите оба кольца и очистите центральный гекс.',
     },
     mobile: {
-      en: 'Clear the outer and inner ring first, then extract the center hex into the hotbar.',
-      ru: 'Сначала расчистите внешнее и внутреннее кольцо, а затем заберите центральный гекс в хотбар.',
+      en: 'Follow the highlighted target cell, break both rings, then clear the center hex.',
+      ru: 'Следуйте по подсвеченной целевой клетке, разберите оба кольца и очистите центральный гекс.',
     },
   },
-  getProgress: (state) => computeExcavationProgress(state),
-  winCondition: (state) => {
-    const targetCellCleared = getCell(state.grid, TASK_EXCAVATION_CENTER)?.colorIndex === null;
-    const targetInHotbar = state.hotbarSlots.includes(TASK_EXCAVATION_TARGET_COLOR_INDEX);
-    return targetCellCleared && targetInHotbar;
+  getProgress: (state, _params, progressData) => {
+    const targetCenter = progressData.targetCells?.[0] ?? TASK_EXCAVATION_CENTER;
+    return computeExcavationProgress(state, targetCenter);
+  },
+  winCondition: (state, _params, progressData) => {
+    const targetCenter = progressData.targetCells?.[0] ?? TASK_EXCAVATION_CENTER;
+    return getCell(state.grid, targetCenter)?.colorIndex === null;
   },
 };
 
@@ -148,25 +184,21 @@ export const task4CollectOpposites: TaskDefinition = {
     ru: 'Черепашка замечает, что у каждого цвета есть противовес на другой стороне палитры.',
   },
   objective: {
-    en: 'Collect 3 base-color hexes and 3 opposite-color hexes in the hotbar.',
-    ru: 'Соберите в хотбар 3 гекса базового цвета и 3 гекса противоположного цвета.',
+    en: 'Collect 3 hexes of one color and 3 hexes of its opposite color in the hotbar.',
+    ru: 'Соберите в хотбар 3 гекса одного цвета и 3 гекса противоположного ему цвета.',
   },
   hints: {
     desktop: {
-      en: 'Use the palette widget to identify the opposite color, then build a full 3+3 set in the hotbar.',
-      ru: 'Используйте виджет палитры, чтобы найти противоположный цвет, затем соберите полный набор 3+3 в хотбаре.',
+      en: 'Choose any color, find the color exactly 50% away on the palette in either direction, then build a 3+3 pair in the hotbar.',
+      ru: 'Выберите любой цвет, найдите цвет ровно в 50% палитры от него в любую сторону и соберите в хотбаре пару 3+3.',
     },
     mobile: {
-      en: 'Use the palette widget to identify the opposite color, then build a full 3+3 set in the hotbar.',
-      ru: 'Используйте виджет палитры, чтобы найти противоположный цвет, затем соберите полный набор 3+3 в хотбаре.',
+      en: 'Choose any color, find the color exactly 50% away on the palette in either direction, then build a 3+3 pair in the hotbar.',
+      ru: 'Выберите любой цвет, найдите цвет ровно в 50% палитры от него в любую сторону и соберите в хотбаре пару 3+3.',
     },
   },
   getProgress: (state, params) => {
-    const baseColorIndex = params.PlayerBaseColorIndex;
-    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
-    const baseColorCount = state.hotbarSlots.filter(slot => slot === baseColorIndex).length;
-    const oppositeColorCount = state.hotbarSlots.filter(slot => slot === oppositeColorIndex).length;
-    const current = Math.min(3, baseColorCount) + Math.min(3, oppositeColorCount);
+    const current = computeOppositePairProgress(state, params.ColorPalette.length);
 
     return {
       current,
@@ -175,12 +207,7 @@ export const task4CollectOpposites: TaskDefinition = {
     };
   },
   winCondition: (state, params) => {
-    const baseColorIndex = params.PlayerBaseColorIndex;
-    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
-    const baseColorCount = state.hotbarSlots.filter(slot => slot === baseColorIndex).length;
-    const oppositeColorCount = state.hotbarSlots.filter(slot => slot === oppositeColorIndex).length;
-
-    return baseColorCount >= 3 && oppositeColorCount >= 3;
+    return computeOppositePairProgress(state, params.ColorPalette.length) >= 6;
   },
 };
 

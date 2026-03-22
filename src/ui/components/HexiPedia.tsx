@@ -165,7 +165,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   const lang = getLanguage();
   const locale = lang === 'ru' ? 'ru-RU' : 'en-US';
   const progress = gameState.taskProgress;
-  const targetCells = task?.targetCells ?? [];
+  const targetCells = progress?.targetCells ?? task?.targetCells ?? [];
   const targetKeys = task ? targetCells.map(axialToKey) : [];
   const visitedCount = progress ? targetKeys.filter(key => progress.visitedTargetKeys.has(key)).length : 0;
   const completedIds = completedTaskIds ?? new Set<string>();
@@ -412,15 +412,20 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                       const isCompleted = completedIds.has(definition.id) || (isCurrent && isCurrentTaskComplete);
                       const hintText = getHintForMode(definition.hints, interactionMode, lang);
                       const definitionTargetCells = isCurrent ? targetCells : (definition.targetCells ?? []);
+                      const progressForDefinition = isCurrent && progress
+                        ? progress
+                        : {
+                            visitedTargetKeys: new Set<string>(),
+                            collectedTargetKeys: new Set<string>(),
+                            startTick: 0,
+                            targetCells: definition.targetCells,
+                            targetHexes: definition.targetHexes,
+                          };
                       const fallbackProgress = definition.getProgress
                         ? definition.getProgress(
                             gameState,
                             params,
-                            progress ?? {
-                              visitedTargetKeys: new Set<string>(),
-                              collectedTargetKeys: new Set<string>(),
-                              startTick: 0,
-                            },
+                            progressForDefinition,
                           )
                         : {
                             current: 0,
@@ -429,7 +434,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                           };
                       const displayedProgress = isCurrent && progress
                         ? (definition.getProgress
-                          ? definition.getProgress(gameState, params, progress)
+                          ? definition.getProgress(gameState, params, progressForDefinition)
                           : {
                               current: visitedCount,
                               total: definitionTargetCells.length,

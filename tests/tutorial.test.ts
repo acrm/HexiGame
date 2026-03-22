@@ -39,7 +39,7 @@ function createEmptyState() {
 }
 
 describe('Scripted task setup', () => {
-  it('adds color-hunt targets without resetting protagonist position or hotbar', () => {
+  it('does not inject color-hunt targets and keeps protagonist position and hotbar intact', () => {
     const { params, state } = createEmptyState();
     const baseState = {
       ...state,
@@ -57,7 +57,7 @@ describe('Scripted task setup', () => {
     expect(preparedState.hotbarSlots).toEqual(baseState.hotbarSlots);
     expect(preparedState.selectedHotbarIndex).toBe(baseState.selectedHotbarIndex);
     expect(
-      TASK_COLOR_HUNT_TARGETS.every(({ position, colorIndex }) => getCell(preparedState.grid, position)?.colorIndex === colorIndex),
+      TASK_COLOR_HUNT_TARGETS.every(({ position }) => getCell(preparedState.grid, position)?.colorIndex === null),
     ).toBe(true);
     expect(progress).toEqual({
       current: 0,
@@ -105,11 +105,12 @@ describe('Task win conditions', () => {
   it('requires 3 and 3 opposite colors in the hotbar for task four', () => {
     const { params, state } = createEmptyState();
     const task = getTaskDefinition('task_4_collect_opposites');
-    const baseColorIndex = params.PlayerBaseColorIndex;
-    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
+    const paletteSize = params.ColorPalette.length;
+    const colorIndex = (params.PlayerBaseColorIndex + 2) % paletteSize;
+    const oppositeColorIndex = (colorIndex + paletteSize / 2) % paletteSize;
     const preparedState = {
       ...applyTaskSetup(state, params, 'task_4_collect_opposites'),
-      hotbarSlots: [baseColorIndex, baseColorIndex, baseColorIndex, oppositeColorIndex, oppositeColorIndex, oppositeColorIndex],
+      hotbarSlots: [colorIndex, colorIndex, colorIndex, oppositeColorIndex, oppositeColorIndex, oppositeColorIndex],
     };
 
     expect(task?.getProgress?.(preparedState, params, createTaskProgressData())).toEqual({
@@ -123,11 +124,12 @@ describe('Task win conditions', () => {
   it('does not complete task four when one side has fewer than 3 hexes', () => {
     const { params, state } = createEmptyState();
     const task = getTaskDefinition('task_4_collect_opposites');
-    const baseColorIndex = params.PlayerBaseColorIndex;
-    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
+    const paletteSize = params.ColorPalette.length;
+    const colorIndex = (params.PlayerBaseColorIndex + 1) % paletteSize;
+    const oppositeColorIndex = (colorIndex + paletteSize / 2) % paletteSize;
     const preparedState = {
       ...applyTaskSetup(state, params, 'task_4_collect_opposites'),
-      hotbarSlots: [baseColorIndex, baseColorIndex, oppositeColorIndex, oppositeColorIndex, oppositeColorIndex, null],
+      hotbarSlots: [colorIndex, colorIndex, oppositeColorIndex, oppositeColorIndex, oppositeColorIndex, null],
     };
 
     expect(task?.getProgress?.(preparedState, params, createTaskProgressData())).toEqual({
@@ -138,7 +140,7 @@ describe('Task win conditions', () => {
     expect(task?.winCondition(preparedState, params, createTaskProgressData())).toBe(false);
   });
 
-  it('requires the hidden excavation core to be extracted into the hotbar', () => {
+  it('completes excavation when the hidden core cell is removed from the map', () => {
     const { params, state } = createEmptyState();
     const task = getTaskDefinition('task_3_excavate_rings');
     const excavationCells = [...TASK_EXCAVATION_RING_1, ...TASK_EXCAVATION_RING_2, TASK_EXCAVATION_CENTER];
@@ -153,7 +155,6 @@ describe('Task win conditions', () => {
           colorIndex: null,
         })),
       ),
-      hotbarSlots: [TASK_EXCAVATION_TARGET_COLOR_INDEX, null, null, null, null, null],
     };
 
     expect(task?.getProgress?.(completedState, params, createTaskProgressData())).toEqual({

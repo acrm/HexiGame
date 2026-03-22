@@ -32,7 +32,7 @@ import {
   deactivateTemplate,
 } from '../gameLogic/systems/template';
 import { getCell } from '../gameLogic/core/grid';
-import { applyTaskSetup } from '../tasks/taskSandbox';
+import { applyTaskSetup, resolveTaskTargets } from '../tasks/taskSandbox';
 import { getNextTaskDefinition, getTaskDefinition } from '../tasks/taskLevels';
 import { axialToKey } from '../tasks/taskState';
 
@@ -45,11 +45,12 @@ function syncCollectedTaskTargets(state: GameState): GameState {
   if (!state.taskId || !state.taskProgress) return state;
 
   const task = getTaskDefinition(state.taskId);
-  if (!task?.targetHexes?.length) return state;
+  const targetHexes = state.taskProgress.targetHexes ?? task?.targetHexes;
+  if (!targetHexes?.length) return state;
 
   const nextCollectedKeys = new Set(state.taskProgress.collectedTargetKeys);
 
-  for (const targetHex of task.targetHexes) {
+  for (const targetHex of targetHexes) {
     const targetKey = axialToKey(targetHex.position);
     if (nextCollectedKeys.has(targetKey)) continue;
 
@@ -234,7 +235,8 @@ export function sessionReducer(
         break;
       }
 
-      const preparedState = applyTaskSetup(state, params, taskId);
+      const resolvedTargets = resolveTaskTargets(state, params, taskId);
+      const preparedState = applyTaskSetup(state, params, taskId, resolvedTargets);
       const updatedCompletedIds = new Set(preparedState.taskCompletedIds ?? []);
       if (command.forceReset) {
         updatedCompletedIds.delete(taskId);
@@ -247,6 +249,8 @@ export function sessionReducer(
         taskProgress: {
           visitedTargetKeys: new Set(),
           collectedTargetKeys: new Set(),
+          targetCells: resolvedTargets.targetCells,
+          targetHexes: resolvedTargets.targetHexes,
           startTick: state.tick,
         },
       };
@@ -312,7 +316,8 @@ export function sessionReducer(
         break;
       }
 
-      const preparedState = applyTaskSetup(state, params, legacyTaskId);
+      const resolvedTargets = resolveTaskTargets(state, params, legacyTaskId);
+      const preparedState = applyTaskSetup(state, params, legacyTaskId, resolvedTargets);
       const updatedCompletedIds = new Set(preparedState.taskCompletedIds ?? []);
       if (command.forceReset) {
         updatedCompletedIds.delete(legacyTaskId);
@@ -325,6 +330,8 @@ export function sessionReducer(
         taskProgress: {
           visitedTargetKeys: new Set(),
           collectedTargetKeys: new Set(),
+          targetCells: resolvedTargets.targetCells,
+          targetHexes: resolvedTargets.targetHexes,
           startTick: state.tick,
         },
       };

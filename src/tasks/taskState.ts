@@ -25,6 +25,8 @@ export interface AdaptiveHint {
 export interface TaskProgressData {
   visitedTargetKeys: Set<string>;
   collectedTargetKeys: Set<string>;
+  targetCells?: Axial[];
+  targetHexes?: TaskTargetHex[];
   startTick: number;
   completedAtTick?: number;
 }

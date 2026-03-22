@@ -48,6 +48,8 @@ export interface GameState {
   taskProgress?: {
     visitedTargetKeys: Set<string>;
     collectedTargetKeys: Set<string>;
+    targetCells?: Axial[];
+    targetHexes?: Array<{ position: Axial; colorIndex: number }>;
     startTick: number;
     completedAtTick?: number;
   };
@@ -59,6 +61,8 @@ export interface GameState {
   tutorialProgress?: {
     visitedTargetKeys: Set<string>;
     collectedTargetKeys: Set<string>;
+    targetCells?: Axial[];
+    targetHexes?: Array<{ position: Axial; colorIndex: number }>;
     startTick: number;
     completedAtTick?: number;
   };

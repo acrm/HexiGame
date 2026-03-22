@@ -68,7 +68,8 @@ export function computeTaskViewModel(
   params: Params,
 ): TaskViewModel {
   const task = currentTaskId ? getTaskDefinition(currentTaskId) : null;
-  const targetKeys = task?.targetCells?.map(axialToKey) ?? [];
+  const targetCells = gameState.taskProgress?.targetCells ?? task?.targetCells ?? [];
+  const targetKeys = targetCells.map(axialToKey);
   const visitedTargetCount = gameState.taskProgress
     ? targetKeys.filter(key => gameState.taskProgress?.visitedTargetKeys.has(key)).length
     : 0;
@@ -165,8 +166,11 @@ export function shouldTrackFocusVisit(
   if (isMobileLayout && mobileTab !== 'heximap') return false;
 
   const task = getTaskDefinition(taskId);
-  if (!task?.targetCells || task.targetCells.length === 0) return false;
-  if (task.targetHexes && task.targetHexes.length > 0) return false;
+  const targetCells = gameState.taskProgress?.targetCells ?? task?.targetCells;
+  const targetHexes = gameState.taskProgress?.targetHexes ?? task?.targetHexes;
+
+  if (!targetCells || targetCells.length === 0) return false;
+  if (targetHexes && targetHexes.length > 0) return false;
 
   return true;
 }
@@ -175,12 +179,14 @@ export function checkFocusTargetVisit(
   taskId: string,
   focus: Axial,
   visitedKeys: Set<string>,
+  targetCellsOverride?: Axial[],
 ): string | null {
   const task = getTaskDefinition(taskId);
-  if (!task?.targetCells) return null;
+  const targetCells = targetCellsOverride ?? task?.targetCells;
+  if (!targetCells) return null;
 
   const focusKey = axialToKey(focus);
-  const targetKeys = task.targetCells.map(axialToKey);
+  const targetKeys = targetCells.map(axialToKey);
 
   if (!targetKeys.includes(focusKey)) return null;
   if (visitedKeys.has(focusKey)) return null;

@@ -442,8 +442,8 @@ Defined in `src/templates/templateLogic.ts`:
 - **Scripted task flow**:
   - `task_1_explore`: visit three distant target sectors
   - `task_2_collect_beyond_visibility`: collect four marked hexes hidden beyond the visible frontier
-  - `task_3_excavate_rings`: clear both debris rings and extract the hidden core
-  - `task_4_collect_opposites`: collect 3 base-color hexes and 3 opposite-color hexes in the hotbar
+  - `task_3_excavate_rings`: clear both debris rings and remove the hidden core cell from the map
+  - `task_4_collect_opposites`: collect a 3+3 set of any opposite color pair in the hotbar (colors must be 50% apart on the palette)
   - `task_5_yin_yang`: complete the large two-color Yin-Yang structure
 - **StructureProgressWidget**:
   - Appears when an active structure exists during the final scripted task

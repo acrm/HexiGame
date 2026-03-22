@@ -434,6 +434,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const isMobileLayout = true;
 
   const isHexiLabLocked = taskUiGate.isHexiLabLocked;
+  const activeTaskTargetCells = gameState.taskProgress?.targetCells ?? activeTask?.targetCells ?? [];
+  const activeTaskTargetHexes = gameState.taskProgress?.targetHexes ?? activeTask?.targetHexes ?? [];
 
   useEffect(() => {
     if (!isHexiLabLocked) return;
@@ -453,6 +455,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       activeTaskId!,
       gameState.focus,
       gameState.taskProgress?.visitedTargetKeys ?? new Set(),
+      activeTaskTargetCells,
     );
 
     if (!visitedKey) return;
@@ -460,7 +463,17 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     // Play service bell sound on target cell visit
     playSound('audio/mixkit-service-bell-931.wav');
     dispatch({ type: 'MARK_TASK_TARGET_VISITED', key: visitedKey });
-  }, [gameState.focus, gameState.activeField, gameState.taskProgress, activeTaskId, isMobileLayout, mobileTab, dispatch, playSound]);
+  }, [
+    gameState.focus,
+    gameState.activeField,
+    gameState.taskProgress,
+    activeTaskId,
+    activeTaskTargetCells,
+    isMobileLayout,
+    mobileTab,
+    dispatch,
+    playSound,
+  ]);
 
   const paletteLen = mergedParams.ColorPalette.length;
   const antagonistIndex = paletteLen > 0 ? Math.floor(paletteLen / 2) : 0;
@@ -487,7 +500,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const effectiveHideHotbar = taskUiGate.hideHotbar || (activeTask?.hideHotbar ?? false);
 
   const resolvedVisitedHighlightTargets =
-    activeTask?.targetHexes && activeTask.targetHexes.length > 0
+    activeTaskTargetHexes.length > 0
       ? (gameState.taskProgress?.collectedTargetKeys ?? new Set<string>())
       : (gameState.taskProgress?.visitedTargetKeys ?? new Set<string>());
 
@@ -694,7 +707,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     isLeftHanded,
     highlightTargets:
       activeTask && (!isMobileLayout || mobileTab === 'heximap')
-        ? (activeTask.targetCells ?? [])
+        ? activeTaskTargetCells
         : [],
     visitedHighlightTargets: resolvedVisitedHighlightTargets,
     hideHotbar: effectiveHideHotbar,

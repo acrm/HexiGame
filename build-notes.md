@@ -613,3 +613,5 @@
 - 2026w13-0.17 — continuous tasks flow and balance 3+3
 
 - 2026w13-0.18 — touch release movement targeting
+
+- 2026w13-0.19 — Balance task accepts any opposite 3+3 pair

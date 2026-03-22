@@ -23,6 +23,11 @@ export const TASK_COLOR_HUNT_TARGETS: TaskTargetHex[] = [
 export const TASK_EXCAVATION_CENTER: Axial = { q: 4, r: -4 };
 export const TASK_EXCAVATION_TARGET_COLOR_INDEX = 3;
 
+export interface ResolvedTaskTargets {
+  targetCells?: Axial[];
+  targetHexes?: TaskTargetHex[];
+}
+
 function createRing(center: Axial, radius: number): Axial[] {
   const ring: Axial[] = [];
 
@@ -40,6 +45,18 @@ function createRing(center: Axial, radius: number): Axial[] {
 
 export const TASK_EXCAVATION_RING_1: Axial[] = createRing(TASK_EXCAVATION_CENTER, 1);
 export const TASK_EXCAVATION_RING_2: Axial[] = createRing(TASK_EXCAVATION_CENTER, 2);
+
+export function getExcavationLayout(center: Axial): {
+  center: Axial;
+  ring1: Axial[];
+  ring2: Axial[];
+} {
+  return {
+    center,
+    ring1: createRing(center, 1),
+    ring2: createRing(center, 2),
+  };
+}
 
 const TASK_OPPOSITE_BASE_SUPPLY: Axial[] = [
   { q: 3, r: 1 },
@@ -102,37 +119,166 @@ function setColoredCells(
   };
 }
 
-function buildExplorationClusters(): Array<{ position: Axial; colorIndex: number }> {
-  return TASK_EXPLORATION_TARGETS.flatMap((target, index) => [
-    { position: target, colorIndex: index % 3 },
-    { position: addAxial(target, axialDirections[index]), colorIndex: (index + 1) % 4 },
-    { position: addAxial(target, axialDirections[(index + 2) % axialDirections.length]), colorIndex: (index + 2) % 5 },
-  ]);
+function getVisibilityContext(state: GameState, params: Params): {
+  center: Axial;
+  visibleRadius: number;
+} {
+  return {
+    center: state.worldViewCenter ?? state.protagonist,
+    visibleRadius: Math.max(1, params.GridRadius),
+  };
 }
 
-export function applyTaskSetup(state: GameState, params: Params, taskId: string): GameState {
+function pickExplorationTargets(state: GameState, params: Params): Axial[] {
+  const { center, visibleRadius } = getVisibilityContext(state, params);
+  const protagonistKey = `${state.protagonist.q},${state.protagonist.r}`;
+  const focusKey = `${state.focus.q},${state.focus.r}`;
+
+  const candidates = Array.from(state.grid.values())
+    .filter(cell => cell.colorIndex === null)
+    .filter(cell => axialDistance(cell, center) <= visibleRadius)
+    .map(cell => ({ q: cell.q, r: cell.r }))
+    .filter(cell => {
+      const key = `${cell.q},${cell.r}`;
+      return key !== protagonistKey && key !== focusKey;
+    })
+    .sort((left, right) => {
+      const distanceDelta = axialDistance(center, right) - axialDistance(center, left);
+      if (distanceDelta !== 0) return distanceDelta;
+      if (left.q !== right.q) return left.q - right.q;
+      return left.r - right.r;
+    });
+
+  if (candidates.length === 0) {
+    return TASK_EXPLORATION_TARGETS;
+  }
+
+  const selected: Axial[] = [];
+  const remaining = [...candidates];
+
+  while (selected.length < 3 && remaining.length > 0) {
+    const next = remaining.shift()!;
+    selected.push(next);
+    for (let index = remaining.length - 1; index >= 0; index -= 1) {
+      if (axialDistance(next, remaining[index]) < 2) {
+        remaining.splice(index, 1);
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (selected.length >= 3) break;
+    if (selected.some(cell => cell.q === candidate.q && cell.r === candidate.r)) continue;
+    selected.push(candidate);
+  }
+
+  return selected.length > 0 ? selected.slice(0, 3) : TASK_EXPLORATION_TARGETS;
+}
+
+function pickColorHuntTargets(state: GameState, params: Params): TaskTargetHex[] {
+  const { center, visibleRadius } = getVisibilityContext(state, params);
+  const candidates = Array.from(state.grid.values())
+    .filter(cell => cell.colorIndex !== null)
+    .filter(cell => axialDistance(cell, center) > visibleRadius)
+    .map(cell => ({
+      position: { q: cell.q, r: cell.r },
+      colorIndex: cell.colorIndex as number,
+      distance: axialDistance(cell, center),
+    }))
+    .sort((left, right) => {
+      if (left.distance !== right.distance) return left.distance - right.distance;
+      if (left.position.q !== right.position.q) return left.position.q - right.position.q;
+      return left.position.r - right.position.r;
+    });
+
+  const byColor = new Map<number, TaskTargetHex>();
+  for (const candidate of candidates) {
+    if (byColor.has(candidate.colorIndex)) continue;
+    byColor.set(candidate.colorIndex, {
+      position: candidate.position,
+      colorIndex: candidate.colorIndex,
+    });
+  }
+
+  const selected = Array.from(byColor.values()).slice(0, 4);
+  if (selected.length >= 4) {
+    return selected;
+  }
+
+  for (const candidate of candidates) {
+    if (selected.length >= 4) break;
+    const alreadySelected = selected.some(target => (
+      target.position.q === candidate.position.q &&
+      target.position.r === candidate.position.r
+    ));
+    if (alreadySelected) continue;
+    selected.push({
+      position: candidate.position,
+      colorIndex: candidate.colorIndex,
+    });
+  }
+
+  return selected.length > 0 ? selected : TASK_COLOR_HUNT_TARGETS;
+}
+
+function pickOffscreenExcavationCenter(state: GameState, params: Params): Axial {
+  const { center, visibleRadius } = getVisibilityContext(state, params);
+  const facing = axialDirections[((state.facingDirIndex % 6) + 6) % 6];
+  const side = axialDirections[(state.facingDirIndex + 2) % 6];
+
+  return {
+    q: center.q + facing.q * (visibleRadius + 3) + side.q * 2,
+    r: center.r + facing.r * (visibleRadius + 3) + side.r * 2,
+  };
+}
+
+export function resolveTaskTargets(state: GameState, params: Params, taskId: string): ResolvedTaskTargets {
+  switch (taskId) {
+    case 'task_1_explore': {
+      const targetCells = pickExplorationTargets(state, params);
+      return { targetCells };
+    }
+
+    case 'task_2_collect_beyond_visibility': {
+      const targetHexes = pickColorHuntTargets(state, params);
+      return {
+        targetHexes,
+        targetCells: targetHexes.map(targetHex => targetHex.position),
+      };
+    }
+
+    case 'task_3_excavate_rings':
+      return { targetCells: [pickOffscreenExcavationCenter(state, params)] };
+
+    default:
+      return {};
+  }
+}
+
+export function applyTaskSetup(
+  state: GameState,
+  params: Params,
+  taskId: string,
+  resolvedTargets: ResolvedTaskTargets = {},
+): GameState {
   let next = state;
   const oppositeColorIndex = Math.floor(params.ColorPalette.length / 2);
 
   switch (taskId) {
     case 'task_1_explore':
-      return setColoredCells(next, buildExplorationClusters());
+      return next;
 
     case 'task_2_collect_beyond_visibility':
-      return setColoredCells(
-        next,
-        TASK_COLOR_HUNT_TARGETS.map(({ position, colorIndex }) => ({
-          position,
-          colorIndex: colorIndex % Math.max(1, params.ColorPalette.length),
-        })),
-      );
+      return next;
 
     case 'task_3_excavate_rings': {
-      const ringOneCells = TASK_EXCAVATION_RING_1.map((position, index) => ({
+      const excavationCenter = resolvedTargets.targetCells?.[0] ?? TASK_EXCAVATION_CENTER;
+      const excavationLayout = getExcavationLayout(excavationCenter);
+      const ringOneCells = excavationLayout.ring1.map((position, index) => ({
         position,
         colorIndex: index % 2,
       }));
-      const ringTwoCells = TASK_EXCAVATION_RING_2.map((position, index) => ({
+      const ringTwoCells = excavationLayout.ring2.map((position, index) => ({
         position,
         colorIndex: (index + 1) % 2,
       }));
@@ -141,7 +287,7 @@ export function applyTaskSetup(state: GameState, params: Params, taskId: string)
         ...ringOneCells,
         ...ringTwoCells,
         {
-          position: TASK_EXCAVATION_CENTER,
+          position: excavationLayout.center,
           colorIndex: TASK_EXCAVATION_TARGET_COLOR_INDEX,
         },
       ]);
@@ -188,5 +334,6 @@ export function applyTutorialLevelSetup(state: GameState, params: Params, levelI
     tutorial_5_yin_yang: 'task_5_yin_yang',
   };
 
-  return applyTaskSetup(state, params, legacyToTaskId[levelId] ?? levelId);
+  const taskId = legacyToTaskId[levelId] ?? levelId;
+  return applyTaskSetup(state, params, taskId, resolveTaskTargets(state, params, taskId));
 }

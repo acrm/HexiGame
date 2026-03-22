@@ -31,6 +31,8 @@ type SerializedActiveTemplate = {
 type SerializedTaskProgress = {
   visitedTargetKeys: string[];
   collectedTargetKeys?: string[];
+  targetCells?: Array<{ q: number; r: number }>;
+  targetHexes?: Array<{ position: { q: number; r: number }; colorIndex: number }>;
   startTick: number;
   completedAtTick?: number;
 };
@@ -144,6 +146,11 @@ function serializeState(state: GameState): SerializedGameState {
       ? {
           visitedTargetKeys: Array.from(state.taskProgress.visitedTargetKeys),
           collectedTargetKeys: Array.from(state.taskProgress.collectedTargetKeys),
+          targetCells: state.taskProgress.targetCells?.map(cell => ({ q: cell.q, r: cell.r })),
+          targetHexes: state.taskProgress.targetHexes?.map(targetHex => ({
+            position: { q: targetHex.position.q, r: targetHex.position.r },
+            colorIndex: targetHex.colorIndex,
+          })),
           startTick: state.taskProgress.startTick,
           completedAtTick: state.taskProgress.completedAtTick,
         }
@@ -199,6 +206,14 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
       ? {
           visitedTargetKeys: new Set(serializedTaskProgress.visitedTargetKeys),
           collectedTargetKeys: new Set(serializedTaskProgress.collectedTargetKeys ?? []),
+          targetCells: serializedTaskProgress.targetCells?.map(cell => ({ q: cell.q, r: cell.r })),
+          targetHexes: serializedTaskProgress.targetHexes?.map(targetHex => ({
+            position: {
+              q: targetHex.position.q,
+              r: targetHex.position.r,
+            },
+            colorIndex: targetHex.colorIndex,
+          })),
           startTick: serializedTaskProgress.startTick,
           completedAtTick: serializedTaskProgress.completedAtTick,
         }
