@@ -199,7 +199,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Path is computed only across walkable empty cells and stored in `GameState.autoMovePath` for rendering.
   - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
 - World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
-- Off-screen point-of-interest highlighting follows a pathfinding line from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
+- Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:

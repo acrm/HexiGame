@@ -314,44 +314,42 @@ export function selectBoundaryHighlightVertices(
     boundaryByKey.set(vertex.key, vertex);
   }
 
-  function axialRound(qFloat: number, rFloat: number): { q: number; r: number } {
-    let q = qFloat;
-    let r = rFloat;
-    let s = -q - r;
-
-    const rq = Math.round(q);
-    const rr = Math.round(r);
-    const rs = Math.round(s);
-
-    const qDiff = Math.abs(rq - q);
-    const rDiff = Math.abs(rr - r);
-    const sDiff = Math.abs(rs - s);
-
-    if (qDiff > rDiff && qDiff > sDiff) {
-      q = -rr - rs;
-    } else if (rDiff > sDiff) {
-      r = -rq - rs;
-    }
-
-    return { q: Math.round(q), r: Math.round(r) };
-  }
-
-  function buildHexLinePath(start: { q: number; r: number }, end: { q: number; r: number }): Array<{ q: number; r: number }> {
+  function buildHexPathIgnoringObstacles(start: { q: number; r: number }, end: { q: number; r: number }): Array<{ q: number; r: number }> {
     const distance = axialDistanceLocal(start, end);
     if (distance <= 0) return [{ q: start.q, r: start.r }];
 
-    const result: Array<{ q: number; r: number }> = [];
-    const seen = new Set<string>();
-    for (let i = 0; i <= distance; i++) {
-      const t = i / distance;
-      const qFloat = start.q + (end.q - start.q) * t;
-      const rFloat = start.r + (end.r - start.r) * t;
-      const rounded = axialRound(qFloat, rFloat);
-      const key = `${rounded.q},${rounded.r}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      result.push(rounded);
+    const result: Array<{ q: number; r: number }> = [{ q: start.q, r: start.r }];
+    let current = { q: start.q, r: start.r };
+
+    // No obstacles: shortest path can be built greedily by stepping to any neighbor
+    // that strictly decreases hex distance to the target.
+    const maxSteps = distance + 4;
+    for (let step = 0; step < maxSteps; step++) {
+      if (current.q === end.q && current.r === end.r) {
+        break;
+      }
+
+      const currentDistance = axialDistanceLocal(current, end);
+      let bestNeighbor: { q: number; r: number } | null = null;
+      let bestDistance = currentDistance;
+
+      for (const dir of AXIAL_DIRECTIONS) {
+        const neighbor = { q: current.q + dir.q, r: current.r + dir.r };
+        const neighborDistance = axialDistanceLocal(neighbor, end);
+        if (neighborDistance < bestDistance) {
+          bestDistance = neighborDistance;
+          bestNeighbor = neighbor;
+        }
+      }
+
+      if (!bestNeighbor) {
+        break;
+      }
+
+      current = bestNeighbor;
+      result.push(current);
     }
+
     return result;
   }
 
@@ -375,7 +373,7 @@ export function selectBoundaryHighlightVertices(
     return result;
   }
 
-  const path = buildHexLinePath(turtleAxial, targetAxial);
+  const path = buildHexPathIgnoringObstacles(turtleAxial, targetAxial);
   for (let i = path.length - 1; i >= 0; i--) {
     const cell = path[i];
     if (!cell) continue;
