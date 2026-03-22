@@ -16,6 +16,7 @@ export {
   axialDistance,
   axialInDisk,
   getCell,
+  getVisibilityCenter,
   setCell,
   updateCells,
   findDirectionToward,

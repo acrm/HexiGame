@@ -20,6 +20,7 @@ import {
   createInitialState,
   DefaultParams,
   dragMoveProtagonist,
+  getVisibilityCenter,
   mulberry32,
   startDrag,
   tick as logicTick,
@@ -251,5 +252,19 @@ describe('Blocked world pathing', () => {
 
     expect(state.protagonist).toEqual({ q: 0, r: 0 });
     expect(state.invalidMoveTarget?.position).toEqual({ q: 1, r: -1 });
+  });
+});
+
+describe('Visibility center', () => {
+  it('tracks one cell ahead of the protagonist along current facing', () => {
+    const { params, state } = createEmptyWorldState();
+    const shifted = getVisibilityCenter(state.protagonist, state.facingDirIndex);
+    const forwardDir = axialDirections[state.facingDirIndex];
+
+    expect(shifted).toEqual({
+      q: state.protagonist.q + forwardDir.q,
+      r: state.protagonist.r + forwardDir.r,
+    });
+    expect(state.worldViewCenter).toEqual(shifted);
   });
 });

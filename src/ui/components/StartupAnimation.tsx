@@ -5,6 +5,9 @@ interface StartupAnimationProps {
   onComplete: () => void;
 }
 
+const ANIMATION_SPEED_MULTIPLIER = 3;
+const scaleDuration = (durationMs: number): number => Math.round(durationMs / ANIMATION_SPEED_MULTIPLIER);
+
 const MASCOT_BASE_COLOR = '#FF8000';
 const SHELL_RADIUS = 92;
 const HEAD_RADIUS = SHELL_RADIUS / Math.sqrt(3);
@@ -48,13 +51,13 @@ export const StartupAnimation: React.FC<StartupAnimationProps> = ({ onComplete }
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 100),
-      setTimeout(() => setPhase(2), 600),
-      setTimeout(() => setPhase(3), 2000),
-      setTimeout(() => setPhase(4), 3500),
-      setTimeout(() => setPhase(5), 4000),
-      setTimeout(() => setPhase(6), 5500),
-      setTimeout(() => onCompleteRef.current(), 6500),
+      setTimeout(() => setPhase(1), scaleDuration(100)),
+      setTimeout(() => setPhase(2), scaleDuration(600)),
+      setTimeout(() => setPhase(3), scaleDuration(2000)),
+      setTimeout(() => setPhase(4), scaleDuration(3500)),
+      setTimeout(() => setPhase(5), scaleDuration(4000)),
+      setTimeout(() => setPhase(6), scaleDuration(5500)),
+      setTimeout(() => onCompleteRef.current(), scaleDuration(6500)),
     ];
 
     return () => timers.forEach(clearTimeout);

@@ -1,6 +1,8 @@
 import type { Axial, Cell, Grid, GameState, RNG } from './types';
 import type { Params } from './params';
 
+const VISIBILITY_FORWARD_OFFSET = 1;
+
 export const axialDirections: Readonly<Axial[]> = [
   { q: 0, r: -1 },  // 0 - up
   { q: +1, r: -1 }, // 1 - up-right
@@ -12,6 +14,55 @@ export const axialDirections: Readonly<Axial[]> = [
 
 export function addAxial(a: Axial, b: Axial): Axial {
   return { q: a.q + b.q, r: a.r + b.r };
+}
+
+function normalizeDirectionIndex(dirIndex: number): number {
+  return ((dirIndex % 6) + 6) % 6;
+}
+
+export function getVisibilityCenter(protagonist: Axial, facingDirIndex: number): Axial {
+  const forwardDir = axialDirections[normalizeDirectionIndex(facingDirIndex)];
+  return {
+    q: protagonist.q + forwardDir.q * VISIBILITY_FORWARD_OFFSET,
+    r: protagonist.r + forwardDir.r * VISIBILITY_FORWARD_OFFSET,
+  };
+}
+
+export function getForwardVisibilityEdgeTarget(
+  protagonist: Axial,
+  facingDirIndex: number,
+  visibleRadius: number,
+): Axial {
+  const forwardDir = axialDirections[normalizeDirectionIndex(facingDirIndex)];
+  const forwardDistance = Math.max(1, visibleRadius + VISIBILITY_FORWARD_OFFSET);
+  return {
+    q: protagonist.q + forwardDir.q * forwardDistance,
+    r: protagonist.r + forwardDir.r * forwardDistance,
+  };
+}
+
+function buildSafeStartCells(start: Axial, facingDirIndex: number, visibleRadius: number): Cell[] {
+  const uniqueCells = new Map<string, Cell>();
+  const addSafeCell = (cell: Cell) => {
+    uniqueCells.set(keyOf(cell.q, cell.r), cell);
+  };
+
+  addSafeCell({ q: start.q, r: start.r, colorIndex: null });
+  for (const dir of axialDirections) {
+    addSafeCell({ q: start.q + dir.q, r: start.r + dir.r, colorIndex: null });
+  }
+
+  const forwardDir = axialDirections[normalizeDirectionIndex(facingDirIndex)];
+  const forwardDistance = Math.max(1, visibleRadius + VISIBILITY_FORWARD_OFFSET);
+  for (let step = 1; step <= forwardDistance; step++) {
+    addSafeCell({
+      q: start.q + forwardDir.q * step,
+      r: start.r + forwardDir.r * step,
+      colorIndex: null,
+    });
+  }
+
+  return Array.from(uniqueCells.values());
 }
 
 export function equalAxial(a: Axial | null, b: Axial | null): boolean {
@@ -211,21 +262,7 @@ export function computePathToFocusTarget(grid: Grid, from: Axial, target: Axial)
 }
 
 export function updateWorldViewCenter(state: GameState, params: Params): GameState {
-  // Determine camera target
-  let targetCenter: Axial;
-
-  if (state.autoFocusTarget) {
-    // When moving to a target, camera aims at the target cell (independent movement)
-    targetCenter = state.autoFocusTarget;
-  } else {
-    // Normal mode: camera positioned ahead of protagonist so turtle is 3 cells from rear edge
-    const forwardDir = axialDirections[state.facingDirIndex];
-    const offset = Math.max(0, params.GridRadius - 3);
-    targetCenter = {
-      q: state.protagonist.q + forwardDir.q * offset,
-      r: state.protagonist.r + forwardDir.r * offset,
-    };
-  }
+  const targetCenter = getVisibilityCenter(state.protagonist, state.facingDirIndex);
 
   const currentCenter = state.worldViewCenter ?? targetCenter;
   const dist = axialDistance(currentCenter, targetCenter);
@@ -276,10 +313,8 @@ export function generateGrid(params: Params, rng: RNG): Grid {
 
 export function createInitialState(params: Params, rng: RNG): GameState {
   const grid = generateGrid(params, rng);
-  const safeStartCells: Cell[] = [
-    { q: 0, r: 0, colorIndex: null },
-    ...axialDirections.map(dir => ({ q: dir.q, r: dir.r, colorIndex: null })),
-  ];
+  const initialFacingDirIndex = 1;
+  const safeStartCells = buildSafeStartCells({ q: 0, r: 0 }, initialFacingDirIndex, params.GridRadius);
   const safeGrid = updateCells(grid, safeStartCells);
   const inv: Grid = new Map();
   const invRadius = 3;
@@ -290,16 +325,8 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     }
   }
   const start: Axial = { q: 0, r: 0 };
-  const initialFacingDirIndex = 1;
   const startFocus = addAxial(start, axialDirections[initialFacingDirIndex]);
-
-  // Initial camera center: ahead of protagonist so turtle is 3 cells from rear edge
-  const forwardDir = axialDirections[initialFacingDirIndex];
-  const cameraOffset = Math.max(0, params.GridRadius - 3);
-  const initialViewCenter = {
-    q: start.q + forwardDir.q * cameraOffset,
-    r: start.r + forwardDir.r * cameraOffset,
-  };
+  const initialViewCenter = getVisibilityCenter(start, initialFacingDirIndex);
 
   return {
     tick: 0,

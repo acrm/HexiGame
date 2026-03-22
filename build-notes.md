@@ -603,3 +603,5 @@
 - 2026w13-0.12 — Fix one-point boundary edge mapping for hidden target markers
 
 - 2026w13-0.13 — Session lifecycle persistence and reload continuity
+
+- 2026w13-0.14 — World density visibility and startup timing

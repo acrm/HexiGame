@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createFacade, emptyParams, denseParams, DIR_DOWN, DIR_UP } from './facade/testHelpers';
 import type { GameTestFacade } from './facade/GameTestFacade';
+import { axialDirections, createInitialState, DefaultParams, getCell, mulberry32 } from '../src/gameLogic';
 
 describe('Smoke — initialization', () => {
   let g: GameTestFacade;
@@ -47,8 +48,37 @@ describe('Smoke — initialization', () => {
   it('all cells colored with denseParams (probability=1)', () => {
     const dense = createFacade(denseParams);
     const colored = dense.getColoredCells();
-    // initial generation uses double radius: r=10 -> 3*10^2 + 3*10 + 1 = 331 cells
-    expect(colored.length).toBe(331);
+    // initial generation uses double radius: r=10 -> 331 cells, minus 12 guaranteed clear start cells
+    expect(colored.length).toBe(319);
+  });
+
+  it('default world density is reduced to one third of the old baseline', () => {
+    expect(DefaultParams.InitialColorProbability).toBeCloseTo(0.05, 5);
+  });
+
+  it('initial visibility center is shifted one cell forward along facing', () => {
+    const params = { ...DefaultParams, InitialColorProbability: 0 };
+    const state = createInitialState(params, mulberry32(42));
+    const forwardDir = axialDirections[state.facingDirIndex];
+
+    expect(state.worldViewCenter).toEqual({
+      q: state.protagonist.q + forwardDir.q,
+      r: state.protagonist.r + forwardDir.r,
+    });
+  });
+
+  it('initial state guarantees a clear forward corridor to the furthest visible cell', () => {
+    const params = { ...DefaultParams, InitialColorProbability: 1 };
+    const state = createInitialState(params, mulberry32(42));
+    const forwardDir = axialDirections[state.facingDirIndex];
+
+    for (let step = 0; step <= params.GridRadius + 1; step++) {
+      const cell = getCell(state.grid, {
+        q: state.protagonist.q + forwardDir.q * step,
+        r: state.protagonist.r + forwardDir.r * step,
+      });
+      expect(cell?.colorIndex).toBeNull();
+    }
   });
 });
 

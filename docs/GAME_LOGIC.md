@@ -11,8 +11,8 @@ Frame-based constants from the original prototype are converted to tick-based va
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `GridRadius` | 15 | Radius of the visible world window and movement threshold logic. |
-| `InitialColorProbability` | 0.20 | Probability a cell starts with a color. |
+| `GridRadius` | 5 | Radius of the visible world window and movement threshold logic. |
+| `InitialColorProbability` | 0.05 | Probability a cell starts with a color. |
 | `ColorPaletteStartHue` | 350 | Starting hue angle (0–359) for HSV palette generation. |
 | `ColorPaletteHueStep` | 60 | Hue step between colors (generates 6 colors by default). |
 | `ColorSaturation` | 40 | Saturation value (0–100) for all colors in palette. |
@@ -48,9 +48,9 @@ CaptureChancePercent = max(0, ChanceBasePercent - ChancePenaltyPerPaletteDistanc
 
 ### 2.0.1 Moving visible window (camera bounds)
 - Visible world window radius is `GridRadius`.
-- The window has a center (`worldViewCenter`) that starts at protagonist position.
-- If protagonist approaches a boundary so that remaining distance to edge is `GridRadius / 2` or less, the window center shifts in protagonist direction.
-- This keeps protagonist inside inner safety area while allowing continuous infinite traversal.
+- The window center (`worldViewCenter`) is shifted exactly 1 cell forward along the current facing direction.
+- On session start, the spawn area guarantees a clear forward corridor from protagonist to the furthest visible cell on that facing axis.
+- This makes the first visible frontier reachable immediately while keeping the visible field biased toward exploration direction.
 
 ### 2.1 Entities & State
 - `Cell`: `{ q, r, colorIndex | null }`.
@@ -202,6 +202,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
 - Session lifecycle contract: a game session starts only after `Start as Guest`, persists continuously on every game-state update, survives page reload with the same active session identity, and is terminated only through `Reset Session` in Settings.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
+- Startup animation timings are accelerated by a factor of 3 while preserving the same phase order and visual beats.
+- Initial and dynamic world generation both use the reduced color density (`InitialColorProbability = 0.05`).
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:

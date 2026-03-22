@@ -70,7 +70,7 @@ const paletteHues = generatePaletteHues(paletteStartHue, paletteHueStep, colorCo
 
 export const DefaultParams: Params = {
   GridRadius: 5,
-  InitialColorProbability: 0.15,
+  InitialColorProbability: 0.05,
   ColorPaletteStartHue: paletteStartHue,
   ColorPaletteHueStep: paletteHueStep,
   ColorSaturation: saturation,
