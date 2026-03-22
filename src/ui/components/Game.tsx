@@ -180,6 +180,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     () => (gameState.taskId ? getTaskDefinition(gameState.taskId) : null),
     [gameState.taskId],
   );
+  const completedTaskIds = gameState.taskCompletedIds ?? new Set<string>();
 
   const activeTaskId = gameState.taskProgress ? (gameState.taskId ?? null) : null;
 
@@ -200,8 +201,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   );
 
   const taskUiGate = useMemo(
-    () => getTaskUiGate(activeTaskId),
-    [activeTaskId],
+    () => getTaskUiGate(gameState.taskId ?? null, gameState.taskProgress, completedTaskIds),
+    [gameState.taskId, gameState.taskProgress, completedTaskIds],
   );
 
   useEffect(() => {
@@ -211,11 +212,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     if (!guestStarted || gameState.taskId) return;
 
-    const initialTaskId = getInitialPendingTaskId(gameState.taskCompletedIds ?? new Set<string>(), localStorage);
+    const initialTaskId = getInitialPendingTaskId(completedTaskIds, localStorage);
     if (!initialTaskId) return;
 
     dispatch({ type: 'SELECT_TASK', taskId: initialTaskId });
-  }, [guestStarted, gameState.taskId, gameState.taskCompletedIds, dispatch]);
+  }, [guestStarted, gameState.taskId, completedTaskIds, dispatch]);
 
   const isHexiLabLockedForKeyboard = taskUiGate.isHexiLabLocked;
 
@@ -485,6 +486,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const effectiveShowStructureWidget = taskUiGate.canShowStructureWidget && showStructureWidget;
   const effectiveHideHotbar = taskUiGate.hideHotbar || (activeTask?.hideHotbar ?? false);
 
+  const resolvedVisitedHighlightTargets =
+    activeTask?.targetHexes && activeTask.targetHexes.length > 0
+      ? (gameState.taskProgress?.collectedTargetKeys ?? new Set<string>())
+      : (gameState.taskProgress?.visitedTargetKeys ?? new Set<string>());
+
   // Determine background color based on active tab
   const backgroundColor = isMobileLayout 
     ? (mobileTab === 'heximap' ? ColorScheme.outside.background : mobileTab === 'hexilab' ? ColorScheme.inside.background : '#2f2f2f')
@@ -678,7 +684,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       activeTask && (!isMobileLayout || mobileTab === 'heximap')
         ? (activeTask.targetCells ?? [])
         : [],
-    visitedHighlightTargets: gameState.taskProgress?.visitedTargetKeys ?? new Set(),
+    visitedHighlightTargets: resolvedVisitedHighlightTargets,
     hideHotbar: effectiveHideHotbar,
   };
 

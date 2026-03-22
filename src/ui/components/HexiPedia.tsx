@@ -149,6 +149,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   );
   const [deleteConfirmRecordId, setDeleteConfirmRecordId] = useState<string | null>(null);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [showStructureTypeDropdown, setShowStructureTypeDropdown] = useState(false);
   const [localFocusSectionId, setLocalFocusSectionId] = useState<HexiPediaSectionId | null>(null);
   const [deleteConfirmAll, setDeleteConfirmAll] = useState(false);
   const [selectedStructureTypeId, setSelectedStructureTypeId] = useState<string>(
@@ -759,20 +760,46 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                 {!isCollapsed && (
                   <div className="hexipedia-templates-section">
                     <div className="hexipedia-template-controls" style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 220px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 220px', position: 'relative' }}>
                         <span className="hexipedia-detail-label">{t('structures.selectType')}</span>
-                        <select
-                          value={selectedStructureTypeId}
-                          onChange={(event) => setSelectedStructureTypeId(event.target.value)}
-                          className="hexipedia-section-filter-input"
+                        <button
+                          type="button"
+                          className="hexipedia-structure-type-trigger"
+                          onClick={() => setShowStructureTypeDropdown((current) => !current)}
+                          onBlur={() => setTimeout(() => setShowStructureTypeDropdown(false), 150)}
+                          aria-haspopup="listbox"
+                          aria-expanded={showStructureTypeDropdown}
                         >
-                          {ALL_TEMPLATES.map(template => (
-                            <option key={template.id} value={template.id}>
-                              {template.name[lang]}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          <span className="hexipedia-structure-type-trigger-label">
+                            {selectedStructureTemplate?.name[lang] ?? ''}
+                          </span>
+                          <span className="hexipedia-structure-type-trigger-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        {showStructureTypeDropdown && (
+                          <div className="hexipedia-section-dropdown hexipedia-structure-type-dropdown" role="listbox">
+                            {ALL_TEMPLATES.map(template => {
+                              const isSelected = template.id === selectedStructureTypeId;
+
+                              return (
+                                <button
+                                  key={template.id}
+                                  type="button"
+                                  className={`hexipedia-section-dropdown-item ${isSelected ? 'is-enabled' : ''}`}
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    setSelectedStructureTypeId(template.id);
+                                    setShowStructureTypeDropdown(false);
+                                  }}
+                                  role="option"
+                                  aria-selected={isSelected}
+                                >
+                                  <span className="hexipedia-section-dropdown-name">{template.name[lang]}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'end', flexWrap: 'wrap' }}>
                         <button
                           className="hexipedia-task-action"

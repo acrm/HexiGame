@@ -182,8 +182,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Clicking the task widget in `pending` opens a short intro modal with turtle setup + objective and two actions: `Postpone` (close modal, keep task pending) and `Start` (apply task setup, close modal, switch widget to `active`).
 - Task setup is start-gated: until the player presses `Start`, the selected task does not apply sandbox cell changes, target markers, or task-bound UI conditions.
 - Task completion only fires on state transition (incomplete → complete), but advancing to the next pending task happens only after the player clicks the widget in `complete` phase.
-- The first task (`task_1_explore`) hides other overlay widgets, locks HexiLab, and hides the hotbar; the palette widget becomes available from task 4 onward, and the structures widget appears during the final Yin-Yang task.
-- Tasks use deterministic scripted sandbox setups; free-play world generation remains procedural.
+- The hotbar and HexiLab are disabled at session start and remain disabled through `task_1_explore`; they are explicitly unlocked when `task_2_collect_beyond_visibility` starts. The palette widget becomes available from task 4 onward, and the structures widget appears during the final Yin-Yang task.
+- Tasks run in one continuous world: starting the next task does not rebuild the whole sandbox. Task setup only applies minimal targeted injections (task-specific cells/structures), while turtle position, hotbar contents, and surrounding world state are preserved.
 - Top overlay widgets share the standard `»` edge button for quick navigation to the corresponding HexiPedia panel. The task widget body controls task flow, and the structure widget opens the `Structures` panel.
 - HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Structures`, `Colors`) start disabled (not rendered).
 - Enabled panels that are not pinned auto-hide after leaving HexiPedia; pinned panels remain enabled across tab switches.
@@ -425,7 +425,7 @@ Defined in `src/templates/templateLogic.ts`:
 - Mobile default tab at startup is **HexiMap** (world view), not HexiPedia.
 
 ### 8.1 Task & Structure UX
-- **TaskProgressWidget**: Displays active task progress using task-defined metrics (visited cells, collected marked hexes, excavated cells, opposite-color pair, placed structure cells)
+- **TaskProgressWidget**: Displays active task progress using task-defined metrics (visited cells, collected marked hexes, excavated cells, 3+3 opposite-color set, placed structure cells)
   - **Pending phase**: orange pulsing inner highlight, start icon, and short task name (1-2 words)
   - **Active phase**: numeric progress and metric label
   - **Complete phase**: green pulsing inner highlight with explicit completion phrase (for example, `All target cells visited`)
@@ -443,7 +443,7 @@ Defined in `src/templates/templateLogic.ts`:
   - `task_1_explore`: visit three distant target sectors
   - `task_2_collect_beyond_visibility`: collect four marked hexes hidden beyond the visible frontier
   - `task_3_excavate_rings`: clear both debris rings and extract the hidden core
-  - `task_4_collect_opposites`: hold one base color and its opposite in the hotbar at the same time
+  - `task_4_collect_opposites`: collect 3 base-color hexes and 3 opposite-color hexes in the hotbar
   - `task_5_yin_yang`: complete the large two-color Yin-Yang structure
 - **StructureProgressWidget**:
   - Appears when an active structure exists during the final scripted task
@@ -452,6 +452,7 @@ Defined in `src/templates/templateLogic.ts`:
 
 ### 8.1.1 Points of Interest Highlighting
 - **Off-screen target indication**: Active task target cells (and completed structures) outside the visible area are indicated with highlight dots on the boundary of the visible game field (not in non-playable canvas gutters).
+- For `task_2_collect_beyond_visibility`, target highlights persist until the corresponding target hex is actually collected (removed from map), not merely visited.
 - **Visibility states**:
   - **Fully visible target**: All 6 corner dots of the target hex are highlighted (white, blinking).
   - **Partially off-screen target** (within 3 visible-radius diameters): 2 orange highlight dots appear on the field boundary, positioned perpendicular to the boundary edge.
@@ -515,7 +516,7 @@ Defined in `src/templates/templateLogic.ts`:
   - Auto-saves every 360 ticks (~30 seconds) via updating existing session record
   - History stores last 20 sessions in localStorage
   - User can toggle session tracking in settings
-- **Task Progress**: Tracks selected task, completed task IDs, interaction mode, and in-session scripted metrics (visited targets, collected marked hexes, excavation clears, opposite-color pair, structure fill counts)
+- **Task Progress**: Tracks selected task, completed task IDs, interaction mode, and in-session scripted metrics (visited targets, collected marked hexes, excavation clears, 3+3 opposite-color set, structure fill counts)
 - **Structure Instances**: Active structure instance and the per-session structure history survive page reload inside the same active session
 - **Completed Templates**: Finished structure IDs persist for the duration of the active session and across reloads
 

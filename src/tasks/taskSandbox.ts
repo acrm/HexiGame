@@ -1,4 +1,4 @@
-import type { Axial, Cell, GameState, Grid } from '../gameLogic/core/types';
+import type { Axial, GameState } from '../gameLogic/core/types';
 import type { Params } from '../gameLogic/core/params';
 import { activateTemplate } from '../gameLogic/systems/template';
 import { addAxial, axialDirections, axialDistance, updateCells } from '../gameLogic/core/grid';
@@ -85,59 +85,6 @@ const TASK_YIN_YANG_OPPOSITE_SUPPLY: Axial[] = [
   { q: -6, r: -1 },
 ];
 
-function createEmptyDisk(center: Axial, radius: number): Cell[] {
-  const cells: Cell[] = [];
-
-  for (let q = center.q - radius; q <= center.q + radius; q += 1) {
-    for (let r = center.r - radius; r <= center.r + radius; r += 1) {
-      if (axialDistance(center, { q, r }) > radius) continue;
-      cells.push({ q, r, colorIndex: null });
-    }
-  }
-
-  return cells;
-}
-
-function clearInventoryGrid(grid: Grid): Grid {
-  return updateCells(
-    grid,
-    Array.from(grid.values()).map(cell => ({ ...cell, colorIndex: null })),
-  );
-}
-
-function createTaskBaseState(state: GameState, params: Params): GameState {
-  const startFocus = addAxial(TASK_START, axialDirections[TASK_FACING_DIR_INDEX]);
-  const cameraOffset = Math.max(0, params.GridRadius - 3);
-  const forwardDir = axialDirections[TASK_FACING_DIR_INDEX];
-
-  return {
-    ...state,
-    protagonist: { ...TASK_START },
-    focus: startFocus,
-    facingDirIndex: TASK_FACING_DIR_INDEX,
-    flash: null,
-    invalidMoveTarget: null,
-    activeField: 'world',
-    hotbarSlots: [null, null, null, null, null, null],
-    selectedHotbarIndex: 0,
-    isDragging: false,
-    autoMoveTarget: null,
-    autoMoveTicksRemaining: 0,
-    autoFocusTarget: null,
-    autoMovePath: undefined,
-    autoMoveTargetDir: null,
-    grid: updateCells(state.grid, createEmptyDisk(TASK_START, 8)),
-    inventoryGrid: clearInventoryGrid(state.inventoryGrid),
-    activeTemplate: null,
-    worldViewCenter: {
-      q: TASK_START.q + forwardDir.q * cameraOffset,
-      r: TASK_START.r + forwardDir.r * cameraOffset,
-    },
-    cameraLastMoveTick: state.tick,
-    structureInstances: [],
-  };
-}
-
 function setColoredCells(
   state: GameState,
   coloredCells: Array<{ position: Axial; colorIndex: number }>,
@@ -164,7 +111,7 @@ function buildExplorationClusters(): Array<{ position: Axial; colorIndex: number
 }
 
 export function applyTaskSetup(state: GameState, params: Params, taskId: string): GameState {
-  let next = createTaskBaseState(state, params);
+  let next = state;
   const oppositeColorIndex = Math.floor(params.ColorPalette.length / 2);
 
   switch (taskId) {

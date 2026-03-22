@@ -54,7 +54,7 @@ function syncCollectedTaskTargets(state: GameState): GameState {
     if (nextCollectedKeys.has(targetKey)) continue;
 
     const cell = getCell(state.grid, targetHex.position);
-    if (cell?.colorIndex !== targetHex.colorIndex) {
+    if (!cell || cell.colorIndex === null) {
       nextCollectedKeys.add(targetKey);
     }
   }

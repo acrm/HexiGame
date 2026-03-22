@@ -121,22 +121,36 @@ export function getNextPendingTaskId(completedTaskId: string): string | null {
   return getNextTaskDefinition(completedTaskId)?.id ?? null;
 }
 
-export function getTaskUiGate(activeTaskId: string | null): TaskFlowUiGate {
-  const taskIndex = getTaskIndex(activeTaskId);
-  if (taskIndex === -1) {
-    return {
-      isHexiLabLocked: false,
-      hideHotbar: false,
-      canShowPaletteWidget: true,
-      canShowStructureWidget: true,
-    };
+function getProgressIndex(currentTaskId: string | null, completedTaskIds: Set<string>): number {
+  const currentIndex = getTaskIndex(currentTaskId);
+  if (currentIndex !== -1) return currentIndex;
+
+  for (let index = TASK_ORDER.length - 1; index >= 0; index -= 1) {
+    if (completedTaskIds.has(TASK_ORDER[index])) {
+      return index;
+    }
   }
 
+  return -1;
+}
+
+export function getTaskUiGate(
+  currentTaskId: string | null,
+  taskProgress: GameState['taskProgress'],
+  completedTaskIds: Set<string> = new Set<string>(),
+): TaskFlowUiGate {
+  const progressIndex = getProgressIndex(currentTaskId, completedTaskIds);
+  const taskIndex = getTaskIndex(currentTaskId);
+  const hasCompletedColorHunt = completedTaskIds.has('task_2_collect_beyond_visibility');
+  const isColorHuntActive = currentTaskId === 'task_2_collect_beyond_visibility' && !!taskProgress;
+  const hasMovedPastColorHunt = taskIndex >= 2;
+  const hotbarUnlocked = hasCompletedColorHunt || isColorHuntActive || hasMovedPastColorHunt;
+
   return {
-    isHexiLabLocked: taskIndex === 0,
-    hideHotbar: taskIndex === 0,
-    canShowPaletteWidget: taskIndex >= 3,
-    canShowStructureWidget: taskIndex >= 4,
+    isHexiLabLocked: !hotbarUnlocked,
+    hideHotbar: !hotbarUnlocked,
+    canShowPaletteWidget: progressIndex >= 3,
+    canShowStructureWidget: progressIndex >= 4,
   };
 }
 
@@ -152,6 +166,7 @@ export function shouldTrackFocusVisit(
 
   const task = getTaskDefinition(taskId);
   if (!task?.targetCells || task.targetCells.length === 0) return false;
+  if (task.targetHexes && task.targetHexes.length > 0) return false;
 
   return true;
 }

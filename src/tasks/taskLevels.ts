@@ -148,31 +148,39 @@ export const task4CollectOpposites: TaskDefinition = {
     ru: 'Черепашка замечает, что у каждого цвета есть противовес на другой стороне палитры.',
   },
   objective: {
-    en: 'Hold one base color and its opposite color in the hotbar at the same time.',
-    ru: 'Удерживайте в хотбаре один базовый цвет и его противоположный цвет одновременно.',
+    en: 'Collect 3 base-color hexes and 3 opposite-color hexes in the hotbar.',
+    ru: 'Соберите в хотбар 3 гекса базового цвета и 3 гекса противоположного цвета.',
   },
   hints: {
     desktop: {
-      en: 'Use the palette widget to find the opposite color pair, then bring both into the hotbar together.',
-      ru: 'Используйте виджет палитры, чтобы найти противоположную пару, и затем соберите оба цвета в хотбар одновременно.',
+      en: 'Use the palette widget to identify the opposite color, then build a full 3+3 set in the hotbar.',
+      ru: 'Используйте виджет палитры, чтобы найти противоположный цвет, затем соберите полный набор 3+3 в хотбаре.',
     },
     mobile: {
-      en: 'Use the palette widget to find the opposite color pair, then bring both into the hotbar together.',
-      ru: 'Используйте виджет палитры, чтобы найти противоположную пару, и затем соберите оба цвета в хотбар одновременно.',
+      en: 'Use the palette widget to identify the opposite color, then build a full 3+3 set in the hotbar.',
+      ru: 'Используйте виджет палитры, чтобы найти противоположный цвет, затем соберите полный набор 3+3 в хотбаре.',
     },
   },
   getProgress: (state, params) => {
-    const oppositeColorIndex = Math.floor(params.ColorPalette.length / 2);
-    const current = Number(state.hotbarSlots.includes(0)) + Number(state.hotbarSlots.includes(oppositeColorIndex));
+    const baseColorIndex = params.PlayerBaseColorIndex;
+    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
+    const baseColorCount = state.hotbarSlots.filter(slot => slot === baseColorIndex).length;
+    const oppositeColorCount = state.hotbarSlots.filter(slot => slot === oppositeColorIndex).length;
+    const current = Math.min(3, baseColorCount) + Math.min(3, oppositeColorCount);
+
     return {
       current,
-      total: 2,
+      total: 6,
       labelKey: 'task.oppositeColorsCollected',
     };
   },
   winCondition: (state, params) => {
-    const oppositeColorIndex = Math.floor(params.ColorPalette.length / 2);
-    return state.hotbarSlots.includes(0) && state.hotbarSlots.includes(oppositeColorIndex);
+    const baseColorIndex = params.PlayerBaseColorIndex;
+    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
+    const baseColorCount = state.hotbarSlots.filter(slot => slot === baseColorIndex).length;
+    const oppositeColorCount = state.hotbarSlots.filter(slot => slot === oppositeColorIndex).length;
+
+    return baseColorCount >= 3 && oppositeColorCount >= 3;
   },
 };
 

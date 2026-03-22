@@ -609,3 +609,5 @@
 - 2026w13-0.15 — tasks migration and structures UI
 
 - 2026w13-0.16 — tasks migration and structures UI
+
+- 2026w13-0.17 — continuous tasks flow and balance 3+3

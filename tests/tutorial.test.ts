@@ -10,6 +10,7 @@ import {
   TASK_EXCAVATION_RING_2,
   TASK_EXCAVATION_TARGET_COLOR_INDEX,
 } from '../src/tasks/taskSandbox';
+import { getTaskUiGate, shouldTrackFocusVisit } from '../src/appLogic/taskFlow';
 
 function createTaskProgressData({
   visitedTargetKeys = new Set<string>(),
@@ -38,13 +39,23 @@ function createEmptyState() {
 }
 
 describe('Scripted task setup', () => {
-  it('sets up the color-hunt task with empty hotbar and four marked hexes', () => {
+  it('adds color-hunt targets without resetting protagonist position or hotbar', () => {
     const { params, state } = createEmptyState();
-    const preparedState = applyTaskSetup(state, params, 'task_2_collect_beyond_visibility');
+    const baseState = {
+      ...state,
+      protagonist: { q: 5, r: -2 },
+      focus: { q: 6, r: -2 },
+      hotbarSlots: [1, 2, 3, null, null, null],
+      selectedHotbarIndex: 2,
+    };
+    const preparedState = applyTaskSetup(baseState, params, 'task_2_collect_beyond_visibility');
     const task = getTaskDefinition('task_2_collect_beyond_visibility');
     const progress = task?.getProgress?.(preparedState, params, createTaskProgressData());
 
-    expect(preparedState.hotbarSlots.every(slot => slot === null)).toBe(true);
+    expect(preparedState.protagonist).toEqual(baseState.protagonist);
+    expect(preparedState.focus).toEqual(baseState.focus);
+    expect(preparedState.hotbarSlots).toEqual(baseState.hotbarSlots);
+    expect(preparedState.selectedHotbarIndex).toBe(baseState.selectedHotbarIndex);
     expect(
       TASK_COLOR_HUNT_TARGETS.every(({ position, colorIndex }) => getCell(preparedState.grid, position)?.colorIndex === colorIndex),
     ).toBe(true);
@@ -55,11 +66,12 @@ describe('Scripted task setup', () => {
     });
   });
 
-  it('keeps structure activation disabled for the opposite-color task', () => {
+  it('does not force template deactivation for the opposite-color task', () => {
     const { params, state } = createEmptyState();
-    const preparedState = applyTaskSetup(state, params, 'task_4_collect_opposites');
+    const withActiveTemplate = applyTaskSetup(state, params, 'task_5_yin_yang');
+    const preparedState = applyTaskSetup(withActiveTemplate, params, 'task_4_collect_opposites');
 
-    expect(preparedState.activeTemplate).toBeNull();
+    expect(preparedState.activeTemplate?.templateId).toBe(withActiveTemplate.activeTemplate?.templateId);
   });
 
   it('activates the yin-yang template in the final task', () => {
@@ -90,21 +102,40 @@ describe('Task win conditions', () => {
     expect(task?.winCondition(preparedState, params, preparedState.taskProgress)).toBe(true);
   });
 
-  it('requires both opposite colors in the hotbar for task four', () => {
+  it('requires 3 and 3 opposite colors in the hotbar for task four', () => {
     const { params, state } = createEmptyState();
     const task = getTaskDefinition('task_4_collect_opposites');
-    const oppositeColorIndex = Math.floor(params.ColorPalette.length / 2);
+    const baseColorIndex = params.PlayerBaseColorIndex;
+    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
     const preparedState = {
       ...applyTaskSetup(state, params, 'task_4_collect_opposites'),
-      hotbarSlots: [0, oppositeColorIndex, null, null, null, null],
+      hotbarSlots: [baseColorIndex, baseColorIndex, baseColorIndex, oppositeColorIndex, oppositeColorIndex, oppositeColorIndex],
     };
 
     expect(task?.getProgress?.(preparedState, params, createTaskProgressData())).toEqual({
-      current: 2,
-      total: 2,
+      current: 6,
+      total: 6,
       labelKey: 'task.oppositeColorsCollected',
     });
     expect(task?.winCondition(preparedState, params, createTaskProgressData())).toBe(true);
+  });
+
+  it('does not complete task four when one side has fewer than 3 hexes', () => {
+    const { params, state } = createEmptyState();
+    const task = getTaskDefinition('task_4_collect_opposites');
+    const baseColorIndex = params.PlayerBaseColorIndex;
+    const oppositeColorIndex = (baseColorIndex + Math.floor(params.ColorPalette.length / 2)) % params.ColorPalette.length;
+    const preparedState = {
+      ...applyTaskSetup(state, params, 'task_4_collect_opposites'),
+      hotbarSlots: [baseColorIndex, baseColorIndex, oppositeColorIndex, oppositeColorIndex, oppositeColorIndex, null],
+    };
+
+    expect(task?.getProgress?.(preparedState, params, createTaskProgressData())).toEqual({
+      current: 5,
+      total: 6,
+      labelKey: 'task.oppositeColorsCollected',
+    });
+    expect(task?.winCondition(preparedState, params, createTaskProgressData())).toBe(false);
   });
 
   it('requires the hidden excavation core to be extracted into the hotbar', () => {
@@ -140,5 +171,42 @@ describe('Task win conditions', () => {
 
     expect(getCell(preparedState.grid, TASK_EXCAVATION_CENTER)?.colorIndex).toBe(TASK_EXCAVATION_TARGET_COLOR_INDEX);
     expect(task?.winCondition(preparedState, params, createTaskProgressData())).toBe(false);
+  });
+});
+
+describe('Task flow gates', () => {
+  it('keeps hotbar and HexiLab locked until task two is actually started', () => {
+    const completedBeforeTask2 = new Set<string>(['task_1_explore']);
+
+    const pendingTask2Gate = getTaskUiGate(
+      'task_2_collect_beyond_visibility',
+      undefined,
+      completedBeforeTask2,
+    );
+
+    expect(pendingTask2Gate.hideHotbar).toBe(true);
+    expect(pendingTask2Gate.isHexiLabLocked).toBe(true);
+
+    const activeTask2Gate = getTaskUiGate(
+      'task_2_collect_beyond_visibility',
+      createTaskProgressData(),
+      completedBeforeTask2,
+    );
+
+    expect(activeTask2Gate.hideHotbar).toBe(false);
+    expect(activeTask2Gate.isHexiLabLocked).toBe(false);
+  });
+
+  it('does not treat target-hex collection task as visit-tracked focus task', () => {
+    const { state } = createEmptyState();
+
+    const colorHuntState = {
+      ...state,
+      taskProgress: createTaskProgressData(),
+      activeField: 'world' as const,
+    };
+
+    expect(shouldTrackFocusVisit('task_2_collect_beyond_visibility', colorHuntState, true, 'heximap')).toBe(false);
+    expect(shouldTrackFocusVisit('task_1_explore', colorHuntState, true, 'heximap')).toBe(true);
   });
 });
