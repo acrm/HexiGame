@@ -71,31 +71,15 @@ function computeHexScreenVertices(
   return vertices;
 }
 
-function findClosestBoundaryVertex(
-  boundaryVertices: ScreenBoundaryVertex[],
-  targetAngle: number,
-  excludedKeys: Set<string>,
-): ScreenBoundaryVertex | null {
-  let bestVertex: ScreenBoundaryVertex | null = null;
-  let bestAngleDiff = Infinity;
-
-  for (const vertex of boundaryVertices) {
-    if (excludedKeys.has(vertex.key)) continue;
-    const angleDiff = normalizeAngleDiff(vertex.angle, targetAngle);
-    if (angleDiff < bestAngleDiff) {
-      bestVertex = vertex;
-      bestAngleDiff = angleDiff;
-    }
-  }
-
-  return bestVertex;
-}
-
-function getTargetFacingEdgeAngles(
+function getTargetFacingEdgePoints(
   fieldCenter: { x: number; y: number },
   targetScreen: { x: number; y: number },
   targetHexRadius: number,
-): { vertexAngles: [number, number]; midpointAngle: number } {
+): {
+  edgeStart: { x: number; y: number };
+  edgeEnd: { x: number; y: number };
+  edgeMidpoint: { x: number; y: number };
+} {
   const targetVertices = computeHexScreenVertices(targetScreen.x, targetScreen.y, targetHexRadius);
   const facingAngle = Math.atan2(fieldCenter.y - targetScreen.y, fieldCenter.x - targetScreen.x);
 
@@ -123,12 +107,68 @@ function getTargetFacingEdgeAngles(
   const midpointY = (startVertex.y + endVertex.y) / 2;
 
   return {
-    vertexAngles: [
-      Math.atan2(startVertex.y - fieldCenter.y, startVertex.x - fieldCenter.x),
-      Math.atan2(endVertex.y - fieldCenter.y, endVertex.x - fieldCenter.x),
-    ],
-    midpointAngle: Math.atan2(midpointY - fieldCenter.y, midpointX - fieldCenter.x),
+    edgeStart: startVertex,
+    edgeEnd: endVertex,
+    edgeMidpoint: { x: midpointX, y: midpointY },
   };
+}
+
+function sortBoundaryVerticesAroundCenter(
+  boundaryVertices: ScreenBoundaryVertex[],
+  fieldCenter: { x: number; y: number },
+): ScreenBoundaryVertex[] {
+  return [...boundaryVertices]
+    .map((vertex) => ({
+      ...vertex,
+      angle: Math.atan2(vertex.y - fieldCenter.y, vertex.x - fieldCenter.x),
+    }))
+    .sort((a, b) => a.angle - b.angle);
+}
+
+function getClosestPointOnSegment(
+  point: { x: number; y: number },
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+): { x: number; y: number } {
+  const abx = end.x - start.x;
+  const aby = end.y - start.y;
+  const abLengthSq = abx * abx + aby * aby;
+  if (abLengthSq <= 1e-9) {
+    return { x: start.x, y: start.y };
+  }
+
+  const apx = point.x - start.x;
+  const apy = point.y - start.y;
+  const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / abLengthSq));
+  return {
+    x: start.x + abx * t,
+    y: start.y + aby * t,
+  };
+}
+
+function findClosestBoundarySegmentIndex(
+  boundaryVertices: ScreenBoundaryVertex[],
+  point: { x: number; y: number },
+): number {
+  let bestIndex = 0;
+  let bestDistSq = Infinity;
+
+  for (let i = 0; i < boundaryVertices.length; i++) {
+    const segmentStart = boundaryVertices[i];
+    const segmentEnd = boundaryVertices[(i + 1) % boundaryVertices.length];
+    if (!segmentStart || !segmentEnd) continue;
+
+    const closestPoint = getClosestPointOnSegment(point, segmentStart, segmentEnd);
+    const dx = point.x - closestPoint.x;
+    const dy = point.y - closestPoint.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestIndex = i;
+    }
+  }
+
+  return bestIndex;
 }
 
 export function getFieldCenterScreenPosition(
@@ -197,30 +237,57 @@ export function selectBoundaryHighlightVertices(
   dotCount: number,
 ): Array<{ x: number; y: number }> {
   if (dotCount <= 0 || boundaryVertices.length === 0) return [];
+  if (boundaryVertices.length === 1) {
+    const onlyVertex = boundaryVertices[0];
+    return onlyVertex ? [{ x: onlyVertex.x, y: onlyVertex.y }] : [];
+  }
 
-  const targetFace = getTargetFacingEdgeAngles(fieldCenter, targetScreen, targetHexRadius);
+  const sortedBoundary = sortBoundaryVerticesAroundCenter(boundaryVertices, fieldCenter);
+  const targetFace = getTargetFacingEdgePoints(fieldCenter, targetScreen, targetHexRadius);
   const selectedDots: Array<{ x: number; y: number }> = [];
   const usedKeys = new Set<string>();
 
-  if (dotCount >= 2) {
-    for (const targetAngle of targetFace.vertexAngles) {
-      const boundaryVertex = findClosestBoundaryVertex(boundaryVertices, targetAngle, usedKeys);
-      if (!boundaryVertex) continue;
+  const pushUniqueVertex = (vertex: ScreenBoundaryVertex | undefined) => {
+    if (!vertex || usedKeys.has(vertex.key)) return;
+    usedKeys.add(vertex.key);
+    selectedDots.push({ x: vertex.x, y: vertex.y });
+  };
 
-      usedKeys.add(boundaryVertex.key);
-      selectedDots.push({ x: boundaryVertex.x, y: boundaryVertex.y });
-    }
+  const segmentIndex = findClosestBoundarySegmentIndex(sortedBoundary, targetFace.edgeMidpoint);
+  const segmentStart = sortedBoundary[segmentIndex];
+  const segmentEnd = sortedBoundary[(segmentIndex + 1) % sortedBoundary.length];
+
+  if (!segmentStart || !segmentEnd) return [];
+
+  const distStartSq = (segmentStart.x - targetFace.edgeMidpoint.x) ** 2 + (segmentStart.y - targetFace.edgeMidpoint.y) ** 2;
+  const distEndSq = (segmentEnd.x - targetFace.edgeMidpoint.x) ** 2 + (segmentEnd.y - targetFace.edgeMidpoint.y) ** 2;
+  const primary = distStartSq <= distEndSq ? segmentStart : segmentEnd;
+  const secondary = distStartSq <= distEndSq ? segmentEnd : segmentStart;
+
+  if (dotCount <= 1) {
+    pushUniqueVertex(primary);
+    return selectedDots;
   }
 
-  while (selectedDots.length < dotCount) {
-    const fallbackVertex = findClosestBoundaryVertex(boundaryVertices, targetFace.midpointAngle, usedKeys);
-    if (!fallbackVertex) break;
+  // Projection mode: two primary markers are the endpoints of the closest boundary segment.
+  pushUniqueVertex(primary);
+  pushUniqueVertex(secondary);
 
-    usedKeys.add(fallbackVertex.key);
-    selectedDots.push({ x: fallbackVertex.x, y: fallbackVertex.y });
+  if (dotCount >= 3) {
+    const prevVertex = sortedBoundary[(segmentIndex - 1 + sortedBoundary.length) % sortedBoundary.length];
+    const nextVertex = sortedBoundary[(segmentIndex + 2) % sortedBoundary.length];
+    const candidateA = prevVertex;
+    const candidateB = nextVertex;
+    const distA = candidateA
+      ? (candidateA.x - targetFace.edgeMidpoint.x) ** 2 + (candidateA.y - targetFace.edgeMidpoint.y) ** 2
+      : Infinity;
+    const distB = candidateB
+      ? (candidateB.x - targetFace.edgeMidpoint.x) ** 2 + (candidateB.y - targetFace.edgeMidpoint.y) ** 2
+      : Infinity;
+    pushUniqueVertex(distA <= distB ? candidateA : candidateB);
   }
 
-  return selectedDots;
+  return selectedDots.slice(0, dotCount);
 }
 
 // Helper: axial -> pixel (pointy-top)
@@ -409,8 +476,8 @@ export function calculateDistanceToBoundary(
 /**
  * Calculate how many highlight dots should be shown based on distance
  * - Fully visible (distance = 0): show all 6 dots
- * - Partially visible (distance > 0): show 2 dots
- * - Far away (distance > 3 * diameters): show 1 dot
+ * - Partially visible (distance > 0): show 3 dots
+ * - Far away: show 2 dots
  */
 export function calculateHighlightDotCount(distanceToBoundary: number, visibleRadius: number): number {
   const visibleFieldDiameter = Math.max(2, visibleRadius * 2 + 1);
@@ -419,8 +486,8 @@ export function calculateHighlightDotCount(distanceToBoundary: number, visibleRa
   if (distanceToBoundary <= 0) {
     return 6; // Fully visible, all corners
   } else if (distanceToBoundary <= nearBoundaryThreshold) {
-    return 2; // Close to boundary, 2 dots
+    return 3; // Close to boundary, 3 dots
   } else {
-    return 1; // Far away, 1 dot
+    return 2; // Far away, 2 dots
   }
 }

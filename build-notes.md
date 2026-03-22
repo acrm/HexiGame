@@ -591,3 +591,5 @@
 - 2026w13-0.6 — Boost hidden target markers and snap to rendered boundary dots
 
 - 2026w13-0.7 — Guarantee boundary-only hidden markers and boost glow
+
+- 2026w13-0.8 — Use projected boundary segments for hidden target markers
