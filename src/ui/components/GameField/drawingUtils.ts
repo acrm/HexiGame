@@ -184,6 +184,20 @@ export function drawHighlightDotsAtPositions(
     ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  if (glowBlur > 0) {
+    const coreRadius = Math.max(1, dotRadius * 0.6);
+    const coreAlpha = Math.min(1, alpha + 0.25);
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = `rgba(${color}, ${coreAlpha})`;
+    for (const dot of dots) {
+      ctx.beginPath();
+      ctx.arc(dot.x, dot.y, coreRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   ctx.restore();
 }
 

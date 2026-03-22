@@ -31,6 +31,7 @@ import {
   calculateHighlightDotCount,
   getFieldCenterScreenPosition,
   computeVisibleFieldBoundaryVertices,
+  createScreenVertexKey,
   selectBoundaryHighlightVertices,
 } from './geometryUtils';
 
@@ -278,7 +279,7 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
             const angle = (Math.PI / 180) * (angleDeg * i);
             const vx = baseX + HEX_SIZE * scale * Math.cos(angle);
             const vy = baseY + HEX_SIZE * scale * Math.sin(angle);
-            const key = `${Math.round(vx)}:${Math.round(vy)}`;
+            const key = createScreenVertexKey(vx, vy);
             if (seenVertices.has(key)) continue;
 
             let allEmpty = true;
@@ -315,9 +316,7 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         }
       }
 
-      const highlightBoundaryVertices = renderedBoundaryVertices.length > 0
-        ? renderedBoundaryVertices
-        : visibleBoundaryVertices;
+      const highlightBoundaryVertices = renderedBoundaryVertices;
 
       if (!isInventory && highlightTargets.length > 0) {
         for (const cell of highlightTargets) {
@@ -333,6 +332,7 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
             // Draw all 6 corner dots as normal
             drawCornerDots(ctx, scaledX, scaledY, HEX_SIZE * scale, gameState.tick);
           } else {
+            if (highlightBoundaryVertices.length === 0) continue;
             const distToBoundary = calculateDistanceToBoundary(cell, worldViewCenter, visibleRadius);
             const dotCount = calculateHighlightDotCount(distToBoundary, visibleRadius);
             const boundaryDots = selectBoundaryHighlightVertices(
@@ -345,10 +345,10 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
 
             drawHighlightDotsAtPositions(ctx, boundaryDots, gameState.tick, {
               color: '255, 255, 255',
-              dotRadius: Math.max(1.8, scale * 0.16),
+              dotRadius: Math.max(2.4, scale * 0.24),
               alphaOn: 1,
-              alphaOff: 0.8,
-              glowBlur: Math.max(4, scale * 1.8),
+              alphaOff: 0.95,
+              glowBlur: Math.max(8, scale * 3),
             });
           }
         }

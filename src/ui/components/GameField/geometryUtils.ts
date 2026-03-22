@@ -29,12 +29,14 @@ const AXIAL_DIRECTIONS = [
   { q: 0, r: 1 },
 ];
 
+const SCREEN_VERTEX_KEY_PRECISION = 100;
+
 function axialDistanceLocal(a: { q: number; r: number }, b: { q: number; r: number }): number {
   return (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + Math.abs((a.q + a.r) - (b.q + b.r))) / 2;
 }
 
-function createScreenVertexKey(x: number, y: number): string {
-  return `${Math.round(x)}:${Math.round(y)}`;
+export function createScreenVertexKey(x: number, y: number): string {
+  return `${Math.round(x * SCREEN_VERTEX_KEY_PRECISION)}:${Math.round(y * SCREEN_VERTEX_KEY_PRECISION)}`;
 }
 
 function normalizeAngleDiff(a: number, b: number): number {
