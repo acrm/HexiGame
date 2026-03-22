@@ -53,6 +53,82 @@ function addVertex(
   }
 }
 
+function computeHexScreenVertices(
+  centerX: number,
+  centerY: number,
+  radius: number,
+): Array<{ x: number; y: number }> {
+  const vertices: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (60 * i);
+    vertices.push({
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    });
+  }
+  return vertices;
+}
+
+function findClosestBoundaryVertex(
+  boundaryVertices: ScreenBoundaryVertex[],
+  targetAngle: number,
+  excludedKeys: Set<string>,
+): ScreenBoundaryVertex | null {
+  let bestVertex: ScreenBoundaryVertex | null = null;
+  let bestAngleDiff = Infinity;
+
+  for (const vertex of boundaryVertices) {
+    if (excludedKeys.has(vertex.key)) continue;
+    const angleDiff = normalizeAngleDiff(vertex.angle, targetAngle);
+    if (angleDiff < bestAngleDiff) {
+      bestVertex = vertex;
+      bestAngleDiff = angleDiff;
+    }
+  }
+
+  return bestVertex;
+}
+
+function getTargetFacingEdgeAngles(
+  fieldCenter: { x: number; y: number },
+  targetScreen: { x: number; y: number },
+  targetHexRadius: number,
+): { vertexAngles: [number, number]; midpointAngle: number } {
+  const targetVertices = computeHexScreenVertices(targetScreen.x, targetScreen.y, targetHexRadius);
+  const facingAngle = Math.atan2(fieldCenter.y - targetScreen.y, fieldCenter.x - targetScreen.x);
+
+  let bestEdgeIndex = 0;
+  let bestAngleDiff = Infinity;
+
+  for (let i = 0; i < targetVertices.length; i++) {
+    const startVertex = targetVertices[i];
+    const endVertex = targetVertices[(i + 1) % targetVertices.length];
+    if (!startVertex || !endVertex) continue;
+
+    const midpointX = (startVertex.x + endVertex.x) / 2;
+    const midpointY = (startVertex.y + endVertex.y) / 2;
+    const edgeAngle = Math.atan2(midpointY - targetScreen.y, midpointX - targetScreen.x);
+    const angleDiff = normalizeAngleDiff(edgeAngle, facingAngle);
+    if (angleDiff < bestAngleDiff) {
+      bestAngleDiff = angleDiff;
+      bestEdgeIndex = i;
+    }
+  }
+
+  const startVertex = targetVertices[bestEdgeIndex] ?? targetVertices[0]!;
+  const endVertex = targetVertices[(bestEdgeIndex + 1) % targetVertices.length] ?? targetVertices[1]!;
+  const midpointX = (startVertex.x + endVertex.x) / 2;
+  const midpointY = (startVertex.y + endVertex.y) / 2;
+
+  return {
+    vertexAngles: [
+      Math.atan2(startVertex.y - fieldCenter.y, startVertex.x - fieldCenter.x),
+      Math.atan2(endVertex.y - fieldCenter.y, endVertex.x - fieldCenter.x),
+    ],
+    midpointAngle: Math.atan2(midpointY - fieldCenter.y, midpointX - fieldCenter.x),
+  };
+}
+
 export function getFieldCenterScreenPosition(
   worldViewCenter: { q: number; r: number },
   scale: number,
@@ -115,21 +191,34 @@ export function selectBoundaryHighlightVertices(
   boundaryVertices: ScreenBoundaryVertex[],
   fieldCenter: { x: number; y: number },
   targetScreen: { x: number; y: number },
+  targetHexRadius: number,
   dotCount: number,
 ): Array<{ x: number; y: number }> {
   if (dotCount <= 0 || boundaryVertices.length === 0) return [];
 
-  const targetAngle = Math.atan2(targetScreen.y - fieldCenter.y, targetScreen.x - fieldCenter.x);
+  const targetFace = getTargetFacingEdgeAngles(fieldCenter, targetScreen, targetHexRadius);
+  const selectedDots: Array<{ x: number; y: number }> = [];
+  const usedKeys = new Set<string>();
 
-  const ranked = boundaryVertices
-    .map((vertex) => ({
-      vertex,
-      angleDiff: normalizeAngleDiff(vertex.angle, targetAngle),
-    }))
-    .sort((a, b) => a.angleDiff - b.angleDiff);
+  if (dotCount >= 2) {
+    for (const targetAngle of targetFace.vertexAngles) {
+      const boundaryVertex = findClosestBoundaryVertex(boundaryVertices, targetAngle, usedKeys);
+      if (!boundaryVertex) continue;
 
-  const takeCount = Math.min(dotCount, ranked.length);
-  return ranked.slice(0, takeCount).map(({ vertex }) => ({ x: vertex.x, y: vertex.y }));
+      usedKeys.add(boundaryVertex.key);
+      selectedDots.push({ x: boundaryVertex.x, y: boundaryVertex.y });
+    }
+  }
+
+  while (selectedDots.length < dotCount) {
+    const fallbackVertex = findClosestBoundaryVertex(boundaryVertices, targetFace.midpointAngle, usedKeys);
+    if (!fallbackVertex) break;
+
+    usedKeys.add(fallbackVertex.key);
+    selectedDots.push({ x: fallbackVertex.x, y: fallbackVertex.y });
+  }
+
+  return selectedDots;
 }
 
 // Helper: axial -> pixel (pointy-top)

@@ -199,7 +199,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Path is computed only across walkable empty cells and stored in `GameState.autoMovePath` for rendering.
   - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
 - World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
-- Off-screen point-of-interest highlighting uses existing vertices of the visible field contour (no synthetic margin offsets): visible targets show 6 corner dots; near-outside targets show 2 contour vertices; far targets show 1 contour vertex.
+- Off-screen point-of-interest highlighting preserves the target's nearest visible face on the field contour: markers snap to real contour vertices (no synthetic offsets) and use the same bright white blinking dots as fully visible targets.
 
 ### Frame → Tick Conversion Rationale
 Assuming a target render frame rate of 60 FPS:

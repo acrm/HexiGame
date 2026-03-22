@@ -324,10 +324,12 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
               visibleBoundaryVertices,
               fieldCenter,
               { x: scaledX, y: scaledY },
+              HEX_SIZE * scale,
               dotCount,
             );
 
             drawHighlightDotsAtPositions(ctx, boundaryDots, gameState.tick, {
+              color: '255, 255, 255',
               dotRadius: Math.max(1.4, scale * 0.12),
             });
           }

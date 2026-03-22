@@ -585,3 +585,5 @@
 - 2026w13-0.3 — Tutorial flow polish and boundary-safe POI highlights
 
 - 2026w13-0.4 — Clamp world interaction radius to visible viewport minimum
+
+- 2026w13-0.5 — Snap off-screen POI highlights to contour face
