@@ -646,6 +646,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
       }
     },
+    onPreviewCursor: (q, r) => {
+      dispatch({ type: 'PREVIEW_FOCUS_AT', target: { q, r } });
+    },
+    onTouchCommitCell: (q, r) => {
+      const clickedPos = { q, r };
+      if (equalAxial(clickedPos, gameState.protagonist)) {
+        return;
+      }
+
+      playUiClick();
+      dispatch({ type: 'MOVE_CURSOR_TO', target: clickedPos });
+    },
     onCellClickDown: (q, r) => {
       if (mouseIsDownRef.current) return;
       mouseIsDownRef.current = true;

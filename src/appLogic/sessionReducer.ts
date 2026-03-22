@@ -81,6 +81,7 @@ export type GameCommand =
   | { type: 'MOVE_CURSOR_DELTA'; dq: number; dr: number }
   | { type: 'MOVE_CURSOR_DELTA_ON_ACTIVE'; dq: number; dr: number }
   | { type: 'MOVE_CURSOR_DIRECTION'; dirIndex: number }
+  | { type: 'PREVIEW_FOCUS_AT'; target: Axial }
   | { type: 'MOVE_CURSOR_TO'; target: Axial }
   // Actions
   | { type: 'ACTION_PRESSED' }
@@ -141,6 +142,12 @@ export function sessionReducer(
 
     case 'MOVE_CURSOR_DIRECTION':
       nextState = attemptMoveByDirectionIndex(state, params, command.dirIndex);
+      break;
+
+    case 'PREVIEW_FOCUS_AT':
+      nextState = (state.focus.q === command.target.q && state.focus.r === command.target.r)
+        ? state
+        : { ...state, focus: { ...command.target } };
       break;
 
     case 'MOVE_CURSOR_TO':

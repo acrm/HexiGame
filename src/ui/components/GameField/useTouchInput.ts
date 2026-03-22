@@ -18,7 +18,8 @@ export interface TouchInputHandlers {
   onHotbarSlotClick?: (slotIdx: number) => void;
   onCapture: () => void;
   onRelease: () => void;
-  onCellClickDown?: (q: number, r: number) => void;
+  onPreviewCursor?: (q: number, r: number) => void;
+  onTouchCommitCell?: (q: number, r: number) => void;
 }
 
 export interface TouchInputOptions extends TouchInputHandlers {
@@ -45,11 +46,14 @@ export function useTouchInput(options: TouchInputOptions): void {
     onHotbarSlotClick,
     onCapture,
     onRelease,
-    onCellClickDown,
+    onPreviewCursor,
+    onTouchCommitCell,
   } = options;
 
   // Track active ACT (action mode) touch so release outside button still ends action mode
   const actTouchIdRef = useRef<number | null>(null);
+  const navTouchIdRef = useRef<number | null>(null);
+  const navTouchCellRef = useRef<{ q: number; r: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -89,30 +93,50 @@ export function useTouchInput(options: TouchInputOptions): void {
         }
 
         if (!consumed) {
+          if (navTouchIdRef.current !== null) {
+            continue;
+          }
+
           const axial = pixelToAxial(x, y);
           if (!isCellInteractable(axial.q, axial.r)) {
             continue;
           }
-          if (onCellClickDown) {
-            onCellClickDown(axial.q, axial.r);
-          }
-          // If tapping on focus cell in world mode, also start action mode
-          if (!isInventory && axial.q === gameState.focus.q && axial.r === gameState.focus.r) {
-            actTouchIdRef.current = t.identifier;
-            onCapture();
-          }
+
+          ev.preventDefault();
+          navTouchIdRef.current = t.identifier;
+          navTouchCellRef.current = axial;
+          onPreviewCursor?.(axial.q, axial.r);
         }
       }
     }
 
     function handleTouchMove(ev: TouchEvent) {
-      // Joystick is disabled on mobile; prevent accidental page scroll while swiping.
-      ev.preventDefault();
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas) return;
+      const rect = currentCanvas.getBoundingClientRect();
+
+      for (let i = 0; i < ev.changedTouches.length; i++) {
+        const t = ev.changedTouches[i];
+        if (t.identifier !== navTouchIdRef.current) continue;
+
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+        const axial = pixelToAxial(x, y);
+        if (!isCellInteractable(axial.q, axial.r)) {
+          continue;
+        }
+
+        navTouchCellRef.current = axial;
+        onPreviewCursor?.(axial.q, axial.r);
+        ev.preventDefault();
+      }
     }
 
     function handleTouchEnd(ev: TouchEvent) {
       const currentCanvas = canvasRef.current;
       if (!currentCanvas) return;
+      const rect = currentCanvas.getBoundingClientRect();
+
       for (let i = 0; i < ev.changedTouches.length; i++) {
         const t = ev.changedTouches[i];
         // Release action mode if ACT touch ends (regardless of where it ends)
@@ -120,6 +144,24 @@ export function useTouchInput(options: TouchInputOptions): void {
           actTouchIdRef.current = null;
           ev.preventDefault();
           onRelease();
+        }
+
+        if (t.identifier === navTouchIdRef.current) {
+          const x = t.clientX - rect.left;
+          const y = t.clientY - rect.top;
+          const releaseAxial = pixelToAxial(x, y);
+          const finalAxial = isCellInteractable(releaseAxial.q, releaseAxial.r)
+            ? releaseAxial
+            : navTouchCellRef.current;
+
+          navTouchIdRef.current = null;
+          navTouchCellRef.current = null;
+
+          if (!finalAxial) continue;
+
+          ev.preventDefault();
+          onPreviewCursor?.(finalAxial.q, finalAxial.r);
+          onTouchCommitCell?.(finalAxial.q, finalAxial.r);
         }
       }
     }
@@ -147,6 +189,7 @@ export function useTouchInput(options: TouchInputOptions): void {
     onHotbarSlotClick,
     onCapture,
     onRelease,
-    onCellClickDown,
+    onPreviewCursor,
+    onTouchCommitCell,
   ]);
 }

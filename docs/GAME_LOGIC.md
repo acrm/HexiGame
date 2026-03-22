@@ -466,6 +466,10 @@ Defined in `src/templates/templateLogic.ts`:
 - **Hotbar hit-testing**:
   - Mobile hotbar click/tap detection uses the same geometry values as hotbar rendering
   - Prevents neighbor-slot activation when tapping lower ring cells
+- **Touch target commit timing**:
+  - While the finger is held on HexiMap, only focus/cursor preview is updated to the touched cell
+  - Turtle movement (path start) is triggered only after finger release (`touchend`) using the final touched cell
+  - Reduces off-by-one mis-targeting caused by immediate movement start during finger-down
 
 ### 8.2 HexiPedia (Information Hub)
 - **Section Management**:

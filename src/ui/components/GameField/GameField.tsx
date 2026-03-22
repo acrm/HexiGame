@@ -32,6 +32,8 @@ interface GameFieldProps {
   onRelease: () => void;
   onEat: () => void;
   onSetCursor: (q: number, r: number) => void;
+  onPreviewCursor?: (q: number, r: number) => void;
+  onTouchCommitCell?: (q: number, r: number) => void;
   onCellClickDown?: (q: number, r: number) => void;
   onCellClickUp?: (q: number, r: number) => void;
   onCellDrag?: (q: number, r: number) => void;
@@ -54,6 +56,8 @@ export const GameField: React.FC<GameFieldProps> = ({
   onRelease,
   onEat,
   onSetCursor,
+  onPreviewCursor,
+  onTouchCommitCell,
   onCellClickDown,
   onCellClickUp,
   onCellDrag,
@@ -100,10 +104,11 @@ export const GameField: React.FC<GameFieldProps> = ({
     pixelToAxial,
     isCellInteractable,
     detectHotbarSlotClick,
+    onPreviewCursor,
+    onTouchCommitCell,
     onHotbarSlotClick,
     onCapture,
     onRelease,
-    onCellClickDown,
   });
 
   // Mouse input handling
