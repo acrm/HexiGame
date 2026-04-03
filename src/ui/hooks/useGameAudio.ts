@@ -34,12 +34,21 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
   }, []);
 
   useEffect(() => {
+    audioController.setMusicEnabled(musicEnabled);
+  }, [musicEnabled]);
+
+  useEffect(() => {
     audioController.updateMusicVolume(musicVolume);
   }, [musicVolume]);
 
   useEffect(() => {
     if (guestStarted && musicEnabled && !document.hidden) {
       audioController.playMusic(musicEnabled, musicVolume);
+      return;
+    }
+
+    if (!guestStarted || !musicEnabled) {
+      audioController.pauseMusic();
     }
   }, [guestStarted, musicEnabled, musicVolume]);
 

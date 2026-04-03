@@ -631,3 +631,5 @@
 - 0.0.3-y26w14b4 — Keep publicBuild controlled only by platform pipelines
 
 - 0.1.0-y26w14b5 — Prepare platform minor release
+
+- 0.1.0-y26w14b6 — Fix audio mute lifecycle and settings toggle behavior

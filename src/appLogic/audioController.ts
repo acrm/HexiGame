@@ -11,6 +11,7 @@ interface MusicPlaybackState {
 interface AudioControllerInterface {
   init: () => void;
   preload: () => Promise<void>;
+  setMusicEnabled: (enabled: boolean) => void;
   playMusic: (enabled: boolean, volume: number) => Promise<void>;
   pauseMusic: () => void;
   resumeMusic: (enabled: boolean, volume: number) => void;
@@ -26,7 +27,8 @@ interface AudioControllerInterface {
 class AudioController implements AudioControllerInterface {
   private currentTrack: MusicTrackHandle | null = null;
   private playbackState: MusicPlaybackState;
-  private musicInitialized = false;
+  private musicEnabled = true;
+  private musicVolume = 0.5;
   private lastPersistedSecond = -1;
 
   constructor() {
@@ -65,6 +67,7 @@ class AudioController implements AudioControllerInterface {
 
     // Load new track
     this.currentTrack = audioDriver.loadMusicTrack(this.playbackState.currentTrackIndex);
+    this.currentTrack.setVolume(this.musicVolume);
     
     // Set up event listeners
     this.currentTrack.onEnded(() => {
@@ -89,8 +92,8 @@ class AudioController implements AudioControllerInterface {
     this.persistMusicState(0);
     this.loadTrack();
 
-    // Auto-play next track if music is considered "initialized" (playing)
-    if (this.musicInitialized && this.currentTrack) {
+    if (this.musicEnabled && this.currentTrack) {
+      this.currentTrack.setVolume(this.musicVolume);
       this.currentTrack.play().catch(() => {});
     }
   }
@@ -136,13 +139,23 @@ class AudioController implements AudioControllerInterface {
     }
   }
 
+  setMusicEnabled(enabled: boolean): void {
+    this.musicEnabled = enabled;
+
+    if (!enabled) {
+      this.pauseMusic();
+    }
+  }
+
   async playMusic(enabled: boolean, volume: number): Promise<void> {
+    this.musicEnabled = enabled;
+    this.musicVolume = volume;
+
     if (!enabled || !this.currentTrack) return;
     
     this.currentTrack.setVolume(volume);
     try {
       await this.currentTrack.play();
-      this.musicInitialized = true;
     } catch (err) {
       // Autoplay blocked - will retry on user interaction
     }
@@ -154,12 +167,16 @@ class AudioController implements AudioControllerInterface {
   }
 
   resumeMusic(enabled: boolean, volume: number): void {
-    if (enabled && this.musicInitialized) {
+    this.musicEnabled = enabled;
+    this.musicVolume = volume;
+
+    if (enabled) {
       this.playMusic(enabled, volume);
     }
   }
 
   updateMusicVolume(volume: number): void {
+    this.musicVolume = volume;
     this.currentTrack?.setVolume(volume);
   }
 

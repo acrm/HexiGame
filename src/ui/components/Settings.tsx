@@ -82,7 +82,13 @@ export const Settings: React.FC<SettingsProps> = ({
           <input 
             type="checkbox" 
             checked={soundEnabled}
-            onChange={(e) => { audioController.playRandomSound(soundEnabled, soundVolume); onToggleSound(e.target.checked); }}
+            onChange={(e) => {
+              const nextEnabled = e.target.checked;
+              if (nextEnabled) {
+                audioController.playRandomSound(true, soundVolume);
+              }
+              onToggleSound(nextEnabled);
+            }}
           />
         </div>
 
