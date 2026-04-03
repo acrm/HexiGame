@@ -118,6 +118,9 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
       const availableWidth = container.clientWidth;
       const availableHeight = container.clientHeight;
 
+      canvas.width = Math.max(1, Math.floor(availableWidth));
+      canvas.height = Math.max(1, Math.floor(availableHeight));
+
       const worldViewCenter = gameState.worldViewCenter ?? gameState.protagonist;
       const visibleRadius = Math.max(1, params.GridRadius);
       const worldVisibleCells = Array.from(gameState.grid.values()).filter(
@@ -166,13 +169,25 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
       }
 
       const padding = 12;
+      const worldViewportWidth = Math.max(1, availableWidth - padding * 2);
+
+      // Keep the dotted world area clear of the on-canvas hotbar zone on low-height screens.
+      let reservedBottomSpace = 0;
+      if (!isInventory && !hideHotbar) {
+        const { centerY: hotbarCenterY, hexSize: hotbarHexSize, ringRadius: hotbarRingRadius } = getHotbarGeometry(
+          canvas,
+          isLeftHanded,
+        );
+        const hotbarTopY = hotbarCenterY - (hotbarRingRadius + hotbarHexSize);
+        reservedBottomSpace = Math.max(0, availableHeight - hotbarTopY + padding);
+      }
+
+      const worldViewportHeight = Math.max(1, availableHeight - padding * 2 - reservedBottomSpace);
       const scale = Math.min(
-        (availableWidth - padding * 2) / worldLogicalWidth,
-        (availableHeight - padding * 2) / worldLogicalHeight,
+        worldViewportWidth / worldLogicalWidth,
+        worldViewportHeight / worldLogicalHeight,
       );
 
-      canvas.width = Math.max(1, Math.floor(availableWidth));
-      canvas.height = Math.max(1, Math.floor(availableHeight));
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const centerX = isInventory
@@ -181,7 +196,7 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
 
       const centerY = isInventory
         ? canvas.height / 2 - ((activeMinY + activeMaxY) / 2) * scale
-        : canvas.height / 2 - hexToPixel(worldViewCenter.q, worldViewCenter.r).y * scale;
+        : (padding + worldViewportHeight / 2) - hexToPixel(worldViewCenter.q, worldViewCenter.r).y * scale;
 
       const fieldCenter = getFieldCenterScreenPosition(worldViewCenter, scale, centerX, centerY);
       const visibleBoundaryVertices = computeVisibleFieldBoundaryVertices(

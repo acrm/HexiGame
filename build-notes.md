@@ -623,3 +623,5 @@
 - 2026w13-0.22 — 25w12-0.52: excavation progress now counts only the core cell (task_3_excavate_rings)
 
 - 2026w14-0.1 — Squashed: PWA integration, start screen redesign, and bump workflow updates
+
+- 2026w14-0.2 — Prevent world field overlap with hotbar
