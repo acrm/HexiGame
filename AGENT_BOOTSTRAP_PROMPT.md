@@ -99,10 +99,12 @@ Create or update a Node.js script that:
 
 - Supports args:
   - `--minor` (increment marketing minor, reset public build to 0)
+  - `--public-build` (increment marketing public build only for platform pipelines)
   - `--desc "..."` (description for notes)
   - `--version-only` (stage only version files; keep non-version scope pre-staged)
 - On regular bump:
-  - increments `marketing.publicBuild` by 1.
+  - keeps `marketing.publicBuild` unchanged,
+  - increments `technical.weeklyBump` by 1 (or resets to 1 on week rollover).
 - On `--minor` bump:
   - increments `marketing.minor` by 1,
   - resets `marketing.publicBuild` to `0`,

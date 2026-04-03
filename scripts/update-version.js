@@ -6,11 +6,13 @@
 
   Usage:
     node scripts/update-version.js --desc "Short description"
+    node scripts/update-version.js --public-build --desc "Platform artifact build"
     node scripts/update-version.js --minor --desc "Minor release description"
     node scripts/update-version.js --version-only --desc "Stage only version files"
 
   If --minor is passed, marketing minor is incremented and publicBuild resets to 0.
-  Otherwise only publicBuild is incremented.
+  publicBuild increments only when --public-build is explicitly passed
+  (intended for platform build pipelines).
 
   Technical weekly bump is incremented on every bump and reset to 1
   when calendar week changes.
@@ -44,11 +46,13 @@ function writeJson(filePath, data) {
 
 function getArgs() {
   const args = process.argv.slice(2);
-  const result = { minor: false, all: true, versionOnly: false, desc: null };
+  const result = { minor: false, publicBuild: false, all: true, versionOnly: false, desc: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--minor') {
       result.minor = true;
+    } else if (a === '--public-build') {
+      result.publicBuild = true;
     } else if (a === '--all') {
       result.all = true;
     } else if (a === '--version-only') {
@@ -256,7 +260,7 @@ function main() {
       sourceMajor,
       sourceMinor,
     );
-  } else {
+  } else if (args.publicBuild) {
     state.marketing.publicBuild += 1;
   }
 

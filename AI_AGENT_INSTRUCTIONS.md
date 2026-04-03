@@ -32,8 +32,10 @@ Whenever you, as an AI agent, finish a task that involves **any change to tracke
 
 ### Commands
 
-- **Bump public build only** (most common):
+- **Bump technical/version note only** (most common for agent tasks):
   - `npm run bump:build -- --desc "Short summary of changes"`
+- **Bump public build for platform artifact pipeline only**:
+  - `npm run bump:build -- --public-build --desc "Build platform artifacts"`
 - **Bump minor + reset public build to 0** (for platform release train update):
   - `npm run bump:minor -- --desc "Short summary of changes"`
 - **Version files only mode** (when non-version files are pre-staged manually):
@@ -47,6 +49,7 @@ Whenever you, as an AI agent, finish a task that involves **any change to tracke
   - `version.json` (`marketing`, `technical`, `currentVersion`).
   - `package.json` (`version` field).
   - Appends an entry to `build-notes.md` with the new version and description.
+  - `marketing.publicBuild` is changed only by `--public-build` and by `--minor` reset.
   - On `--minor`, generates release notes file `changelogs/v<major>.<minor>.md` from previous minor entries in `build-notes.md`.
 - If `--desc` is omitted, the script will try to use the latest git commit message.
 

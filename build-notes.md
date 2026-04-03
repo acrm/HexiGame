@@ -627,3 +627,5 @@
 - 2026w14-0.2 — Prevent world field overlap with hotbar
 
 - 0.0.3-y26w14b3 — Adopt semantic+technical versioning and unify platform release pipelines
+
+- 0.0.3-y26w14b4 — Keep publicBuild controlled only by platform pipelines

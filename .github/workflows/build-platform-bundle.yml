@@ -42,7 +42,7 @@ jobs:
           if [ -z "$DESC" ]; then
             DESC="Build itch.io + Yandex.Games artifact bundle"
           fi
-          npm run bump:build -- --desc "$DESC"
+          npm run bump:build -- --public-build --desc "$DESC"
 
       - name: Push version commit
         run: git push origin HEAD:${{ github.ref_name }}

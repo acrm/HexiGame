@@ -39,7 +39,8 @@ Version semantics:
 - `publicBuild` — platform artifact build number.
 - `y<yy>w<ww>b<weeklyBump>` — technical year/week and weekly bump index.
 
-`npm run bump:build` increments `publicBuild`.
+`npm run bump:build` does not change `publicBuild` by default.
+`npm run bump:build -- --public-build` increments `publicBuild` (platform artifacts pipeline only).
 `npm run bump:minor` increments `minor`, resets `publicBuild` to `0`, and generates `changelogs/v<major>.<minor>.md` from previous minor entries in `build-notes.md`.
 
 ## Development Commands
