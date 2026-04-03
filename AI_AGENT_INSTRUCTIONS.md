@@ -1,6 +1,6 @@
 # AI Agent Instructions
 
-This repository uses a weekly snapshot versioning scheme inspired by Minecraft.
+This repository uses a dual versioning scheme: marketing semver + technical week bump.
 
 ## Communication Language Policy
 
@@ -13,13 +13,18 @@ This repository uses a weekly snapshot versioning scheme inspired by Minecraft.
 - After any source code change, review the current design documentation (docs/GAME_LOGIC.md, docs/TODO.md).
 - If the change affects the design, update the documentation immediately to keep it accurate.
 
-- **Version format**: `<weekCode>-<minor>.<build>`
-  - `weekCode`: calendar week code, e.g. `25w48`.
-  - `minor`: minor snapshot number within the week, starting from `0`.
-  - `build`: build number within the minor snapshot, starting from `1`.
-  - Example: `25w48-0.1`.
+- **Version format**: `<major>.<minor>.<publicBuild>-y<yy>w<ww>b<weeklyBump>`
+  - Example: `0.0.1-y26w14b1`.
+  - `major`: marketing major release (changes only on official release milestones).
+  - `minor`: marketing platform release number.
+  - `publicBuild`: public build number for platform publication artifacts.
+  - `y<yy>w<ww>b<weeklyBump>`: technical week and bump index within that week.
 
 - **Version metadata** is stored in `version.json` and mirrored in `package.json`.
+  - `version.json` fields:
+    - `marketing.major`, `marketing.minor`, `marketing.publicBuild`
+    - `technical.year`, `technical.week`, `technical.weeklyBump`
+    - `currentVersion`
 
 ## Version bump rules for AI agents
 
@@ -27,9 +32,9 @@ Whenever you, as an AI agent, finish a task that involves **any change to tracke
 
 ### Commands
 
-- **Bump build only** (most common):
+- **Bump public build only** (most common):
   - `npm run bump:build -- --desc "Short summary of changes"`
-- **Bump minor + reset build to 1** (for larger feature groupings or breaking changes):
+- **Bump minor + reset public build to 0** (for platform release train update):
   - `npm run bump:minor -- --desc "Short summary of changes"`
 - **Version files only mode** (when non-version files are pre-staged manually):
   - `npm run bump:build -- --version-only --desc "Short summary of changes"`
@@ -39,15 +44,16 @@ Whenever you, as an AI agent, finish a task that involves **any change to tracke
 - By default, the script stages and commits the **entire working tree**.
 - In `--version-only` mode, the script stages only `version.json`, `package.json`, and `build-notes.md`; all other files must be pre-staged before running bump.
 - The script updates:
-  - `version.json` (`currentVersion`, `minor`, `build`).
+  - `version.json` (`marketing`, `technical`, `currentVersion`).
   - `package.json` (`version` field).
   - Appends an entry to `build-notes.md` with the new version and description.
+  - On `--minor`, generates release notes file `changelogs/v<major>.<minor>.md` from previous minor entries in `build-notes.md`.
 - If `--desc` is omitted, the script will try to use the latest git commit message.
 
 ### Commit messages
 
 - The bump script creates commit messages automatically with the **new version string**.
-  - Example: `25w48-0.3: adjust mobile joystick visuals`.
+  - Example: `0.1.0-y26w14b3: platform minor release`.
 
 Always run the appropriate bump command **after** your code changes are applied.
 

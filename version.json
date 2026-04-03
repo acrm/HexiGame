@@ -1,6 +1,13 @@
 {
-  "weekCode": "2026w14",
-  "minor": 0,
-  "build": 2,
-  "currentVersion": "2026w14-0.2"
+  "marketing": {
+    "major": 0,
+    "minor": 0,
+    "publicBuild": 3
+  },
+  "technical": {
+    "year": 2026,
+    "week": 14,
+    "weeklyBump": 3
+  },
+  "currentVersion": "0.0.3-y26w14b3"
 }

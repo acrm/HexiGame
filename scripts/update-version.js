@@ -1,24 +1,22 @@
 #!/usr/bin/env node
 /*
-  Weekly snapshot version updater.
-  Version format: <weekCode>-<minor>.<build>
-  Example: 25w48-0.1
+  Public platform version updater.
+  Version format: <major>.<minor>.<publicBuild>-y<yy>w<ww>b<weeklyBump>
+  Example: 0.0.1-y26w14b1
 
   Usage:
     node scripts/update-version.js --desc "Short description"
-    node scripts/update-version.js --minor --desc "Minor bump description"
+    node scripts/update-version.js --minor --desc "Minor release description"
     node scripts/update-version.js --version-only --desc "Stage only version files"
 
-  If --minor is passed, minor is incremented and build is reset to 1.
-  Otherwise only build is incremented.
+  If --minor is passed, marketing minor is incremented and publicBuild resets to 0.
+  Otherwise only publicBuild is incremented.
+
+  Technical weekly bump is incremented on every bump and reset to 1
+  when calendar week changes.
 
   By default, the script stages and commits the entire working tree.
-  Pass --version-only to stage only version.json / package.json / build-notes.md;
-  any other files must be pre-staged before calling the script.
-
-  Description is appended to build-notes.md together with new version.
-  If --desc is not provided, the script will try to use the last commit
-  message from git.
+  Pass --version-only to stage only version files.
 */
 
 import fs from 'fs';
@@ -33,6 +31,7 @@ const rootDir = path.resolve(__dirname, '..');
 const versionFile = path.join(rootDir, 'version.json');
 const notesFile = path.join(rootDir, 'build-notes.md');
 const pkgFile = path.join(rootDir, 'package.json');
+const changelogDir = path.join(rootDir, 'changelogs');
 
 function readJson(filePath) {
   const raw = fs.readFileSync(filePath, 'utf8');
@@ -75,20 +74,64 @@ function getLastCommitMessage() {
   }
 }
 
-function getWeekCode() {
+function getIsoWeekInfo() {
   const now = new Date();
-  const year = now.getFullYear();
-  const start = new Date(year, 0, 1);
-  const diff = now - start;
-  const oneDay = 1000 * 60 * 60 * 24;
-  const dayOfYear = Math.floor(diff / oneDay);
-  const week = Math.ceil((dayOfYear + start.getDay() + 1) / 7);
-  const paddedWeek = String(week).padStart(2, '0');
-  return `${year}w${paddedWeek}`;
+  const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const year = date.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return { year, week };
 }
 
-function formatVersion(weekCode, minor, build) {
-  return `${weekCode}-${minor}.${build}`;
+function parseLegacyWeekCode(weekCode) {
+  const match = /^([0-9]{4})w([0-9]{1,2})$/i.exec(String(weekCode ?? ''));
+  if (!match) return null;
+  return { year: Number(match[1]), week: Number(match[2]) };
+}
+
+function formatVersion(state) {
+  const yy = String(state.technical.year).slice(-2).padStart(2, '0');
+  const ww = String(state.technical.week).padStart(2, '0');
+  return `${state.marketing.major}.${state.marketing.minor}.${state.marketing.publicBuild}-y${yy}w${ww}b${state.technical.weeklyBump}`;
+}
+
+function normalizeVersionState(meta) {
+  const weekNow = getIsoWeekInfo();
+
+  if (meta?.marketing && meta?.technical) {
+    const marketingMajor = Number(meta.marketing.major) || 0;
+    const marketingMinor = Number(meta.marketing.minor) || 0;
+    const publicBuild = Number(meta.marketing.publicBuild) || 0;
+    const year = Number(meta.technical.year) || weekNow.year;
+    const week = Number(meta.technical.week) || weekNow.week;
+    const weeklyBump = Number(meta.technical.weeklyBump) || 0;
+
+    return {
+      marketing: { major: marketingMajor, minor: marketingMinor, publicBuild },
+      technical: { year, week, weeklyBump },
+      currentVersion: meta.currentVersion || '',
+    };
+  }
+
+  const legacyMinor = Number(meta?.minor) || 0;
+  const legacyBuild = Number(meta?.build) || 0;
+  const legacyWeek = parseLegacyWeekCode(meta?.weekCode);
+
+  return {
+    marketing: {
+      major: 0,
+      minor: legacyMinor,
+      publicBuild: legacyBuild,
+    },
+    technical: {
+      year: legacyWeek?.year || weekNow.year,
+      week: legacyWeek?.week || weekNow.week,
+      weeklyBump: legacyBuild,
+    },
+    currentVersion: meta?.currentVersion || '',
+  };
 }
 
 function updatePackageJson(newVersion) {
@@ -106,15 +149,59 @@ function appendBuildNote(newVersion, description) {
   }
 }
 
-function stageVersionFiles() {
-  execFileSync('git', ['add', '--', 'version.json', 'package.json', 'build-notes.md'], {
+function ensureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractMinorBuildNotes(major, minor) {
+  if (!fs.existsSync(notesFile)) {
+    return [];
+  }
+
+  const prefix = `${major}.${minor}.`;
+  const regex = new RegExp(`^-\\s+${escapeRegex(prefix)}\\d+(?:-[^\\s]+)?\\s+—\\s+(.+)$`);
+  const lines = fs.readFileSync(notesFile, 'utf8').split(/\r?\n/);
+
+  return lines
+    .map((line) => line.trim())
+    .filter((line) => regex.test(line))
+    .map((line) => line.replace(/^-\s+/, ''));
+}
+
+function generateMinorChangelog(newMajor, newMinor, sourceMajor, sourceMinor) {
+  ensureDir(changelogDir);
+  const changelogPath = path.join(changelogDir, `v${newMajor}.${newMinor}.md`);
+  const lines = extractMinorBuildNotes(sourceMajor, sourceMinor);
+  const content = [
+    `# Release ${newMajor}.${newMinor}.0`,
+    '',
+    `Source minor: ${sourceMajor}.${sourceMinor}.x`,
+    '',
+    lines.length > 0 ? '## Included Changes' : '## Included Changes',
+    '',
+    ...(lines.length > 0 ? lines.map((line) => `- ${line}`) : ['- No build notes found for the previous minor.']),
+    '',
+  ].join('\n');
+
+  fs.writeFileSync(changelogPath, content, 'utf8');
+  return path.relative(rootDir, changelogPath).replace(/\\/g, '/');
+}
+
+function stageVersionFiles(extraFiles = []) {
+  execFileSync('git', ['add', '--', 'version.json', 'package.json', 'build-notes.md', ...extraFiles], {
     cwd: rootDir,
     stdio: ['ignore', 'pipe', 'pipe'],
     encoding: 'utf8',
   });
 }
 
-function autoCommitVersionChanges(newVersion, description, stageAll) {
+function autoCommitVersionChanges(newVersion, description, stageAll, extraVersionFiles = []) {
   const commitMsg = `${newVersion}: ${description}`;
   try {
     if (stageAll) {
@@ -124,7 +211,7 @@ function autoCommitVersionChanges(newVersion, description, stageAll) {
         encoding: 'utf8',
       });
     } else {
-      stageVersionFiles();
+      stageVersionFiles(extraVersionFiles);
     }
 
     execFileSync('git', ['commit', '-m', commitMsg], {
@@ -146,33 +233,53 @@ function autoCommitVersionChanges(newVersion, description, stageAll) {
 
 function main() {
   const args = getArgs();
-  const meta = readJson(versionFile);
+  const rawMeta = readJson(versionFile);
+  const state = normalizeVersionState(rawMeta);
+  const weekNow = getIsoWeekInfo();
 
-  const currentWeekCode = getWeekCode();
-  let { minor, build } = meta;
+  const sameWeek = state.technical.year === weekNow.year && state.technical.week === weekNow.week;
+  state.technical.year = weekNow.year;
+  state.technical.week = weekNow.week;
+  state.technical.weeklyBump = sameWeek ? state.technical.weeklyBump + 1 : 1;
 
-  // If we've moved to a new week, reset minor and build
-  if (meta.weekCode !== currentWeekCode) {
-    minor = 0;
-    build = 1;
-  } else if (args.minor) {
-    minor += 1;
-    build = 1;
+  let generatedChangelog = null;
+
+  if (args.minor) {
+    const sourceMajor = state.marketing.major;
+    const sourceMinor = state.marketing.minor;
+
+    state.marketing.minor += 1;
+    state.marketing.publicBuild = 0;
+    generatedChangelog = generateMinorChangelog(
+      state.marketing.major,
+      state.marketing.minor,
+      sourceMajor,
+      sourceMinor,
+    );
   } else {
-    build += 1;
+    state.marketing.publicBuild += 1;
   }
 
-  const newVersion = formatVersion(currentWeekCode, minor, build);
+  const newVersion = formatVersion(state);
 
   const description = args.desc?.trim() || getLastCommitMessage() || 'No description provided.';
 
-  const updated = { weekCode: currentWeekCode, minor, build, currentVersion: newVersion };
+  const updated = {
+    marketing: state.marketing,
+    technical: state.technical,
+    currentVersion: newVersion,
+  };
   writeJson(versionFile, updated);
   updatePackageJson(newVersion);
   appendBuildNote(newVersion, description);
 
   // Auto-commit version changes
-  autoCommitVersionChanges(newVersion, description, args.all && !args.versionOnly);
+  autoCommitVersionChanges(
+    newVersion,
+    description,
+    args.all && !args.versionOnly,
+    generatedChangelog ? [generatedChangelog] : [],
+  );
 
   // Print version to allow other tools/agents to read it easily.
   // Example: node scripts/update-version.js --desc "Fix joystick position"

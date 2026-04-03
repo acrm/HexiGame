@@ -14,12 +14,13 @@ This guide walks you through publishing **Hexi** on itch.io.
 ### Using GitHub Actions (Recommended)
 
 1. Go to **Actions** tab in GitHub repository
-2. Select **Build for itch.io** workflow
+2. Select **Build Platform Bundle** workflow
 3. Click **Run workflow**
-4. Optional: Enter version tag (or leave empty to use current version)
+4. Optional: Enter build description (or leave empty for default)
 5. Wait for workflow to complete (~2-3 minutes)
-6. Download the artifact `hexi-itch-io-build` from the workflow run
-7. Extract the ZIP file inside (e.g., `hexi-web-2025w51-0.20.zip`)
+6. Download the artifact `hexi-platform-bundle` from the workflow run
+7. Extract the ZIP file inside (e.g., `hexi-platform-bundle-0.0.3-y26w14b3.zip`)
+8. Open the extracted `itch/` folder and zip its contents for itch.io upload
 
 ### Manual Build (Alternative)
 
@@ -168,7 +169,7 @@ A minimalist puzzle game where you navigate a hexagonal grid...
 ### Version Notes
 
 The workflow automatically includes version from `version.json` in the ZIP filename:
-- `hexi-web-2025w51-0.20.zip`
+- `hexi-platform-bundle-0.0.3-y26w14b3.zip`
 
 Update your itch.io description with current version after each upload.
 

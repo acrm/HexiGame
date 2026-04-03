@@ -1,0 +1,73 @@
+name: Release Minor Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      description:
+        description: "Minor release description"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump minor version and generate changelog
+        run: |
+          DESC="${{ github.event.inputs.description }}"
+          if [ -z "$DESC" ]; then
+            DESC="Prepare platform minor release"
+          fi
+          npm run bump:minor -- --desc "$DESC"
+
+      - name: Push version commit
+        run: git push origin HEAD:${{ github.ref_name }}
+
+      - name: Read release info
+        id: release
+        run: |
+          VERSION=$(node -p "require('./version.json').currentVersion")
+          MINOR=$(node -p "require('./version.json').marketing.minor")
+          MAJOR=$(node -p "require('./version.json').marketing.major")
+          CHANGELOG="changelogs/v${MAJOR}.${MINOR}.md"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "CHANGELOG=$CHANGELOG" >> "$GITHUB_OUTPUT"
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minor-release-changelog
+          path: ${{ steps.release.outputs.CHANGELOG }}
+          retention-days: 90
+
+      - name: Release summary
+        run: |
+          echo "## Minor release prepared ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version**: ${{ steps.release.outputs.VERSION }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Public build reset**: yes (to 0)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Changelog file**: ${{ steps.release.outputs.CHANGELOG }}" >> "$GITHUB_STEP_SUMMARY"

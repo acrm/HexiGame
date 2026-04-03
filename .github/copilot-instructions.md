@@ -4,7 +4,7 @@
 
 - **Chat language:** Russian only
 - **Code language:** English only  
-- **Commit messages:** Include version string, e.g. `25w48-0.3: feature summary`
+- **Commit messages:** Include version string, e.g. `0.0.1-y26w14b1: feature summary`
 
 ## Game Design Role
 
@@ -31,7 +31,16 @@ npm run bump:build -- --version-only --desc "Short English summary"
 
 In `--version-only` mode the script stages only version files, so all other intended file changes must be pre-staged before running bump.
 
-Version format: `<weekCode>-<minor>.<build>` (e.g., `25w48-0.50`).
+Version format: `<major>.<minor>.<publicBuild>-y<yy>w<ww>b<weeklyBump>` (e.g., `0.0.1-y26w14b1`).
+
+Version semantics:
+- `major` — marketing major, updated only on official release milestones.
+- `minor` — marketing minor release for platform updates.
+- `publicBuild` — platform artifact build number.
+- `y<yy>w<ww>b<weeklyBump>` — technical year/week and weekly bump index.
+
+`npm run bump:build` increments `publicBuild`.
+`npm run bump:minor` increments `minor`, resets `publicBuild` to `0`, and generates `changelogs/v<major>.<minor>.md` from previous minor entries in `build-notes.md`.
 
 ## Development Commands
 

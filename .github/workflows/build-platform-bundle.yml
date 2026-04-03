@@ -1,0 +1,97 @@
+name: Build Platform Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      description:
+        description: "Build note description for version bump"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump public build version
+        run: |
+          DESC="${{ github.event.inputs.description }}"
+          if [ -z "$DESC" ]; then
+            DESC="Build itch.io + Yandex.Games artifact bundle"
+          fi
+          npm run bump:build -- --desc "$DESC"
+
+      - name: Push version commit
+        run: git push origin HEAD:${{ github.ref_name }}
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./version.json').currentVersion")
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build itch.io target
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Collect itch.io files
+        run: |
+          mkdir -p platform-bundle/itch
+          cp -R dist/. platform-bundle/itch/
+
+      - name: Build Yandex.Games target
+        run: npm run build:yandex
+        env:
+          NODE_ENV: production
+
+      - name: Collect Yandex.Games files
+        run: |
+          mkdir -p platform-bundle/yandex
+          cp -R dist/. platform-bundle/yandex/
+
+      - name: Create combined archive
+        run: |
+          ARCHIVE="hexi-platform-bundle-${{ steps.version.outputs.VERSION }}.zip"
+          (cd platform-bundle && zip -r "../$ARCHIVE" .)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hexi-platform-bundle
+          path: hexi-platform-bundle-*.zip
+          retention-days: 90
+
+      - name: Build summary
+        run: |
+          echo "## Platform bundle ready ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version**: ${{ steps.version.outputs.VERSION }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Artifact**: hexi-platform-bundle-${{ steps.version.outputs.VERSION }}.zip" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Archive contains:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- itch/ (default build)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- yandex/ (yandex build)" >> "$GITHUB_STEP_SUMMARY"

@@ -33,14 +33,14 @@ Perform all steps below end-to-end. Do not stop at analysis.
 Create or update with these policy blocks:
 
 - Language policy (chat Russian, files English).
-- Version format: `<weekCode>-<minor>.<build>`.
+- Version format: `<major>.<minor>.<publicBuild>-y<yy>w<ww>b<weeklyBump>`.
 - Mandatory bump rule after **any tracked file change**.
 - Commands:
   - `npm run bump:build -- --desc "Short English summary"`
   - `npm run bump:minor -- --desc "Short English summary"`
 - Optional scoped mode:
   - `npm run bump:build -- --version-only --desc "Short English summary"`
-- Explain that version metadata is synchronized in `version.json` and `package.json`, and notes appended to `build-notes.md`.
+- Explain that version metadata is synchronized in `version.json` and `package.json`, notes are appended to `build-notes.md`, and minor bump generates a release changelog in `changelogs/`.
 - Explain that default bump behavior stages the entire working tree; `--version-only` stages only version files and requires other files to be pre-staged.
 - Commit message format requirement: `<version>: <description>`.
 - Standard git workflow sequence:
@@ -63,10 +63,17 @@ Create if missing with this schema:
 
 ```json
 {
-  "weekCode": "2026w10",
-  "minor": 0,
-  "build": 1,
-  "currentVersion": "2026w10-0.1"
+  "marketing": {
+    "major": 0,
+    "minor": 0,
+    "publicBuild": 1
+  },
+  "technical": {
+    "year": 2026,
+    "week": 10,
+    "weeklyBump": 1
+  },
+  "currentVersion": "0.0.1-y26w10b1"
 }
 ```
 
@@ -79,7 +86,7 @@ Create if missing:
 ```md
 # Build Notes
 
-- 2026w10-0.1 — Initial snapshot version entry.
+- 0.0.1-y26w10b1 — Initial snapshot version entry.
 ```
 
 Ensure future bumps append lines in format:
@@ -91,16 +98,22 @@ Ensure future bumps append lines in format:
 Create or update a Node.js script that:
 
 - Supports args:
-  - `--minor` (increment minor, reset build to 1)
+  - `--minor` (increment marketing minor, reset public build to 0)
   - `--desc "..."` (description for notes)
   - `--version-only` (stage only version files; keep non-version scope pre-staged)
 - On regular bump:
-  - increments `build` by 1.
+  - increments `marketing.publicBuild` by 1.
+- On `--minor` bump:
+  - increments `marketing.minor` by 1,
+  - resets `marketing.publicBuild` to `0`,
+  - creates `changelogs/v<major>.<minor>.md` from previous minor entries in `build-notes.md`.
 - On week rollover:
-  - sets `weekCode` to current,
-  - resets to `minor=0`, `build=1`.
+  - updates `technical.year`/`technical.week`,
+  - resets `technical.weeklyBump` to `1`.
+- On same week:
+  - increments `technical.weeklyBump` by `1`.
 - Updates:
-  - `version.json`,
+  - `version.json` (`marketing`, `technical`, `currentVersion`),
   - `package.json` field `version`,
   - appends to `build-notes.md`.
 - Automatically stages and commits changes with message format `<version>: <description>` when git is available.
