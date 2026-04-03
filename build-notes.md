@@ -629,3 +629,5 @@
 - 0.0.3-y26w14b3 — Adopt semantic+technical versioning and unify platform release pipelines
 
 - 0.0.3-y26w14b4 — Keep publicBuild controlled only by platform pipelines
+
+- 0.1.0-y26w14b5 — Prepare platform minor release

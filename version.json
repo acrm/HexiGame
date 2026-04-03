@@ -1,13 +1,13 @@
 {
   "marketing": {
     "major": 0,
-    "minor": 0,
-    "publicBuild": 3
+    "minor": 1,
+    "publicBuild": 0
   },
   "technical": {
     "year": 2026,
     "week": 14,
-    "weeklyBump": 4
+    "weeklyBump": 5
   },
-  "currentVersion": "0.0.3-y26w14b4"
+  "currentVersion": "0.1.0-y26w14b5"
 }
