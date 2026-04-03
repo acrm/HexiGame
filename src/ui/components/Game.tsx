@@ -28,6 +28,7 @@ import {
   saveSessionHistoryRecord,
   saveTrackSessionHistoryPreference,
 } from '../../appLogic/sessionHistory';
+import { loadSession } from '../../appLogic/sessionRepository';
 import {
   createInitialUserSettingsState,
   persistUserSettings,
@@ -508,6 +509,29 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'OPEN_SETTINGS' });
   };
 
+  const handleDownloadSession = () => {
+    const session = loadSession(localStorage);
+    if (!session) return;
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      version: 'hexi-session-v1',
+      session,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json',
+    });
+    const fileUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = `hexi-session-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(fileUrl);
+
+    playUiClick();
+  };
+
   const handleSelectHexiMapTab = () => {
     playUiClick();
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
@@ -879,13 +903,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         />
       )}
 
-      <GamePanels
-        isMobileLayout={isMobileLayout}
-        mobileTab={mobileTab}
-        hexiPediaProps={hexiPediaProps}
-        gameFieldProps={gameFieldProps}
-      />
-
       <GameOverlays
         isMobileLayout={isMobileLayout}
         mobileTab={mobileTab}
@@ -895,16 +912,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         structureWidgetProps={structureWidgetProps}
         sectionOrder={sectionOrder}
         showGuestStart={!guestStarted}
-        currentLanguage={language}
-        onLanguageChange={handleLanguageChange}
         hasResumableSession={resumeAvailable}
         onContinueSession={handleContinueSession}
-        onRestartSession={handleStartNewSession}
         onStartNewSession={handleStartNewSession}
+        onOpenSettings={handleOpenSettings}
+        onDownloadSession={handleDownloadSession}
         isSettingsOpen={isSettingsOpen}
         settingsProps={settingsProps}
         isMascotOpen={isMascotOpen}
         onCloseMascot={() => dispatchApp({ type: 'CLOSE_MASCOT' })}
+      />
+
+      <GamePanels
+        isMobileLayout={isMobileLayout}
+        mobileTab={mobileTab}
+        hexiPediaProps={hexiPediaProps}
+        gameFieldProps={gameFieldProps}
       />
 
       {guestStarted && !startupAnimationShown && (

@@ -38,11 +38,14 @@ Create or update with these policy blocks:
 - Commands:
   - `npm run bump:build -- --desc "Short English summary"`
   - `npm run bump:minor -- --desc "Short English summary"`
+- Optional scoped mode:
+  - `npm run bump:build -- --version-only --desc "Short English summary"`
 - Explain that version metadata is synchronized in `version.json` and `package.json`, and notes appended to `build-notes.md`.
+- Explain that default bump behavior stages the entire working tree; `--version-only` stages only version files and requires other files to be pre-staged.
 - Commit message format requirement: `<version>: <description>`.
 - Standard git workflow sequence:
   1) apply changes,
-  2) run bump (auto-commit),
+  2) run bump (auto-commit, default all files),
   3) run verification,
   4) no separate manual commit after bump.
 
@@ -90,6 +93,7 @@ Create or update a Node.js script that:
 - Supports args:
   - `--minor` (increment minor, reset build to 1)
   - `--desc "..."` (description for notes)
+  - `--version-only` (stage only version files; keep non-version scope pre-staged)
 - On regular bump:
   - increments `build` by 1.
 - On week rollover:
@@ -100,6 +104,8 @@ Create or update a Node.js script that:
   - `package.json` field `version`,
   - appends to `build-notes.md`.
 - Automatically stages and commits changes with message format `<version>: <description>` when git is available.
+  - Default: stage all tracked/untracked changes before commit.
+  - `--version-only`: stage only `version.json`, `package.json`, `build-notes.md` (other files must already be staged).
 - If `--desc` omitted, tries to use last git commit message; fallback to default text.
 - Prints the new version to stdout.
 

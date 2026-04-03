@@ -8,6 +8,54 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/700.css';
 
+// PWA Service Worker Registration
+async function registerServiceWorker() {
+	if (!('serviceWorker' in navigator)) {
+		console.log('Service Worker not supported in this browser');
+		return;
+	}
+
+	try {
+		// We use the pre-generated service worker from vite-plugin-pwa
+		const registration = await navigator.serviceWorker.register('/sw.js', {
+			scope: './',
+		});
+
+		console.log('Service Worker registered successfully:', registration);
+
+		// Handle updates
+		registration.addEventListener('updatefound', () => {
+			const newWorker = registration.installing;
+			if (!newWorker) return;
+
+			newWorker.addEventListener('statechange', () => {
+				if (newWorker.state === 'activated') {
+					// Show update notification or refresh
+					console.log('New Service Worker version available');
+					// You can emit an event here for the UI to show a "refresh" notification
+					window.dispatchEvent(new CustomEvent('sw-updated'));
+				}
+			});
+		});
+
+		// Check for updates periodically
+		setInterval(() => {
+			registration.update();
+		}, 60000); // Check every minute
+
+		return registration;
+	} catch (error) {
+		console.error('Service Worker registration failed:', error);
+	}
+}
+
+// Register service worker when DOM is ready
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', registerServiceWorker);
+} else {
+	registerServiceWorker();
+}
+
 // Vite exposes package.json version via import.meta.env if configured.
 // We pass it using define in vite.config.mts.
 const version = (import.meta as any).env.APP_VERSION as string | undefined;

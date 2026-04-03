@@ -191,6 +191,9 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Panel header controls (left → right): widget visibility toggle (tasks/structures/colors) | ▲▼ reorder | 📌 pin. No enable/disable toggle button — panel disappears automatically when not pinned and not active.
 - Panel section order is synced between HexiPedia and GameOverlays; overlay widgets (task, palette, structure) stack in section order.
 - The `Tasks`, `Structures`, and `Colors` panels include eye-toggle controls for their corresponding overlay widgets.
+- Mobile gameplay layout uses a fixed design width (`420px`, clamped by device width) and adapts vertically to the device height.
+- Mobile control blocks (tab bar + widget stack) are placed in normal document flow, so they do not overlap the playable field.
+- If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).
@@ -199,9 +202,10 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
 - World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
-- **Start screen** (shown before any session begins) presents: language selector (EN / RU, switches instantly without reload), and context-aware actions:
-  - If a prior session exists in localStorage: **Continue session** (resumes exactly where left off) and **Restart session** (wipes old state, starts fresh with a new random seed).
-  - If no prior session: **Start new session** (only option).
+- **Start screen** (shown before any session begins) uses the same visual language as in-game mobile UI (Roboto, app palette, panel/button styling) and stays inside the same forced-portrait mobile viewport container as gameplay:
+  - If a prior session exists in localStorage: **Continue session** and **Download session** are available.
+  - Always available: **New session** (starts a fresh run) and **Settings**.
+  - Language switching is done from **Settings** and applies immediately without reload.
 - Language is persisted in `hexigame.lang` (localStorage) and propagated reactively via a subscriber set in `i18n.ts`; all UI components re-render without a page reload.
 - Session lifecycle contract: a game session starts only after the player acts on the start screen (Continue, Restart, or Start new), persists continuously on every game-state update via `hexigame.session.state` and `hexigame.session.active.*`, survives page reload (the start screen detects `hexigame.guest.started` and shows Continue/Restart if a session exists), and is terminated only through `Reset Session` in Settings.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.

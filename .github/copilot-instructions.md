@@ -21,7 +21,17 @@ npm run bump:build -- --desc "Short English summary"     # common: build only
 npm run bump:minor -- --desc "Large feature/breaking"    # less common
 ```
 
-This updates `version.json`, `package.json`, and `build-notes.md`. Version format: `<weekCode>-<minor>.<build>` (e.g., `25w48-0.50`).
+Default bump behavior stages and commits the whole working tree, then updates `version.json`, `package.json`, and `build-notes.md`.
+
+Special mode (version files only):
+
+```bash
+npm run bump:build -- --version-only --desc "Short English summary"
+```
+
+In `--version-only` mode the script stages only version files, so all other intended file changes must be pre-staged before running bump.
+
+Version format: `<weekCode>-<minor>.<build>` (e.g., `25w48-0.50`).
 
 ## Development Commands
 
@@ -41,9 +51,15 @@ After every version bump, the `npm run bump:build` / `npm run bump:minor` script
 
 **For any task with file changes:**
 
-1. Apply code changes
-2. Bump version: `npm run bump:build -- --desc "Description"`
+1. Apply code changes.
+2. Run bump (default all-staged behavior): `npm run bump:build -- --desc "Description"`.
 3. Do **not** run an additional `git add` / `git commit` after bump.
+
+**Version-only mode workflow (optional):**
+
+1. Pre-stage only the non-version files you want in commit.
+2. Run bump: `npm run bump:build -- --version-only --desc "Description"`.
+3. Do **not** run extra commit commands.
 
 **For critical bug fixes** (game broken/unrendered):
 - Keep functional context in the bump description (`--desc`) and run one more bump if needed.

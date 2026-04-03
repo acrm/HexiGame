@@ -7,14 +7,14 @@
   Usage:
     node scripts/update-version.js --desc "Short description"
     node scripts/update-version.js --minor --desc "Minor bump description"
-    node scripts/update-version.js --all --desc "Stage all changes before bump"
+    node scripts/update-version.js --version-only --desc "Stage only version files"
 
   If --minor is passed, minor is incremented and build is reset to 1.
   Otherwise only build is incremented.
 
-  By default, the script commits the already staged change set together with
-  version.json / package.json / build-notes.md. Pass --all to keep the old
-  behavior and stage the entire working tree before committing.
+  By default, the script stages and commits the entire working tree.
+  Pass --version-only to stage only version.json / package.json / build-notes.md;
+  any other files must be pre-staged before calling the script.
 
   Description is appended to build-notes.md together with new version.
   If --desc is not provided, the script will try to use the last commit
@@ -45,13 +45,16 @@ function writeJson(filePath, data) {
 
 function getArgs() {
   const args = process.argv.slice(2);
-  const result = { minor: false, all: false, desc: null };
+  const result = { minor: false, all: true, versionOnly: false, desc: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--minor') {
       result.minor = true;
     } else if (a === '--all') {
       result.all = true;
+    } else if (a === '--version-only') {
+      result.versionOnly = true;
+      result.all = false;
     } else if (a === '--desc') {
       result.desc = args[i + 1] ?? '';
       i++;
@@ -169,7 +172,7 @@ function main() {
   appendBuildNote(newVersion, description);
 
   // Auto-commit version changes
-  autoCommitVersionChanges(newVersion, description, args.all);
+  autoCommitVersionChanges(newVersion, description, args.all && !args.versionOnly);
 
   // Print version to allow other tools/agents to read it easily.
   // Example: node scripts/update-version.js --desc "Fix joystick position"

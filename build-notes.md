@@ -621,3 +621,5 @@
 - 2026w13-0.21 — 25w12-0.51: update all platform docs/metadata for mobile-only, touch-first release
 
 - 2026w13-0.22 — 25w12-0.52: excavation progress now counts only the core cell (task_3_excavate_rings)
+
+- 2026w14-0.1 — Squashed: PWA integration, start screen redesign, and bump workflow updates

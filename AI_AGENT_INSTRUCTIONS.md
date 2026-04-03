@@ -31,9 +31,13 @@ Whenever you, as an AI agent, finish a task that involves **any change to tracke
   - `npm run bump:build -- --desc "Short summary of changes"`
 - **Bump minor + reset build to 1** (for larger feature groupings or breaking changes):
   - `npm run bump:minor -- --desc "Short summary of changes"`
+- **Version files only mode** (when non-version files are pre-staged manually):
+  - `npm run bump:build -- --version-only --desc "Short summary of changes"`
 
 ### Behaviour
 
+- By default, the script stages and commits the **entire working tree**.
+- In `--version-only` mode, the script stages only `version.json`, `package.json`, and `build-notes.md`; all other files must be pre-staged before running bump.
 - The script updates:
   - `version.json` (`currentVersion`, `minor`, `build`).
   - `package.json` (`version` field).
@@ -54,6 +58,12 @@ Always run the appropriate bump command **after** your code changes are applied.
 1. Apply all code changes
 2. Run version bump: `npm run bump:build -- --desc "Description"`
 3. Do **not** run a separate `git add` / `git commit`; bump script commits automatically.
+
+**Optional process for pre-staged commit scope:**
+
+1. Stage only intended non-version files manually.
+2. Run: `npm run bump:build -- --version-only --desc "Description"`
+3. Do **not** run a separate `git commit`.
 
 **For critical bug fixes** (game doesn't render, major visual corruption, etc.):
 
