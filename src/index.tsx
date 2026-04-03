@@ -10,6 +10,10 @@ import '@fontsource/roboto/700.css';
 
 // PWA Service Worker Registration
 async function registerServiceWorker() {
+	if (import.meta.env.DEV) {
+		return;
+	}
+
 	if (!('serviceWorker' in navigator)) {
 		console.log('Service Worker not supported in this browser');
 		return;

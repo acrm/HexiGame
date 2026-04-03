@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw.ts',
-        manifestFilename: 'manifest.json',
+        manifestFilename: 'site.webmanifest',
         manifest: {
           name: 'Hexi Game',
           short_name: 'Hexi',
