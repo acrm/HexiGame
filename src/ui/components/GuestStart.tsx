@@ -41,11 +41,14 @@ export const GuestStart: React.FC<GuestStartProps> = ({
   return (
     <div className="guest-start-screen">
       <div className="guest-start-content hexipedia-style">
-        <div className="gs-header">
-          <div className="gs-title-tab">HexiOS {marketingVersion}</div>
+        {/* Tab bar — same visual structure as in-game mobile-tab-bar */}
+        <div className="gs-tab-bar">
+          <div className="gs-tabs-container">
+            <div className="gs-system-tab">HexiOS {marketingVersion}</div>
+          </div>
           <button
             type="button"
-            className="gs-settings-button"
+            className="settings-button"
             title={t('settings.open')}
             onClick={() => {
               onUiClick();
@@ -56,8 +59,12 @@ export const GuestStart: React.FC<GuestStartProps> = ({
           </button>
         </div>
 
-        <div className="gs-language-row">
-          <label className="gs-language-label" htmlFor="guest-start-language">{t('settings.language')}</label>
+        {/* Language bar — same style as hexipedia-section-filter */}
+        <div className="hexipedia-section-filter gs-language-bar">
+          <i className="fas fa-globe hexipedia-section-filter-icon" />
+          <label className="gs-language-label" htmlFor="guest-start-language">
+            {t('settings.language')}
+          </label>
           <select
             id="guest-start-language"
             className="gs-lang-select"
@@ -72,78 +79,85 @@ export const GuestStart: React.FC<GuestStartProps> = ({
           </select>
         </div>
 
-        {showHistory ? (
-          <div className="gs-section-wrapper">
-            <div className="gs-section-header" onClick={() => { onUiClick(); setShowHistory(false); }}>
-              <i className="fas fa-chevron-left" style={{ marginRight: 8, fontSize: 12 }} />
-              Сессии
-            </div>
-            <div className="gs-section-body">
-              {sessionHistory.length === 0 ? (
-                <div className="gs-empty">{t('stats.history.empty')}</div>
-              ) : (
-                sessionHistory.map((record) => (
-                  <div key={record.id} className="gs-history-row">
-                    <div className="gs-history-info">
-                      <span className="gs-history-date">{formatDateTime(record.startTime)}</span>
-                      <span className="gs-history-time">{record.gameTime}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="gs-action-btn gs-action-btn--primary"
-                      onClick={() => {
-                        onUiClick();
-                        onLoadHistorySession(record.id);
-                      }}
-                    >
-                      {t('action.loadSession')}
-                    </button>
-                  </div>
-                ))
-              )}
+        {/* Sessions section — same structure as hexipedia-section-wrapper */}
+        <div className="hexipedia-section-wrapper gs-sessions-section">
+          <div className="hexipedia-section-header-container">
+            <div className="hexipedia-section-header" style={{ cursor: 'default' }}>
+              <span className="hexipedia-section-toggle">▼</span>
+              {t('sessions.title')}
             </div>
           </div>
-        ) : (
-          <div className="gs-section-wrapper">
-            <div className="gs-section-header">Сессии</div>
-            <div className="gs-section-body">
-              {hasResumableSession && (
-                <button
-                  type="button"
-                  className="gs-action-btn gs-action-btn--menu"
-                  onClick={() => {
-                    onUiClick();
-                    onContinue();
-                  }}
-                >
-                  {t('action.connect')}
-                </button>
-              )}
+          <div className="gs-session-body">
+            {hasResumableSession && (
               <button
                 type="button"
-                className="gs-action-btn gs-action-btn--menu"
+                className="gs-nav-btn"
                 onClick={() => {
                   onUiClick();
-                  onStartNew();
+                  onContinue();
                 }}
               >
-                {t('action.startNewGame')}
+                <span>{t('action.connect')}</span>
+                <i className="fas fa-chevron-right gs-nav-btn-chevron" />
               </button>
-              {sessionHistory.length > 0 && (
-                <button
-                  type="button"
-                  className="gs-action-btn gs-action-btn--menu"
-                  onClick={() => {
-                    onUiClick();
-                    setShowHistory(true);
-                  }}
-                >
+            )}
+            <button
+              type="button"
+              className="gs-nav-btn"
+              onClick={() => {
+                onUiClick();
+                onStartNew();
+              }}
+            >
+              <span>{t('action.startNewGame')}</span>
+              <i className="fas fa-chevron-right gs-nav-btn-chevron" />
+            </button>
+
+            {sessionHistory.length > 0 && (
+              <button
+                type="button"
+                className="gs-nav-btn gs-nav-btn--secondary"
+                onClick={() => {
+                  onUiClick();
+                  setShowHistory(h => !h);
+                }}
+              >
+                <span>
                   {t('action.sessionHistory')}
-                </button>
-              )}
-            </div>
+                  <span className="gs-history-count"> ({sessionHistory.length})</span>
+                </span>
+                <i className={`fas ${showHistory ? 'fa-chevron-up' : 'fa-chevron-down'} gs-nav-btn-chevron`} />
+              </button>
+            )}
+
+            {showHistory && (
+              <div className="gs-history-list">
+                {sessionHistory.length === 0 ? (
+                  <div className="gs-empty">{t('stats.history.empty')}</div>
+                ) : (
+                  sessionHistory.map((record) => (
+                    <div key={record.id} className="gs-history-row">
+                      <div className="gs-history-info">
+                        <span className="gs-history-date">{formatDateTime(record.startTime)}</span>
+                        <span className="gs-history-time">{record.gameTime}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="hexipedia-task-action"
+                        onClick={() => {
+                          onUiClick();
+                          onLoadHistorySession(record.id);
+                        }}
+                      >
+                        {t('action.loadSession')}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
