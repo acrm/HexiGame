@@ -15,9 +15,12 @@ interface SessionHistoryRecord {
   endTime: number;
   gameTicks: number;
   gameTime: string;
+  lastActionTime?: number;
+  actionCount?: number;
+  totalSessionTime?: number;
 }
 
-type HexiPediaSectionId = 'tasks' | 'stats' | 'structures' | 'colors';
+type HexiPediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
 interface HexiPediaProps {
   gameState: GameState;
@@ -55,6 +58,12 @@ interface HexiPediaProps {
   sectionOrder?: HexiPediaSectionId[];
   onChangeSectionOrder?: (order: HexiPediaSectionId[]) => void;
   currentSessionStartTick?: number;
+  currentSessionId?: string | null;
+  currentSessionRecord?: SessionHistoryRecord | null;
+  isPlaybackPaused?: boolean;
+  onSetPlaybackPaused?: (paused: boolean) => void;
+  onSeekToTick?: (tick: number) => void;
+  onDownloadSession?: (sessionId: string) => void;
 }
 
 function formatSessionTime(ticks: number): string {
@@ -138,14 +147,21 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   onSetSectionPinned,
   focusSectionId = null,
   onFocusSectionHandled,
-  sectionOrder = ['tasks', 'stats', 'structures', 'colors'] as HexiPediaSectionId[],
+  sectionOrder = ['tasks', 'session', 'structures', 'colors'] as HexiPediaSectionId[],
   onChangeSectionOrder,
   currentSessionStartTick = 0,
+  currentSessionId = null,
+  currentSessionRecord = null,
+  isPlaybackPaused = false,
+  onSetPlaybackPaused,
+  onSeekToTick,
+  onDownloadSession,
 }) => {
+  const [seekTickInput, setSeekTickInput] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(task?.id ?? null);
   const [collapsedSections, setCollapsedSections] = useState<Set<HexiPediaSectionId>>(
-    new Set<HexiPediaSectionId>(['stats', 'structures', 'colors']),
+    new Set<HexiPediaSectionId>(['session', 'structures', 'colors']),
   );
   const [deleteConfirmRecordId, setDeleteConfirmRecordId] = useState<string | null>(null);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -157,7 +173,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   );
   const sectionRefs = useRef<Record<HexiPediaSectionId, HTMLDivElement | null>>({
     tasks: null,
-    stats: null,
+    session: null,
     structures: null,
     colors: null,
   });
@@ -291,7 +307,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
 
   const sectionTitles: Record<HexiPediaSectionId, string> = {
     tasks: t('task.tasksTitle'),
-    stats: t('stats.title'),
+    session: t('session.title'),
     structures: t('structures.title'),
     colors: t('colors.title'),
   };
@@ -536,172 +552,149 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
             );
           }
 
-          if (sectionId === 'stats') {
-            return (
-              <div
-                key="stats"
-                ref={(element) => {
-                  sectionRefs.current.stats = element;
-                }}
-                className="hexipedia-section-wrapper"
-              >
-                <div className="hexipedia-section-header-container">
+          if (sectionId === 'session') {
+                return (
                   <div
-                    className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
-                    onClick={() => toggleSectionCollapse('stats')}
+                    key="session"
+                    ref={(element) => {
+                      sectionRefs.current.session = element;
+                    }}
+                    className="hexipedia-section-wrapper"
                   >
-                    <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
-                    <span className="hexipedia-section-title">{t('stats.title')}</span>
-                  </div>
-                  <div className="hexipedia-section-controls">
-                    {isPinned && (
-                      <>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionUp('stats')}
-                          disabled={!canMoveUp}
-                          title={t('hexipedia.section.moveUp')}
-                          aria-label={t('hexipedia.section.moveUp')}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionDown('stats')}
-                          disabled={!canMoveDown}
-                          title={t('hexipedia.section.moveDown')}
-                          aria-label={t('hexipedia.section.moveDown')}
-                        >
-                          ▼
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
-                      onClick={() => toggleSectionPinned('stats')}
-                      title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                      aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                    >
-                      <i className="fas fa-thumbtack" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-
-                {!isCollapsed && (
-                  <div className="hexipedia-stats-section">
-                    <div className="hexipedia-stats-content">
-                      <div className="hexipedia-stat-row">
-                        <span className="hexipedia-stat-label">{t('stats.sessionTime')}</span>
-                        <span className="hexipedia-stat-value">{formatSessionTime(sessionDuration)}</span>
+                    <div className="hexipedia-section-header-container">
+                      <div
+                        className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
+                        onClick={() => toggleSectionCollapse('session')}
+                      >
+                        <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+                        <span className="hexipedia-section-title">{t('session.title')}</span>
                       </div>
-                      <div className="hexipedia-stat-row">
-                        <span className="hexipedia-stat-label">{t('stats.sessionTicks')}</span>
-                        <span className="hexipedia-stat-value">{sessionDuration}</span>
-                      </div>
-
-                      <div className="hexipedia-history-subsection">
-                        <div className="hexipedia-history-header">
-                          <div className="hexipedia-history-title">{t('stats.history.title')}</div>
-                          <label className="hexipedia-history-toggle">
-                            <input
-                              type="checkbox"
-                              checked={trackSessionHistory}
-                              onChange={(event) => onToggleTrackHistory?.(event.target.checked)}
-                            />
-                            <span>{t('stats.history.track')}</span>
-                          </label>
-                        </div>
-
-                        {sessionHistory.length > 0 && (
-                          <div className="hexipedia-history-controls">
+                      <div className="hexipedia-section-controls">
+                        {currentSessionId && (
+                          <button
+                            className="hexipedia-section-move"
+                            onClick={() => onDownloadSession?.(currentSessionId)}
+                            title={t('action.download')}
+                            aria-label={t('action.download')}
+                          >
+                            <i className="fas fa-download" aria-hidden="true" />
+                          </button>
+                        )}
+                        {isPinned && (
+                          <>
                             <button
-                              className="hexipedia-history-clear-btn"
-                              onClick={() => setDeleteConfirmAll(true)}
+                              className="hexipedia-section-move"
+                              onClick={() => moveSectionUp('session')}
+                              disabled={!canMoveUp}
+                              title={t('hexipedia.section.moveUp')}
+                              aria-label={t('hexipedia.section.moveUp')}
                             >
-                              {t('stats.history.clearAll')}
+                              ▲
                             </button>
-                            {deleteConfirmAll && (
-                              <div className="hexipedia-delete-confirm">
-                                <span>{t('stats.history.confirmClearAll')}</span>
-                                <button
-                                  className="hexipedia-confirm-yes"
-                                  onClick={() => {
-                                    onClearSessionHistory?.();
-                                    setDeleteConfirmAll(false);
-                                  }}
-                                >
-                                  {t('common.yes')}
-                                </button>
-                                <button
-                                  className="hexipedia-confirm-no"
-                                  onClick={() => setDeleteConfirmAll(false)}
-                                >
-                                  {t('common.no')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                            <button
+                              className="hexipedia-section-move"
+                              onClick={() => moveSectionDown('session')}
+                              disabled={!canMoveDown}
+                              title={t('hexipedia.section.moveDown')}
+                              aria-label={t('hexipedia.section.moveDown')}
+                            >
+                              ▼
+                            </button>
+                          </>
                         )}
-
-                        {sessionHistory.length > 0 ? (
-                          <div className="hexipedia-history-list">
-                            {sessionHistory.slice(0, 20).map(record => {
-                              const startDate = new Date(record.startTime);
-                              const endDate = new Date(record.endTime);
-                              const dateStr = startDate.toLocaleDateString(locale, { month: '2-digit', day: '2-digit' });
-                              const startTimeStr = startDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-                              const endTimeStr = endDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-                              const showConfirm = deleteConfirmRecordId === record.id;
-
-                              return (
-                                <div key={record.id} className="hexipedia-history-item">
-                                  <span className="hexipedia-history-info">
-                                    {dateStr} {startTimeStr}—{endTimeStr}{' '}
-                                    <span className="hexipedia-history-duration">{record.gameTime}</span>{' '}
-                                    <span className="hexipedia-history-ticks">({record.gameTicks}{t('stats.history.tickShort')})</span>
-                                  </span>
-                                  {!showConfirm ? (
-                                    <button
-                                      className="hexipedia-history-delete-btn"
-                                      onClick={() => setDeleteConfirmRecordId(record.id)}
-                                      title={t('common.delete')}
-                                    >
-                                      ✕
-                                    </button>
-                                  ) : (
-                                    <div className="hexipedia-delete-confirm-inline">
-                                      <button
-                                        className="hexipedia-confirm-yes"
-                                        onClick={() => {
-                                          onDeleteSessionRecord?.(record.id);
-                                          setDeleteConfirmRecordId(null);
-                                        }}
-                                      >
-                                        {t('common.yes')}
-                                      </button>
-                                      <button
-                                        className="hexipedia-confirm-no"
-                                        onClick={() => setDeleteConfirmRecordId(null)}
-                                      >
-                                        {t('common.no')}
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="hexipedia-history-empty">{t('stats.history.empty')}</div>
-                        )}
+                        <button
+                          className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
+                          onClick={() => toggleSectionPinned('session')}
+                          title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
+                          aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
+                        >
+                          <i className="fas fa-thumbtack" aria-hidden="true" />
+                        </button>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          }
 
+                    {!isCollapsed && (
+                      <div className="hexipedia-stats-section">
+                        <div className="hexipedia-stats-content">
+                          {/* Session metadata */}
+                          <div className="hexipedia-stat-row">
+                            <span className="hexipedia-stat-label">{t('stats.sessionTime')}</span>
+                            <span className="hexipedia-stat-value">{formatSessionTime(sessionDuration)}</span>
+                          </div>
+                          <div className="hexipedia-stat-row">
+                            <span className="hexipedia-stat-label">{t('session.ticks')}</span>
+                            <span className="hexipedia-stat-value">{gameState.tick}</span>
+                          </div>
+                          {currentSessionRecord?.actionCount != null && (
+                            <div className="hexipedia-stat-row">
+                              <span className="hexipedia-stat-label">{t('session.actionCount')}</span>
+                              <span className="hexipedia-stat-value">{currentSessionRecord.actionCount}</span>
+                            </div>
+                          )}
+                          {currentSessionRecord?.startTime && (
+                            <div className="hexipedia-stat-row">
+                              <span className="hexipedia-stat-label">{t('session.startTime')}</span>
+                              <span className="hexipedia-stat-value">
+                                {new Date(currentSessionRecord.startTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Playback controls */}
+                          {onSeekToTick && (
+                            <div className="hexipedia-history-subsection">
+                              <div className="hexipedia-history-header">
+                                <div className="hexipedia-history-title">{t('playback.title')}</div>
+                              </div>
+                              <div className="hexipedia-playback-controls">
+                                <button
+                                  className="hexipedia-task-action"
+                                  onClick={() => onSetPlaybackPaused?.(!isPlaybackPaused)}
+                                >
+                                  <i className={`fas ${isPlaybackPaused ? 'fa-play' : 'fa-pause'}`} />
+                                  {' '}{isPlaybackPaused ? t('playback.resume') : t('playback.pause')}
+                                </button>
+                                <div className="hexipedia-playback-seek">
+                                  <input
+                                    type="number"
+                                    className="hexipedia-seek-input"
+                                    placeholder={t('playback.seekToTick')}
+                                    value={seekTickInput}
+                                    min={0}
+                                    onChange={(e) => setSeekTickInput(e.target.value)}
+                                  />
+                                  <button
+                                    className="hexipedia-task-action"
+                                    onClick={() => {
+                                      const tick = parseInt(seekTickInput, 10);
+                                      if (!Number.isNaN(tick)) {
+                                        onSeekToTick(tick);
+                                        setSeekTickInput('');
+                                      }
+                                    }}
+                                  >
+                                    {t('playback.play')}
+                                  </button>
+                                </div>
+                                <button
+                                  className="hexipedia-task-action"
+                                  disabled={!isPlaybackPaused}
+                                  onClick={() => {
+                                    onSeekToTick(gameState.tick + 1);
+                                  }}
+                                >
+                                  <i className="fas fa-step-forward" />
+                                  {' '}{t('playback.step')}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
           if (sectionId === 'structures') {
             return (
               <div

@@ -104,7 +104,7 @@ html, body {
   background: #000;
   position: relative;
   height: 48px;
-  grid-template-columns: minmax(0, 1fr) 56px;
+  grid-template-columns: minmax(0, 1fr) 48px 56px;
   align-items: stretch;
 }
 
@@ -268,6 +268,32 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.disconnect-button {
+  position: static;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  margin: 0;
+  background: transparent;
+  color: #cc4444;
+  border: none;
+  border-right: 1px solid #2a2a2a;
+  padding: 0;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.disconnect-button:hover {
+  color: #ff6666;
+  background: rgba(200, 50, 50, 0.15);
 }
 
 .settings-overlay {
@@ -584,5 +610,94 @@ html, body {
   padding: 16px;
   color: #666666;
   font-size: 13px;
+}
+
+/* Session action buttons row (New + Import) */
+.gs-session-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.gs-session-actions .gs-nav-btn {
+  flex: 1;
+}
+
+/* Session card */
+.gs-session-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #333333;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.gs-session-card--current {
+  background: #1a2a1a;
+  border-left: 2px solid #44aa44;
+}
+
+.gs-session-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gs-session-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #44aa44;
+}
+
+.gs-session-date {
+  font-size: 12px;
+  color: #999999;
+  white-space: nowrap;
+}
+
+.gs-session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: #888888;
+}
+
+.gs-session-meta i {
+  color: #666666;
+  margin-right: 3px;
+}
+
+/* Download/icon button */
+.gs-icon-btn {
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: #888888;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.gs-icon-btn:hover {
+  color: #aaddff;
+  border-color: #555555;
+}
+
+/* Primary nav button variant */
+.gs-nav-btn--primary {
+  background: #1a3a1a;
+  border-color: #44aa44;
+  color: #88ee88;
+}
+
+.gs-nav-btn--primary:hover {
+  background: #224422;
 }
 

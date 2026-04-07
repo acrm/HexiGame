@@ -10,7 +10,7 @@ import TutorialTaskIntroModal from '../TutorialTaskIntroModal';
 import ColorPaletteWidget from '../ColorPaletteWidget';
 import StructureProgressWidget from '../StructureProgressWidget';
 
-type HexiPediaSectionId = 'tasks' | 'stats' | 'structures' | 'colors';
+type HexiPediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
 interface GameOverlaysProps {
   isMobileLayout: boolean;
@@ -26,6 +26,10 @@ interface GameOverlaysProps {
   onStartNewSession: () => void;
   sessionHistory: SessionHistoryRecord[];
   onLoadHistorySession: (sessionId: string) => void;
+  currentSessionId: string | null;
+  onNewSession: () => void;
+  onDownloadSession: (sessionId: string) => void;
+  onImportSession: (file: File) => void;
   onOpenSettings: () => void;
   onGuestStartUiClick: () => void;
   language: Lang;
@@ -50,6 +54,10 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   onStartNewSession,
   sessionHistory,
   onLoadHistorySession,
+  currentSessionId,
+  onNewSession,
+  onDownloadSession,
+  onImportSession,
   onOpenSettings,
   onGuestStartUiClick,
   language,
@@ -87,6 +95,10 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
           onStartNew={onStartNewSession}
           sessionHistory={sessionHistory}
           onLoadHistorySession={onLoadHistorySession}
+            currentSessionId={currentSessionId}
+            onNewSession={onNewSession}
+            onDownloadSession={onDownloadSession}
+            onImportSession={onImportSession}
           onOpenSettings={onOpenSettings}
           onUiClick={onGuestStartUiClick}
           language={language}

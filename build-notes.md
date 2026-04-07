@@ -643,3 +643,5 @@
 - 0.1.0-y26w15b4 — Restyle start screen to match in-game visual language
 
 - 0.1.0-y26w15b5 — Field Lab dev tool: 6D field logic, canvas visualizer, time-perspective rendering
+
+- 0.1.0-y26w15b6 — Session action log, disconnect button, auto-disconnect on tab hide, session history redesign, HexiPedia session panel with playback controls

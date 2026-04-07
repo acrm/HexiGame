@@ -23,9 +23,12 @@ const DEFAULT_HISTORY_LIMIT = 20;
 export type SessionHistoryRecord = {
   id: string;
   startTime: number;
-  endTime: number;
+  endTime: number;            // wall-clock time of last save
   gameTicks: number;
   gameTime: string;
+  lastActionTime?: number;   // wall-clock timestamp of last user action
+  actionCount?: number;      // total user actions in session (non-TICK)
+  totalSessionTime?: number; // elapsed wall-clock ms while session was active
 };
 
 export type ActiveSessionMeta = {
@@ -64,6 +67,7 @@ function parseSessionHistory(raw: string | null): SessionHistoryRecord[] {
         && typeof (record as SessionHistoryRecord).endTime === 'number'
         && typeof (record as SessionHistoryRecord).gameTicks === 'number'
         && typeof (record as SessionHistoryRecord).gameTime === 'string';
+      // optional fields (lastActionTime, actionCount, totalSessionTime) are preserved as-is
     });
   } catch {
     return [];
@@ -128,6 +132,15 @@ export function addSessionToHistory(
   return next;
 }
 
+export type SessionMetadataUpdate = {
+  ticks?: number;
+  lastActionTime?: number;
+  actionCount?: number;
+  totalSessionTime?: number;
+  now?: number;
+  ticksPerSecond?: number;
+};
+
 export function saveSessionHistoryRecord(
   storage: StorageLike,
   sessionId: string,
@@ -159,6 +172,33 @@ export function saveSessionHistoryRecord(
   const next = clampSessionHistory(history, maxRecords);
   persistSessionHistory(storage, next);
   return next;
+}
+
+export function updateSessionMetadata(
+  storage: StorageLike,
+  sessionId: string,
+  update: SessionMetadataUpdate,
+): SessionHistoryRecord[] {
+  const history = loadSessionHistory(storage);
+  const idx = history.findIndex((r) => r.id === sessionId);
+  if (idx === -1) return history;
+
+  const rec = history[idx];
+  const ts = update.now ?? Date.now();
+  const tps = update.ticksPerSecond ?? DEFAULT_TICKS_PER_SECOND;
+  history[idx] = {
+    ...rec,
+    endTime: ts,
+    ...(update.ticks !== undefined && {
+      gameTicks: update.ticks,
+      gameTime: formatGameTime(update.ticks, tps),
+    }),
+    ...(update.lastActionTime !== undefined && { lastActionTime: update.lastActionTime }),
+    ...(update.actionCount !== undefined && { actionCount: update.actionCount }),
+    ...(update.totalSessionTime !== undefined && { totalSessionTime: update.totalSessionTime }),
+  };
+  persistSessionHistory(storage, history);
+  return history;
 }
 
 export function deleteSessionHistoryRecord(

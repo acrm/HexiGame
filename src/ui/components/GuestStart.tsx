@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { t, type Lang } from '../i18n';
 import type { SessionHistoryRecord } from '../../appLogic/sessionHistory';
 import version from '../../../version.json';
@@ -11,6 +11,10 @@ interface GuestStartProps {
   onUiClick: () => void;
   sessionHistory: SessionHistoryRecord[];
   onLoadHistorySession: (sessionId: string) => void;
+  currentSessionId: string | null;
+  onNewSession: () => void;
+  onDownloadSession: (sessionId: string) => void;
+  onImportSession: (file: File) => void;
   language: Lang;
   onLanguageChange: (lang: Lang) => void;
 }
@@ -32,10 +36,14 @@ export const GuestStart: React.FC<GuestStartProps> = ({
   onOpenSettings,
   sessionHistory,
   onLoadHistorySession,
+  currentSessionId,
+  onNewSession,
+  onDownloadSession,
+  onImportSession,
   language,
   onLanguageChange,
 }) => {
-  const [showHistory, setShowHistory] = useState(false);
+  const importFileRef = useRef<HTMLInputElement | null>(null);
   const marketingVersion = `v${version.marketing.major}.${version.marketing.minor}.${version.marketing.publicBuild}`;
 
   return (
@@ -79,7 +87,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
           </select>
         </div>
 
-        {/* Sessions section — same structure as hexipedia-section-wrapper */}
+        {/* Sessions section */}
         <div className="hexipedia-section-wrapper gs-sessions-section">
           <div className="hexipedia-section-header-container">
             <div className="hexipedia-section-header" style={{ cursor: 'default' }}>
@@ -88,72 +96,106 @@ export const GuestStart: React.FC<GuestStartProps> = ({
             </div>
           </div>
           <div className="gs-session-body">
-            {hasResumableSession && (
+            {/* Top action buttons: New and Load from file */}
+            <div className="gs-session-actions">
               <button
                 type="button"
                 className="gs-nav-btn"
-                onClick={() => {
-                  onUiClick();
-                  onContinue();
-                }}
+                onClick={() => { onUiClick(); onNewSession(); }}
               >
-                <span>{t('action.connect')}</span>
-                <i className="fas fa-chevron-right gs-nav-btn-chevron" />
+                <i className="fas fa-plus" style={{ marginRight: 6 }} />
+                <span>{t('action.newSession')}</span>
               </button>
-            )}
-            <button
-              type="button"
-              className="gs-nav-btn"
-              onClick={() => {
-                onUiClick();
-                onStartNew();
-              }}
-            >
-              <span>{t('action.startNewGame')}</span>
-              <i className="fas fa-chevron-right gs-nav-btn-chevron" />
-            </button>
-
-            {sessionHistory.length > 0 && (
               <button
                 type="button"
                 className="gs-nav-btn gs-nav-btn--secondary"
-                onClick={() => {
-                  onUiClick();
-                  setShowHistory(h => !h);
-                }}
+                onClick={() => { onUiClick(); importFileRef.current?.click(); }}
               >
-                <span>
-                  {t('action.sessionHistory')}
-                  <span className="gs-history-count"> ({sessionHistory.length})</span>
-                </span>
-                <i className={`fas ${showHistory ? 'fa-chevron-up' : 'fa-chevron-down'} gs-nav-btn-chevron`} />
+                <i className="fas fa-upload" style={{ marginRight: 6 }} />
+                <span>{t('action.importSession')}</span>
               </button>
-            )}
+              <input
+                ref={importFileRef}
+                type="file"
+                accept="application/json"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onImportSession(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
 
-            {showHistory && (
+            {/* Current session */}
+            {currentSessionId && hasResumableSession && (() => {
+              const rec = sessionHistory.find((r) => r.id === currentSessionId);
+              return (
+                <div className="gs-session-card gs-session-card--current">
+                  <div className="gs-session-card-header">
+                    <span className="gs-session-label">{t('session.currentSession')}</span>
+                    <button
+                      type="button"
+                      className="gs-icon-btn"
+                      title={t('action.download')}
+                      onClick={() => onDownloadSession(currentSessionId)}
+                    >
+                      <i className="fas fa-download" />
+                    </button>
+                  </div>
+                  {rec && (
+                    <div className="gs-session-meta">
+                      <span><i className="fas fa-clock" /> {formatDateTime(rec.startTime)}</span>
+                      {rec.actionCount != null && <span><i className="fas fa-hand-pointer" /> {rec.actionCount} {t('session.actionCount')}</span>}
+                      <span><i className="fas fa-stopwatch" /> {rec.gameTime}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="gs-nav-btn gs-nav-btn--primary"
+                    onClick={() => { onUiClick(); onContinue(); }}
+                  >
+                    <span>{t('action.loadSession')}</span>
+                    <i className="fas fa-chevron-right gs-nav-btn-chevron" />
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Other sessions */}
+            {sessionHistory.filter((r) => r.id !== currentSessionId).length > 0 && (
               <div className="gs-history-list">
-                {sessionHistory.length === 0 ? (
-                  <div className="gs-empty">{t('stats.history.empty')}</div>
-                ) : (
-                  sessionHistory.map((record) => (
-                    <div key={record.id} className="gs-history-row">
-                      <div className="gs-history-info">
-                        <span className="gs-history-date">{formatDateTime(record.startTime)}</span>
-                        <span className="gs-history-time">{record.gameTime}</span>
+                {sessionHistory
+                  .filter((r) => r.id !== currentSessionId)
+                  .sort((a, b) => (b.lastActionTime ?? b.endTime) - (a.lastActionTime ?? a.endTime))
+                  .map((record) => (
+                    <div key={record.id} className="gs-session-card">
+                      <div className="gs-session-card-header">
+                        <span className="gs-session-date">{formatDateTime(record.startTime)}</span>
+                        <button
+                          type="button"
+                          className="gs-icon-btn"
+                          title={t('action.download')}
+                          onClick={() => onDownloadSession(record.id)}
+                        >
+                          <i className="fas fa-download" />
+                        </button>
+                      </div>
+                      <div className="gs-session-meta">
+                        {record.actionCount != null && <span><i className="fas fa-hand-pointer" /> {record.actionCount} {t('session.actionCount')}</span>}
+                        <span><i className="fas fa-stopwatch" /> {record.gameTime}</span>
+                        {record.lastActionTime && <span><i className="fas fa-history" /> {formatDateTime(record.lastActionTime)}</span>}
                       </div>
                       <button
                         type="button"
-                        className="hexipedia-task-action"
-                        onClick={() => {
-                          onUiClick();
-                          onLoadHistorySession(record.id);
-                        }}
+                        className="gs-nav-btn gs-nav-btn--secondary"
+                        onClick={() => { onUiClick(); onLoadHistorySession(record.id); }}
                       >
-                        {t('action.loadSession')}
+                        <span>{t('action.switchSession')}</span>
+                        <i className="fas fa-chevron-right gs-nav-btn-chevron" />
                       </button>
                     </div>
-                  ))
-                )}
+                  ))}
               </div>
             )}
           </div>

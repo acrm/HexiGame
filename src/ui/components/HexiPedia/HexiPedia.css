@@ -624,6 +624,36 @@
 }
 
 .hexipedia-templates-section {
+/* Session playback controls */
+.hexipedia-playback-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.hexipedia-playback-seek {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.hexipedia-seek-input {
+  flex: 1;
+  background: #1e1e1e;
+  border: 1px solid #444444;
+  border-radius: 3px;
+  color: #cccccc;
+  font-size: 12px;
+  padding: 4px 8px;
+  min-width: 0;
+}
+
+.hexipedia-seek-input:focus {
+  outline: none;
+  border-color: #666666;
+}
+
   padding: 12px 16px;
   border-top: 1px solid #444444;
 }

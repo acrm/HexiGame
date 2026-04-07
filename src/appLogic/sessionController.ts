@@ -15,7 +15,10 @@ import type { Params } from '../gameLogic/core/params';
 import { DefaultParams, mulberry32 } from '../gameLogic/core/params';
 import { createInitialState } from '../gameLogic/core/grid';
 import { sessionReducer, type GameCommand } from './sessionReducer';
-import { restoreGameState, saveSession, clearSession, type SessionState } from './sessionRepository';
+import {
+  restoreGameState, saveSession, clearSession, type SessionState,
+  appendSessionAction, loadSessionLog, initSessionLog, saveSessionLog,
+} from './sessionRepository';
 
 // ─── Session Controller ────────────────────────────────────────────────────────
 
@@ -26,6 +29,8 @@ export interface SessionControllerOptions {
   onStateChange: (state: GameState) => void;
   /** Current mobile tab for session metadata */
   getMobileTab?: () => string | undefined;
+  /** Returns active session ID for action log (null = not in session) */
+  getSessionId?: () => string | null;
 }
 
 export interface SessionController {
@@ -39,18 +44,25 @@ export interface SessionController {
   stop: () => void;
   /** Pause/unpause the tick loop */
   setPaused: (paused: boolean) => void;
+  /** Returns current pause state */
+  getIsPaused: () => boolean;
   /** Reset session to fresh state and clear localStorage */
   resetSession: () => void;
   /** Reload session state from localStorage into the running controller */
   reloadSessionFromStorage: () => void;
   /** Enable/disable automatic persistence */
   enablePersistence: (enabled: boolean) => void;
+  /** Initialize action log for a new/continued session */
+  initLog: (sessionId: string) => void;
+  /** Replay session log up to targetTick and pause there */
+  seekToTick: (sessionId: string, targetTick: number) => void;
 }
 
 export function createSessionController(options: SessionControllerOptions): SessionController {
-  const { onStateChange, getMobileTab } = options;
+  const { onStateChange, getMobileTab, getSessionId } = options;
   const params: Params = { ...DefaultParams, ...(options.params ?? {}) };
-  const createRng = (): RNG => mulberry32(options.seed ?? Date.now());
+  const activeSeed: number = options.seed ?? Date.now();
+  const createRng = (): RNG => mulberry32(activeSeed);
   let rng: RNG = createRng();
 
   let currentState: GameState = createInitialState(params, rng);
@@ -73,6 +85,17 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   function dispatch(command: GameCommand): void {
     const nextState = sessionReducer(currentState, params, command);
+    // Log user actions (not TICK) to the session log
+    if (command.type !== 'TICK' && persistenceEnabled) {
+      const sessionId = getSessionId?.();
+      if (sessionId) {
+        appendSessionAction(sessionId, {
+          tick: currentState.tick,
+          wallTime: Date.now(),
+          command,
+        });
+      }
+    }
     setState(nextState);
   }
 
@@ -97,6 +120,60 @@ export function createSessionController(options: SessionControllerOptions): Sess
 
   function setPaused(paused: boolean): void {
     isPaused = paused;
+  }
+
+  function getIsPaused(): boolean {
+    return isPaused;
+  }
+
+  // ─── Session log ─────────────────────────────────────────────────────────────
+
+  function initLog(sessionId: string): void {
+    initSessionLog(sessionId, activeSeed, currentState.tick);
+  }
+
+  /** Replay all logged actions up to targetTick, pausing there. */
+  function seekToTick(sessionId: string, targetTick: number): void {
+    const log = loadSessionLog(sessionId);
+    if (!log) return;
+
+    // Replay from seed
+    const replayRng = mulberry32(log.seed);
+    let state = createInitialState(params, replayRng);
+
+    // Group entries by tick for fast lookup
+    const entriesByTick = new Map<number, GameCommand[]>();
+    for (const entry of log.entries) {
+      if (!entriesByTick.has(entry.tick)) entriesByTick.set(entry.tick, []);
+      entriesByTick.get(entry.tick)!.push(entry.command);
+    }
+
+    const clampedTarget = Math.max(log.startTick, Math.min(targetTick, currentState.tick));
+    for (let t = log.startTick; t < clampedTarget; t++) {
+      const cmds = entriesByTick.get(t);
+      if (cmds) {
+        for (const cmd of cmds) {
+          state = sessionReducer(state, params, cmd);
+        }
+      }
+      state = sessionReducer(state, params, { type: 'TICK', rng: replayRng });
+    }
+    // Apply user commands at targetTick without advancing time
+    const targetCmds = entriesByTick.get(clampedTarget);
+    if (targetCmds) {
+      for (const cmd of targetCmds) {
+        state = sessionReducer(state, params, cmd);
+      }
+    }
+
+    currentState = state;
+    isPaused = true;
+    onStateChange(state);
+    // Persist sought state
+    if (persistenceEnabled) {
+      const mobileTab = getMobileTab?.();
+      saveSession(state, mobileTab ? { mobileTab } : undefined);
+    }
   }
 
   // ─── Session reset ───────────────────────────────────────────────────────────
@@ -129,9 +206,12 @@ export function createSessionController(options: SessionControllerOptions): Sess
     start,
     stop,
     setPaused,
+    getIsPaused,
     resetSession,
     reloadSessionFromStorage,
     enablePersistence,
+    initLog,
+    seekToTick,
   };
 }
 

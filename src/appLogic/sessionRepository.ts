@@ -11,14 +11,16 @@
 
 import type { GameState } from '../gameLogic/core/types';
 import { clearActiveSessionMeta } from './sessionHistory';
-import type { StorageReader, StorageRemover, StorageWriter } from './sessionHistory';
+import type { StorageReader, StorageRemover, StorageWriter, StorageLike } from './sessionHistory';
 import { getTaskDefinition } from '../tasks/taskLevels';
+import type { GameCommand } from './sessionReducer';
 
 // ─── Storage key ───────────────────────────────────────────────────────────────
 
 const SESSION_KEY = 'hexigame.session.state';
 const GUEST_STARTED_KEY = 'hexigame.guest.started';
 const SESSION_BY_ID_PREFIX = 'hexigame.session.byId.';
+const SESSION_LOG_PREFIX = 'hexigame.session.log.';
 
 // ─── Serialization types ───────────────────────────────────────────────────────
 
@@ -323,4 +325,91 @@ export function deleteSessionById(
   storage: StorageRemover = localStorage,
 ): void {
   storage.removeItem(SESSION_BY_ID_PREFIX + sessionId);
+}
+
+// ─── Session action log ────────────────────────────────────────────────────────
+
+/** One user action entry in the session log. */
+export interface SessionActionEntry {
+  /** Game tick at which the command was dispatched. */
+  tick: number;
+  /** Wall-clock timestamp (ms) of the action. */
+  wallTime: number;
+  /** The full GameCommand (TICK commands are never stored here). */
+  command: GameCommand;
+}
+
+/** Full session log, including initial state for deterministic replay. */
+export interface SessionLog {
+  sessionId: string;
+  seed: number;
+  startTick: number;
+  startWallTime: number;
+  entries: SessionActionEntry[];
+}
+
+function sessionLogKey(sessionId: string): string {
+  return SESSION_LOG_PREFIX + sessionId;
+}
+
+export function loadSessionLog(
+  sessionId: string,
+  storage: StorageReader = localStorage,
+): SessionLog | null {
+  try {
+    const raw = storage.getItem(sessionLogKey(sessionId));
+    if (!raw) return null;
+    return JSON.parse(raw) as SessionLog;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSessionLog(
+  log: SessionLog,
+  storage: StorageWriter = localStorage,
+): void {
+  try {
+    storage.setItem(sessionLogKey(log.sessionId), JSON.stringify(log));
+  } catch {
+    // ignore write errors
+  }
+}
+
+/** Initialize a fresh session log (call when a session starts). */
+export function initSessionLog(
+  sessionId: string,
+  seed: number,
+  startTick: number,
+  storage: StorageWriter = localStorage,
+): SessionLog {
+  const log: SessionLog = {
+    sessionId,
+    seed,
+    startTick,
+    startWallTime: Date.now(),
+    entries: [],
+  };
+  saveSessionLog(log, storage);
+  return log;
+}
+
+/** Append a user action to the session log. */
+export function appendSessionAction(
+  sessionId: string,
+  entry: SessionActionEntry,
+  storage: StorageLike = localStorage,
+): void {
+  const log = loadSessionLog(sessionId, storage);
+  if (!log) return;
+  log.entries.push(entry);
+  saveSessionLog(log, storage);
+}
+
+/** Delete a session log from storage. */
+export function deleteSessionLog(
+  sessionId: string,
+  storage: StorageRemover = localStorage,
+): void {
+  storage.removeItem(sessionLogKey(sessionId));
 }

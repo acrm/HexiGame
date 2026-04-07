@@ -7,6 +7,7 @@ interface GameMobileTabsProps {
   onSelectHexiMap: () => void;
   onSelectHexiPedia: () => void;
   onOpenSettings: () => void;
+  onDisconnect: () => void;
 }
 
 export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
@@ -14,6 +15,7 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
   onSelectHexiMap,
   onSelectHexiPedia,
   onOpenSettings,
+  onDisconnect,
 }) => {
   return (
     <div className="mobile-tab-bar">
@@ -38,6 +40,13 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
           {t('tab.hexipedia')}
         </button>
       </div>
+      <button
+        className="disconnect-button"
+        onClick={onDisconnect}
+        title={t('action.disconnect')}
+      >
+        <i className="fas fa-power-off"></i>
+      </button>
       <button
         className="settings-button"
         onClick={onOpenSettings}

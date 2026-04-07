@@ -21,9 +21,6 @@ interface SettingsProps {
   onToggleShowFPS: (show: boolean) => void;
   isLeftHanded: boolean;
   onToggleLeftHanded: (isLeft: boolean) => void;
-  /** When true, shows a blue "Disconnect" button instead of "Reset Session". */
-  showDisconnect?: boolean;
-  onDisconnect?: () => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
@@ -44,8 +41,6 @@ export const Settings: React.FC<SettingsProps> = ({
   onToggleShowFPS,
   isLeftHanded,
   onToggleLeftHanded,
-  showDisconnect = false,
-  onDisconnect,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -166,17 +161,7 @@ export const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
 
-        {showDisconnect && onDisconnect ? (
-          <div className="settings-row">
-            <button
-              className="settings-action-button settings-disconnect"
-              onClick={() => { onDisconnect(); }}
-            >
-              {t('action.disconnect')}
-            </button>
-          </div>
-        ) : (
-          <div className="settings-row">
+        <div className="settings-row">
             {!showResetConfirm ? (
               <button className="settings-action-button settings-reset" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); handleReset(); }}>
                 {t('settings.resetSession')}
@@ -195,7 +180,6 @@ export const Settings: React.FC<SettingsProps> = ({
               </div>
             )}
           </div>
-        )}
 
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
           v{version.currentVersion}

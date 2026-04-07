@@ -28,7 +28,7 @@ import {
   saveSessionHistoryRecord,
   saveTrackSessionHistoryPreference,
 } from '../../appLogic/sessionHistory';
-import { saveSessionById, loadSessionById } from '../../appLogic/sessionRepository';
+import { saveSessionById, loadSessionById, loadSessionLog, saveSessionLog, type SessionLog } from '../../appLogic/sessionRepository';
 import {
   createInitialUserSettingsState,
   persistUserSettings,
@@ -66,7 +66,7 @@ import {
 import { mulberry32 } from '../../gameLogic/core/params';
 
 const MASCOT_FACING_DIR_INDEX = 1;
-type HexiPediaSectionId = 'tasks' | 'stats' | 'structures' | 'colors';
+type HexiPediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
 interface TaskIntroModalState {
   taskId: string;
@@ -122,7 +122,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     'tasks',
   ]);
   const [focusHexiPediaSection, setFocusHexiPediaSection] = useState<HexiPediaSectionId | null>(null);
-  const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'stats', 'structures', 'colors']);
+  const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'session', 'structures', 'colors']);
   const [taskIntroModal, setTaskIntroModal] = useState<TaskIntroModalState | null>(null);
   const [pendingForceResetTaskId, setPendingForceResetTaskId] = useState<string | null>(null);
   const taskWidgetRef = useRef<HTMLDivElement | null>(null);
@@ -134,6 +134,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     return initializeGameState(mergedParams, rng);
   });
 
+  // Stable refs for use in effects/event handlers (avoid stale closures)
+  const sessionIdRef = useRef<string | null>(currentSessionId ?? null);
+  sessionIdRef.current = currentSessionId ?? null;
+  const gameStateRef = useRef<GameState>(gameState);
+  gameStateRef.current = gameState;
+  const autoDcRef = useRef({ guestStarted, currentSessionId, trackSessionHistory });
+  autoDcRef.current = { guestStarted, currentSessionId, trackSessionHistory };
+
+  const [playbackIsPaused, setPlaybackIsPaused] = useState(false);
+
   // Session controller (tick loop, persistence, dispatch)
   const controllerRef = useRef<SessionController | null>(null);
   if (!controllerRef.current) {
@@ -142,6 +152,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       seed,
       onStateChange: setGameState,
       getMobileTab: () => mobileTab,
+      getSessionId: () => sessionIdRef.current,
     });
   }
   const {
@@ -170,8 +181,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Update pause state
   useEffect(() => {
-    controllerRef.current?.setPaused(isPaused || taskIntroModal !== null);
-  }, [isPaused, taskIntroModal]);
+    controllerRef.current?.setPaused(isPaused || playbackIsPaused || taskIntroModal !== null);
+  }, [isPaused, playbackIsPaused, taskIntroModal]);
 
   // Reset session wrapper
   const resetSession = () => {
@@ -239,22 +250,35 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     invalidMoveTarget: gameState.invalidMoveTarget,
   });
 
-  // Pause/resume on tab visibility change
+  // Auto-disconnect when page is hidden while a session is active
   useEffect(() => {
     const onVis = () => {
+      const { guestStarted: gs, currentSessionId: sid, trackSessionHistory: track } = autoDcRef.current;
       if (document.hidden) {
-        dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: true });
+        if (gs) {
+          if (sid) {
+            saveSessionById(sid, gameStateRef.current);
+            if (track) {
+              const history = saveSessionHistoryRecord(localStorage, sid, gameStateRef.current.tick);
+              dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+            }
+          }
+          dispatchApp({ type: 'GUEST_DISCONNECTED' });
+          setTaskIntroModal(null);
+          setPendingForceResetTaskId(null);
+          dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+        } else {
+          dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: true });
+        }
         integration.onGameplayStop();
       } else {
         dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: false });
-        if (guestStarted && !isSettingsOpen) {
-          integration.onGameplayStart();
-        }
       }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [guestStarted, isSettingsOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-only; autoDcRef + gameStateRef provide current values
 
   // Ensure active session identity exists while a guest session is running.
   useEffect(() => {
@@ -592,6 +616,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       dispatchApp({ type: 'SET_SESSION_HISTORY', history });
     }
 
+    controllerRef.current?.initLog(newSession.id);
+
     playUiClick();
     playMusicFromInteraction();
   };
@@ -606,11 +632,42 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     playMusicFromInteraction();
   };
 
+  const handleDownloadSession = (sessionId: string) => {
+    const log = loadSessionLog(sessionId);
+    if (!log) return;
+    const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hexigame-session-${sessionId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportSession = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text !== 'string') return;
+        const log = JSON.parse(text) as SessionLog;
+        if (!log.sessionId || !Array.isArray(log.entries)) return;
+        saveSessionLog(log);
+        playUiClick();
+      } catch {
+        // invalid file — ignore
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleStartupAnimationComplete = () => {
     dispatch({ type: 'MOVE_CURSOR_DIRECTION', dirIndex: MASCOT_FACING_DIR_INDEX });
     dispatchApp({ type: 'STARTUP_ANIMATION_COMPLETE' });
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
   };
+
+  const currentSessionRecord = sessionHistory.find((r) => r.id === currentSessionId) ?? null;
 
   const hexiPediaProps: React.ComponentProps<typeof HexiPedia> = {
     gameState,
@@ -682,6 +739,17 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     sectionOrder,
     onChangeSectionOrder: setSectionOrder,
     currentSessionStartTick,
+    currentSessionId: currentSessionId ?? null,
+    currentSessionRecord,
+    isPlaybackPaused: playbackIsPaused,
+    onSetPlaybackPaused: (paused: boolean) => {
+      setPlaybackIsPaused(paused);
+    },
+    onSeekToTick: (tick: number) => {
+      const sid = currentSessionId;
+      if (sid) controllerRef.current?.seekToTick(sid, tick);
+    },
+    onDownloadSession: handleDownloadSession,
   };
 
   const gameFieldProps: React.ComponentProps<typeof GameField> = {
@@ -779,8 +847,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     language,
     onLanguageChange: handleLanguageChange,
     onClose: () => dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden }),
-    showDisconnect: guestStarted,
-    onDisconnect: handleDisconnect,
     onResetSession: () => {
       resetSession();
       dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
@@ -927,6 +993,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           onSelectHexiMap={handleSelectHexiMapTab}
           onSelectHexiPedia={handleSelectHexiPediaTab}
           onOpenSettings={handleOpenSettings}
+          onDisconnect={handleDisconnect}
         />
       )}
 
@@ -944,6 +1011,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         onStartNewSession={handleStartNewSession}
         sessionHistory={sessionHistory}
         onLoadHistorySession={handleLoadHistorySession}
+        currentSessionId={currentSessionId ?? null}
+        onNewSession={handleStartNewSession}
+        onDownloadSession={handleDownloadSession}
+        onImportSession={handleImportSession}
         onOpenSettings={handleOpenSettings}
         onGuestStartUiClick={playUiClick}
         language={language}
