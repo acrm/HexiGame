@@ -27,6 +27,7 @@ interface GameOverlaysProps {
   sessionHistory: SessionHistoryRecord[];
   onLoadHistorySession: (sessionId: string) => void;
   onOpenSettings: () => void;
+  onGuestStartUiClick: () => void;
   language: Lang;
   onLanguageChange: (lang: Lang) => void;
   isSettingsOpen: boolean;
@@ -50,6 +51,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   sessionHistory,
   onLoadHistorySession,
   onOpenSettings,
+  onGuestStartUiClick,
   language,
   onLanguageChange,
   isSettingsOpen,
@@ -86,6 +88,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
           sessionHistory={sessionHistory}
           onLoadHistorySession={onLoadHistorySession}
           onOpenSettings={onOpenSettings}
+          onUiClick={onGuestStartUiClick}
           language={language}
           onLanguageChange={onLanguageChange}
         />

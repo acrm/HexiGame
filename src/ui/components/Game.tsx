@@ -231,7 +231,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   });
 
   const { playUiClick, playSound, playMusicFromInteraction } = useGameAudio({
-    guestStarted,
     musicEnabled,
     musicVolume,
     soundEnabled,
@@ -946,6 +945,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         sessionHistory={sessionHistory}
         onLoadHistorySession={handleLoadHistorySession}
         onOpenSettings={handleOpenSettings}
+        onGuestStartUiClick={playUiClick}
         language={language}
         onLanguageChange={handleLanguageChange}
         isSettingsOpen={isSettingsOpen}

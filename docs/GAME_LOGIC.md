@@ -203,12 +203,17 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
 - **Start screen** (shown while guest gameplay is disconnected) uses HexiPedia visual language (dark section blocks, compact header, in-panel controls) and stays inside the same forced-portrait mobile viewport container as gameplay:
+  - Header contains a single-tab title: **HexiOS v<marketing-version>** (for example `v0.1.0`, sourced from `version.json` marketing metadata).
+  - Settings are opened from a gear button in the top-right corner (same interaction model as in-game mobile tab bar).
   - If an active resumable session exists: **Connect** is shown.
-  - Always available: **New session** and **Settings**.
+  - Always available: **New session**.
   - If history contains records: **Session history** opens a sub-view with per-session **Continue** actions.
-  - Language switching is available directly on the start screen header and applies immediately without reload.
+  - Session panel title is **Сессии**.
+  - Language switching is rendered as a dedicated selector row on the start screen (search bar is not shown).
 - Language is persisted in `hexigame.lang` (localStorage) and propagated reactively via a subscriber set in `i18n.ts`; all UI components re-render without a page reload.
 - Session lifecycle contract: a game session starts only after the player acts on the start screen (Connect or Start new), persists continuously on every game-state update via `hexigame.session.state` and `hexigame.session.active.*`, survives page reload, and can be detached from gameplay via **Disconnect** (in in-game Settings) without clearing persisted state.
+- Session history switch contract: pressing **Continue** in history first persists the currently active session snapshot, then loads the selected session snapshot, then connects into that selected saved state.
+- Audio contract: background music and UI sounds use the same controller lifecycle on both start screen and gameplay; transitioning between these UI states does not pause music unless music is disabled or the document becomes hidden.
 - In-game Settings action model is context-dependent:
   - when opened during active gameplay, **Disconnect** is shown instead of **Reset Session**;
   - when opened from the start screen, **Disconnect** is hidden.

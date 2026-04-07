@@ -3,7 +3,6 @@ import type { GameState, InvalidMoveTargetState } from '../../gameLogic/core/typ
 import { audioController } from '../../appLogic/audioController';
 
 export interface UseGameAudioOptions {
-  guestStarted: boolean;
   musicEnabled: boolean;
   musicVolume: number;
   soundEnabled: boolean;
@@ -20,7 +19,6 @@ export interface UseGameAudioApi {
 
 export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
   const {
-    guestStarted,
     musicEnabled,
     musicVolume,
     soundEnabled,
@@ -53,18 +51,18 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
   }, [soundVolume]);
 
   useEffect(() => {
-    if (guestStarted && musicEnabled && !document.hidden) {
+    if (musicEnabled && !document.hidden) {
       audioController.playMusic(musicEnabled, musicVolume);
       return;
     }
 
-    if (!guestStarted || !musicEnabled) {
+    if (!musicEnabled) {
       audioController.pauseMusic();
     }
-  }, [guestStarted, musicEnabled, musicVolume]);
+  }, [musicEnabled, musicVolume]);
 
   useEffect(() => {
-    if (!guestStarted || !musicEnabled) return;
+    if (!musicEnabled) return;
 
     const resumeOnInteraction = () => {
       audioController.playMusic(musicEnabled, musicVolume);
@@ -82,7 +80,7 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
       window.removeEventListener('keydown', resumeOnInteraction);
       window.removeEventListener('touchstart', resumeOnInteraction);
     };
-  }, [guestStarted, musicEnabled, musicVolume]);
+  }, [musicEnabled, musicVolume]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
