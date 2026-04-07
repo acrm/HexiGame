@@ -190,6 +190,7 @@ export default defineConfig(({ mode }) => {
         input: {
           main: path.resolve(__dirname, 'index.html'),
           editor: path.resolve(__dirname, 'editor/index.html'),
+          fieldLab: path.resolve(__dirname, 'field-lab/index.html'),
         },
       },
     },

@@ -1,6 +1,6 @@
 {
   "name": "hexigame",
-  "version": "0.1.0-y26w15b4",
+  "version": "0.1.0-y26w15b5",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "dev:yandex": "vite --mode yandex",
     "build": "vite build && bash scripts/copy-metadata.sh",
     "build:yandex": "bash -lc \"VITE_MODE=yandex npx vite build --mode yandex && VITE_MODE=yandex bash scripts/copy-metadata.sh\"",
+    "setup:fieldlab": "node scripts/setup-field-lab.js",
     "bump:build": "node scripts/update-version.js",
     "bump:minor": "node scripts/update-version.js --minor",
     "preview": "vite preview",

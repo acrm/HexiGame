@@ -569,4 +569,166 @@ The prototype's gameplay centers on probabilistic single-color capture and spati
 - `HexiPediaSectionDefaults` (initial collapse state, custom section order)
 - `TemplateRotationAllowed` (bool, can player modify template orientation after anchoring)
 
+---
+## 12. Multidimensional Field System (Research / Dev Tool)
+
+### 12.0 Overview
+
+A deterministic, seed-based, time-evolving hex field where each cell is either EMPTY or carries one of K colors. The field is defined as a pure function:
+
+```
+state(q, r, tick) = G( F6(seed, X0..X5(q, r, tick, params)) )
+```
+
+No state history is required — same seed + same (q, r) + same tick always yields the same result. This enables multiplayer consistency, replay, and instant seek-to-any-tick.
+
+The 2D hex grid is treated as a **slice through a 6-dimensional material**: time is dimension 0, and the spatial plane is embedded in dimensions 1–5 via a seed-derived matrix. The resulting field looks like chaotic "background turbulence" with smooth spatial and temporal coherence.
+
+This system is currently implemented in the **Field Lab** developer tool (`/field-lab/`). Game integration is a design-open question (see §12.9).
+
+---
+
+### 12.1 6D Coordinate Mapping
+
+Inputs: axial coordinate (q, r), logical tick t (seconds = tick/12), seed, user params.
+
+```
+X0 = (tick/12) * timeScale          // time axis
+
+X1 = a11*q + a12*r
+X2 = a21*q + a22*r
+X3 = a31*q + a32*r
+X4 = a41*q + a42*r + u1             // u1 = extra-dim offset
+X5 = a51*q + a52*r + u2             // u2 = extra-dim offset
+```
+
+The 5×2 matrix **M = {aij}** is generated deterministically from the seed (mulberry32 RNG) and stays constant for the lifetime of the world. `u1`, `u2` let designers "slide" the 2D slice through 6D space without moving the avatar.
+
+---
+
+### 12.2 Field Generator F6
+
+Two modes, both returning two independent values `(density, hueNoise) ∈ [0,1]`:
+
+| Mode | Algorithm | Feel |
+|------|-----------|------|
+| `value` | 6D multilinear value noise, 64-corner lattice, quintic fade | Smooth, cloud-like blobs |
+| `hash`  | 6D integer hash, no interpolation | Crispy, cellular, "static" |
+
+Both use separate seeds for density and hue channels (XOR-derived from the world seed) so fill pattern and color pattern are visually decorrelated.
+
+---
+
+### 12.3 State Mapping G
+
+```
+if density < densityThreshold:
+    cell = EMPTY
+else:
+    cell = COLORED
+    colorIndex = floor(hueNoise * K)   clamped to [0, K-1]
+```
+
+Average fill ratio ≈ `1 − densityThreshold`.
+
+---
+
+### 12.4 Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `seed` | 42 | World identity; determines matrix M and all noise offsets |
+| `K` | 6 | Number of discrete colors (2–16) |
+| `timeScale` | 0.5 | Speed of temporal evolution; 0 = frozen world |
+| `baseFreq` | 1.0 | Spatial frequency; lower → larger blobs, higher → finer noise |
+| `densityThreshold` | 0.55 | Fill sparsity; higher → fewer colored cells |
+| `u1`, `u2` | 0, 0 | Extra-dimension offsets; slide 2D slice through 6D without moving |
+| `P` | 12 | Lookahead depth in ticks for time-perspective rendering |
+| `blinkOnTicks` | 4 | ON phase duration for perspective blink (ticks) |
+| `blinkOffTicks` | 3 | OFF phase duration for perspective blink (ticks) |
+| `mode` | `'value'` | Noise algorithm (`'value'` or `'hash'`) |
+
+---
+
+### 12.5 Time-Perspective Rendering (visual layer only)
+
+This layer **does not modify** the underlying field; it changes how cells are displayed.
+
+**EMPTY cells — "future color echo":**
+- Sample state at `t + k·Δt` for `k = 1..P`
+- On first COLORED sample at depth k:
+  - `alpha = 1 − (k−1)/P` (closer future → brighter echo)
+  - Blink ON: draw echo color at alpha × 0.6
+  - Blink OFF: draw black
+
+**COLORED cells — "near-future decay warning":**
+- Sample state at `t + k·Δt` for `k = 1..P`
+- On first EMPTY sample at depth k:
+  - `proximity = (P − (k−1)) / P` (closer emptiness → stronger tint)
+  - `overlayAlpha = 0.2 + 0.4 × proximity`
+  - Blink ON: blend base color toward white by overlayAlpha
+  - Blink OFF: draw base color only
+
+Perceptual effect: empty space has "ghosts" of near-future colors; colored cells "glow" when they're about to vanish.
+
+---
+
+### 12.6 Determinism Contract
+
+For consistent replays and future multiplayer:
+- Use tick index `n` (integer); `t = n / 12`
+- All clients must share: `seed`, `params`, `(q, r)`, `n`
+- Perspective rendering is client-side only and does not affect authoritative state
+
+---
+
+### 12.7 Performance Notes
+
+- Worst-case perspective cost: up to P additional `evalCell` calls per visible cell
+- At radius 8 (217 cells), P=12: ~2 600 `evalCell` calls per frame
+- Each `evalCell` (value mode): 64 hash ops + 6 fades + accumulation
+- Practical 12 Hz budget is well within reach; P ≤ 20 recommended for gameplay use
+- Optimization: skip perspective for cells far from the colorless/colored boundary
+
+---
+
+### 12.8 Designer Qualitative Guide
+
+| Knob | Effect |
+|------|--------|
+| ↑ `densityThreshold` | Sparser field, more open space |
+| ↑ `baseFreq` | Finer granularity, more texture |
+| ↑ `timeScale` | Faster "boiling" / evolution |
+| ↑ `K` | More color variety; smaller same-color regions |
+| ↑ `P` | Stronger depth illusion; more motion cues |
+| ↑ `blinkOffTicks` | Stronger strobe; more legible at cost of harshness |
+| Adjust `u1`, `u2` | Explore the 6D world; find visually interesting slices |
+
+---
+
+### 12.9 Open Design Questions
+
+1. **Cosmetic vs gameplay**: Should the field be purely background ambience, or affect mechanics (e.g., capture chance modifier, hazard tiles)?
+2. **Player agency**: Should `u1`, `u2` be accessible in-game (e.g., movement in extra dims unlocked by collecting certain colors)?
+3. **World model**: Global-consistent coordinates (infinite plane) or arena-bounded (relative to player position)?
+4. **Perspective as information**: Is the time-echo a gameplay signal players exploit, or purely atmospheric?
+5. **Local modifications**: Should player actions temporarily shift `u1`/`u2` locally, creating "ripples" in the field?
+
+---
+
+### 12.10 Dev Tool: Field Lab (`/field-lab/`)
+
+Entry: `field-lab/index.html` → `src/fieldLab.tsx` → `src/fieldLab/FieldLabPage.tsx`
+
+Pure logic: `src/fieldLab/fieldLogic.ts`  
+Key exports: `buildMatrix(seed)`, `evalCell(q,r,tick,params,matrix)`, `evalCellPerspective(q,r,tick,params,matrix)`
+
+The Field Lab provides:
+- Live canvas visualization of the hex field with animation (12 Hz ticks)
+- Controls for all parameters from §12.4
+- Toggleable time-perspective overlay
+- Play/Pause/1×/2×/4× speed
+- Grid radius and hex size controls
+- Reset to defaults
+
 These can be added without altering core logic structure.
