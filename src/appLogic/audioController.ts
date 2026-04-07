@@ -9,13 +9,15 @@ interface MusicPlaybackState {
 }
 
 interface AudioControllerInterface {
-  init: () => void;
+  init: (initialMusicVolume?: number, initialSoundVolume?: number) => void;
   preload: () => Promise<void>;
   setMusicEnabled: (enabled: boolean) => void;
+  setSoundEnabled: (enabled: boolean) => void;
   playMusic: (enabled: boolean, volume: number) => Promise<void>;
   pauseMusic: () => void;
   resumeMusic: (enabled: boolean, volume: number) => void;
   updateMusicVolume: (volume: number) => void;
+  updateSoundVolume: (volume: number) => void;
   playRandomSound: (enabled: boolean, volume: number) => void;
   playSound: (path: string, enabled: boolean, volume: number) => void;
   invalidMove: (enabled: boolean, volume: number) => void;
@@ -29,6 +31,8 @@ class AudioController implements AudioControllerInterface {
   private playbackState: MusicPlaybackState;
   private musicEnabled = true;
   private musicVolume = 0.5;
+  private soundEnabled = true;
+  private soundVolume = 0.5;
   private lastPersistedSecond = -1;
 
   constructor() {
@@ -45,8 +49,11 @@ class AudioController implements AudioControllerInterface {
     }
   }
 
-  init(): void {
-    // Load initial track (not playing yet, waiting for user interaction)
+  init(initialMusicVolume?: number, initialSoundVolume?: number): void {
+    // Apply initial volumes BEFORE loading the track so the first track
+    // is created at the user-configured volume, not the hardcoded default.
+    if (initialMusicVolume !== undefined) this.musicVolume = initialMusicVolume;
+    if (initialSoundVolume !== undefined) this.soundVolume = initialSoundVolume;
     this.loadTrack();
   }
 
@@ -147,6 +154,10 @@ class AudioController implements AudioControllerInterface {
     }
   }
 
+  setSoundEnabled(enabled: boolean): void {
+    this.soundEnabled = enabled;
+  }
+
   async playMusic(enabled: boolean, volume: number): Promise<void> {
     this.musicEnabled = enabled;
     this.musicVolume = volume;
@@ -178,6 +189,10 @@ class AudioController implements AudioControllerInterface {
   updateMusicVolume(volume: number): void {
     this.musicVolume = volume;
     this.currentTrack?.setVolume(volume);
+  }
+
+  updateSoundVolume(volume: number): void {
+    this.soundVolume = volume;
   }
 
   playRandomSound(enabled: boolean, volume: number): void {

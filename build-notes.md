@@ -633,3 +633,5 @@
 - 0.1.0-y26w14b5 — Prepare platform minor release
 
 - 0.1.0-y26w14b6 — Fix audio mute lifecycle and settings toggle behavior
+
+- 0.1.0-y26w15b1 — Preserve configured volume on track change and across sound effects

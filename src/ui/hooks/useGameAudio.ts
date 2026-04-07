@@ -30,7 +30,10 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
   } = options;
 
   useEffect(() => {
-    audioController.init();
+    // Pass the user-configured volumes immediately so the first track
+    // is loaded at the correct volume, not the controller's hardcoded default.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    audioController.init(musicVolume, soundVolume);
   }, []);
 
   useEffect(() => {
@@ -38,8 +41,16 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
   }, [musicEnabled]);
 
   useEffect(() => {
+    audioController.setSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
+
+  useEffect(() => {
     audioController.updateMusicVolume(musicVolume);
   }, [musicVolume]);
+
+  useEffect(() => {
+    audioController.updateSoundVolume(soundVolume);
+  }, [soundVolume]);
 
   useEffect(() => {
     if (guestStarted && musicEnabled && !document.hidden) {

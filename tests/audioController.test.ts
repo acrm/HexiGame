@@ -118,4 +118,28 @@ describe('audioController', () => {
     expect(tracks[0].setVolume).toHaveBeenCalledWith(0.4);
     expect(tracks[0].play).toHaveBeenCalledTimes(1);
   });
+
+  it('applies updated volume (via updateMusicVolume) to the next track after track end', async () => {
+    const { audioController, tracks } = await loadAudioController();
+
+    audioController.init();
+    // Start playing, then update volume via the dedicated method (slider change path)
+    await audioController.playMusic(true, 0.5);
+    audioController.updateMusicVolume(0.15);
+
+    tracks[0].emitEnded();
+
+    expect(tracks).toHaveLength(2);
+    expect(tracks[1].setVolume).toHaveBeenCalledWith(0.15);
+    expect(tracks[1].play).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies initial volumes passed to init() to the first track', async () => {
+    const { audioController, tracks } = await loadAudioController();
+
+    audioController.init(0.22, 0.75);
+
+    // First track must be loaded at the provided music volume, not the default 0.5
+    expect(tracks[0].setVolume).toHaveBeenCalledWith(0.22);
+  });
 });
