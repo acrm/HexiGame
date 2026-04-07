@@ -39,6 +39,7 @@ export type AppShellCommand =
   | { type: 'VISIBILITY_CHANGED'; hidden: boolean }
   | { type: 'GUEST_STARTED' }
   | { type: 'GUEST_CONTINUED' }
+  | { type: 'GUEST_DISCONNECTED' }
   | { type: 'STARTUP_ANIMATION_COMPLETE' }
   | { type: 'RESET_AFTER_SESSION_RESET' }
   | { type: 'SET_TRACK_SESSION_HISTORY'; enabled: boolean }
@@ -150,6 +151,18 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
         resumeAvailable: true,
         startupAnimationShown: true,
         isPaused: state.isSettingsOpen ? true : false,
+      };
+
+    case 'GUEST_DISCONNECTED':
+      // Return to start screen without clearing session data.
+      // The session state in localStorage is preserved; resumeAvailable stays true.
+      return {
+        ...state,
+        guestStarted: false,
+        startupAnimationShown: false,
+        isPaused: true,
+        isSettingsOpen: false,
+        isMascotOpen: false,
       };
 
     case 'STARTUP_ANIMATION_COMPLETE':

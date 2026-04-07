@@ -18,6 +18,7 @@ import { getTaskDefinition } from '../tasks/taskLevels';
 
 const SESSION_KEY = 'hexigame.session.state';
 const GUEST_STARTED_KEY = 'hexigame.guest.started';
+const SESSION_BY_ID_PREFIX = 'hexigame.session.byId.';
 
 // ─── Serialization types ───────────────────────────────────────────────────────
 
@@ -282,4 +283,44 @@ export function restoreGameState(
     return fallbackState;
   }
   return deserializeState(session.gameState, fallbackState);
+}
+
+// ─── Per-session state persistence ────────────────────────────────────────────
+
+/** Save a full game state snapshot keyed by session ID. */
+export function saveSessionById(
+  sessionId: string,
+  state: GameState,
+  storage: StorageWriter = localStorage,
+): void {
+  try {
+    storage.setItem(
+      SESSION_BY_ID_PREFIX + sessionId,
+      JSON.stringify({ gameState: serializeState(state) }),
+    );
+  } catch {
+    // ignore write errors
+  }
+}
+
+/** Load a game state snapshot by session ID, or null if not found. */
+export function loadSessionById(
+  sessionId: string,
+  storage: StorageReader = localStorage,
+): SessionState | null {
+  try {
+    const raw = storage.getItem(SESSION_BY_ID_PREFIX + sessionId);
+    if (!raw) return null;
+    return JSON.parse(raw) as SessionState;
+  } catch {
+    return null;
+  }
+}
+
+/** Remove a per-session state snapshot from storage (e.g. after deletion from history). */
+export function deleteSessionById(
+  sessionId: string,
+  storage: StorageRemover = localStorage,
+): void {
+  storage.removeItem(SESSION_BY_ID_PREFIX + sessionId);
 }

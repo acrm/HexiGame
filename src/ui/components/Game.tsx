@@ -28,7 +28,7 @@ import {
   saveSessionHistoryRecord,
   saveTrackSessionHistoryPreference,
 } from '../../appLogic/sessionHistory';
-import { loadSession } from '../../appLogic/sessionRepository';
+import { saveSessionById, loadSessionById } from '../../appLogic/sessionRepository';
 import {
   createInitialUserSettingsState,
   persistUserSettings,
@@ -144,7 +144,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       getMobileTab: () => mobileTab,
     });
   }
-  const { dispatch, resetSession: resetSessionController } = controllerRef.current;
+  const {
+    dispatch,
+    resetSession: resetSessionController,
+    reloadSessionFromStorage,
+  } = controllerRef.current;
 
   useEffect(() => subscribeToLanguageChange(setLanguageState), []);
 
@@ -509,29 +513,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'OPEN_SETTINGS' });
   };
 
-  const handleDownloadSession = () => {
-    const session = loadSession(localStorage);
-    if (!session) return;
-
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      version: 'hexi-session-v1',
-      session,
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: 'application/json',
-    });
-    const fileUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = `hexi-session-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(fileUrl);
-
-    playUiClick();
-  };
-
   const handleSelectHexiMapTab = () => {
     playUiClick();
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
@@ -550,7 +531,52 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     localStorage.setItem('hexigame.guest.started', '1');
   };
 
+  const handleDisconnect = () => {
+    if (currentSessionId) {
+      saveSessionById(currentSessionId, gameState);
+      if (trackSessionHistory) {
+        const history = saveSessionHistoryRecord(localStorage, currentSessionId, gameState.tick);
+        dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+      }
+    }
+
+    dispatchApp({ type: 'GUEST_DISCONNECTED' });
+    setTaskIntroModal(null);
+    setPendingForceResetTaskId(null);
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    playUiClick();
+  };
+
+  const handleLoadHistorySession = (sessionId: string) => {
+    if (currentSessionId) {
+      saveSessionById(currentSessionId, gameState);
+      if (trackSessionHistory) {
+        const history = saveSessionHistoryRecord(localStorage, currentSessionId, gameState.tick);
+        dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+      }
+    }
+
+    const saved = loadSessionById(sessionId, localStorage);
+    if (!saved?.gameState) return;
+
+    localStorage.setItem('hexigame.session.state', JSON.stringify(saved));
+    persistGuestStartFlag();
+    reloadSessionFromStorage();
+
+    dispatchApp({ type: 'GUEST_CONTINUED' });
+    dispatchApp({ type: 'SESSION_STARTED', sessionId, startTick: saved.gameState.tick ?? 0 });
+    saveActiveSessionMeta(localStorage, { id: sessionId, startTick: saved.gameState.tick ?? 0 });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    setTaskIntroModal(null);
+    setPendingForceResetTaskId(null);
+    playUiClick();
+    playMusicFromInteraction();
+  };
+
   const handleStartNewSession = () => {
+    if (currentSessionId) {
+      saveSessionById(currentSessionId, gameState);
+    }
     resetSession();
     persistGuestStartFlag();
     dispatchApp({ type: 'GUEST_STARTED' });
@@ -754,6 +780,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     language,
     onLanguageChange: handleLanguageChange,
     onClose: () => dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden }),
+    showDisconnect: guestStarted,
+    onDisconnect: handleDisconnect,
     onResetSession: () => {
       resetSession();
       dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
@@ -915,8 +943,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         hasResumableSession={resumeAvailable}
         onContinueSession={handleContinueSession}
         onStartNewSession={handleStartNewSession}
+        sessionHistory={sessionHistory}
+        onLoadHistorySession={handleLoadHistorySession}
         onOpenSettings={handleOpenSettings}
-        onDownloadSession={handleDownloadSession}
+        language={language}
+        onLanguageChange={handleLanguageChange}
         isSettingsOpen={isSettingsOpen}
         settingsProps={settingsProps}
         isMascotOpen={isMascotOpen}

@@ -1,5 +1,7 @@
 import React from 'react';
 import type { MobileTab } from '../../../appLogic/appShellReducer';
+import type { SessionHistoryRecord } from '../../../appLogic/sessionHistory';
+import type { Lang } from '../../i18n';
 import GuestStart from '../GuestStart';
 import Mascot from '../Mascot';
 import Settings from '../Settings';
@@ -22,8 +24,11 @@ interface GameOverlaysProps {
   hasResumableSession: boolean;
   onContinueSession: () => void;
   onStartNewSession: () => void;
+  sessionHistory: SessionHistoryRecord[];
+  onLoadHistorySession: (sessionId: string) => void;
   onOpenSettings: () => void;
-  onDownloadSession: () => void;
+  language: Lang;
+  onLanguageChange: (lang: Lang) => void;
   isSettingsOpen: boolean;
   settingsProps: React.ComponentProps<typeof Settings>;
   isMascotOpen: boolean;
@@ -42,8 +47,11 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   hasResumableSession,
   onContinueSession,
   onStartNewSession,
+  sessionHistory,
+  onLoadHistorySession,
   onOpenSettings,
-  onDownloadSession,
+  language,
+  onLanguageChange,
   isSettingsOpen,
   settingsProps,
   isMascotOpen,
@@ -75,8 +83,11 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
           hasResumableSession={hasResumableSession}
           onContinue={onContinueSession}
           onStartNew={onStartNewSession}
+          sessionHistory={sessionHistory}
+          onLoadHistorySession={onLoadHistorySession}
           onOpenSettings={onOpenSettings}
-          onDownloadSession={onDownloadSession}
+          language={language}
+          onLanguageChange={onLanguageChange}
         />
       )}
 

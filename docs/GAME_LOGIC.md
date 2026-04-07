@@ -202,12 +202,17 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Rejected destination cells show a temporary red border via `invalidMoveTarget`.
 - World click/touch interaction is clamped to currently visible world cells (`axialDistance(cell, worldViewCenter) <= GridRadius`); pointer events outside the visible dotted field boundary are ignored.
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
-- **Start screen** (shown before any session begins) uses the same visual language as in-game mobile UI (Roboto, app palette, panel/button styling) and stays inside the same forced-portrait mobile viewport container as gameplay:
-  - If a prior session exists in localStorage: **Continue session** and **Download session** are available.
-  - Always available: **New session** (starts a fresh run) and **Settings**.
-  - Language switching is done from **Settings** and applies immediately without reload.
+- **Start screen** (shown while guest gameplay is disconnected) uses HexiPedia visual language (dark section blocks, compact header, in-panel controls) and stays inside the same forced-portrait mobile viewport container as gameplay:
+  - If an active resumable session exists: **Connect** is shown.
+  - Always available: **New session** and **Settings**.
+  - If history contains records: **Session history** opens a sub-view with per-session **Continue** actions.
+  - Language switching is available directly on the start screen header and applies immediately without reload.
 - Language is persisted in `hexigame.lang` (localStorage) and propagated reactively via a subscriber set in `i18n.ts`; all UI components re-render without a page reload.
-- Session lifecycle contract: a game session starts only after the player acts on the start screen (Continue, Restart, or Start new), persists continuously on every game-state update via `hexigame.session.state` and `hexigame.session.active.*`, survives page reload (the start screen detects `hexigame.guest.started` and shows Continue/Restart if a session exists), and is terminated only through `Reset Session` in Settings.
+- Session lifecycle contract: a game session starts only after the player acts on the start screen (Connect or Start new), persists continuously on every game-state update via `hexigame.session.state` and `hexigame.session.active.*`, survives page reload, and can be detached from gameplay via **Disconnect** (in in-game Settings) without clearing persisted state.
+- In-game Settings action model is context-dependent:
+  - when opened during active gameplay, **Disconnect** is shown instead of **Reset Session**;
+  - when opened from the start screen, **Disconnect** is hidden.
+- Session snapshots are stored both as active session state and per-session history state (`hexigame.session.byId.<sessionId>`), enabling switching between history entries without data loss.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
 - `Restart session` creates a fresh RNG from `Date.now()` seed so each new game has a different procedural world.
 - Startup animation timings are accelerated by a factor of 3 while preserving the same phase order and visual beats.

@@ -21,6 +21,9 @@ interface SettingsProps {
   onToggleShowFPS: (show: boolean) => void;
   isLeftHanded: boolean;
   onToggleLeftHanded: (isLeft: boolean) => void;
+  /** When true, shows a blue "Disconnect" button instead of "Reset Session". */
+  showDisconnect?: boolean;
+  onDisconnect?: () => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
@@ -41,6 +44,8 @@ export const Settings: React.FC<SettingsProps> = ({
   onToggleShowFPS,
   isLeftHanded,
   onToggleLeftHanded,
+  showDisconnect = false,
+  onDisconnect,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -161,25 +166,36 @@ export const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
 
-        <div className="settings-row">
-          {!showResetConfirm ? (
-            <button className="settings-action-button settings-reset" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); handleReset(); }}>
-              {t('settings.resetSession')}
+        {showDisconnect && onDisconnect ? (
+          <div className="settings-row">
+            <button
+              className="settings-action-button settings-disconnect"
+              onClick={() => { onDisconnect(); }}
+            >
+              {t('action.disconnect')}
             </button>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-              <div style={{ fontSize: 12, color: '#ff9999' }}>{t('settings.resetConfirm')}</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="settings-action-button settings-reset" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); handleReset(); }}>
-                  {t('action.reset')}
-                </button>
-                <button className="settings-action-button" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); setShowResetConfirm(false); }}>
-                  {t('action.cancel')}
-                </button>
+          </div>
+        ) : (
+          <div className="settings-row">
+            {!showResetConfirm ? (
+              <button className="settings-action-button settings-reset" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); handleReset(); }}>
+                {t('settings.resetSession')}
+              </button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                <div style={{ fontSize: 12, color: '#ff9999' }}>{t('settings.resetConfirm')}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="settings-action-button settings-reset" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); handleReset(); }}>
+                    {t('action.reset')}
+                  </button>
+                  <button className="settings-action-button" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); setShowResetConfirm(false); }}>
+                    {t('action.cancel')}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
           v{version.currentVersion}

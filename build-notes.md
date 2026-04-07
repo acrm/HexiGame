@@ -635,3 +635,5 @@
 - 0.1.0-y26w14b6 — Fix audio mute lifecycle and settings toggle behavior
 
 - 0.1.0-y26w15b1 — Preserve configured volume on track change and across sound effects
+
+- 0.1.0-y26w15b2 — HexiPedia-style start screen, disconnect, and session history

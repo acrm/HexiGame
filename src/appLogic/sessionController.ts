@@ -41,6 +41,8 @@ export interface SessionController {
   setPaused: (paused: boolean) => void;
   /** Reset session to fresh state and clear localStorage */
   resetSession: () => void;
+  /** Reload session state from localStorage into the running controller */
+  reloadSessionFromStorage: () => void;
   /** Enable/disable automatic persistence */
   enablePersistence: (enabled: boolean) => void;
 }
@@ -106,6 +108,13 @@ export function createSessionController(options: SessionControllerOptions): Sess
     setState(fresh);
   }
 
+  function reloadSessionFromStorage(): void {
+    rng = createRng();
+    const fresh = createInitialState(params, rng);
+    const restored = restoreGameState(fresh);
+    setState(restored);
+  }
+
   // ─── Persistence control ─────────────────────────────────────────────────────
 
   function enablePersistence(enabled: boolean): void {
@@ -121,6 +130,7 @@ export function createSessionController(options: SessionControllerOptions): Sess
     stop,
     setPaused,
     resetSession,
+    reloadSessionFromStorage,
     enablePersistence,
   };
 }

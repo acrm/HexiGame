@@ -344,6 +344,15 @@ html, body {
   background: #770000;
 }
 
+.settings-disconnect {
+  background: #005599;
+  border-color: #0077cc;
+}
+
+.settings-disconnect:hover {
+  background: #0066bb;
+}
+
 .mascot-overlay {
   position: fixed;
   inset: 0;
@@ -398,63 +407,187 @@ html, body {
   padding: 0;
 }
 
-.guest-start-content {
+/* HexiPedia-style start screen */
+.guest-start-content.hexipedia-style {
   width: min(100%, var(--mobile-game-width));
   height: 100%;
   box-sizing: border-box;
-  padding: clamp(22px, 5vh, 38px) 16px 22px;
   color: #ffffff;
-  background: var(--game-bg, #00264C);
+  background: #2a2a2a;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 16px;
+  align-items: stretch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #555555 #2a2a2a;
+  scrollbar-width: thin;
 }
 
-.guest-start-title {
-  margin: 0;
-  font-size: clamp(56px, 17vw, 88px);
-  line-height: 0.95;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  text-transform: none;
-  font-weight: 700;
-}
-
-.guest-start-actions {
-  width: 100%;
+.gs-header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #555555;
+  flex-shrink: 0;
 }
 
-.guest-start-button {
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  padding: 12px 14px;
+.gs-title {
   font-size: 20px;
   font-weight: 700;
-  text-align: left;
+  color: #eeeeee;
+  letter-spacing: -0.01em;
+}
+
+.gs-lang-select {
+  background: #333333;
+  border: 1px solid #555555;
+  color: #cccccc;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+  outline: none;
 }
 
-.guest-start-button:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.36);
+.gs-lang-select:focus {
+  border-color: #7799cc;
 }
 
-.guest-start-button:active {
-  transform: translateY(0);
-  background: rgba(255, 255, 255, 0.2);
+.gs-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #2a2a2a;
+  border: 1px solid #555555;
+  border-top: none;
+  flex-shrink: 0;
 }
 
-@media (max-width: 480px) {
-  .guest-start-title {
-    font-size: clamp(52px, 20vw, 72px);
-  }
+.gs-search-icon {
+  color: #888888;
+  font-size: 12px;
 }
+
+.gs-search-placeholder {
+  color: #666666;
+  font-size: 13px;
+}
+
+.gs-section-wrapper {
+  background: #333333;
+  border: 1px solid #555555;
+  margin: 8px;
+}
+
+.gs-section-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  color: #cccccc;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #333333;
+  border-bottom: 1px solid #444444;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.gs-section-header:hover {
+  background: #3a3a3a;
+}
+
+.gs-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #2a2a2a;
+}
+
+.gs-action-btn {
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+  outline: none;
+}
+
+.gs-action-btn--menu {
+  background: #333333;
+  color: #cccccc;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px 16px;
+  width: 100%;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.gs-action-btn--menu:hover {
+  background: #3d3d3d;
+  color: #eeeeee;
+}
+
+.gs-action-btn--menu:active {
+  background: #444444;
+}
+
+.gs-action-btn--primary {
+  background: #334466;
+  color: #aaccff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gs-action-btn--primary:hover {
+  background: #3d5577;
+  color: #ccddff;
+}
+
+.gs-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #333333;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.gs-history-row:last-child {
+  border-bottom: none;
+}
+
+.gs-history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gs-history-date {
+  font-size: 12px;
+  color: #999999;
+  white-space: nowrap;
+}
+
+.gs-history-time {
+  font-size: 14px;
+  font-weight: 600;
+  color: #aaddff;
+}
+
+.gs-empty {
+  padding: 16px;
+  color: #666666;
+  font-size: 13px;
+}
+
