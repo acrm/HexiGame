@@ -10,7 +10,7 @@
 
 import type { GameTestFacade } from './GameTestFacade';
 
-export type MobileTab = 'heximap' | 'hexilab' | 'hexipedia';
+export type MobileTab = 'map' | 'lab' | 'hexipedia';
 export type InteractionMode = 'desktop' | 'mobile';
 
 export interface AppTestFacade extends GameTestFacade {
@@ -33,8 +33,8 @@ export interface AppTestFacade extends GameTestFacade {
   closeSettings(): void;
 
   /**
-   * Switch the mobile tab (heximap / hexilab / hexipedia).
-   * hexilab → activeField = 'inventory'; others → activeField = 'world'.
+   * Switch the mobile tab (map / lab / hexipedia).
+   * lab → activeField = 'inventory'; others → activeField = 'world'.
    */
   switchMobileTab(tab: MobileTab): void;
 

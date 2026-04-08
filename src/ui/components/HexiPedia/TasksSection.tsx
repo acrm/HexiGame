@@ -157,19 +157,19 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                   <div className="hexipedia-section">
                     <div className="hexipedia-section-title">{t('tutorial.hint')}</div>
                     <div className="hexipedia-text">
-                      {hintText.includes('HexiMap') ? (
+                      {hintText.includes('Map') ? (
                         <>
-                          {hintText.split('HexiMap')[0]}
+                          {hintText.split('Map')[0]}
                           <span 
                             className="hexipedia-link"
                             onClick={() => {
                               audioController.playRandomSound(soundEnabled, soundVolume);
-                              onSwitchTab?.('heximap');
+                              onSwitchTab?.('map');
                             }}
                           >
-                            HexiMap
+                            Map
                           </span>
-                          {hintText.split('HexiMap')[1]}
+                          {hintText.split('Map')[1]}
                         </>
                       ) : (
                         hintText

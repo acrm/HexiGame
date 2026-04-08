@@ -87,6 +87,12 @@ export type SessionState = {
   ui?: { mobileTab?: string } 
 };
 
+function migrateMobileTab(tab: string | undefined): string | undefined {
+  if (tab === 'heximap') return 'map';
+  if (tab === 'hexilab') return 'lab';
+  return tab;
+}
+
 // ─── Serialization helpers ─────────────────────────────────────────────────────
 
 function serializeGrid(grid: Map<string, { q: number; r: number; colorIndex: number | null }>): SerializedCell[] {
@@ -237,9 +243,20 @@ export function loadSession(storage: StorageReader = localStorage): SessionState
     const parsed = JSON.parse(raw);
     // Legacy format: gameState was stored at root level
     if (parsed && !parsed.gameState) {
-      return { gameState: parsed as SerializedGameState, ui: parsed.ui };
+      return {
+        gameState: parsed as SerializedGameState,
+        ui: parsed.ui ? { ...parsed.ui, mobileTab: migrateMobileTab(parsed.ui.mobileTab) } : undefined,
+      };
     }
-    return parsed as SessionState;
+    const session = parsed as SessionState;
+    if (!session.ui) return session;
+    return {
+      ...session,
+      ui: {
+        ...session.ui,
+        mobileTab: migrateMobileTab(session.ui.mobileTab),
+      },
+    };
   } catch {
     return null;
   }
@@ -313,7 +330,15 @@ export function loadSessionById(
   try {
     const raw = storage.getItem(SESSION_BY_ID_PREFIX + sessionId);
     if (!raw) return null;
-    return JSON.parse(raw) as SessionState;
+    const session = JSON.parse(raw) as SessionState;
+    if (!session.ui) return session;
+    return {
+      ...session,
+      ui: {
+        ...session.ui,
+        mobileTab: migrateMobileTab(session.ui.mobileTab),
+      },
+    };
   } catch {
     return null;
   }

@@ -15,20 +15,20 @@ function createStorage(initial: Record<string, string> = {}) {
 }
 
 describe('appShellReducer', () => {
-  it('initial state uses heximap when tutorial was not started', () => {
+  it('initial state uses map when tutorial was not started', () => {
     const storage = createStorage();
     const state = createInitialAppShellState(storage);
 
-    expect(state.mobileTab).toBe('heximap');
+    expect(state.mobileTab).toBe('map');
     expect(state.trackSessionHistory).toBe(true);
     expect(state.guestStarted).toBe(false);
   });
 
-  it('initial state uses heximap when tutorial was started', () => {
+  it('initial state uses map when tutorial was started', () => {
     const storage = createStorage({ 'hexigame.tutorial.started': '1' });
     const state = createInitialAppShellState(storage);
 
-    expect(state.mobileTab).toBe('heximap');
+    expect(state.mobileTab).toBe('map');
   });
 
   it('open/close settings keeps paused before guest start', () => {
@@ -55,11 +55,11 @@ describe('appShellReducer', () => {
   it('switching tab updates inventory flag', () => {
     const storage = createStorage();
     const initial = createInitialAppShellState(storage);
-    const hexilab = appShellReducer(initial, { type: 'SET_MOBILE_TAB', tab: 'hexilab' });
-    const heximap = appShellReducer(hexilab, { type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    const lab = appShellReducer(initial, { type: 'SET_MOBILE_TAB', tab: 'lab' });
+    const map = appShellReducer(lab, { type: 'SET_MOBILE_TAB', tab: 'map' });
 
-    expect(hexilab.isInventory).toBe(true);
-    expect(heximap.isInventory).toBe(false);
+    expect(lab.isInventory).toBe(true);
+    expect(map.isInventory).toBe(false);
   });
 
   it('restores active session identity when guest session already started', () => {

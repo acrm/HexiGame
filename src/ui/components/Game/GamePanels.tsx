@@ -1,12 +1,12 @@
 import React from 'react';
 import type { MobileTab } from '../../../appLogic/appShellReducer';
 import GameField from '../GameField/GameField';
-import HexiPedia from '../HexiPedia';
+import Hexipedia from '../Hexipedia';
 
 interface GamePanelsProps {
   isMobileLayout: boolean;
   mobileTab: MobileTab;
-  hexiPediaProps: React.ComponentProps<typeof HexiPedia>;
+  hexiPediaProps: React.ComponentProps<typeof Hexipedia>;
   gameFieldProps: React.ComponentProps<typeof GameField>;
 }
 
@@ -20,7 +20,7 @@ export const GamePanels: React.FC<GamePanelsProps> = ({
     <div className="game-main">
       <div className="game-field-area">
         {isMobileLayout && mobileTab === 'hexipedia' ? (
-          <HexiPedia {...hexiPediaProps} />
+          <Hexipedia {...hexiPediaProps} />
         ) : (
           <GameField {...gameFieldProps} />
         )}

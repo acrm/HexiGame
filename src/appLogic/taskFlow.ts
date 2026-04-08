@@ -15,7 +15,7 @@ export interface TaskFlowStorageWriter {
 }
 
 export interface TaskFlowUiGate {
-  isHexiLabLocked: boolean;
+  isLabLocked: boolean;
   hideHotbar: boolean;
   canShowPaletteWidget: boolean;
   canShowStructureWidget: boolean;
@@ -29,7 +29,7 @@ export interface TaskViewModel {
   progressTotal: number;
   progressLabelKey: string;
   isTaskComplete: boolean;
-  isHexiLabLocked: boolean;
+  isLabLocked: boolean;
   completedTaskIds: Set<string>;
 }
 
@@ -99,7 +99,7 @@ export function computeTaskViewModel(
     progressTotal: progress.total,
     progressLabelKey: progress.labelKey,
     isTaskComplete,
-    isHexiLabLocked: task?.disableInventory ?? false,
+    isLabLocked: task?.disableInventory ?? false,
     completedTaskIds,
   };
 }
@@ -148,7 +148,7 @@ export function getTaskUiGate(
   const hotbarUnlocked = hasCompletedColorHunt || isColorHuntActive || hasMovedPastColorHunt;
 
   return {
-    isHexiLabLocked: !hotbarUnlocked,
+    isLabLocked: !hotbarUnlocked,
     hideHotbar: !hotbarUnlocked,
     canShowPaletteWidget: progressIndex >= 3,
     canShowStructureWidget: progressIndex >= 4,
@@ -163,7 +163,7 @@ export function shouldTrackFocusVisit(
 ): boolean {
   if (!taskId || !gameState.taskProgress) return false;
   if (gameState.activeField === 'inventory') return false;
-  if (isMobileLayout && mobileTab !== 'heximap') return false;
+  if (isMobileLayout && mobileTab !== 'map') return false;
 
   const task = getTaskDefinition(taskId);
   const targetCells = gameState.taskProgress?.targetCells ?? task?.targetCells;

@@ -9,7 +9,7 @@ import { canResumeSession } from './sessionRepository';
 
 const GUEST_STARTED_KEY = 'hexigame.guest.started';
 
-export type MobileTab = 'heximap' | 'hexilab' | 'hexipedia';
+export type MobileTab = 'map' | 'lab' | 'hexipedia';
 export type InteractionMode = 'desktop' | 'mobile';
 
 export interface AppShellState {
@@ -63,7 +63,7 @@ export function createInitialAppShellState(storage: StorageReader): AppShellStat
 
   return {
     isInventory: false,
-    mobileTab: 'heximap',
+    mobileTab: 'map',
     isPaused: false,
     interactionMode: 'mobile',
     guestStarted: false,
@@ -100,7 +100,7 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
       return {
         ...state,
         mobileTab: command.tab,
-        isInventory: command.tab === 'hexilab',
+        isInventory: command.tab === 'lab',
       };
 
     case 'OPEN_SETTINGS':
@@ -180,7 +180,7 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
         startupAnimationShown: false,
         isPaused: true,
         isInventory: false,
-        mobileTab: 'heximap',
+        mobileTab: 'map',
         isMascotOpen: false,
         currentSessionId: null,
         currentSessionStartTick: 0,

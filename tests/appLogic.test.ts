@@ -109,23 +109,23 @@ describe('Mobile tab management', () => {
     expect(g.getIsInventory()).toBe(false);
   });
 
-  it('switchMobileTab to hexilab sets activeField to inventory', () => {
-    g.switchMobileTab('hexilab');
-    expect(g.getMobileTab()).toBe('hexilab');
+  it('switchMobileTab to lab sets activeField to inventory', () => {
+    g.switchMobileTab('lab');
+    expect(g.getMobileTab()).toBe('lab');
     expect(g.getActiveField()).toBe('inventory');
     expect(g.getIsInventory()).toBe(true);
   });
 
-  it('switchMobileTab to heximap sets activeField to world', () => {
-    g.switchMobileTab('hexilab');
-    g.switchMobileTab('heximap');
-    expect(g.getMobileTab()).toBe('heximap');
+  it('switchMobileTab to map sets activeField to world', () => {
+    g.switchMobileTab('lab');
+    g.switchMobileTab('map');
+    expect(g.getMobileTab()).toBe('map');
     expect(g.getActiveField()).toBe('world');
     expect(g.getIsInventory()).toBe(false);
   });
 
   it('switchMobileTab to hexipedia sets activeField to world', () => {
-    g.switchMobileTab('hexilab');
+    g.switchMobileTab('lab');
     g.switchMobileTab('hexipedia');
     expect(g.getMobileTab()).toBe('hexipedia');
     expect(g.getActiveField()).toBe('world');

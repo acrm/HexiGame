@@ -647,3 +647,5 @@
 - 0.1.0-y26w15b6 — Session action log, disconnect button, auto-disconnect on tab hide, session history redesign, HexiPedia session panel with playback controls
 
 - 0.1.0-y26w15b7 — Fix tutorial excavation progress expectation to 1-of-1 core cell
+
+- 0.1.0-y26w15b8 — Rename tabs to Map/Lab/Hexipedia, fix guest settings overlay, unify session list, add session codename rename and bulk delete

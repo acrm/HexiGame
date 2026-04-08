@@ -176,7 +176,7 @@ describe('Task win conditions', () => {
 });
 
 describe('Task flow gates', () => {
-  it('keeps hotbar and HexiLab locked until task two is actually started', () => {
+  it('keeps hotbar and Lab locked until task two is actually started', () => {
     const completedBeforeTask2 = new Set<string>(['task_1_explore']);
 
     const pendingTask2Gate = getTaskUiGate(
@@ -186,7 +186,7 @@ describe('Task flow gates', () => {
     );
 
     expect(pendingTask2Gate.hideHotbar).toBe(true);
-    expect(pendingTask2Gate.isHexiLabLocked).toBe(true);
+    expect(pendingTask2Gate.isLabLocked).toBe(true);
 
     const activeTask2Gate = getTaskUiGate(
       'task_2_collect_beyond_visibility',
@@ -195,7 +195,7 @@ describe('Task flow gates', () => {
     );
 
     expect(activeTask2Gate.hideHotbar).toBe(false);
-    expect(activeTask2Gate.isHexiLabLocked).toBe(false);
+    expect(activeTask2Gate.isLabLocked).toBe(false);
   });
 
   it('does not treat target-hex collection task as visit-tracked focus task', () => {
@@ -207,7 +207,7 @@ describe('Task flow gates', () => {
       activeField: 'world' as const,
     };
 
-    expect(shouldTrackFocusVisit('task_2_collect_beyond_visibility', colorHuntState, true, 'heximap')).toBe(false);
-    expect(shouldTrackFocusVisit('task_1_explore', colorHuntState, true, 'heximap')).toBe(true);
+    expect(shouldTrackFocusVisit('task_2_collect_beyond_visibility', colorHuntState, true, 'map')).toBe(false);
+    expect(shouldTrackFocusVisit('task_1_explore', colorHuntState, true, 'map')).toBe(true);
   });
 });

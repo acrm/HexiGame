@@ -22,20 +22,31 @@ import {
   addSessionToHistory,
   clearSessionHistory,
   createNewSessionHistoryRecord,
+  deleteSessionHistoryRecords,
   deleteSessionHistoryRecord,
+  renameSessionHistoryRecord,
   loadActiveSessionMeta,
   saveActiveSessionMeta,
   saveSessionHistoryRecord,
   saveTrackSessionHistoryPreference,
 } from '../../appLogic/sessionHistory';
-import { saveSessionById, loadSessionById, loadSessionLog, saveSessionLog, type SessionLog } from '../../appLogic/sessionRepository';
+import {
+  clearSession,
+  deleteSessionById,
+  deleteSessionLog,
+  saveSessionById,
+  loadSessionById,
+  loadSessionLog,
+  saveSessionLog,
+  type SessionLog,
+} from '../../appLogic/sessionRepository';
 import {
   createInitialUserSettingsState,
   persistUserSettings,
   userSettingsReducer,
 } from '../../appLogic/userSettings';
 import StartupAnimation from './StartupAnimation';
-import HexiPedia from './HexiPedia';
+import Hexipedia from './Hexipedia';
 import Mascot from './Mascot';
 import { ColorScheme } from '../colorScheme';
 import TutorialProgressWidget, { type TutorialWidgetPhase } from './TutorialProgressWidget';
@@ -66,7 +77,7 @@ import {
 import { mulberry32 } from '../../gameLogic/core/params';
 
 const MASCOT_FACING_DIR_INDEX = 1;
-type HexiPediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
+type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
 interface TaskIntroModalState {
   taskId: string;
@@ -88,7 +99,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     isPaused,
     interactionMode,
     guestStarted,
-    resumeAvailable,
     startupAnimationShown,
     isSettingsOpen,
     isMascotOpen,
@@ -115,14 +125,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     showTaskWidget,
     showStructureWidget,
   } = settingsState;
-  const [enabledHexiPediaSections, setEnabledHexiPediaSections] = useState<HexiPediaSectionId[]>([
+  const [enabledHexipediaSections, setEnabledHexipediaSections] = useState<HexipediaSectionId[]>([
     'tasks',
   ]);
-  const [pinnedHexiPediaSections, setPinnedHexiPediaSections] = useState<HexiPediaSectionId[]>([
+  const [pinnedHexipediaSections, setPinnedHexipediaSections] = useState<HexipediaSectionId[]>([
     'tasks',
   ]);
-  const [focusHexiPediaSection, setFocusHexiPediaSection] = useState<HexiPediaSectionId | null>(null);
-  const [sectionOrder, setSectionOrder] = useState<HexiPediaSectionId[]>(['tasks', 'session', 'structures', 'colors']);
+  const [focusHexipediaSection, setFocusHexipediaSection] = useState<HexipediaSectionId | null>(null);
+  const [sectionOrder, setSectionOrder] = useState<HexipediaSectionId[]>(['tasks', 'session', 'structures', 'colors']);
   const [taskIntroModal, setTaskIntroModal] = useState<TaskIntroModalState | null>(null);
   const [pendingForceResetTaskId, setPendingForceResetTaskId] = useState<string | null>(null);
   const taskWidgetRef = useRef<HTMLDivElement | null>(null);
@@ -231,13 +241,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatch({ type: 'SELECT_TASK', taskId: initialTaskId });
   }, [guestStarted, gameState.taskId, completedTaskIds, dispatch]);
 
-  const isHexiLabLockedForKeyboard = taskUiGate.isHexiLabLocked;
+  const isLabLockedForKeyboard = taskUiGate.isLabLocked;
 
   useKeyboardInput({
     dispatch,
     interactionMode,
     isInputBlocked: taskIntroModal !== null,
-    isInventoryLocked: isHexiLabLockedForKeyboard,
+    isInventoryLocked: isLabLockedForKeyboard,
     hotbarSize: 6,
   });
 
@@ -266,7 +276,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           dispatchApp({ type: 'GUEST_DISCONNECTED' });
           setTaskIntroModal(null);
           setPendingForceResetTaskId(null);
-          dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+          dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
         } else {
           dispatchApp({ type: 'VISIBILITY_CHANGED', hidden: true });
         }
@@ -368,14 +378,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatch({ type: 'SELECT_TASK', taskId });
     setTaskIntroModal(null);
     setPendingForceResetTaskId(null);
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
   };
 
   const handleRestartTask = (taskId: string) => {
     dispatch({ type: 'SELECT_TASK', taskId });
     setTaskIntroModal(null);
     setPendingForceResetTaskId(taskId);
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
   };
 
   // Set widget to "complete" phase when task is done (do NOT auto-advance)
@@ -413,8 +423,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setTaskIntroModal({ taskId: task.id });
   };
 
-  const setHexiPediaSectionEnabled = (sectionId: HexiPediaSectionId, enabled: boolean) => {
-    setEnabledHexiPediaSections((prev) => {
+  const setHexipediaSectionEnabled = (sectionId: HexipediaSectionId, enabled: boolean) => {
+    setEnabledHexipediaSections((prev) => {
       if (enabled) {
         return prev.includes(sectionId) ? prev : [...prev, sectionId];
       }
@@ -422,13 +432,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     });
 
     if (!enabled) {
-      setPinnedHexiPediaSections((prev) => prev.filter((id) => id !== sectionId));
-      setFocusHexiPediaSection((prev) => (prev === sectionId ? null : prev));
+      setPinnedHexipediaSections((prev) => prev.filter((id) => id !== sectionId));
+      setFocusHexipediaSection((prev) => (prev === sectionId ? null : prev));
     }
   };
 
-  const setHexiPediaSectionPinned = (sectionId: HexiPediaSectionId, pinned: boolean) => {
-    setPinnedHexiPediaSections((prev) => {
+  const setHexipediaSectionPinned = (sectionId: HexipediaSectionId, pinned: boolean) => {
+    setPinnedHexipediaSections((prev) => {
       if (pinned) {
         return prev.includes(sectionId) ? prev : [...prev, sectionId];
       }
@@ -436,34 +446,34 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     });
 
     if (pinned) {
-      setEnabledHexiPediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
+      setEnabledHexipediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
     }
   };
 
-  const openHexiPediaSection = (sectionId: HexiPediaSectionId) => {
+  const openHexipediaSection = (sectionId: HexipediaSectionId) => {
     playUiClick();
-    setEnabledHexiPediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
-    setFocusHexiPediaSection(sectionId);
+    setEnabledHexipediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
+    setFocusHexipediaSection(sectionId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
   const handleViewCurrentTask = () => {
-    openHexiPediaSection('tasks');
+    openHexipediaSection('tasks');
   };
 
   const isMobileLayout = true;
 
-  const isHexiLabLocked = taskUiGate.isHexiLabLocked;
+  const isLabLocked = taskUiGate.isLabLocked;
   const activeTaskTargetCells = gameState.taskProgress?.targetCells ?? activeTask?.targetCells ?? [];
   const activeTaskTargetHexes = gameState.taskProgress?.targetHexes ?? activeTask?.targetHexes ?? [];
 
   useEffect(() => {
-    if (!isHexiLabLocked) return;
+    if (!isLabLocked) return;
     dispatch({ type: 'SET_ACTIVE_FIELD', field: 'world' });
-    if (mobileTab === 'hexilab') {
-      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    if (mobileTab === 'lab') {
+      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
     }
-  }, [isHexiLabLocked, mobileTab, dispatch]);
+  }, [isLabLocked, mobileTab, dispatch]);
 
   // Track focus visits on target cells
   useEffect(() => {
@@ -501,18 +511,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   // Sync mobile tab selection with active field and inventory flag
   useEffect(() => {
     if (!isMobileLayout) return;
-    dispatch({ type: 'SET_ACTIVE_FIELD', field: mobileTab === 'hexilab' ? 'inventory' : 'world' });
+    dispatch({ type: 'SET_ACTIVE_FIELD', field: mobileTab === 'lab' ? 'inventory' : 'world' });
   }, [isMobileLayout, mobileTab, dispatch]);
 
-  // Keep only pinned sections enabled when HexiPedia tab is not active.
+  // Keep only pinned sections enabled when Hexipedia tab is not active.
   useEffect(() => {
     if (mobileTab === 'hexipedia') return;
-    setEnabledHexiPediaSections((prev) =>
-      prev.filter((sectionId) => pinnedHexiPediaSections.includes(sectionId)),
+    setEnabledHexipediaSections((prev) =>
+      prev.filter((sectionId) => pinnedHexipediaSections.includes(sectionId)),
     );
-  }, [mobileTab, pinnedHexiPediaSections]);
+  }, [mobileTab, pinnedHexipediaSections]);
 
-  const effectiveIsInventory = isMobileLayout ? mobileTab === 'hexilab' : isInventory;
+  const effectiveIsInventory = isMobileLayout ? mobileTab === 'lab' : isInventory;
 
   const effectiveShowColorWidget = taskUiGate.canShowPaletteWidget && showColorWidget;
   const effectiveShowTaskWidget = !!gameState.taskId && showTaskWidget;
@@ -526,22 +536,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Determine background color based on active tab
   const backgroundColor = isMobileLayout 
-    ? (mobileTab === 'heximap' ? ColorScheme.outside.background : mobileTab === 'hexilab' ? ColorScheme.inside.background : '#2f2f2f')
+    ? (mobileTab === 'map' ? ColorScheme.outside.background : mobileTab === 'lab' ? ColorScheme.inside.background : '#2f2f2f')
     : '#370152ff';
 
-  const paletteTopOffset = isMobileLayout && mobileTab === 'heximap' && activeTask ? 56 : 8;
+  const paletteTopOffset = isMobileLayout && mobileTab === 'map' && activeTask ? 56 : 8;
 
   const handleOpenSettings = () => {
     playUiClick();
     dispatchApp({ type: 'OPEN_SETTINGS' });
   };
 
-  const handleSelectHexiMapTab = () => {
+  const handleSelectMapTab = () => {
     playUiClick();
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
   };
 
-  const handleSelectHexiPediaTab = () => {
+  const handleSelectHexipediaTab = () => {
     playUiClick();
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
@@ -566,7 +576,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'GUEST_DISCONNECTED' });
     setTaskIntroModal(null);
     setPendingForceResetTaskId(null);
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
     playUiClick();
   };
 
@@ -589,7 +599,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'GUEST_CONTINUED' });
     dispatchApp({ type: 'SESSION_STARTED', sessionId, startTick: saved.gameState.tick ?? 0 });
     saveActiveSessionMeta(localStorage, { id: sessionId, startTick: saved.gameState.tick ?? 0 });
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
     setTaskIntroModal(null);
     setPendingForceResetTaskId(null);
     playUiClick();
@@ -603,11 +613,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     resetSession();
     persistGuestStartFlag();
     dispatchApp({ type: 'GUEST_STARTED' });
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
     setTaskIntroModal(null);
     setPendingForceResetTaskId(null);
 
-    const newSession = createNewSessionHistoryRecord();
+    const newSession = createNewSessionHistoryRecord(Date.now(), Math.random(), {
+      language,
+      existingHistory: sessionHistory,
+    });
     saveActiveSessionMeta(localStorage, { id: newSession.id, startTick: 0 });
     dispatchApp({ type: 'SESSION_STARTED', sessionId: newSession.id, startTick: 0 });
 
@@ -622,14 +635,33 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     playMusicFromInteraction();
   };
 
-  const handleContinueSession = () => {
-    persistGuestStartFlag();
-    dispatchApp({ type: 'GUEST_CONTINUED' });
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
-    setTaskIntroModal(null);
-    setPendingForceResetTaskId(null);
-    playUiClick();
-    playMusicFromInteraction();
+  const handleContinueSession = (sessionId: string) => {
+    handleLoadHistorySession(sessionId);
+  };
+
+  const handleRenameSession = (sessionId: string, customName: string) => {
+    const history = renameSessionHistoryRecord(localStorage, sessionId, customName);
+    dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+  };
+
+  const handleDeleteSessions = (sessionIds: string[]) => {
+    if (sessionIds.length === 0) return;
+    for (const sessionId of sessionIds) {
+      deleteSessionById(sessionId, localStorage);
+      deleteSessionLog(sessionId, localStorage);
+    }
+
+    const history = deleteSessionHistoryRecords(localStorage, sessionIds);
+    dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+
+    if (currentSessionId && sessionIds.includes(currentSessionId)) {
+      clearSession(localStorage);
+      dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
+      dispatchApp({ type: 'CLEAR_ACTIVE_SESSION' });
+      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
+      setTaskIntroModal(null);
+      setPendingForceResetTaskId(null);
+    }
   };
 
   const handleDownloadSession = (sessionId: string) => {
@@ -664,12 +696,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const handleStartupAnimationComplete = () => {
     dispatch({ type: 'MOVE_CURSOR_DIRECTION', dirIndex: MASCOT_FACING_DIR_INDEX });
     dispatchApp({ type: 'STARTUP_ANIMATION_COMPLETE' });
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
   };
 
   const currentSessionRecord = sessionHistory.find((r) => r.id === currentSessionId) ?? null;
 
-  const hexiPediaProps: React.ComponentProps<typeof HexiPedia> = {
+  const hexiPediaProps: React.ComponentProps<typeof Hexipedia> = {
     gameState,
     params: mergedParams,
     interactionMode,
@@ -687,22 +719,30 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       dispatchApp({ type: 'SET_TRACK_SESSION_HISTORY', enabled });
     },
     onDeleteSessionRecord: (recordId: string) => {
+      deleteSessionById(recordId, localStorage);
+      deleteSessionLog(recordId, localStorage);
       const history = deleteSessionHistoryRecord(localStorage, recordId);
       dispatchApp({ type: 'SET_SESSION_HISTORY', history });
+
+      if (currentSessionId === recordId) {
+        clearSession(localStorage);
+        dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
+        dispatchApp({ type: 'CLEAR_ACTIVE_SESSION' });
+      }
     },
     onClearSessionHistory: () => {
       const history = clearSessionHistory(localStorage);
       dispatchApp({ type: 'SET_SESSION_HISTORY', history });
     },
     onSwitchTab: (tab: string) => {
-      if (tab === 'heximap') {
-        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+      if (tab === 'map') {
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
       }
       if (tab === 'colors') {
-        openHexiPediaSection('colors');
+        openHexipediaSection('colors');
       }
       if (tab === 'structures') {
-        openHexiPediaSection('structures');
+        openHexipediaSection('structures');
       }
     },
     onActivateTemplate: (templateId: string) => {
@@ -728,13 +768,13 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     onToggleStructureWidget: (visible: boolean) => {
       dispatchSettings({ type: 'SET_SHOW_STRUCTURE_WIDGET', visible });
     },
-    enabledSections: enabledHexiPediaSections,
-    pinnedSections: pinnedHexiPediaSections,
-    onSetSectionEnabled: setHexiPediaSectionEnabled,
-    onSetSectionPinned: setHexiPediaSectionPinned,
-    focusSectionId: focusHexiPediaSection,
+    enabledSections: enabledHexipediaSections,
+    pinnedSections: pinnedHexipediaSections,
+    onSetSectionEnabled: setHexipediaSectionEnabled,
+    onSetSectionPinned: setHexipediaSectionPinned,
+    focusSectionId: focusHexipediaSection,
     onFocusSectionHandled: () => {
-      setFocusHexiPediaSection(null);
+      setFocusHexipediaSection(null);
     },
     sectionOrder,
     onChangeSectionOrder: setSectionOrder,
@@ -762,9 +802,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     onToggleInventory: () => {
       playUiClick();
       if (isMobileLayout) {
-        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
       } else {
-        if (isHexiLabLocked) return;
+        if (isLabLocked) return;
         dispatch({ type: 'TOGGLE_INVENTORY' });
       }
     },
@@ -836,7 +876,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     },
     isLeftHanded,
     highlightTargets:
-      activeTask && (!isMobileLayout || mobileTab === 'heximap')
+      activeTask && (!isMobileLayout || mobileTab === 'map')
         ? activeTaskTargetCells
         : [],
     visitedHighlightTargets: resolvedVisitedHighlightTargets,
@@ -852,7 +892,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
       setTaskIntroModal(null);
       setPendingForceResetTaskId(null);
-      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'heximap' });
+      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
     },
     onShowMascot: () => {
       dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden });
@@ -943,7 +983,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         isAutoBaseColorEnabled: autoBaseColorEnabled,
         onColorSelect: (index) => { dispatchSettings({ type: 'SET_SELECTED_COLOR_INDEX', index }); },
         onToggleAutoBaseColor: () => { dispatchSettings({ type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' }); },
-        onNavigateToPalette: () => { openHexiPediaSection('colors'); },
+        onNavigateToPalette: () => { openHexipediaSection('colors'); },
       }
     : null;
 
@@ -963,7 +1003,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
             gameState.activeTemplate.anchoredAt
               ? mergedParams.ColorPalette[gameState.activeTemplate.anchoredAt.baseColorIndex] ?? null
               : null,
-          onNavigateToStructures: () => { openHexiPediaSection('structures'); },
+          onNavigateToStructures: () => { openHexipediaSection('structures'); },
         }
       : null;
 
@@ -990,8 +1030,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       {isMobileLayout && (
         <GameMobileTabs
           mobileTab={mobileTab}
-          onSelectHexiMap={handleSelectHexiMapTab}
-          onSelectHexiPedia={handleSelectHexiPediaTab}
+          onSelectMap={handleSelectMapTab}
+          onSelectHexipedia={handleSelectHexipediaTab}
           onOpenSettings={handleOpenSettings}
           onDisconnect={handleDisconnect}
         />
@@ -1006,15 +1046,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         structureWidgetProps={structureWidgetProps}
         sectionOrder={sectionOrder}
         showGuestStart={!guestStarted}
-        hasResumableSession={resumeAvailable}
-        onContinueSession={handleContinueSession}
-        onStartNewSession={handleStartNewSession}
         sessionHistory={sessionHistory}
-        onLoadHistorySession={handleLoadHistorySession}
         currentSessionId={currentSessionId ?? null}
+        onContinueSession={handleContinueSession}
         onNewSession={handleStartNewSession}
         onDownloadSession={handleDownloadSession}
         onImportSession={handleImportSession}
+        onRenameSession={handleRenameSession}
+        onDeleteSessions={handleDeleteSessions}
         onOpenSettings={handleOpenSettings}
         onGuestStartUiClick={playUiClick}
         language={language}

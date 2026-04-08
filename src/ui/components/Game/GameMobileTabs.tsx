@@ -4,16 +4,16 @@ import { t } from '../../i18n';
 
 interface GameMobileTabsProps {
   mobileTab: MobileTab;
-  onSelectHexiMap: () => void;
-  onSelectHexiPedia: () => void;
+  onSelectMap: () => void;
+  onSelectHexipedia: () => void;
   onOpenSettings: () => void;
   onDisconnect: () => void;
 }
 
 export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
   mobileTab,
-  onSelectHexiMap,
-  onSelectHexiPedia,
+  onSelectMap,
+  onSelectHexipedia,
   onOpenSettings,
   onDisconnect,
 }) => {
@@ -21,21 +21,21 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
     <div className="mobile-tab-bar">
       <div className="mobile-tabs-container">
         <button
-          className={`mobile-tab ${mobileTab === 'heximap' ? 'active' : ''}`}
-          onClick={onSelectHexiMap}
+          className={`mobile-tab ${mobileTab === 'map' ? 'active' : ''}`}
+          onClick={onSelectMap}
         >
-          {t('tab.heximap')}
+          {t('tab.map')}
         </button>
         <button
-          className={`mobile-tab ${mobileTab === 'hexilab' ? 'active' : ''} disabled`}
+          className={`mobile-tab ${mobileTab === 'lab' ? 'active' : ''} disabled`}
           onClick={() => {}}
           disabled
         >
-          {t('tab.hexilab')}
+          {t('tab.lab')}
         </button>
         <button
           className={`mobile-tab ${mobileTab === 'hexipedia' ? 'active' : ''}`}
-          onClick={onSelectHexiPedia}
+          onClick={onSelectHexipedia}
         >
           {t('tab.hexipedia')}
         </button>

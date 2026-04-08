@@ -1,4 +1,4 @@
-export { HexiPedia, default } from './HexiPedia';
+export { Hexipedia, default } from './Hexipedia';
 export { default as TasksSection } from './TasksSection';
 export { default as StatsSection } from './StatsSection';
 export { default as TemplatesSection } from './TemplatesSection';

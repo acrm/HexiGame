@@ -9,9 +9,9 @@ import StatsSection from './StatsSection';
 import TemplatesSection from './TemplatesSection';
 import ColorsSection from './ColorsSection';
 import type { SessionHistoryRecord } from './types';
-import './HexiPedia.css';
+import './Hexipedia.css';
 
-interface HexiPediaProps {
+interface HexipediaProps {
   gameState: GameState;
   params: Params;
   interactionMode: 'desktop' | 'mobile';
@@ -38,7 +38,7 @@ interface HexiPediaProps {
 }
 
 /**
- * HexiPedia - Extensible knowledge/reference panel with modular sections
+ * Hexipedia - Extensible knowledge/reference panel with modular sections
  * 
  * Architecture:
  * - Main container manages state and section visibility
@@ -46,7 +46,7 @@ interface HexiPediaProps {
  * - SectionBase provides reusable header/controls UI
  * - Easy to add new sections: create component, add to sectionOrder
  */
-export const HexiPedia: React.FC<HexiPediaProps> = ({
+export const Hexipedia: React.FC<HexipediaProps> = ({
   gameState,
   params,
   interactionMode,
@@ -243,4 +243,4 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   );
 };
 
-export default HexiPedia;
+export default Hexipedia;

@@ -7,7 +7,7 @@ import { t, getLanguage } from '../i18n';
 import { getAllTaskDefinitions } from '../../tasks/taskLevels';
 import { ALL_TEMPLATES, getTemplateById } from '../../templates/templateLibrary';
 import { audioController } from '../../appLogic/audioController';
-import './HexiPedia/HexiPedia.css';
+import './Hexipedia/Hexipedia.css';
 
 interface SessionHistoryRecord {
   id: string;
@@ -20,9 +20,9 @@ interface SessionHistoryRecord {
   totalSessionTime?: number;
 }
 
-type HexiPediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
+type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
-interface HexiPediaProps {
+interface HexipediaProps {
   gameState: GameState;
   params: Params;
   interactionMode: 'desktop' | 'mobile';
@@ -49,14 +49,14 @@ interface HexiPediaProps {
   onToggleTaskWidget?: (visible: boolean) => void;
   showStructureWidget?: boolean;
   onToggleStructureWidget?: (visible: boolean) => void;
-  enabledSections?: HexiPediaSectionId[];
-  pinnedSections?: HexiPediaSectionId[];
-  onSetSectionEnabled?: (sectionId: HexiPediaSectionId, enabled: boolean) => void;
-  onSetSectionPinned?: (sectionId: HexiPediaSectionId, pinned: boolean) => void;
-  focusSectionId?: HexiPediaSectionId | null;
+  enabledSections?: HexipediaSectionId[];
+  pinnedSections?: HexipediaSectionId[];
+  onSetSectionEnabled?: (sectionId: HexipediaSectionId, enabled: boolean) => void;
+  onSetSectionPinned?: (sectionId: HexipediaSectionId, pinned: boolean) => void;
+  focusSectionId?: HexipediaSectionId | null;
   onFocusSectionHandled?: () => void;
-  sectionOrder?: HexiPediaSectionId[];
-  onChangeSectionOrder?: (order: HexiPediaSectionId[]) => void;
+  sectionOrder?: HexipediaSectionId[];
+  onChangeSectionOrder?: (order: HexipediaSectionId[]) => void;
   currentSessionStartTick?: number;
   currentSessionId?: string | null;
   currentSessionRecord?: SessionHistoryRecord | null;
@@ -114,7 +114,7 @@ function getStructureStatusLabel(
   return t('structures.status.progress');
 }
 
-export const HexiPedia: React.FC<HexiPediaProps> = ({
+export const Hexipedia: React.FC<HexipediaProps> = ({
   gameState,
   params,
   interactionMode,
@@ -147,7 +147,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   onSetSectionPinned,
   focusSectionId = null,
   onFocusSectionHandled,
-  sectionOrder = ['tasks', 'session', 'structures', 'colors'] as HexiPediaSectionId[],
+  sectionOrder = ['tasks', 'session', 'structures', 'colors'] as HexipediaSectionId[],
   onChangeSectionOrder,
   currentSessionStartTick = 0,
   currentSessionId = null,
@@ -160,18 +160,18 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   const [seekTickInput, setSeekTickInput] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(task?.id ?? null);
-  const [collapsedSections, setCollapsedSections] = useState<Set<HexiPediaSectionId>>(
-    new Set<HexiPediaSectionId>(['session', 'structures', 'colors']),
+  const [collapsedSections, setCollapsedSections] = useState<Set<HexipediaSectionId>>(
+    new Set<HexipediaSectionId>(['session', 'structures', 'colors']),
   );
   const [deleteConfirmRecordId, setDeleteConfirmRecordId] = useState<string | null>(null);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showStructureTypeDropdown, setShowStructureTypeDropdown] = useState(false);
-  const [localFocusSectionId, setLocalFocusSectionId] = useState<HexiPediaSectionId | null>(null);
+  const [localFocusSectionId, setLocalFocusSectionId] = useState<HexipediaSectionId | null>(null);
   const [deleteConfirmAll, setDeleteConfirmAll] = useState(false);
   const [selectedStructureTypeId, setSelectedStructureTypeId] = useState<string>(
     gameState.activeTemplate?.templateId ?? ALL_TEMPLATES[0]?.id ?? '',
   );
-  const sectionRefs = useRef<Record<HexiPediaSectionId, HTMLDivElement | null>>({
+  const sectionRefs = useRef<Record<HexipediaSectionId, HTMLDivElement | null>>({
     tasks: null,
     session: null,
     structures: null,
@@ -202,14 +202,14 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     setSelectedStructureTypeId(current => current || gameState.activeTemplate!.templateId);
   }, [gameState.activeTemplate]);
 
-  const isSectionEnabled = (sectionId: HexiPediaSectionId): boolean => enabledSections.includes(sectionId);
-  const isSectionPinned = (sectionId: HexiPediaSectionId): boolean => pinnedSections.includes(sectionId);
+  const isSectionEnabled = (sectionId: HexipediaSectionId): boolean => enabledSections.includes(sectionId);
+  const isSectionPinned = (sectionId: HexipediaSectionId): boolean => pinnedSections.includes(sectionId);
 
   const toggleTaskExpansion = (taskId: string) => {
     setExpandedTaskId(current => (current === taskId ? null : taskId));
   };
 
-  const toggleSectionCollapse = (sectionId: HexiPediaSectionId) => {
+  const toggleSectionCollapse = (sectionId: HexipediaSectionId) => {
     if (!isSectionEnabled(sectionId)) return;
     setCollapsedSections(prev => {
       const next = new Set(prev);
@@ -219,7 +219,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     });
   };
 
-  const moveSectionUp = (sectionId: HexiPediaSectionId) => {
+  const moveSectionUp = (sectionId: HexipediaSectionId) => {
     const index = sectionOrder.indexOf(sectionId);
     if (index <= 0) return;
     const nextOrder = [...sectionOrder];
@@ -227,7 +227,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     onChangeSectionOrder?.(nextOrder);
   };
 
-  const moveSectionDown = (sectionId: HexiPediaSectionId) => {
+  const moveSectionDown = (sectionId: HexipediaSectionId) => {
     const index = sectionOrder.indexOf(sectionId);
     if (index === -1 || index >= sectionOrder.length - 1) return;
     const nextOrder = [...sectionOrder];
@@ -235,7 +235,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     onChangeSectionOrder?.(nextOrder);
   };
 
-  const toggleSectionPinned = (sectionId: HexiPediaSectionId) => {
+  const toggleSectionPinned = (sectionId: HexipediaSectionId) => {
     const nextPinned = !isSectionPinned(sectionId);
     onSetSectionPinned?.(sectionId, nextPinned);
     if (nextPinned && !isSectionEnabled(sectionId)) {
@@ -248,7 +248,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     }
   };
 
-  const openSectionFromSearch = (sectionId: HexiPediaSectionId) => {
+  const openSectionFromSearch = (sectionId: HexipediaSectionId) => {
     onSetSectionEnabled?.(sectionId, true);
     setCollapsedSections(prev => {
       if (!prev.has(sectionId)) return prev;
@@ -305,7 +305,7 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
     return () => cancelAnimationFrame(animationFrameId);
   }, [activeFocusSectionId, enabledSections, focusSectionId, onFocusSectionHandled]);
 
-  const sectionTitles: Record<HexiPediaSectionId, string> = {
+  const sectionTitles: Record<HexipediaSectionId, string> = {
     tasks: t('task.tasksTitle'),
     session: t('session.title'),
     structures: t('structures.title'),
@@ -521,19 +521,19 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
                               <div className="hexipedia-section">
                                 <div className="hexipedia-section-title">{t('task.hint')}</div>
                                 <div className="hexipedia-text">
-                                  {hintText.includes('HexiMap') ? (
+                                  {hintText.includes('Map') ? (
                                     <>
-                                      {hintText.split('HexiMap')[0]}
+                                      {hintText.split('Map')[0]}
                                       <span
                                         className="hexipedia-link"
                                         onClick={() => {
                                           audioController.playRandomSound(soundEnabled, soundVolume);
-                                          onSwitchTab?.('heximap');
+                                          onSwitchTab?.('map');
                                         }}
                                       >
-                                        HexiMap
+                                        Map
                                       </span>
-                                      {hintText.split('HexiMap')[1]}
+                                      {hintText.split('Map')[1]}
                                     </>
                                   ) : (
                                     hintText
@@ -1021,4 +1021,4 @@ export const HexiPedia: React.FC<HexiPediaProps> = ({
   );
 };
 
-export default HexiPedia;
+export default Hexipedia;

@@ -81,12 +81,12 @@ export const task1Explore: TaskDefinition = {
   },
   hints: {
     desktop: {
-      en: 'Open HexiMap and click a marked sector. The turtle will move to the nearest free cell.',
-      ru: 'Откройте HexiMap и кликните по отмеченному сектору. Черепашка подойдёт к ближайшей свободной клетке.',
+      en: 'Open Map and click a marked sector. The turtle will move to the nearest free cell.',
+      ru: 'Откройте Map и кликните по отмеченному сектору. Черепашка подойдёт к ближайшей свободной клетке.',
     },
     mobile: {
-      en: 'Open HexiMap and tap a marked sector. The turtle will move to the nearest free cell.',
-      ru: 'Откройте HexiMap и тапните по отмеченному сектору. Черепашка подойдёт к ближайшей свободной клетке.',
+      en: 'Open Map and tap a marked sector. The turtle will move to the nearest free cell.',
+      ru: 'Откройте Map и тапните по отмеченному сектору. Черепашка подойдёт к ближайшей свободной клетке.',
     },
   },
   targetCells: TASK_EXPLORATION_TARGETS,

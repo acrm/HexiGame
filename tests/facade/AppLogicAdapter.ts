@@ -129,7 +129,7 @@ export class AppLogicAdapter extends PureLogicAdapter implements AppTestFacade {
   // ── Private Helpers ────────────────────────────────────────────────────────
 
   private _syncActiveFieldToTab(): void {
-    this._setActiveField(this._mobileTab === 'hexilab' ? 'inventory' : 'world');
+    this._setActiveField(this._mobileTab === 'lab' ? 'inventory' : 'world');
   }
 
   private _setActiveField(field: 'world' | 'inventory'): void {

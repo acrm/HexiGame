@@ -218,6 +218,26 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - when opened during active gameplay, **Disconnect** is shown instead of **Reset Session**;
   - when opened from the start screen, **Disconnect** is hidden.
 - Session snapshots are stored both as active session state and per-session history state (`hexigame.session.byId.<sessionId>`), enabling switching between history entries without data loss.
+
+## 3.1 Current Session UX Updates (2026-04-08)
+
+- Mobile tabs are named `Map`, `Lab`, and `Hexipedia`.
+- Disconnect is a dedicated in-game tab-bar button and is visually aligned with Settings (same size/background).
+- Settings is always rendered above start-screen overlays (higher z-order), so it is visible both in gameplay and on session-selection screen.
+- Start screen layout is split into independent zones:
+  - fixed non-scroll header (`HexiOS + Settings`),
+  - standalone language panel with its own scroll,
+  - standalone sessions panel with its own scroll and collapse toggle (expanded by default).
+- Session list is unified (no separate “current session” card) and sorted by most recent activity.
+- Each session card exposes continue/download/rename actions and renders the same metrics:
+  - start time,
+  - last action time,
+  - action count,
+  - game ticks and game time,
+  - total wall-clock session time.
+- Missing metric values render as `—` instead of hiding rows.
+- New sessions receive auto-generated codenames using pre-defined pools (`>=200` color combinations and `>=50` flowers), with language selected from current UI language at creation moment.
+- Session management supports bulk delete with selection mode, select-all, and explicit confirmation.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
 - `Restart session` creates a fresh RNG from `Date.now()` seed so each new game has a different procedural world.
 - Startup animation timings are accelerated by a factor of 3 while preserving the same phase order and visual beats.

@@ -10,7 +10,7 @@ import TutorialTaskIntroModal from '../TutorialTaskIntroModal';
 import ColorPaletteWidget from '../ColorPaletteWidget';
 import StructureProgressWidget from '../StructureProgressWidget';
 
-type HexiPediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
+type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
 interface GameOverlaysProps {
   isMobileLayout: boolean;
@@ -19,17 +19,16 @@ interface GameOverlaysProps {
   taskIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null;
   colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null;
   structureWidgetProps: React.ComponentProps<typeof StructureProgressWidget> | null;
-  sectionOrder: HexiPediaSectionId[];
+  sectionOrder: HexipediaSectionId[];
   showGuestStart: boolean;
-  hasResumableSession: boolean;
-  onContinueSession: () => void;
-  onStartNewSession: () => void;
   sessionHistory: SessionHistoryRecord[];
-  onLoadHistorySession: (sessionId: string) => void;
   currentSessionId: string | null;
+  onContinueSession: (sessionId: string) => void;
   onNewSession: () => void;
   onDownloadSession: (sessionId: string) => void;
   onImportSession: (file: File) => void;
+  onRenameSession: (sessionId: string, customName: string) => void;
+  onDeleteSessions: (sessionIds: string[]) => void;
   onOpenSettings: () => void;
   onGuestStartUiClick: () => void;
   language: Lang;
@@ -49,15 +48,14 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   structureWidgetProps,
   sectionOrder,
   showGuestStart,
-  hasResumableSession,
   onContinueSession,
-  onStartNewSession,
   sessionHistory,
-  onLoadHistorySession,
   currentSessionId,
   onNewSession,
   onDownloadSession,
   onImportSession,
+  onRenameSession,
+  onDeleteSessions,
   onOpenSettings,
   onGuestStartUiClick,
   language,
@@ -69,7 +67,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 }) => {
   return (
     <>
-      {isMobileLayout && mobileTab === 'heximap' && (
+      {isMobileLayout && mobileTab === 'map' && (
         <div className="widget-stack-overlay">
           {sectionOrder.map(sectionId => {
             if (sectionId === 'tasks' && taskWidgetProps) {
@@ -90,15 +88,14 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 
       {showGuestStart && (
         <GuestStart
-          hasResumableSession={hasResumableSession}
-          onContinue={onContinueSession}
-          onStartNew={onStartNewSession}
           sessionHistory={sessionHistory}
-          onLoadHistorySession={onLoadHistorySession}
-            currentSessionId={currentSessionId}
-            onNewSession={onNewSession}
-            onDownloadSession={onDownloadSession}
-            onImportSession={onImportSession}
+          currentSessionId={currentSessionId}
+          onContinueSession={onContinueSession}
+          onNewSession={onNewSession}
+          onDownloadSession={onDownloadSession}
+          onImportSession={onImportSession}
+          onRenameSession={onRenameSession}
+          onDeleteSessions={onDeleteSessions}
           onOpenSettings={onOpenSettings}
           onUiClick={onGuestStartUiClick}
           language={language}

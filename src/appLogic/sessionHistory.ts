@@ -12,6 +12,8 @@ export interface StorageRemover {
 
 export type StorageLike = StorageReader & StorageWriter;
 
+import { generateSessionCodename, type SessionNameLanguage } from './sessionNaming';
+
 export const SESSION_HISTORY_KEY = 'hexigame.session.history';
 export const TRACK_SESSION_HISTORY_KEY = 'hexigame.trackSessionHistory';
 export const ACTIVE_SESSION_ID_KEY = 'hexigame.session.active.id';
@@ -22,10 +24,12 @@ const DEFAULT_HISTORY_LIMIT = 20;
 
 export type SessionHistoryRecord = {
   id: string;
+  name: string;
   startTime: number;
   endTime: number;            // wall-clock time of last save
   gameTicks: number;
   gameTime: string;
+  customName?: string;
   lastActionTime?: number;   // wall-clock timestamp of last user action
   actionCount?: number;      // total user actions in session (non-TICK)
   totalSessionTime?: number; // elapsed wall-clock ms while session was active
@@ -43,10 +47,28 @@ export function formatGameTime(ticks: number, ticksPerSecond = DEFAULT_TICKS_PER
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 }
 
-export function createNewSessionHistoryRecord(now = Date.now(), randomValue = Math.random()): SessionHistoryRecord {
+export function getSessionDisplayName(record: SessionHistoryRecord): string {
+  const custom = record.customName?.trim();
+  if (custom) return custom;
+  const base = record.name?.trim();
+  if (base) return base;
+  return record.id;
+}
+
+export function createNewSessionHistoryRecord(
+  now = Date.now(),
+  randomValue = Math.random(),
+  options?: {
+    language?: SessionNameLanguage;
+    existingHistory?: SessionHistoryRecord[];
+  },
+): SessionHistoryRecord {
   const sessionId = `session_${now}_${randomValue.toString(36).slice(2, 11)}`;
+  const existingNames = (options?.existingHistory ?? []).map(getSessionDisplayName);
+  const generatedName = generateSessionCodename(options?.language ?? 'en', existingNames, randomValue);
   return {
     id: sessionId,
+    name: generatedName,
     startTime: now,
     endTime: now,
     gameTicks: 0,
@@ -60,15 +82,19 @@ function parseSessionHistory(raw: string | null): SessionHistoryRecord[] {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
     return parsed.filter((record): record is SessionHistoryRecord => {
+      const maybe = record as SessionHistoryRecord;
       return !!record
         && typeof record === 'object'
-        && typeof (record as SessionHistoryRecord).id === 'string'
-        && typeof (record as SessionHistoryRecord).startTime === 'number'
-        && typeof (record as SessionHistoryRecord).endTime === 'number'
-        && typeof (record as SessionHistoryRecord).gameTicks === 'number'
-        && typeof (record as SessionHistoryRecord).gameTime === 'string';
+        && typeof maybe.id === 'string'
+        && typeof maybe.startTime === 'number'
+        && typeof maybe.endTime === 'number'
+        && typeof maybe.gameTicks === 'number'
+        && typeof maybe.gameTime === 'string';
       // optional fields (lastActionTime, actionCount, totalSessionTime) are preserved as-is
-    });
+    }).map((record) => ({
+      ...record,
+      name: typeof record.name === 'string' && record.name.trim() ? record.name : record.id,
+    }));
   } catch {
     return [];
   }
@@ -162,6 +188,7 @@ export function saveSessionHistoryRecord(
   } else {
     history.unshift({
       id: sessionId,
+      name: sessionId,
       startTime: now - ((ticks * 1000) / ticksPerSecond),
       endTime: now,
       gameTicks: ticks,
@@ -209,6 +236,37 @@ export function deleteSessionHistoryRecord(
   const next = history.filter((record) => record.id !== recordId);
   persistSessionHistory(storage, next);
   return next;
+}
+
+export function deleteSessionHistoryRecords(
+  storage: StorageLike,
+  recordIds: string[],
+): SessionHistoryRecord[] {
+  if (recordIds.length === 0) return loadSessionHistory(storage);
+  const ids = new Set(recordIds);
+  const history = loadSessionHistory(storage);
+  const next = history.filter((record) => !ids.has(record.id));
+  persistSessionHistory(storage, next);
+  return next;
+}
+
+export function renameSessionHistoryRecord(
+  storage: StorageLike,
+  recordId: string,
+  customName: string,
+): SessionHistoryRecord[] {
+  const history = loadSessionHistory(storage);
+  const idx = history.findIndex((record) => record.id === recordId);
+  if (idx === -1) return history;
+
+  const trimmed = customName.trim();
+  history[idx] = {
+    ...history[idx],
+    customName: trimmed.length > 0 ? trimmed : undefined,
+  };
+
+  persistSessionHistory(storage, history);
+  return history;
 }
 
 export function clearSessionHistory(storage: StorageWriter): SessionHistoryRecord[] {
