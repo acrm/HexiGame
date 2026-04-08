@@ -645,3 +645,5 @@
 - 0.1.0-y26w15b5 — Field Lab dev tool: 6D field logic, canvas visualizer, time-perspective rendering
 
 - 0.1.0-y26w15b6 — Session action log, disconnect button, auto-disconnect on tab hide, session history redesign, HexiPedia session panel with playback controls
+
+- 0.1.0-y26w15b7 — Fix tutorial excavation progress expectation to 1-of-1 core cell

@@ -158,8 +158,8 @@ describe('Task win conditions', () => {
     };
 
     expect(task?.getProgress?.(completedState, params, createTaskProgressData())).toEqual({
-      current: excavationCells.length,
-      total: excavationCells.length,
+      current: 1,
+      total: 1,
       labelKey: 'task.cellsCleared',
     });
     expect(task?.winCondition(completedState, params, createTaskProgressData())).toBe(true);
