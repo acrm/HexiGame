@@ -913,6 +913,60 @@
   background: #3a3a3a;
 }
 
+.hexipedia-session-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.hexipedia-playback-controls--row {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.hexipedia-playback-controls--row .hexipedia-task-action {
+  height: 30px;
+  min-width: 30px;
+  padding: 4px 8px;
+}
+
+.hexipedia-playback-controls--row .hexipedia-playback-seek {
+  flex: 1;
+  min-width: 0;
+}
+
+.hexipedia-session-action-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hexipedia-session-action-item {
+  background: #2a2a2a;
+  border: 1px solid #444444;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hexipedia-session-action-main {
+  color: #dddddd;
+  font-size: 12px;
+  word-break: break-word;
+  font-family: 'Courier New', monospace;
+}
+
+.hexipedia-session-action-meta {
+  color: #8fa2b5;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+}
+
 @media (max-width: 600px) {
   .hexipedia-panel {
     padding: 12px;

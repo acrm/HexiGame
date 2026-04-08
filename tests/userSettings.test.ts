@@ -31,6 +31,7 @@ describe('userSettings', () => {
     expect(state.selectedColorIndex).toBe(3);
     expect(state.autoBaseColorEnabled).toBe(false);
     expect(state.showColorWidget).toBe(true);
+    expect(state.showSessionWidget).toBe(false);
   });
 
   it('loads explicit values and ignores invalid numbers', () => {
@@ -44,6 +45,7 @@ describe('userSettings', () => {
       [SETTINGS_KEYS.selectedColorIndex]: '2',
       [SETTINGS_KEYS.autoBaseColorEnabled]: 'true',
       [SETTINGS_KEYS.showColorWidget]: 'false',
+      [SETTINGS_KEYS.showSessionWidget]: 'true',
     });
 
     const state = createInitialUserSettingsState(storage, 0);
@@ -57,6 +59,7 @@ describe('userSettings', () => {
     expect(state.selectedColorIndex).toBe(2);
     expect(state.autoBaseColorEnabled).toBe(true);
     expect(state.showColorWidget).toBe(false);
+    expect(state.showSessionWidget).toBe(true);
   });
 
   it('reducer updates fields and toggles auto base mode', () => {
@@ -82,6 +85,9 @@ describe('userSettings', () => {
       selectedColorIndex: 5,
       autoBaseColorEnabled: true,
       showColorWidget: false,
+      showTaskWidget: true,
+      showStructureWidget: false,
+      showSessionWidget: true,
     };
 
     persistUserSettings(storage, state);
@@ -96,5 +102,8 @@ describe('userSettings', () => {
     expect(map.get(SETTINGS_KEYS.selectedColorIndex)).toBe('5');
     expect(map.get(SETTINGS_KEYS.autoBaseColorEnabled)).toBe('true');
     expect(map.get(SETTINGS_KEYS.showColorWidget)).toBe('false');
+    expect(map.get(SETTINGS_KEYS.showTaskWidget)).toBe('true');
+    expect(map.get(SETTINGS_KEYS.showStructureWidget)).toBe('false');
+    expect(map.get(SETTINGS_KEYS.showSessionWidget)).toBe('true');
   });
 });

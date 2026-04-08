@@ -9,6 +9,7 @@ import TutorialProgressWidget from '../TutorialProgressWidget';
 import TutorialTaskIntroModal from '../TutorialTaskIntroModal';
 import ColorPaletteWidget from '../ColorPaletteWidget';
 import StructureProgressWidget from '../StructureProgressWidget';
+import SessionPlaybackWidget from '../SessionPlaybackWidget';
 
 type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
@@ -19,6 +20,7 @@ interface GameOverlaysProps {
   taskIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null;
   colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null;
   structureWidgetProps: React.ComponentProps<typeof StructureProgressWidget> | null;
+  sessionWidgetProps: React.ComponentProps<typeof SessionPlaybackWidget> | null;
   sectionOrder: HexipediaSectionId[];
   showGuestStart: boolean;
   sessionHistory: SessionHistoryRecord[];
@@ -47,6 +49,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   taskIntroModalProps,
   colorPaletteWidgetProps,
   structureWidgetProps,
+  sessionWidgetProps,
   sectionOrder,
   showGuestStart,
   onContinueSession,
@@ -80,6 +83,9 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
             }
             if (sectionId === 'structures' && structureWidgetProps) {
               return <StructureProgressWidget key="structures" {...structureWidgetProps} />;
+            }
+            if (sectionId === 'session' && sessionWidgetProps) {
+              return <SessionPlaybackWidget key="session" {...sessionWidgetProps} />;
             }
             return null;
           })}

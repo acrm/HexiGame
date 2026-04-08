@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { t, type Lang } from '../i18n';
 import version from '../../../version.json';
 import { audioController } from '../../appLogic/audioController';
@@ -7,7 +7,6 @@ interface SettingsProps {
   language: Lang;
   onLanguageChange: (lang: Lang) => void;
   onClose: () => void;
-  onResetSession: () => void;
   onShowMascot: () => void;
   soundEnabled: boolean;
   onToggleSound: (enabled: boolean) => void;
@@ -27,7 +26,6 @@ export const Settings: React.FC<SettingsProps> = ({
   language,
   onLanguageChange,
   onClose, 
-  onResetSession, 
   onShowMascot,
   soundEnabled,
   onToggleSound,
@@ -42,17 +40,6 @@ export const Settings: React.FC<SettingsProps> = ({
   isLeftHanded,
   onToggleLeftHanded,
 }) => {
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  const handleReset = () => {
-    if (!showResetConfirm) {
-      setShowResetConfirm(true);
-      return;
-    }
-    onResetSession();
-    onClose();
-  };
-
   return (
     <div className="settings-overlay">
       <div className="settings-panel">
@@ -160,26 +147,6 @@ export const Settings: React.FC<SettingsProps> = ({
             {t('settings.mascot')}
           </button>
         </div>
-
-        <div className="settings-row">
-            {!showResetConfirm ? (
-              <button className="settings-action-button settings-reset" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); handleReset(); }}>
-                {t('settings.resetSession')}
-              </button>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                <div style={{ fontSize: 12, color: '#ff9999' }}>{t('settings.resetConfirm')}</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="settings-action-button settings-reset" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); handleReset(); }}>
-                    {t('action.reset')}
-                  </button>
-                  <button className="settings-action-button" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); setShowResetConfirm(false); }}>
-                    {t('action.cancel')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
           v{version.currentVersion}

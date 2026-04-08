@@ -242,6 +242,11 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - In HexiOS start-screen header, a dedicated play button (left of Settings) resumes the most recent session.
 - Session-card Continue action uses the same play icon metaphor as start-screen resume.
 - Bulk-delete confirmation is inline and full-width (`Confirm` left in red, `Cancel` right in gray), without browser/system dialogs.
+- In-game Settings no longer include a `Reset Session` action.
+- Hexipedia `Session` section keeps playback controls on a single row and mirrors the same row in a dedicated Session overlay widget.
+- Session overlay widget defaults to `off` and is controlled by the eye-toggle in the `Session` section header.
+- `Download session` action is placed inside Session panel content (not in section header controls).
+- Session panel includes expanded metadata plus a scrollable action log ordered from newest to oldest.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
 - `Restart session` creates a fresh RNG from `Date.now()` seed so each new game has a different procedural world.
 - Startup animation timings are accelerated by a factor of 3 while preserving the same phase order and visual beats.

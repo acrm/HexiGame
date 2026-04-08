@@ -1,0 +1,52 @@
+.session-playback-widget-shell {
+  width: 100%;
+}
+
+.session-playback-widget {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2a2a2a;
+  border: 1px solid #555555;
+  border-right: none;
+  padding: 6px;
+}
+
+.session-playback-widget__button {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  border: 1px solid #555555;
+  background: #3a3a3a;
+  color: #cccccc;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.session-playback-widget__button:hover:not(:disabled) {
+  background: #454545;
+  color: #ffffff;
+}
+
+.session-playback-widget__button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.session-playback-widget__input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid #555555;
+  background: #1e1e1e;
+  color: #cccccc;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.session-playback-widget__input:focus {
+  outline: none;
+  border-color: #88aadd;
+}

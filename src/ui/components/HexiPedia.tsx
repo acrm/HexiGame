@@ -7,6 +7,7 @@ import { t, getLanguage } from '../i18n';
 import { getAllTaskDefinitions } from '../../tasks/taskLevels';
 import { ALL_TEMPLATES, getTemplateById } from '../../templates/templateLibrary';
 import { audioController } from '../../appLogic/audioController';
+import type { SessionLog } from '../../appLogic/sessionRepository';
 import './Hexipedia/Hexipedia.css';
 
 interface SessionHistoryRecord {
@@ -64,6 +65,9 @@ interface HexipediaProps {
   onSetPlaybackPaused?: (paused: boolean) => void;
   onSeekToTick?: (tick: number) => void;
   onDownloadSession?: (sessionId: string) => void;
+  currentSessionLog?: SessionLog | null;
+  showSessionWidget?: boolean;
+  onToggleSessionWidget?: (visible: boolean) => void;
 }
 
 function formatSessionTime(ticks: number): string {
@@ -114,6 +118,17 @@ function getStructureStatusLabel(
   return t('structures.status.progress');
 }
 
+function formatLogWallTime(wallTime: number | undefined, locale: string): string {
+  if (!wallTime) return '—';
+  return new Date(wallTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function formatCommandSummary(command: { type?: string; [key: string]: unknown }): string {
+  const { type, ...rest } = command;
+  const details = Object.keys(rest).length > 0 ? ` ${JSON.stringify(rest)}` : '';
+  return `${type ?? 'UNKNOWN'}${details}`;
+}
+
 export const Hexipedia: React.FC<HexipediaProps> = ({
   gameState,
   params,
@@ -156,6 +171,9 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
   onSetPlaybackPaused,
   onSeekToTick,
   onDownloadSession,
+  currentSessionLog = null,
+  showSessionWidget = false,
+  onToggleSessionWidget,
 }) => {
   const [seekTickInput, setSeekTickInput] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
@@ -196,6 +214,10 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
     [gameState.structureInstances, selectedStructureTemplate],
   );
   const activeStructureInstanceId = gameState.activeTemplate?.instanceId ?? null;
+  const sortedSessionActions = useMemo(
+    () => (currentSessionLog?.entries ?? []).slice().sort((a, b) => b.wallTime - a.wallTime),
+    [currentSessionLog],
+  );
 
   useEffect(() => {
     if (!gameState.activeTemplate?.templateId) return;
@@ -570,16 +592,15 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                         <span className="hexipedia-section-title">{t('session.title')}</span>
                       </div>
                       <div className="hexipedia-section-controls">
-                        {currentSessionId && (
-                          <button
-                            className="hexipedia-section-move"
-                            onClick={() => onDownloadSession?.(currentSessionId)}
-                            title={t('action.download')}
-                            aria-label={t('action.download')}
-                          >
-                            <i className="fas fa-download" aria-hidden="true" />
-                          </button>
-                        )}
+                        <button
+                          className={`hexipedia-section-move hexipedia-widget-toggle ${showSessionWidget ? 'on' : 'off'}`}
+                          onClick={() => onToggleSessionWidget?.(!showSessionWidget)}
+                          disabled={!onToggleSessionWidget}
+                          title={showSessionWidget ? t('hexipedia.widget.hideSession') : t('hexipedia.widget.showSession')}
+                          aria-label={showSessionWidget ? t('hexipedia.widget.hideSession') : t('hexipedia.widget.showSession')}
+                        >
+                          <i className={`fas ${showSessionWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
+                        </button>
                         {isPinned && (
                           <>
                             <button
@@ -616,6 +637,18 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                     {!isCollapsed && (
                       <div className="hexipedia-stats-section">
                         <div className="hexipedia-stats-content">
+                          <div className="hexipedia-session-toolbar">
+                            {currentSessionId && (
+                              <button
+                                className="hexipedia-task-action"
+                                onClick={() => onDownloadSession?.(currentSessionId)}
+                              >
+                                <i className="fas fa-download" aria-hidden="true" />{' '}
+                                {t('action.download')}
+                              </button>
+                            )}
+                          </div>
+
                           {/* Session metadata */}
                           <div className="hexipedia-stat-row">
                             <span className="hexipedia-stat-label">{t('stats.sessionTime')}</span>
@@ -625,18 +658,34 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                             <span className="hexipedia-stat-label">{t('session.ticks')}</span>
                             <span className="hexipedia-stat-value">{gameState.tick}</span>
                           </div>
-                          {currentSessionRecord?.actionCount != null && (
-                            <div className="hexipedia-stat-row">
-                              <span className="hexipedia-stat-label">{t('session.actionCount')}</span>
-                              <span className="hexipedia-stat-value">{currentSessionRecord.actionCount}</span>
-                            </div>
-                          )}
+                          <div className="hexipedia-stat-row">
+                            <span className="hexipedia-stat-label">{t('session.actionCount')}</span>
+                            <span className="hexipedia-stat-value">{currentSessionRecord?.actionCount ?? sortedSessionActions.length}</span>
+                          </div>
+                          <div className="hexipedia-stat-row">
+                            <span className="hexipedia-stat-label">{t('session.logEntries')}</span>
+                            <span className="hexipedia-stat-value">{sortedSessionActions.length}</span>
+                          </div>
                           {currentSessionRecord?.startTime && (
                             <div className="hexipedia-stat-row">
                               <span className="hexipedia-stat-label">{t('session.startTime')}</span>
                               <span className="hexipedia-stat-value">
                                 {new Date(currentSessionRecord.startTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                               </span>
+                            </div>
+                          )}
+                          {currentSessionRecord?.lastActionTime && (
+                            <div className="hexipedia-stat-row">
+                              <span className="hexipedia-stat-label">{t('session.lastActionTime')}</span>
+                              <span className="hexipedia-stat-value">
+                                {new Date(currentSessionRecord.lastActionTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          )}
+                          {currentSessionRecord?.totalSessionTime != null && (
+                            <div className="hexipedia-stat-row">
+                              <span className="hexipedia-stat-label">{t('session.totalTime')}</span>
+                              <span className="hexipedia-stat-value">{Math.round(currentSessionRecord.totalSessionTime / 1000)}s</span>
                             </div>
                           )}
 
@@ -646,13 +695,12 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                               <div className="hexipedia-history-header">
                                 <div className="hexipedia-history-title">{t('playback.title')}</div>
                               </div>
-                              <div className="hexipedia-playback-controls">
+                              <div className="hexipedia-playback-controls hexipedia-playback-controls--row">
                                 <button
                                   className="hexipedia-task-action"
                                   onClick={() => onSetPlaybackPaused?.(!isPlaybackPaused)}
                                 >
                                   <i className={`fas ${isPlaybackPaused ? 'fa-play' : 'fa-pause'}`} />
-                                  {' '}{isPlaybackPaused ? t('playback.resume') : t('playback.pause')}
                                 </button>
                                 <div className="hexipedia-playback-seek">
                                   <input
@@ -684,11 +732,31 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                                   }}
                                 >
                                   <i className="fas fa-step-forward" />
-                                  {' '}{t('playback.step')}
                                 </button>
                               </div>
                             </div>
                           )}
+
+                          <div className="hexipedia-history-subsection">
+                            <div className="hexipedia-history-header">
+                              <div className="hexipedia-history-title">{t('session.actionsTitle')}</div>
+                            </div>
+                            {sortedSessionActions.length > 0 ? (
+                              <div className="hexipedia-session-action-list">
+                                {sortedSessionActions.map((entry, index) => (
+                                  <div key={`${entry.tick}-${entry.wallTime}-${index}`} className="hexipedia-session-action-item">
+                                    <div className="hexipedia-session-action-main">{formatCommandSummary(entry.command as unknown as { type?: string; [key: string]: unknown })}</div>
+                                    <div className="hexipedia-session-action-meta">
+                                      <span>t={entry.tick}</span>
+                                      <span>{formatLogWallTime(entry.wallTime, locale)}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="hexipedia-history-empty">{t('session.actionsEmpty')}</div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}

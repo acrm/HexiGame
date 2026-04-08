@@ -124,6 +124,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     showColorWidget,
     showTaskWidget,
     showStructureWidget,
+    showSessionWidget,
   } = settingsState;
   const [enabledHexipediaSections, setEnabledHexipediaSections] = useState<HexipediaSectionId[]>([
     'tasks',
@@ -708,6 +709,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const currentSessionRecord = sessionHistory.find((r) => r.id === currentSessionId) ?? null;
+  const currentSessionLog = useMemo(
+    () => (currentSessionId ? loadSessionLog(currentSessionId) : null),
+    [currentSessionId, gameState.tick],
+  );
 
   const hexiPediaProps: React.ComponentProps<typeof Hexipedia> = {
     gameState,
@@ -798,6 +803,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       if (sid) controllerRef.current?.seekToTick(sid, tick);
     },
     onDownloadSession: handleDownloadSession,
+    currentSessionLog,
+    showSessionWidget,
+    onToggleSessionWidget: (visible: boolean) => {
+      dispatchSettings({ type: 'SET_SHOW_SESSION_WIDGET', visible });
+    },
   };
 
   const gameFieldProps: React.ComponentProps<typeof GameField> = {
@@ -895,13 +905,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     language,
     onLanguageChange: handleLanguageChange,
     onClose: () => dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden }),
-    onResetSession: () => {
-      resetSession();
-      dispatchApp({ type: 'RESET_AFTER_SESSION_RESET' });
-      setTaskIntroModal(null);
-      setPendingForceResetTaskId(null);
-      dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
-    },
     onShowMascot: () => {
       dispatchApp({ type: 'CLOSE_SETTINGS', documentHidden: document.hidden });
       dispatchApp({ type: 'OPEN_MASCOT' });
@@ -1015,6 +1018,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         }
       : null;
 
+  const sessionWidgetProps = showSessionWidget && currentSessionId
+    ? {
+        isPlaybackPaused: playbackIsPaused,
+        currentTick: gameState.tick,
+        onSetPlaybackPaused: (paused: boolean) => {
+          setPlaybackIsPaused(paused);
+        },
+        onSeekToTick: (tick: number) => {
+          if (currentSessionId) controllerRef.current?.seekToTick(currentSessionId, tick);
+        },
+        onNavigateToSession: () => {
+          openHexipediaSection('session');
+        },
+      }
+    : null;
+
   return (
     <div
       className="game-root mobile-forced"
@@ -1054,6 +1073,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         taskIntroModalProps={taskIntroModalProps}
         colorPaletteWidgetProps={colorPaletteWidgetProps}
         structureWidgetProps={structureWidgetProps}
+        sessionWidgetProps={sessionWidgetProps}
         sectionOrder={sectionOrder}
         showGuestStart={!guestStarted}
         sessionHistory={sessionHistory}

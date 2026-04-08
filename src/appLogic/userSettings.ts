@@ -20,6 +20,7 @@ export const SETTINGS_KEYS = {
   showColorWidget: 'hexigame.showColorWidget',
   showTaskWidget: 'hexigame.showTaskWidget',
   showStructureWidget: 'hexigame.showStructureWidget',
+  showSessionWidget: 'hexigame.showSessionWidget',
   legacyShowTutorialWidget: 'hexigame.showTutorialWidget',
   legacySound: 'hexigame.sound',
 } as const;
@@ -36,6 +37,7 @@ export interface UserSettingsState {
   showColorWidget: boolean;
   showTaskWidget: boolean;
   showStructureWidget: boolean;
+  showSessionWidget: boolean;
 }
 
 export type UserSettingsCommand =
@@ -50,6 +52,7 @@ export type UserSettingsCommand =
   | { type: 'SET_SHOW_COLOR_WIDGET'; visible: boolean }
   | { type: 'SET_SHOW_TASK_WIDGET'; visible: boolean }
   | { type: 'SET_SHOW_STRUCTURE_WIDGET'; visible: boolean }
+  | { type: 'SET_SHOW_SESSION_WIDGET'; visible: boolean }
   | { type: 'SET_SHOW_TUTORIAL_WIDGET'; visible: boolean }
   | { type: 'TOGGLE_AUTO_BASE_COLOR_ENABLED' };
 
@@ -104,6 +107,7 @@ export function createInitialUserSettingsState(
     showColorWidget: parseBool(storage.getItem(SETTINGS_KEYS.showColorWidget), true),
     showTaskWidget: loadTaskWidgetPreference(storage),
     showStructureWidget: parseBool(storage.getItem(SETTINGS_KEYS.showStructureWidget), true),
+    showSessionWidget: parseBool(storage.getItem(SETTINGS_KEYS.showSessionWidget), false),
   };
 }
 
@@ -145,6 +149,9 @@ export function userSettingsReducer(
     case 'SET_SHOW_STRUCTURE_WIDGET':
       return { ...state, showStructureWidget: command.visible };
 
+    case 'SET_SHOW_SESSION_WIDGET':
+      return { ...state, showSessionWidget: command.visible };
+
     case 'SET_SHOW_TUTORIAL_WIDGET':
       return { ...state, showTaskWidget: command.visible };
 
@@ -168,4 +175,5 @@ export function persistUserSettings(storage: StorageWriter, state: UserSettingsS
   storage.setItem(SETTINGS_KEYS.showColorWidget, String(state.showColorWidget));
   storage.setItem(SETTINGS_KEYS.showTaskWidget, String(state.showTaskWidget));
   storage.setItem(SETTINGS_KEYS.showStructureWidget, String(state.showStructureWidget));
+  storage.setItem(SETTINGS_KEYS.showSessionWidget, String(state.showSessionWidget));
 }
