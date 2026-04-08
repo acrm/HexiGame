@@ -60,6 +60,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [confirmDeletePending, setConfirmDeletePending] = useState(false);
 
   const marketingVersion = `v${version.marketing.major}.${version.marketing.minor}.${version.marketing.publicBuild}`;
 
@@ -87,6 +88,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
       const next = !previous;
       if (!next) {
         setSelectedIds(new Set());
+        setConfirmDeletePending(false);
       }
       return next;
     });
@@ -100,15 +102,21 @@ export const GuestStart: React.FC<GuestStartProps> = ({
     setSelectedIds(new Set(sortedSessions.map((session) => session.id)));
   };
 
-  const handleConfirmDelete = () => {
+  const handleRequestDelete = () => {
     if (selectedIds.size === 0) return;
-    const confirmed = window.confirm(t('session.confirmDeleteSelected'));
-    if (!confirmed) return;
+    setConfirmDeletePending(true);
+  };
 
+  const handleConfirmDelete = () => {
     onUiClick();
     onDeleteSessions(Array.from(selectedIds));
     setSelectedIds(new Set());
     setDeleteMode(false);
+    setConfirmDeletePending(false);
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDeletePending(false);
   };
 
   const startRename = (record: SessionHistoryRecord) => {
@@ -238,14 +246,33 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                         <input type="checkbox" checked={allSelected} onChange={handleSelectAll} />
                         <span>{t('session.selectAll')}</span>
                       </label>
-                      <button
-                        type="button"
-                        className="gs-nav-btn gs-nav-btn--danger"
-                        disabled={selectedIds.size === 0}
-                        onClick={handleConfirmDelete}
-                      >
-                        {t('session.deleteSelected')} ({selectedIds.size})
-                      </button>
+                      {confirmDeletePending ? (
+                        <div className="gs-delete-confirm">
+                          <button
+                            type="button"
+                            className="gs-nav-btn gs-nav-btn--danger"
+                            onClick={handleConfirmDelete}
+                          >
+                            {t('common.yes')}
+                          </button>
+                          <button
+                            type="button"
+                            className="gs-nav-btn gs-nav-btn--secondary"
+                            onClick={handleCancelDelete}
+                          >
+                            {t('common.no')}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="gs-nav-btn gs-nav-btn--danger"
+                          disabled={selectedIds.size === 0}
+                          onClick={handleRequestDelete}
+                        >
+                          {t('session.deleteSelected')} ({selectedIds.size})
+                        </button>
+                      )}
                     </div>
                   )}
 

@@ -1030,10 +1030,17 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       {isMobileLayout && (
         <GameMobileTabs
           mobileTab={mobileTab}
+          isHexiOsMode={!guestStarted}
           onSelectMap={handleSelectMapTab}
           onSelectHexipedia={handleSelectHexipediaTab}
           onOpenSettings={handleOpenSettings}
           onDisconnect={handleDisconnect}
+          onPlayLatestSession={() => {
+            const latest = [...sessionHistory].sort(
+              (a, b) => (b.lastActionTime ?? b.endTime) - (a.lastActionTime ?? a.endTime),
+            )[0];
+            if (latest) handleContinueSession(latest.id);
+          }}
         />
       )}
 

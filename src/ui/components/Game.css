@@ -644,17 +644,21 @@ html, body {
   font-size: 13px;
 }
 
-/* Session action buttons row (New + Import) */
+/* Session action buttons row (New + Load + Delete in one row) */
 .gs-session-actions {
   display: flex;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 8px 12px;
   border-bottom: 1px solid #3a3a3a;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .gs-session-actions .gs-nav-btn {
-  flex: 1 1 220px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  justify-content: center;
 }
 
 /* Session card */
@@ -669,7 +673,7 @@ html, body {
 
 .gs-session-card--active {
   background: #2d333a;
-  border-left: 2px solid #44aa44;
+  border-left: 2px solid #5577aa;
 }
 
 .gs-session-card-header {
@@ -774,19 +778,33 @@ html, body {
   cursor: default;
 }
 
+.gs-delete-confirm {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.gs-delete-confirm .gs-nav-btn {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  width: auto;
+  justify-content: center;
+}
+
 .gs-delete-mode-on {
   border-color: #8a2b2b;
   color: #ffc8c8;
 }
 
-/* Primary nav button variant */
+/* Primary nav button variant — muted, not bright green */
 .gs-nav-btn--primary {
-  background: #1a3a1a;
-  border-color: #44aa44;
-  color: #88ee88;
+  background: #2e2e2e;
+  border-color: #4a4a4a;
+  color: #c8c8c8;
 }
 
 .gs-nav-btn--primary:hover {
-  background: #224422;
+  background: #383838;
+  border-color: #5a5a5a;
 }
 
