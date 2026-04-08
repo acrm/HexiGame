@@ -651,3 +651,5 @@
 - 0.1.0-y26w15b8 — Rename tabs to Map/Lab/Hexipedia, fix guest settings overlay, unify session list, add session codename rename and bulk delete
 
 - 0.1.0-y26w15b9 — Clean up session codenames (colors only, gendered RU flowers), stop/play icon on tab bar, session buttons one-row, gray continue button, inline delete confirmation
+
+- 0.1.0-y26w15b10 — Session naming strict color+flower, HexiOS header play button, play icon for Continue, full-width inline delete confirm

@@ -7,29 +7,19 @@ interface RuFlower {
   gender: RuGender;
 }
 
-// Only pure color / natural-phenomenon adjectives (masculine form); no mineral/gemstone names
-const RU_COLOR_ADJECTIVES = [
-  'Янтарный', 'Лазурный', 'Кобальтовый', 'Жемчужный', 'Лунный',
-  'Туманный', 'Серебряный', 'Золотистый', 'Пепельный', 'Шафрановый',
-  'Коралловый', 'Оливковый', 'Бордовый', 'Бирюзовый', 'Индиговый',
+// Color-only names in masculine form for grammatical agreement with RU flower gender.
+const RU_COLORS = [
+  'Алый', 'Красный', 'Розовый', 'Малиновый', 'Вишнёвый',
+  'Оранжевый', 'Жёлтый', 'Лимонный', 'Зелёный', 'Салатовый',
+  'Голубой', 'Синий', 'Лазурный', 'Фиолетовый', 'Лиловый',
+  'Сиреневый', 'Белый', 'Чёрный', 'Серый', 'Пепельный',
 ] as const;
 
-// Color bases (masculine form); no mineral-derived names
-const RU_COLOR_BASES = [
-  'алый', 'пурпурный', 'лазурный', 'янтарный', 'коралловый',
-  'графитовый', 'небесный', 'малиновый', 'вишнёвый', 'сиреневый',
-] as const;
-
-// Only pure colors; no mineral/gemstone names
-const EN_COLOR_ADJECTIVES = [
-  'Amber', 'Azure', 'Cobalt', 'Pearl', 'Lunar',
-  'Misty', 'Silver', 'Golden', 'Ashen', 'Saffron',
-  'Coral', 'Olive', 'Burgundy', 'Turquoise', 'Indigo',
-] as const;
-
-const EN_COLOR_BASES = [
-  'Scarlet', 'Crimson', 'Blue', 'Green', 'Violet',
-  'Amber', 'Coral', 'Graphite', 'Sky', 'Lilac',
+const EN_COLORS = [
+  'Scarlet', 'Red', 'Pink', 'Raspberry', 'Cherry',
+  'Orange', 'Yellow', 'Lemon', 'Green', 'Lime',
+  'Sky Blue', 'Blue', 'Azure', 'Violet', 'Lilac',
+  'Purple', 'White', 'Black', 'Gray', 'Ash',
 ] as const;
 
 // Decorative flowers only; gender attribute used for Russian adjective agreement
@@ -48,7 +38,7 @@ const RU_FLOWERS: readonly RuFlower[] = [
   { name: 'резеда', gender: 'ж' }, { name: 'сальвия', gender: 'ж' }, { name: 'урзиния', gender: 'ж' },
 ];
 
-// Decorative flowers only; tobacco and bindweed removed as non-decorative
+// Decorative flowers only; tobacco and bindweed removed as non-decorative.
 const EN_FLOWERS = [
   'rose', 'lily', 'tulip', 'hyacinth', 'orchid', 'iris', 'peony', 'poppy', 'lotus', 'violet',
   'cornflower', 'daffodil', 'jasmine', 'hydrangea', 'chrysanthemum', 'lavender', 'dahlia', 'camellia', 'magnolia', 'freesia',
@@ -58,25 +48,17 @@ const EN_FLOWERS = [
   'mallow', 'nasturtium', 'oleander', 'platycodon', 'mignonette', 'salvia', 'ursinia', 'snowdrop',
 ] as const;
 
-function buildColorPool(language: SessionNameLanguage): string[] {
-  const adjectives = language === 'ru' ? RU_COLOR_ADJECTIVES : EN_COLOR_ADJECTIVES;
-  const bases = language === 'ru' ? RU_COLOR_BASES : EN_COLOR_BASES;
-  const pool: string[] = [];
-  for (const adjective of adjectives) {
-    for (const base of bases) {
-      pool.push(`${adjective} ${base}`);
-    }
-  }
-  return pool;
+function getColorPool(language: SessionNameLanguage): readonly string[] {
+  return language === 'ru' ? RU_COLORS : EN_COLORS;
 }
 
-// Inflect all adjective endings in a color phrase to match the Russian flower's grammatical gender.
-// All adjectives in our pools end in -ый; feminine form uses -ая.
-function inflectRuColorPhrase(phrase: string, gender: RuGender): string {
-  if (gender === 'м') return phrase;
-  return phrase
-    .replace(/ый(?= |$)/g, 'ая')
-    .replace(/ий(?= |$)/g, 'яя');
+// Convert a masculine Russian color adjective into feminine form for feminine flower names.
+function inflectRuColor(color: string, gender: RuGender): string {
+  if (gender === 'м') return color;
+  return color
+    .replace(/ый$/i, 'ая')
+    .replace(/ий$/i, 'яя')
+    .replace(/ой$/i, 'ая');
 }
 
 function normalizeName(value: string): string {
@@ -107,7 +89,7 @@ export function generateSessionCodename(
   existingNames: string[],
   randomValue = Math.random(),
 ): string {
-  const colorPool = buildColorPool(language);
+  const colorPool = getColorPool(language);
   const colorIndex = Math.floor(Math.abs(randomValue) * colorPool.length) % colorPool.length;
   const color = colorPool[colorIndex] ?? colorPool[0];
 
@@ -115,7 +97,7 @@ export function generateSessionCodename(
   if (language === 'ru') {
     const flowerIndex = Math.floor(Math.abs(randomValue * 9973) * RU_FLOWERS.length) % RU_FLOWERS.length;
     const flower = RU_FLOWERS[flowerIndex] ?? RU_FLOWERS[0];
-    base = `${inflectRuColorPhrase(color, flower.gender)} ${flower.name}`;
+    base = `${inflectRuColor(color, flower.gender)} ${flower.name}`;
   } else {
     const flowerIndex = Math.floor(Math.abs(randomValue * 9973) * EN_FLOWERS.length) % EN_FLOWERS.length;
     const flowerRaw = EN_FLOWERS[flowerIndex] ?? EN_FLOWERS[0];

@@ -236,8 +236,12 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - game ticks and game time,
   - total wall-clock session time.
 - Missing metric values render as `—` instead of hiding rows.
-- New sessions receive auto-generated codenames using pre-defined pools (`>=200` color combinations and `>=50` flowers), with language selected from current UI language at creation moment.
+- New sessions receive auto-generated codenames in strict two-part format: `color + flower`.
+- Russian codename generation applies grammatical gender agreement for flower names (masculine/feminine color inflection).
 - Session management supports bulk delete with selection mode, select-all, and explicit confirmation.
+- In HexiOS start-screen header, a dedicated play button (left of Settings) resumes the most recent session.
+- Session-card Continue action uses the same play icon metaphor as start-screen resume.
+- Bulk-delete confirmation is inline and full-width (`Confirm` left in red, `Cancel` right in gray), without browser/system dialogs.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
 - `Restart session` creates a fresh RNG from `Date.now()` seed so each new game has a different procedural world.
 - Startup animation timings are accelerated by a factor of 3 while preserving the same phase order and visual beats.

@@ -24,6 +24,7 @@ interface GameOverlaysProps {
   sessionHistory: SessionHistoryRecord[];
   currentSessionId: string | null;
   onContinueSession: (sessionId: string) => void;
+  onPlayLatestSession: () => void;
   onNewSession: () => void;
   onDownloadSession: (sessionId: string) => void;
   onImportSession: (file: File) => void;
@@ -49,6 +50,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   sectionOrder,
   showGuestStart,
   onContinueSession,
+  onPlayLatestSession,
   sessionHistory,
   currentSessionId,
   onNewSession,
@@ -91,6 +93,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
           sessionHistory={sessionHistory}
           currentSessionId={currentSessionId}
           onContinueSession={onContinueSession}
+          onPlayLatestSession={onPlayLatestSession}
           onNewSession={onNewSession}
           onDownloadSession={onDownloadSession}
           onImportSession={onImportSession}

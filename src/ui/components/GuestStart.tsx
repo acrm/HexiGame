@@ -7,6 +7,7 @@ interface GuestStartProps {
   sessionHistory: SessionHistoryRecord[];
   currentSessionId: string | null;
   onContinueSession: (sessionId: string) => void;
+  onPlayLatestSession: () => void;
   onNewSession: () => void;
   onDownloadSession: (sessionId: string) => void;
   onImportSession: (file: File) => void;
@@ -44,6 +45,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
   sessionHistory,
   currentSessionId,
   onContinueSession,
+  onPlayLatestSession,
   onNewSession,
   onDownloadSession,
   onImportSession,
@@ -147,6 +149,17 @@ export const GuestStart: React.FC<GuestStartProps> = ({
             </div>
             <button
               type="button"
+              className="disconnect-button"
+              title={t('action.loadSession')}
+              onClick={() => {
+                onUiClick();
+                onPlayLatestSession();
+              }}
+            >
+              <i className="fas fa-play" />
+            </button>
+            <button
+              type="button"
               className="settings-button"
               title={t('settings.open')}
               onClick={() => {
@@ -242,36 +255,38 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 
                   {deleteMode && (
                     <div className="gs-delete-toolbar">
-                      <label className="gs-select-all">
-                        <input type="checkbox" checked={allSelected} onChange={handleSelectAll} />
-                        <span>{t('session.selectAll')}</span>
-                      </label>
                       {confirmDeletePending ? (
-                        <div className="gs-delete-confirm">
+                        <div className="gs-delete-confirm gs-delete-confirm--full">
                           <button
                             type="button"
                             className="gs-nav-btn gs-nav-btn--danger"
                             onClick={handleConfirmDelete}
                           >
-                            {t('common.yes')}
+                            {t('session.confirmDeleteAction')}
                           </button>
                           <button
                             type="button"
                             className="gs-nav-btn gs-nav-btn--secondary"
                             onClick={handleCancelDelete}
                           >
-                            {t('common.no')}
+                            {t('session.cancelDeleteAction')}
                           </button>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          className="gs-nav-btn gs-nav-btn--danger"
-                          disabled={selectedIds.size === 0}
-                          onClick={handleRequestDelete}
-                        >
-                          {t('session.deleteSelected')} ({selectedIds.size})
-                        </button>
+                        <>
+                          <label className="gs-select-all">
+                            <input type="checkbox" checked={allSelected} onChange={handleSelectAll} />
+                            <span>{t('session.selectAll')}</span>
+                          </label>
+                          <button
+                            type="button"
+                            className="gs-nav-btn gs-nav-btn--danger"
+                            disabled={selectedIds.size === 0}
+                            onClick={handleRequestDelete}
+                          >
+                            {t('session.deleteSelected')} ({selectedIds.size})
+                          </button>
+                        </>
                       )}
                     </div>
                   )}
@@ -362,7 +377,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                               }}
                             >
                               <span>{t('action.loadSession')}</span>
-                              <i className="fas fa-chevron-right gs-nav-btn-chevron" />
+                              <i className="fas fa-play gs-nav-btn-chevron" />
                             </button>
                           </div>
                         );

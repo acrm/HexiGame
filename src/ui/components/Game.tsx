@@ -639,6 +639,14 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     handleLoadHistorySession(sessionId);
   };
 
+  const handlePlayLatestSession = () => {
+    const latest = [...sessionHistory].sort(
+      (a, b) => (b.lastActionTime ?? b.endTime) - (a.lastActionTime ?? a.endTime),
+    )[0];
+    if (!latest) return;
+    handleContinueSession(latest.id);
+  };
+
   const handleRenameSession = (sessionId: string, customName: string) => {
     const history = renameSessionHistoryRecord(localStorage, sessionId, customName);
     dispatchApp({ type: 'SET_SESSION_HISTORY', history });
@@ -1035,12 +1043,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           onSelectHexipedia={handleSelectHexipediaTab}
           onOpenSettings={handleOpenSettings}
           onDisconnect={handleDisconnect}
-          onPlayLatestSession={() => {
-            const latest = [...sessionHistory].sort(
-              (a, b) => (b.lastActionTime ?? b.endTime) - (a.lastActionTime ?? a.endTime),
-            )[0];
-            if (latest) handleContinueSession(latest.id);
-          }}
+          onPlayLatestSession={handlePlayLatestSession}
         />
       )}
 
@@ -1056,6 +1059,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         sessionHistory={sessionHistory}
         currentSessionId={currentSessionId ?? null}
         onContinueSession={handleContinueSession}
+        onPlayLatestSession={handlePlayLatestSession}
         onNewSession={handleStartNewSession}
         onDownloadSession={handleDownloadSession}
         onImportSession={handleImportSession}
