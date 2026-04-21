@@ -555,7 +555,7 @@ html, body {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: #AAAAAA #000000;
+  scrollbar-color: #555555 #000000;
   scrollbar-width: thin;
 }
 
@@ -594,7 +594,7 @@ html, body {
 }
 
 .gs-panel-toggle-icon {
-  color: #AAFFFF;
+  color: #55FFFF;
   font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
@@ -728,41 +728,43 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 1ch;
-  padding: 0;
+  padding: 0 1ch;
   background: #000000;
-}
-
-.gs-session-card::before,
-.gs-session-card::after {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  color: #5555FF;
+  position: relative;
 }
 
 .gs-session-card::before {
-  content: '┌────────────────────────────────────────────────────────────────────────────────────────────────────┐';
-}
-
-.gs-session-card::after {
-  content: '└────────────────────────────────────────────────────────────────────────────────────────────────────┘';
+  content: '├────────────────────────────────────────────────────────────────────────────────────────────────────┤';
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #555555;
 }
 
 .gs-session-card--active {
   background: #000000;
 }
 
-.gs-session-card--active::before,
-.gs-session-card--active::after {
+.gs-session-card--active::before {
   color: #55FFFF;
 }
 
 .gs-session-row {
   display: grid;
-  grid-template-columns: 3ch minmax(0, 1fr) 15ch 5ch;
+  grid-template-columns: 4ch 3ch minmax(0, 1fr) 14ch 5ch;
   align-items: center;
   column-gap: 1ch;
-  padding: 0 1ch;
+  padding: 0;
+  color: #FFFFFF;
+}
+
+.gs-session-card:hover .gs-session-row {
+  color: #55FFFF;
+}
+
+.gs-session-card--active .gs-session-row {
+  background: #AAAAAA;
+  color: #000000;
 }
 
 .gs-expander-btn {
@@ -773,7 +775,7 @@ html, body {
   justify-content: center;
   background: transparent;
   border: none;
-  color: #AAFFFF;
+  color: #55FFFF;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -781,6 +783,24 @@ html, body {
 
 .gs-expander-btn:hover {
   color: #FFFFFF;
+}
+
+.gs-session-card--active .gs-expander-btn,
+.gs-session-card--active .gs-expander-btn:hover {
+  color: #000000;
+}
+
+.gs-session-tag {
+  color: #FFFF55;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gs-session-card--active .gs-session-tag {
+  color: #000000;
 }
 
 .gs-session-name {
@@ -793,12 +813,17 @@ html, body {
 }
 
 .gs-session-date-inline {
-  color: #AAAAAA;
+  color: #55FFFF;
   text-align: right;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gs-session-card--active .gs-session-name,
+.gs-session-card--active .gs-session-date-inline {
+  color: #000000;
 }
 
 .gs-session-card-actions {
@@ -829,6 +854,11 @@ html, body {
   color: #55FFFF;
 }
 
+.gs-session-card--active .gs-session-start-btn,
+.gs-session-card--active .gs-session-start-btn:hover {
+  color: #000000;
+}
+
 .gs-session-start-btn::before {
   content: '[ ';
   color: #AAAAAA;
@@ -839,11 +869,16 @@ html, body {
   color: #AAAAAA;
 }
 
+.gs-session-card--active .gs-session-start-btn::before,
+.gs-session-card--active .gs-session-start-btn::after {
+  color: #000000;
+}
+
 .gs-session-expanded {
   display: flex;
   flex-direction: column;
   gap: 1ch;
-  padding: 0 1ch 1ch;
+  padding: 0 0 1ch;
 }
 
 .gs-session-meta-grid {

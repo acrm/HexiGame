@@ -661,3 +661,5 @@
 - 0.1.0-y26w17b2 — Start screen retro 8-bit style and non-autostart session add
 
 - 0.1.0-y26w17b3 — Start screen full terminal TUI layout and symbol frames
+
+- 0.1.0-y26w17b4 — Refine TUI session list hierarchy states and status tags

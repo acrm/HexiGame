@@ -70,6 +70,14 @@ export const GuestStart: React.FC<GuestStartProps> = ({
     [sessionHistory],
   );
 
+  const getSessionTag = (record: SessionHistoryRecord, index: number, displayName: string): string => {
+    if (currentSessionId === record.id) return 'CUR';
+    if ((record.actionCount ?? 0) <= 0) return 'NEW';
+    if (index === 0) return 'NEW';
+    if (displayName.toLowerCase().startsWith('session_')) return 'IMP';
+    return 'SAV';
+  };
+
   const toggleSessionExpanded = (sessionId: string) => {
     setExpandedSessionIds((previous) => {
       const next = new Set(previous);
@@ -231,16 +239,18 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 
                   {sortedSessions.length > 0 && (
                     <div className="gs-history-list">
-                      {sortedSessions.map((record) => {
+                      {sortedSessions.map((record, index) => {
                         const displayName = getSessionDisplayName(record);
                         const isEditing = editingId === record.id;
                         const isExpanded = expandedSessionIds.has(record.id);
                         const isDeletePending = pendingDeleteId === record.id;
                         const lastActionLabel = formatDateTime(record.lastActionTime ?? record.endTime);
+                        const sessionTag = getSessionTag(record, index, displayName);
 
                         return (
                           <div key={record.id} className={`gs-session-card ${currentSessionId === record.id ? 'gs-session-card--active' : ''}`.trim()}>
                             <div className="gs-session-row">
+                              <span className="gs-session-tag">{sessionTag}</span>
                               <button
                                 type="button"
                                 className="gs-expander-btn"
