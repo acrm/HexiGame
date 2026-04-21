@@ -266,6 +266,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Button captions use compact short labels (up to 5 symbols/letters) for terminal readability.
 - TUI panel/list rows keep continuous vertical side boundaries (`│`) in header, controls, and session entries.
 - Session entries are separated by a single symbolic boundary line between items (no doubled separators).
+- Sessions panel uses a double-line frame (`╔═╗ / ║ / ╚═╝`), while separators between individual session entries remain single-line (`├─`).
+- In session content, each rendered line starts with a boundary glyph (`║` or `├`) to keep a continuous terminal grid feel.
 - In-game Settings no longer include a `Reset Session` action.
 - Hexipedia `Session` section keeps playback controls on a single row and mirrors the same row in a dedicated Session overlay widget.
 - Session overlay widget defaults to `off` and is controlled by the eye-toggle in the `Session` section header.

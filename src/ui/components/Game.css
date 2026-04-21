@@ -602,7 +602,7 @@ html, body {
 
 .gs-section-toggle::before,
 .gs-section-toggle::after {
-  content: '│';
+  content: '║';
   position: absolute;
   top: 1ch;
   color: #AAAAAA;
@@ -663,9 +663,17 @@ html, body {
 .gs-session-body {
   display: flex;
   flex-direction: column;
-  gap: 1ch;
+  gap: 0;
   padding: 0 0 1ch;
   background: #000000;
+}
+
+.gs-sessions-section.gs-tui-frame::before {
+  content: '╔════════════════════════════════════════════════════════════════════════════════════════════════════╗';
+}
+
+.gs-sessions-section.gs-tui-frame::after {
+  content: '╚════════════════════════════════════════════════════════════════════════════════════════════════════╝';
 }
 
 .gs-nav-btn {
@@ -729,7 +737,7 @@ html, body {
 
 .gs-session-actions::before,
 .gs-session-actions::after {
-  content: '│';
+  content: '║';
   position: absolute;
   top: 1ch;
   color: #AAAAAA;
@@ -761,12 +769,17 @@ html, body {
   padding: 0 1ch;
   background: #000000;
   position: relative;
-  border-left: 1px solid #555555;
-  border-right: 1px solid #555555;
+  border-left: none;
+  border-right: none;
 }
 
 .gs-session-card::before {
-  content: '┌────────────────────────────────────────────────────────────────────────────────────────────────────┐';
+  content: '';
+  display: none;
+}
+
+.gs-session-card + .gs-session-card::before {
+  content: '├────────────────────────────────────────────────────────────────────────────────────────────────────┤';
   display: block;
   overflow: hidden;
   white-space: nowrap;
@@ -798,11 +811,6 @@ html, body {
   color: #55FFFF;
 }
 
-.gs-session-card--active {
-  border-left-color: #55FFFF;
-  border-right-color: #55FFFF;
-}
-
 .gs-session-row {
   position: relative;
   display: flex;
@@ -814,7 +822,7 @@ html, body {
 
 .gs-session-row::before,
 .gs-session-row::after {
-  content: '│';
+  content: '║';
   position: absolute;
   top: 0;
   color: #55FFFF;
@@ -829,9 +837,18 @@ html, body {
 }
 
 .gs-session-line {
+  position: relative;
   display: grid;
   align-items: center;
   column-gap: 1ch;
+  padding-left: 2ch;
+}
+
+.gs-session-line::before {
+  content: '║';
+  position: absolute;
+  left: 0;
+  color: #55FFFF;
 }
 
 .gs-session-line--top {
@@ -898,13 +915,21 @@ html, body {
 }
 
 .gs-session-card-actions {
+  position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   justify-content: start;
   align-items: center;
   gap: 1ch;
-  padding: 0 1ch;
+  padding: 0 1ch 0 2ch;
+}
+
+.gs-session-card-actions::before {
+  content: '║';
+  position: absolute;
+  left: 0;
+  color: #55FFFF;
 }
 
 .gs-session-start-btn {
@@ -951,12 +976,12 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 1ch;
-  padding: 0 1ch 1ch;
+  padding: 0 1ch 1ch 2ch;
 }
 
 .gs-session-expanded::before,
 .gs-session-expanded::after {
-  content: '│';
+  content: '║';
   position: absolute;
   top: 0;
   color: #55FFFF;
@@ -975,6 +1000,18 @@ html, body {
   grid-template-columns: 1fr;
   gap: 0;
   color: #AAAAAA;
+}
+
+.gs-session-meta-grid span {
+  position: relative;
+  padding-left: 2ch;
+}
+
+.gs-session-meta-grid span::before {
+  content: '║';
+  position: absolute;
+  left: 0;
+  color: #55FFFF;
 }
 
 .gs-icon-btn {
@@ -1000,11 +1037,19 @@ html, body {
 }
 
 .gs-rename-inline {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content max-content;
   align-items: center;
   gap: 1ch;
-  padding: 0 1ch;
+  padding: 0 1ch 0 2ch;
+}
+
+.gs-rename-inline::before {
+  content: '║';
+  position: absolute;
+  left: 0;
+  color: #55FFFF;
 }
 
 .gs-rename-input {
@@ -1060,5 +1105,16 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gs-session-card--active .gs-session-row::before,
+.gs-session-card--active .gs-session-row::after,
+.gs-session-card--active .gs-session-line::before,
+.gs-session-card--active .gs-session-card-actions::before,
+.gs-session-card--active .gs-session-expanded::before,
+.gs-session-card--active .gs-session-expanded::after,
+.gs-session-card--active .gs-session-meta-grid span::before,
+.gs-session-card--active .gs-rename-inline::before {
+  color: #000000;
 }
 
