@@ -145,13 +145,16 @@ export function ensureGeneratedAround(state: GameState, params: Params, rng?: RN
   const random = rng ?? Math.random;
   const toAdd: Cell[] = [];
 
+  // Colored hexes auto-generate ONLY on layer 0. Other layers generate walkable (null) cells only.
+  const isLayer0 = (state.activeLayerIndex ?? 0) === 0;
+
   for (let q = center.q - radius; q <= center.q + radius; q++) {
     for (let r = center.r - radius; r <= center.r + radius; r++) {
       const p = { q, r };
       if (axialDistance(center, p) > radius) continue;
       const key = keyOf(q, r);
       if (state.grid.has(key)) continue;
-      const colorIndex = random() < params.InitialColorProbability
+      const colorIndex = isLayer0 && random() < params.InitialColorProbability
         ? Math.floor(random() * paletteLen)
         : null;
       toAdd.push({ q, r, colorIndex });

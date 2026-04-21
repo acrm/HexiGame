@@ -295,6 +295,9 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         };
 
         // 1. Deeper layers (smaller hexes) drawn as background
+        // They share the same axial coordinate space, but render at 1/3^depth scale.
+        // Center must be recomputed per-layer so protagonist aligns visually.
+        const wvcPixel = hexToPixel(worldViewCenter.q, worldViewCenter.r);
         for (let layerIndex = MIN_LAYER; layerIndex < activeLayerIndex; layerIndex++) {
           const layerGrid = layerGrids[layerIndex];
           if (!layerGrid || layerGrid.size === 0) continue;
@@ -302,12 +305,17 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
           const subScale = Math.pow(3, depth);
           const subHexSize = HEX_SIZE * scale / subScale;
           if (subHexSize < 0.5) continue;
+          // Background layer must be centered on the same visual point as the active layer.
+          // Active layer: centerX = canvas.width/2 - wvcPixel.x * scale
+          // Background:   bgCenterX = canvas.width/2 - wvcPixel.x * (scale/subScale)
+          const bgCenterX = canvas.width / 2 - wvcPixel.x * scale / subScale;
+          const bgCenterY = (padding + worldViewportHeight / 2) - wvcPixel.y * scale / subScale;
           ctx.save();
-          ctx.globalAlpha = Math.max(0.1, 0.5 / depth);
+          ctx.globalAlpha = Math.max(0.15, 0.6 / depth);
           for (const cell of layerGrid.values()) {
             const pos = hexToPixel(cell.q, cell.r);
-            const scaledX = centerX + pos.x * scale / subScale;
-            const scaledY = centerY + pos.y * scale / subScale;
+            const scaledX = bgCenterX + pos.x * scale / subScale;
+            const scaledY = bgCenterY + pos.y * scale / subScale;
             if (
               scaledX < -subHexSize * 3 || scaledX > canvas.width + subHexSize * 3 ||
               scaledY < -subHexSize * 3 || scaledY > canvas.height + subHexSize * 3

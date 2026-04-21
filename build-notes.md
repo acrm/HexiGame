@@ -667,3 +667,5 @@
 - 0.1.0-y26w17b5 — multi-layer hex grid (5 layers), grid radius 4, layer controls UI
 
 - 0.1.0-y26w17b6 — update GAME_LOGIC.md for multi-layer and grid radius 4
+
+- 0.1.0-y26w17b7 — layer 0 only generates colored hexes; fix background layer centering
