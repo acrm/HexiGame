@@ -146,7 +146,8 @@ export function ensureGeneratedAround(state: GameState, params: Params, rng?: RN
   const toAdd: Cell[] = [];
 
   // Colored hexes auto-generate ONLY on layer 0. Other layers generate walkable (null) cells only.
-  const isLayer0 = (state.activeLayerIndex ?? 0) === 0;
+  const activeLayerIndex = state.activeLayerIndex ?? 0;
+  const isLayer0 = activeLayerIndex === 0;
 
   for (let q = center.q - radius; q <= center.q + radius; q++) {
     for (let r = center.r - radius; r <= center.r + radius; r++) {
@@ -161,8 +162,41 @@ export function ensureGeneratedAround(state: GameState, params: Params, rng?: RN
     }
   }
 
-  if (toAdd.length === 0) return state;
-  return { ...state, grid: updateCells(state.grid, toAdd) };
+  let nextState: GameState = toAdd.length === 0
+    ? state
+    : { ...state, grid: updateCells(state.grid, toAdd) };
+
+  // Always keep layer 0 generated around the protagonist while on a different layer,
+  // so it can be rendered as background and moves synchronously with the active layer.
+  if (activeLayerIndex !== 0) {
+    const scaleFactor = Math.max(1, Math.pow(3, activeLayerIndex));
+    const layer0Radius = Math.max(1, params.GridRadius * 2) * scaleFactor;
+    const layer0Grid: Grid = (nextState.layerGrids ?? {})[0] ?? new Map<string, Cell>();
+    const layer0ToAdd: Cell[] = [];
+    for (let q = center.q - layer0Radius; q <= center.q + layer0Radius; q++) {
+      for (let r = center.r - layer0Radius; r <= center.r + layer0Radius; r++) {
+        const p = { q, r };
+        if (axialDistance(center, p) > layer0Radius) continue;
+        const key = keyOf(q, r);
+        if (layer0Grid.has(key)) continue;
+        const colorIndex = random() < params.InitialColorProbability
+          ? Math.floor(random() * paletteLen)
+          : null;
+        layer0ToAdd.push({ q, r, colorIndex });
+      }
+    }
+    if (layer0ToAdd.length > 0) {
+      nextState = {
+        ...nextState,
+        layerGrids: {
+          ...(nextState.layerGrids ?? {}),
+          0: updateCells(layer0Grid, layer0ToAdd),
+        },
+      };
+    }
+  }
+
+  return nextState;
 }
 
 // Compute path from source to target using greedy pathfinding

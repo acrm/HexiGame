@@ -669,3 +669,5 @@
 - 0.1.0-y26w17b6 — update GAME_LOGIC.md for multi-layer and grid radius 4
 
 - 0.1.0-y26w17b7 — layer 0 only generates colored hexes; fix background layer centering
+
+- 0.1.0-y26w17b8 — generate layer 0 around protagonist when on other layers; background moves in sync
