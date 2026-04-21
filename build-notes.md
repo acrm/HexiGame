@@ -683,3 +683,5 @@
 - 0.1.0-y26w17b13 — normalize non-base layer grids and add layer addressing invariants tests
 
 - 0.1.0-y26w17b14 — clip world rendering to field bounds and verify +1 auto-move target coordinates
+
+- 0.1.0-y26w17b15 — fix child layer anchoring and keep perimeter dots unclipped

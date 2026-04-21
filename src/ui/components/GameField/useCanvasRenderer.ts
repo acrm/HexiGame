@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react';
 import type { Params } from '../../../gameLogic/core/params';
 import type { GameState, Axial } from '../../../gameLogic/core/types';
 import { computeBreadcrumbs } from '../../../gameLogic/systems/movement';
-import { axialDistance } from '../../../gameLogic/core/grid';
+import { axialDistance, projectAxialBetweenLayers } from '../../../gameLogic/core/grid';
 import { renderTemplateOverlay } from '../TemplateRenderer';
 import {
   drawHex,
@@ -233,24 +233,6 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
       const focusCell = gameState.focus;
       const isTurtleMoving = isAutoMoveInProgress(protagonistCell, gameState.autoFocusTarget);
 
-      let worldClipApplied = false;
-      if (!isInventory) {
-        ctx.save();
-        ctx.beginPath();
-        for (let q = worldViewCenter.q - visibleRadius; q <= worldViewCenter.q + visibleRadius; q++) {
-          for (let r = worldViewCenter.r - visibleRadius; r <= worldViewCenter.r + visibleRadius; r++) {
-            const cell = { q, r };
-            if (axialDistance(cell, worldViewCenter) > visibleRadius) continue;
-            const pos = hexToPixel(q, r);
-            const x = centerX + pos.x * scale;
-            const y = centerY + pos.y * scale;
-            appendHexPath(ctx, x, y, HEX_SIZE * scale);
-          }
-        }
-        ctx.clip();
-        worldClipApplied = true;
-      }
-
       if (isInventory) {
         const INV_TURTLE_SCALE = 12.0;
         const INV_TURTLE_MARGIN_HEX = -6;
@@ -313,6 +295,20 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         }
       } else {
         // === Multi-layer rendering ===
+        ctx.save();
+        ctx.beginPath();
+        for (let q = worldViewCenter.q - visibleRadius; q <= worldViewCenter.q + visibleRadius; q++) {
+          for (let r = worldViewCenter.r - visibleRadius; r <= worldViewCenter.r + visibleRadius; r++) {
+            const cell = { q, r };
+            if (axialDistance(cell, worldViewCenter) > visibleRadius) continue;
+            const pos = hexToPixel(q, r);
+            const x = centerX + pos.x * scale;
+            const y = centerY + pos.y * scale;
+            appendHexPath(ctx, x, y, HEX_SIZE * scale);
+          }
+        }
+        ctx.clip();
+
         const activeLayerIndex = gameState.activeLayerIndex ?? 0;
         const layerGrids = gameState.layerGrids ?? {};
         const MIN_LAYER = -2;
@@ -330,8 +326,8 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
 
         // 1. Deeper layers (smaller hexes) drawn as background
         // They share the same axial coordinate space, but render at 1/3^depth scale.
-        // Center must be recomputed per-layer so protagonist aligns visually.
-        const wvcPixel = hexToPixel(worldViewCenter.q, worldViewCenter.r);
+        // Center must be projected into each rendered layer so child hexes keep
+        // a stable position relative to their parent hexes on the active layer.
         for (let layerIndex = MIN_LAYER; layerIndex < activeLayerIndex; layerIndex++) {
           const layerGrid = layerGrids[layerIndex];
           if (!layerGrid || layerGrid.size === 0) continue;
@@ -339,11 +335,10 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
           const subScale = Math.pow(3, depth);
           const subHexSize = HEX_SIZE * scale / subScale;
           if (subHexSize < 0.5) continue;
-          // Background layer must be centered on the same visual point as the active layer.
-          // Active layer: centerX = canvas.width/2 - wvcPixel.x * scale
-          // Background:   bgCenterX = canvas.width/2 - wvcPixel.x * (scale/subScale)
-          const bgCenterX = canvas.width / 2 - wvcPixel.x * scale / subScale;
-          const bgCenterY = (padding + worldViewportHeight / 2) - wvcPixel.y * scale / subScale;
+          const layerCenter = projectAxialBetweenLayers(worldViewCenter, activeLayerIndex, layerIndex);
+          const layerCenterPixel = hexToPixel(layerCenter.q, layerCenter.r);
+          const bgCenterX = canvas.width / 2 - layerCenterPixel.x * scale / subScale;
+          const bgCenterY = (padding + worldViewportHeight / 2) - layerCenterPixel.y * scale / subScale;
           ctx.save();
           ctx.globalAlpha = Math.max(0.15, 0.6 / depth);
           for (const cell of layerGrid.values()) {
@@ -393,6 +388,8 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
           }
           ctx.restore();
         }
+
+        ctx.restore();
       }
 
       {
@@ -744,10 +741,6 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         ctx.save();
         ctx.globalAlpha = 0.9;
         drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, 'transparent', '#ff4d4d', 1.2 * scale);
-        ctx.restore();
-      }
-
-      if (worldClipApplied) {
         ctx.restore();
       }
 
