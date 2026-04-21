@@ -511,16 +511,6 @@ html, body {
   white-space: nowrap;
 }
 
-.gs-system-tab::before {
-  content: '[ ';
-  color: #AAAAAA;
-}
-
-.gs-system-tab::after {
-  content: ' ]';
-  color: #AAAAAA;
-}
-
 .disconnect-button::before,
 .settings-button::before {
   content: '[ ';
@@ -537,7 +527,7 @@ html, body {
   position: relative;
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: 3ch minmax(0, 1fr) minmax(8ch, max-content);
+  grid-template-columns: minmax(0, 1fr) minmax(8ch, max-content);
   align-items: center;
   column-gap: 1ch;
   padding: 1ch 0;
@@ -606,16 +596,6 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.gs-panel-title::before {
-  content: '[ ';
-  color: #AAAAAA;
-}
-
-.gs-panel-title::after {
-  content: ' ]';
-  color: #AAAAAA;
 }
 
 .gs-language-bar .gs-language-label {
@@ -731,10 +711,20 @@ html, body {
   padding: 0 1ch;
   background: #000000;
   position: relative;
+  border-left: 1px solid #555555;
+  border-right: 1px solid #555555;
 }
 
 .gs-session-card::before {
-  content: '├────────────────────────────────────────────────────────────────────────────────────────────────────┤';
+  content: '┌────────────────────────────────────────────────────────────────────────────────────────────────────┐';
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #555555;
+}
+
+.gs-session-card::after {
+  content: '└────────────────────────────────────────────────────────────────────────────────────────────────────┘';
   display: block;
   overflow: hidden;
   white-space: nowrap;
@@ -749,13 +739,35 @@ html, body {
   color: #55FFFF;
 }
 
+.gs-session-card--active::after {
+  color: #55FFFF;
+}
+
+.gs-session-card--active {
+  border-left-color: #55FFFF;
+  border-right-color: #55FFFF;
+}
+
 .gs-session-row {
-  display: grid;
-  grid-template-columns: 4ch 3ch minmax(0, 1fr) 14ch 5ch;
-  align-items: center;
-  column-gap: 1ch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5ch;
   padding: 0;
   color: #FFFFFF;
+}
+
+.gs-session-line {
+  display: grid;
+  align-items: center;
+  column-gap: 1ch;
+}
+
+.gs-session-line--top {
+  grid-template-columns: 3ch minmax(0, 1fr);
+}
+
+.gs-session-line--bottom {
+  grid-template-columns: minmax(0, 1fr) 7ch;
 }
 
 .gs-session-card:hover .gs-session-row {
@@ -790,19 +802,6 @@ html, body {
   color: #000000;
 }
 
-.gs-session-tag {
-  color: #FFFF55;
-  font-weight: 700;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gs-session-card--active .gs-session-tag {
-  color: #000000;
-}
-
 .gs-session-name {
   font-weight: 700;
   color: #FFFFFF;
@@ -814,7 +813,7 @@ html, body {
 
 .gs-session-date-inline {
   color: #55FFFF;
-  text-align: right;
+  text-align: left;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -848,6 +847,7 @@ html, body {
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  justify-self: end;
 }
 
 .gs-session-start-btn:hover {

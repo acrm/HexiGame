@@ -70,14 +70,6 @@ export const GuestStart: React.FC<GuestStartProps> = ({
     [sessionHistory],
   );
 
-  const getSessionTag = (record: SessionHistoryRecord, index: number, displayName: string): string => {
-    if (currentSessionId === record.id) return 'CUR';
-    if ((record.actionCount ?? 0) <= 0) return 'NEW';
-    if (index === 0) return 'NEW';
-    if (displayName.toLowerCase().startsWith('session_')) return 'IMP';
-    return 'SAV';
-  };
-
   const toggleSessionExpanded = (sessionId: string) => {
     setExpandedSessionIds((previous) => {
       const next = new Set(previous);
@@ -144,7 +136,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 onPlayLatestSession();
               }}
             >
-              <span className="gs-symbol">▶</span>
+              <span className="gs-symbol">PLAY</span>
             </button>
             <button
               type="button"
@@ -155,7 +147,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 onOpenSettings();
               }}
             >
-              <span className="gs-symbol">CFG</span>
+              <span className="gs-symbol">SET</span>
             </button>
           </div>
         </div>
@@ -163,7 +155,6 @@ export const GuestStart: React.FC<GuestStartProps> = ({
         <div className="gs-main-panels">
           <div className="gs-language-panel gs-tui-frame">
             <div className="hexipedia-section-filter gs-language-bar">
-              <span className="gs-symbol gs-symbol-prefix">GL</span>
               <label className="gs-language-label" htmlFor="guest-start-language">
                 {t('settings.language')}
               </label>
@@ -206,8 +197,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                         onNewSession();
                       }}
                     >
-                      <span className="gs-symbol gs-symbol-prefix">+</span>
-                      <span>{t('action.newSession')}</span>
+                      <span>NEW</span>
                     </button>
                     <button
                       type="button"
@@ -217,8 +207,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                         importFileRef.current?.click();
                       }}
                     >
-                      <span className="gs-symbol gs-symbol-prefix">IMP</span>
-                      <span>{t('action.importSession')}</span>
+                      <span>LOAD</span>
                     </button>
                     <input
                       ref={importFileRef}
@@ -239,40 +228,42 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 
                   {sortedSessions.length > 0 && (
                     <div className="gs-history-list">
-                      {sortedSessions.map((record, index) => {
+                      {sortedSessions.map((record) => {
                         const displayName = getSessionDisplayName(record);
                         const isEditing = editingId === record.id;
                         const isExpanded = expandedSessionIds.has(record.id);
                         const isDeletePending = pendingDeleteId === record.id;
                         const lastActionLabel = formatDateTime(record.lastActionTime ?? record.endTime);
-                        const sessionTag = getSessionTag(record, index, displayName);
 
                         return (
                           <div key={record.id} className={`gs-session-card ${currentSessionId === record.id ? 'gs-session-card--active' : ''}`.trim()}>
                             <div className="gs-session-row">
-                              <span className="gs-session-tag">{sessionTag}</span>
-                              <button
-                                type="button"
-                                className="gs-expander-btn"
-                                onClick={() => toggleSessionExpanded(record.id)}
-                                aria-label={isExpanded ? t('action.backToStart') : t('action.sessionHistory')}
-                                title={isExpanded ? 'Collapse' : 'Expand'}
-                              >
-                                {isExpanded ? '⏶' : '⏷'}
-                              </button>
-                              <span className="gs-session-name">{displayName}</span>
-                              <span className="gs-session-date-inline">{lastActionLabel}</span>
-                              <button
-                                type="button"
-                                className="gs-session-start-btn"
-                                onClick={() => {
-                                  onUiClick();
-                                  onContinueSession(record.id);
-                                }}
-                                title={t('action.loadSession')}
-                              >
-                                <span className="gs-symbol">▶</span>
-                              </button>
+                              <div className="gs-session-line gs-session-line--top">
+                                <button
+                                  type="button"
+                                  className="gs-expander-btn"
+                                  onClick={() => toggleSessionExpanded(record.id)}
+                                  aria-label={isExpanded ? t('action.backToStart') : t('action.sessionHistory')}
+                                  title={isExpanded ? 'Collapse' : 'Expand'}
+                                >
+                                  {isExpanded ? '⏶' : '⏷'}
+                                </button>
+                                <span className="gs-session-name">{displayName}</span>
+                              </div>
+                              <div className="gs-session-line gs-session-line--bottom">
+                                <span className="gs-session-date-inline">{lastActionLabel}</span>
+                                <button
+                                  type="button"
+                                  className="gs-session-start-btn"
+                                  onClick={() => {
+                                    onUiClick();
+                                    onContinueSession(record.id);
+                                  }}
+                                  title={t('action.loadSession')}
+                                >
+                                  <span className="gs-symbol">RUN</span>
+                                </button>
+                              </div>
                             </div>
 
                             {isExpanded && (
@@ -291,10 +282,10 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       autoFocus
                                     />
                                     <button type="button" className="gs-icon-btn" onClick={submitRename} title={t('common.yes')}>
-                                      <span className="gs-symbol">OK</span>
+                                      <span className="gs-symbol">SAVE</span>
                                     </button>
                                     <button type="button" className="gs-icon-btn" onClick={cancelRename} title={t('common.no')}>
-                                      <span className="gs-symbol">NO</span>
+                                      <span className="gs-symbol">CANC</span>
                                     </button>
                                   </div>
                                 ) : (
@@ -305,7 +296,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       title={t('action.download')}
                                       onClick={() => onDownloadSession(record.id)}
                                     >
-                                      <span className="gs-symbol">DL</span>
+                                      <span className="gs-symbol">SAVE</span>
                                     </button>
                                     <button
                                       type="button"
@@ -327,7 +318,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                         requestDelete(record.id);
                                       }}
                                     >
-                                      <span className="gs-symbol">{isDeletePending ? 'CAN' : 'DEL'}</span>
+                                      <span className="gs-symbol">{isDeletePending ? 'CANC' : 'DEL'}</span>
                                     </button>
                                     {isDeletePending && (
                                       <button
@@ -336,7 +327,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                         title={t('session.confirmDeleteAction')}
                                         onClick={() => confirmDelete(record.id)}
                                       >
-                                        <span className="gs-symbol">OK</span>
+                                        <span className="gs-symbol">CONF</span>
                                       </button>
                                     )}
                                   </div>
