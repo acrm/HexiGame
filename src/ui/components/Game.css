@@ -431,7 +431,7 @@ html, body {
   padding: 0;
 }
 
-/* Hexipedia-style start screen */
+/* TUI start screen */
 .guest-start-content.hexipedia-style {
   width: min(100%, var(--mobile-game-width));
   height: 100%;
@@ -440,6 +440,7 @@ html, body {
   background: #000000;
   font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
   font-size: 16px;
+  line-height: 1.25;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -449,12 +450,19 @@ html, body {
 .guest-start-content.hexipedia-style,
 .guest-start-content.hexipedia-style * {
   font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1.25;
 }
 
 .guest-start-content.hexipedia-style .settings-button,
 .guest-start-content.hexipedia-style .disconnect-button {
   font-size: 16px;
   color: #FFFFFF;
+  border: none;
+  background: transparent;
+  height: auto;
+  min-width: 0;
+  width: auto;
 }
 
 .gs-fixed-header {
@@ -467,18 +475,21 @@ html, body {
 .gs-main-panels {
   display: flex;
   flex-direction: column;
+  gap: 1ch;
+  padding: 0 1ch 1ch;
   min-height: 0;
   flex: 1;
   overflow: hidden;
 }
 
-/* Tab bar — same structure/sizing as in-game mobile-tab-bar */
 .gs-tab-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px 56px;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  column-gap: 1ch;
   align-items: stretch;
-  height: 48px;
+  height: auto;
   background: #000000;
+  padding: 1ch;
   flex-shrink: 0;
 }
 
@@ -489,29 +500,52 @@ html, body {
 }
 
 .gs-system-tab {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  background: #555555;
-  color: #FFFFFF;
-  font-size: 16px;
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: #55FFFF;
   font-weight: 700;
-  letter-spacing: 0.01em;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Language bar — same visual as hexipedia-section-filter */
+.gs-system-tab::before {
+  content: '[ ';
+  color: #AAAAAA;
+}
+
+.gs-system-tab::after {
+  content: ' ]';
+  color: #AAAAAA;
+}
+
+.disconnect-button::before,
+.settings-button::before {
+  content: '[ ';
+  color: #AAAAAA;
+}
+
+.disconnect-button::after,
+.settings-button::after {
+  content: ' ]';
+  color: #AAAAAA;
+}
+
 .gs-language-bar {
-  position: static;
+  position: relative;
   flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 3ch minmax(0, 1fr) minmax(8ch, max-content);
+  align-items: center;
+  column-gap: 1ch;
+  padding: 1ch 0;
 }
 
 .gs-language-panel {
   flex-shrink: 0;
-  max-height: 80px;
+  max-height: none;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -525,18 +559,37 @@ html, body {
   scrollbar-width: thin;
 }
 
+.gs-tui-frame {
+  position: relative;
+  padding: 0 1ch;
+}
+
+.gs-tui-frame::before,
+.gs-tui-frame::after {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #AAAAAA;
+}
+
+.gs-tui-frame::before {
+  content: '┌────────────────────────────────────────────────────────────────────────────────────────────────────┐';
+}
+
+.gs-tui-frame::after {
+  content: '└────────────────────────────────────────────────────────────────────────────────────────────────────┘';
+}
+
 .gs-section-toggle {
   width: 100%;
   text-align: left;
   border: none;
-  border-bottom: 1px solid #555555;
-  background: #555555;
-  color: #FFFFFF;
+  background: transparent;
+  color: #55FFFF;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  font-size: 16px;
+  padding: 1ch 0;
   font-weight: 700;
 }
 
@@ -548,16 +601,26 @@ html, body {
 }
 
 .gs-panel-title {
+  display: inline-block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.gs-panel-title::before {
+  content: '[ ';
+  color: #AAAAAA;
+}
+
+.gs-panel-title::after {
+  content: ' ]';
+  color: #AAAAAA;
+}
+
 .gs-language-bar .gs-language-label {
   flex: 1;
-  color: #FFFFFF;
-  font-size: 16px;
+  color: #55FF55;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -566,143 +629,92 @@ html, body {
 
 .gs-lang-select {
   background: #000000;
-  border: 1px solid #AAAAAA;
+  border: none;
   color: #FFFFFF;
-  font-size: 16px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 0;
   cursor: pointer;
   outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gs-lang-select:focus {
-  border-color: #55FFFF;
+  color: #55FFFF;
 }
 
-/* Sessions section body */
 .gs-session-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
+  gap: 1ch;
+  padding: 0 0 1ch;
   background: #000000;
 }
 
-/* Navigation buttons — visible bordered buttons for screen transitions */
 .gs-nav-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
   text-align: left;
-  padding: 12px 16px;
-  background: #555555;
-  border: 1px solid #AAAAAA;
+  padding: 0;
+  background: transparent;
+  border: none;
   color: #FFFFFF;
-  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  gap: 1ch;
+  min-width: 0;
+}
+
+.gs-nav-btn::before {
+  content: '[ ';
+  color: #AAAAAA;
+}
+
+.gs-nav-btn::after {
+  content: ' ]';
+  color: #AAAAAA;
 }
 
 .gs-nav-btn:hover {
-  background: #AAAAAA;
-  border-color: #FFFFFF;
-  color: #000000;
+  color: #55FFFF;
 }
 
-.gs-nav-btn:active {
-  background: #AAAAAA;
-}
-
-/* Secondary variant — for accordion toggles */
 .gs-nav-btn--secondary {
   background: #000000;
-  border-color: #AAAAAA;
-  color: #FFFFFF;
-  font-size: 16px;
+  color: #FFFF55;
   font-weight: 500;
 }
 
 .gs-nav-btn--secondary:hover {
-  background: #555555;
-  border-color: #FFFFFF;
-  color: #FFFFFF;
+  color: #55FFFF;
 }
 
-.gs-nav-btn-chevron {
-  color: #666666;
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-.gs-history-count {
-  color: #666666;
-  font-size: 12px;
-  font-weight: 400;
-}
-
-/* Inline session history list */
 .gs-history-list {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid #555555;
-}
-
-.gs-history-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  background: #333333;
-  border-bottom: 1px solid #3a3a3a;
-}
-
-.gs-history-row:last-child {
-  border-bottom: none;
-}
-
-.gs-history-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.gs-history-date {
-  font-size: 12px;
-  color: #999999;
-  white-space: nowrap;
-}
-
-.gs-history-time {
-  font-size: 14px;
-  font-weight: 600;
-  color: #aaddff;
+  gap: 1ch;
 }
 
 .gs-empty {
-  padding: 16px;
+  padding: 0;
   color: #AAAAAA;
-  font-size: 16px;
 }
 
-/* Session action buttons row (New + Load + Delete in one row) */
 .gs-session-actions {
-  display: flex;
-  gap: 6px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #555555;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1ch;
+  padding: 0;
 }
 
 .gs-session-actions .gs-nav-btn {
-  flex: 1;
   min-width: 0;
-  padding: 8px 10px;
-  font-size: 16px;
-  justify-content: center;
 }
 
 .gs-session-actions .gs-nav-btn span {
@@ -712,41 +724,58 @@ html, body {
   white-space: nowrap;
 }
 
-/* Session card */
 .gs-session-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 1ch;
+  padding: 0;
   background: #000000;
-  border-bottom: 1px solid #555555;
+}
+
+.gs-session-card::before,
+.gs-session-card::after {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #5555FF;
+}
+
+.gs-session-card::before {
+  content: '┌────────────────────────────────────────────────────────────────────────────────────────────────────┐';
+}
+
+.gs-session-card::after {
+  content: '└────────────────────────────────────────────────────────────────────────────────────────────────────┘';
 }
 
 .gs-session-card--active {
   background: #000000;
-  border-left: 2px solid #55FFFF;
+}
+
+.gs-session-card--active::before,
+.gs-session-card--active::after {
+  color: #55FFFF;
 }
 
 .gs-session-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 3ch minmax(0, 1fr) 15ch 5ch;
   align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
+  column-gap: 1ch;
+  padding: 0 1ch;
 }
 
 .gs-expander-btn {
-  width: 34px;
-  height: 34px;
+  width: auto;
+  height: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
   color: #AAFFFF;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
+  padding: 0;
   flex-shrink: 0;
 }
 
@@ -754,140 +783,141 @@ html, body {
   color: #FFFFFF;
 }
 
-.gs-session-title-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
 .gs-session-name {
-  font-size: 16px;
   font-weight: 700;
   color: #FFFFFF;
-  line-height: 1.15;
-  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gs-session-date-inline {
-  font-size: 14px;
   color: #AAAAAA;
-  line-height: 1.1;
-  max-width: 100%;
+  text-align: right;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gs-session-card-actions {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  justify-content: start;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 1ch;
+  padding: 0 1ch;
 }
 
 .gs-session-start-btn {
-  margin-left: auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  border: 1px solid #AAAAAA;
-  background: #0055AA;
+  margin-left: 0;
+  width: auto;
+  height: auto;
+  border: none;
+  background: transparent;
   color: #FFFFFF;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 16px;
-  flex-shrink: 0;
+  padding: 0;
 }
 
 .gs-session-start-btn:hover {
-  background: #55AAFF;
-  border-color: #FFFFFF;
-  color: #000000;
+  color: #55FFFF;
+}
+
+.gs-session-start-btn::before {
+  content: '[ ';
+  color: #AAAAAA;
+}
+
+.gs-session-start-btn::after {
+  content: ' ]';
+  color: #AAAAAA;
 }
 
 .gs-session-expanded {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 4px;
+  gap: 1ch;
+  padding: 0 1ch 1ch;
 }
 
 .gs-session-meta-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 4px;
-  font-size: 14px;
+  gap: 0;
   color: #AAAAAA;
 }
 
-/* Download/icon button */
 .gs-icon-btn {
   background: transparent;
-  border: 1px solid #AAAAAA;
-  border-radius: 4px;
+  border: none;
   color: #FFFFFF;
-  padding: 6px 10px;
+  padding: 0;
   cursor: pointer;
-  font-size: 14px;
-  transition: color 0.15s, border-color 0.15s;
+}
+
+.gs-icon-btn::before {
+  content: '[ ';
+  color: #AAAAAA;
+}
+
+.gs-icon-btn::after {
+  content: ' ]';
+  color: #AAAAAA;
 }
 
 .gs-icon-btn:hover {
-  color: #000000;
-  border-color: #FFFFFF;
-  background: #AAAAAA;
+  color: #55FFFF;
 }
 
 .gs-rename-inline {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
   align-items: center;
-  gap: 6px;
+  gap: 1ch;
+  padding: 0 1ch;
 }
 
 .gs-rename-input {
-  min-width: 220px;
-  max-width: 50vw;
+  min-width: 0;
+  max-width: 100%;
   background: #000000;
   color: #FFFFFF;
-  border: 1px solid #AAAAAA;
-  border-radius: 4px;
-  padding: 6px 8px;
+  border: none;
+  padding: 0;
   font-family: inherit;
-  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gs-rename-input::placeholder {
+  color: #555555;
 }
 
 .gs-icon-btn--danger {
   color: #FF5555;
-  border-color: #AA0000;
 }
 
 .gs-icon-btn--danger:hover {
-  color: #FFFFFF;
-  border-color: #FF5555;
-  background: #AA0000;
+  color: #FF5555;
 }
 
 .gs-icon-btn--danger-confirm {
-  color: #FFFFFF;
-  border-color: #FF5555;
-  background: #AA0000;
+  color: #FFFF55;
 }
 
 .gs-icon-btn--danger-confirm:hover {
-  background: #FF5555;
-  color: #000000;
+  color: #FFFF55;
 }
 
 .gs-symbol {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -899,83 +929,12 @@ html, body {
 .gs-session-meta-grid span,
 .gs-nav-btn span,
 .gs-system-tab,
-.gs-panel-title {
+.gs-panel-title,
+.gs-icon-btn span,
+.gs-session-start-btn span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.gs-delete-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #292929;
-  border-bottom: 1px solid #3a3a3a;
-}
-
-.gs-select-all {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #bfbfbf;
-  font-size: 13px;
-}
-
-.gs-nav-btn--danger {
-  background: #5d2020;
-  border-color: #8a2b2b;
-  color: #ffc8c8;
-  width: auto;
-}
-
-.gs-nav-btn--danger:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.gs-delete-confirm {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.gs-delete-confirm .gs-nav-btn {
-  flex: 0 0 auto;
-  padding: 6px 14px;
-  width: auto;
-  justify-content: center;
-}
-
-.gs-delete-confirm--full {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.gs-delete-confirm--full .gs-nav-btn {
-  width: 100%;
-  flex: 1;
-  padding: 10px 12px;
-}
-
-.gs-delete-mode-on {
-  border-color: #8a2b2b;
-  color: #ffc8c8;
-}
-
-/* Primary nav button variant — muted, not bright green */
-.gs-nav-btn--primary {
-  background: #2e2e2e;
-  border-color: #4a4a4a;
-  color: #c8c8c8;
-}
-
-.gs-nav-btn--primary:hover {
-  background: #383838;
-  border-color: #5a5a5a;
 }
 

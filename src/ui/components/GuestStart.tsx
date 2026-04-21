@@ -153,7 +153,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
         </div>
 
         <div className="gs-main-panels">
-          <div className="gs-language-panel">
+          <div className="gs-language-panel gs-tui-frame">
             <div className="hexipedia-section-filter gs-language-bar">
               <span className="gs-symbol gs-symbol-prefix">GL</span>
               <label className="gs-language-label" htmlFor="guest-start-language">
@@ -175,7 +175,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
           </div>
 
           <div className="gs-sessions-panel">
-            <div className="hexipedia-section-wrapper gs-sessions-section">
+            <div className="hexipedia-section-wrapper gs-sessions-section gs-tui-frame">
               <div className="hexipedia-section-header-container">
                 <button
                   type="button"
@@ -250,10 +250,8 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                               >
                                 {isExpanded ? '⏶' : '⏷'}
                               </button>
-                              <div className="gs-session-title-wrap">
-                                <span className="gs-session-name">{displayName}</span>
-                                <span className="gs-session-date-inline">{lastActionLabel}</span>
-                              </div>
+                              <span className="gs-session-name">{displayName}</span>
+                              <span className="gs-session-date-inline">{lastActionLabel}</span>
                               <button
                                 type="button"
                                 className="gs-session-start-btn"

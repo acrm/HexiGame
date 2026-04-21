@@ -246,6 +246,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Session-card Continue action uses the same play icon metaphor as start-screen resume.
 - Start-screen typography is fully monospace, with max UI font size capped at `16px`; overflowing labels are clipped with ellipsis.
 - Start-screen visuals use a constrained retro 8-bit palette and text-symbol iconography for 1980s terminal-style UI.
+- Start-screen UI now follows terminal/TUI composition rules: single fixed text size (`16px`), grid-like row/column placement, and panel/button boundaries rendered with box-drawing symbols rather than CSS border chrome.
 - In-game Settings no longer include a `Reset Session` action.
 - Hexipedia `Session` section keeps playback controls on a single row and mirrors the same row in a dedicated Session overlay widget.
 - Session overlay widget defaults to `off` and is controlled by the eye-toggle in the `Session` section header.

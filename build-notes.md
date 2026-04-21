@@ -659,3 +659,5 @@
 - 0.1.0-y26w17b1 — Start menu sessions compact rows and inline delete confirm
 
 - 0.1.0-y26w17b2 — Start screen retro 8-bit style and non-autostart session add
+
+- 0.1.0-y26w17b3 — Start screen full terminal TUI layout and symbol frames
