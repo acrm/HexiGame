@@ -530,7 +530,23 @@ html, body {
   grid-template-columns: minmax(0, 1fr) minmax(8ch, max-content);
   align-items: center;
   column-gap: 1ch;
-  padding: 1ch 0;
+  padding: 1ch;
+}
+
+.gs-language-bar::before,
+.gs-language-bar::after {
+  content: '│';
+  position: absolute;
+  top: 1ch;
+  color: #AAAAAA;
+}
+
+.gs-language-bar::before {
+  left: 0;
+}
+
+.gs-language-bar::after {
+  right: 0;
 }
 
 .gs-language-panel {
@@ -571,6 +587,7 @@ html, body {
 }
 
 .gs-section-toggle {
+  position: relative;
   width: 100%;
   text-align: left;
   border: none;
@@ -579,8 +596,24 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 1ch 0;
+  padding: 1ch;
   font-weight: 700;
+}
+
+.gs-section-toggle::before,
+.gs-section-toggle::after {
+  content: '│';
+  position: absolute;
+  top: 1ch;
+  color: #AAAAAA;
+}
+
+.gs-section-toggle::before {
+  left: 0;
+}
+
+.gs-section-toggle::after {
+  right: 0;
 }
 
 .gs-panel-toggle-icon {
@@ -678,7 +711,7 @@ html, body {
 .gs-history-list {
   display: flex;
   flex-direction: column;
-  gap: 1ch;
+  gap: 0;
 }
 
 .gs-empty {
@@ -687,10 +720,27 @@ html, body {
 }
 
 .gs-session-actions {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1ch;
-  padding: 0;
+  padding: 1ch;
+}
+
+.gs-session-actions::before,
+.gs-session-actions::after {
+  content: '│';
+  position: absolute;
+  top: 1ch;
+  color: #AAAAAA;
+}
+
+.gs-session-actions::before {
+  left: 0;
+}
+
+.gs-session-actions::after {
+  right: 0;
 }
 
 .gs-session-actions .gs-nav-btn {
@@ -724,6 +774,11 @@ html, body {
 }
 
 .gs-session-card::after {
+  content: '';
+  display: none;
+}
+
+.gs-session-card:last-child::after {
   content: '└────────────────────────────────────────────────────────────────────────────────────────────────────┘';
   display: block;
   overflow: hidden;
@@ -749,11 +804,28 @@ html, body {
 }
 
 .gs-session-row {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.5ch;
-  padding: 0;
+  padding: 0 1ch;
   color: #FFFFFF;
+}
+
+.gs-session-row::before,
+.gs-session-row::after {
+  content: '│';
+  position: absolute;
+  top: 0;
+  color: #55FFFF;
+}
+
+.gs-session-row::before {
+  left: 0;
+}
+
+.gs-session-row::after {
+  right: 0;
 }
 
 .gs-session-line {
@@ -875,10 +947,27 @@ html, body {
 }
 
 .gs-session-expanded {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1ch;
-  padding: 0 0 1ch;
+  padding: 0 1ch 1ch;
+}
+
+.gs-session-expanded::before,
+.gs-session-expanded::after {
+  content: '│';
+  position: absolute;
+  top: 0;
+  color: #55FFFF;
+}
+
+.gs-session-expanded::before {
+  left: 0;
+}
+
+.gs-session-expanded::after {
+  right: 0;
 }
 
 .gs-session-meta-grid {

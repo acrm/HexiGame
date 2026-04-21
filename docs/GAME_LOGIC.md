@@ -264,6 +264,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Row-prefix markers (`GL`, `CUR`, `NEW`) were removed; frame continuity is preserved by solid line/box boundaries instead of textual tags.
 - Square brackets are reserved for interactive controls only; static labels/titles are rendered without button framing.
 - Button captions use compact short labels (up to 5 symbols/letters) for terminal readability.
+- TUI panel/list rows keep continuous vertical side boundaries (`│`) in header, controls, and session entries.
+- Session entries are separated by a single symbolic boundary line between items (no doubled separators).
 - In-game Settings no longer include a `Reset Session` action.
 - Hexipedia `Session` section keeps playback controls on a single row and mirrors the same row in a dedicated Session overlay widget.
 - Session overlay widget defaults to `off` and is controlled by the eye-toggle in the `Session` section header.

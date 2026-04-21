@@ -673,3 +673,5 @@
 - 0.1.0-y26w17b8 — generate layer 0 around protagonist when on other layers; background moves in sync
 
 - 0.1.0-y26w17b9 — TUI rows: remove GL/CUR/NEW and switch to two-line sessions
+
+- 0.1.0-y26w17b10 — TUI border continuity and single-line item separators
