@@ -65,6 +65,7 @@ CaptureChancePercent = max(0, ChanceBasePercent - ChancePenaltyPerPaletteDistanc
 - **Rendering**:
   - Deeper layers drawn behind the current layer at reduced size (scale = 1/3^depth) with reduced alpha.
   - Shallower layers are not rendered as their own cells; instead, their colored hexes cast a **flickering tint** on the current-layer cells that fall within the same region.
+  - Any world hex rendering (all layers, overlays and path markers) is clipped to the active visible field disk; no hexes are drawn outside field bounds.
 
 ### 2.0.1 Moving visible window (camera bounds)
 - Visible world window radius is `GridRadius`.

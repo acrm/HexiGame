@@ -681,3 +681,5 @@
 - 0.1.0-y26w17b12 — layer coordinate projection on switch and visibility-based layer0 generation
 
 - 0.1.0-y26w17b13 — normalize non-base layer grids and add layer addressing invariants tests
+
+- 0.1.0-y26w17b14 — clip world rendering to field bounds and verify +1 auto-move target coordinates

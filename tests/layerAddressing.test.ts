@@ -60,4 +60,21 @@ describe('Layer addressing domain invariants', () => {
       expect(cell.colorIndex).toBeNull();
     }
   });
+
+  it('auto-move target on +1 layer uses +1 layer coordinates', () => {
+    const params = emptyWorldParams();
+    let state = createInitialState(params, () => 0.99);
+
+    state = sessionReducer(state, params, { type: 'SWITCH_LAYER', delta: 1 });
+    state = sessionReducer(state, params, { type: 'TICK', rng: () => 0.99 });
+
+    const target = { q: 2, r: 0 };
+    expect(state.grid.has('2,0')).toBe(true);
+
+    state = sessionReducer(state, params, { type: 'MOVE_CURSOR_TO', target });
+
+    expect(state.activeLayerIndex).toBe(1);
+    expect(state.autoFocusTarget).toEqual(target);
+    expect(state.autoMovePath).toBeDefined();
+  });
 });

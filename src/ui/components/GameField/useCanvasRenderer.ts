@@ -58,6 +58,22 @@ function parseAxialKey(key: string): Axial | null {
   return { q, r };
 }
 
+function appendHexPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+): void {
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (60 * i);
+    const vx = x + size * Math.cos(angle);
+    const vy = y + size * Math.sin(angle);
+    if (i === 0) ctx.moveTo(vx, vy);
+    else ctx.lineTo(vx, vy);
+  }
+  ctx.closePath();
+}
+
 export interface UseCanvasRendererOptions {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   canvasContainerRef: React.RefObject<HTMLDivElement>;
@@ -216,6 +232,24 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
       const protagonistCell = gameState.protagonist;
       const focusCell = gameState.focus;
       const isTurtleMoving = isAutoMoveInProgress(protagonistCell, gameState.autoFocusTarget);
+
+      let worldClipApplied = false;
+      if (!isInventory) {
+        ctx.save();
+        ctx.beginPath();
+        for (let q = worldViewCenter.q - visibleRadius; q <= worldViewCenter.q + visibleRadius; q++) {
+          for (let r = worldViewCenter.r - visibleRadius; r <= worldViewCenter.r + visibleRadius; r++) {
+            const cell = { q, r };
+            if (axialDistance(cell, worldViewCenter) > visibleRadius) continue;
+            const pos = hexToPixel(q, r);
+            const x = centerX + pos.x * scale;
+            const y = centerY + pos.y * scale;
+            appendHexPath(ctx, x, y, HEX_SIZE * scale);
+          }
+        }
+        ctx.clip();
+        worldClipApplied = true;
+      }
 
       if (isInventory) {
         const INV_TURTLE_SCALE = 12.0;
@@ -710,6 +744,10 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
         ctx.save();
         ctx.globalAlpha = 0.9;
         drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, 'transparent', '#ff4d4d', 1.2 * scale);
+        ctx.restore();
+      }
+
+      if (worldClipApplied) {
         ctx.restore();
       }
 
