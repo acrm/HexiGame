@@ -11,7 +11,7 @@ Frame-based constants from the original prototype are converted to tick-based va
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `GridRadius` | 5 | Radius of the visible world window and movement threshold logic. |
+| `GridRadius` | 4 | Radius of the visible world window and movement threshold logic. 9 hexes across diagonal. |
 | `InitialColorProbability` | 0.05 | Probability a cell starts with a color. |
 | `ColorPaletteStartHue` | 350 | Starting hue angle (0–359) for HSV palette generation. |
 | `ColorPaletteHueStep` | 60 | Hue step between colors (generates 6 colors by default). |
@@ -45,6 +45,17 @@ CaptureChancePercent = max(0, ChanceBasePercent - ChancePenaltyPerPaletteDistanc
 - At initialization, cells are generated in a disk of radius `2 * GridRadius` around start `(0,0)`.
 - During gameplay, on movement ticks, all coordinates in a disk of radius `2 * GridRadius` around protagonist are checked; missing cells are generated lazily.
 - Cell generation keeps the same probability model (`InitialColorProbability`) and palette mapping.
+
+### 2.0.2 Multi-layer hex grid
+- The hex field has 5 independent layers indexed **-2..+2** (0 = base).
+- Each layer stores its own `Grid` (sparse Map of hex cells). Only the active layer's grid is live in `state.grid`; all others are stored in `state.layerGrids`.
+- `state.activeLayerIndex` (default `0`) identifies the current layer.
+- **Positive index** = shallower/larger hexes (×3 bigger per step). **Negative index** = deeper/smaller hexes (×3 smaller per step).
+- The turtle can only interact (move, capture, place) with cells on the **active layer**. Cells of other layers act as inert background.
+- Switching layers with `+`/`-` buttons (bottom-left corner) saves the current grid to `layerGrids` and loads the target layer's grid (auto-generated on first visit).
+- **Rendering**:
+  - Deeper layers drawn behind the current layer at reduced size (scale = 1/3^depth) with reduced alpha.
+  - Shallower layers are not rendered as their own cells; instead, their colored hexes cast a **flickering tint** on the current-layer cells that fall within the same region.
 
 ### 2.0.1 Moving visible window (camera bounds)
 - Visible world window radius is `GridRadius`.
