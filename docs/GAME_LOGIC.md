@@ -241,9 +241,11 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - New sessions receive auto-generated codenames in strict two-part format: `color + flower`.
 - Russian codename generation applies grammatical gender agreement for flower names (masculine/feminine color inflection).
 - Session management uses per-session delete with inline confirmation: delete button toggles to cancel in place, and explicit confirm appears on an adjacent button.
+- Start-screen **New session** action is non-blocking for gameplay: it creates a fresh saved session entry (and snapshot/log seed) at the top of history but does not auto-connect/start it.
 - In HexiOS start-screen header, a dedicated play button (left of Settings) resumes the most recent session.
 - Session-card Continue action uses the same play icon metaphor as start-screen resume.
-- Start-screen typography is monospace and intentionally larger to improve legibility in compact portrait layout.
+- Start-screen typography is fully monospace, with max UI font size capped at `16px`; overflowing labels are clipped with ellipsis.
+- Start-screen visuals use a constrained retro 8-bit palette and text-symbol iconography for 1980s terminal-style UI.
 - In-game Settings no longer include a `Reset Session` action.
 - Hexipedia `Session` section keeps playback controls on a single row and mirrors the same row in a dedicated Session overlay widget.
 - Session overlay widget defaults to `off` and is controlled by the eye-toggle in the `Session` section header.

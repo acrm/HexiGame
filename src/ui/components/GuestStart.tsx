@@ -136,7 +136,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 onPlayLatestSession();
               }}
             >
-              <i className="fas fa-play" />
+              <span className="gs-symbol">▶</span>
             </button>
             <button
               type="button"
@@ -147,7 +147,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 onOpenSettings();
               }}
             >
-              <i className="fas fa-cog" />
+              <span className="gs-symbol">CFG</span>
             </button>
           </div>
         </div>
@@ -155,7 +155,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
         <div className="gs-main-panels">
           <div className="gs-language-panel">
             <div className="hexipedia-section-filter gs-language-bar">
-              <i className="fas fa-globe hexipedia-section-filter-icon" />
+              <span className="gs-symbol gs-symbol-prefix">GL</span>
               <label className="gs-language-label" htmlFor="guest-start-language">
                 {t('settings.language')}
               </label>
@@ -182,8 +182,8 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                   className="hexipedia-section-header gs-section-toggle"
                   onClick={() => setSessionsCollapsed((value) => !value)}
                 >
-                  <span className="hexipedia-section-toggle">{sessionsCollapsed ? '▶' : '▼'}</span>
-                  <span>{t('sessions.title')}</span>
+                  <span className="gs-panel-toggle-icon">{sessionsCollapsed ? '⏷' : '⏶'}</span>
+                  <span className="gs-panel-title">{t('sessions.title')}</span>
                 </button>
               </div>
 
@@ -198,7 +198,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                         onNewSession();
                       }}
                     >
-                      <i className="fas fa-plus" style={{ marginRight: 6 }} />
+                      <span className="gs-symbol gs-symbol-prefix">+</span>
                       <span>{t('action.newSession')}</span>
                     </button>
                     <button
@@ -209,7 +209,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                         importFileRef.current?.click();
                       }}
                     >
-                      <i className="fas fa-upload" style={{ marginRight: 6 }} />
+                      <span className="gs-symbol gs-symbol-prefix">IMP</span>
                       <span>{t('action.importSession')}</span>
                     </button>
                     <input
@@ -263,7 +263,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                 }}
                                 title={t('action.loadSession')}
                               >
-                                <i className="fas fa-play" />
+                                <span className="gs-symbol">▶</span>
                               </button>
                             </div>
 
@@ -283,10 +283,10 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       autoFocus
                                     />
                                     <button type="button" className="gs-icon-btn" onClick={submitRename} title={t('common.yes')}>
-                                      <i className="fas fa-check" />
+                                      <span className="gs-symbol">OK</span>
                                     </button>
                                     <button type="button" className="gs-icon-btn" onClick={cancelRename} title={t('common.no')}>
-                                      <i className="fas fa-times" />
+                                      <span className="gs-symbol">NO</span>
                                     </button>
                                   </div>
                                 ) : (
@@ -297,7 +297,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       title={t('action.download')}
                                       onClick={() => onDownloadSession(record.id)}
                                     >
-                                      <i className="fas fa-download" />
+                                      <span className="gs-symbol">DL</span>
                                     </button>
                                     <button
                                       type="button"
@@ -305,7 +305,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       title={t('action.renameSession')}
                                       onClick={() => startRename(record)}
                                     >
-                                      <i className="fas fa-pen" />
+                                      <span className="gs-symbol">REN</span>
                                     </button>
                                     <button
                                       type="button"
@@ -319,7 +319,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                         requestDelete(record.id);
                                       }}
                                     >
-                                      <i className={`fas ${isDeletePending ? 'fa-times' : 'fa-trash'}`} />
+                                      <span className="gs-symbol">{isDeletePending ? 'CAN' : 'DEL'}</span>
                                     </button>
                                     {isDeletePending && (
                                       <button
@@ -328,18 +328,18 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                         title={t('session.confirmDeleteAction')}
                                         onClick={() => confirmDelete(record.id)}
                                       >
-                                        <i className="fas fa-check" />
+                                        <span className="gs-symbol">OK</span>
                                       </button>
                                     )}
                                   </div>
                                 )}
 
                                 <div className="gs-session-meta-grid">
-                                  <span><i className="fas fa-clock" /> {t('session.startTime')}: {formatDateTime(record.startTime)}</span>
-                                  <span><i className="fas fa-history" /> {t('session.lastActionTime')}: {lastActionLabel}</span>
-                                  <span><i className="fas fa-hand-pointer" /> {t('session.actionCount')}: {record.actionCount ?? '—'}</span>
-                                  <span><i className="fas fa-wave-square" /> {t('session.ticks')}: {record.gameTicks ?? '—'} / {record.gameTime || '—'}</span>
-                                  <span><i className="fas fa-stopwatch" /> {t('session.totalTime')}: {formatTotalTime(record.totalSessionTime)}</span>
+                                  <span>[ST] {t('session.startTime')}: {formatDateTime(record.startTime)}</span>
+                                  <span>[LA] {t('session.lastActionTime')}: {lastActionLabel}</span>
+                                  <span>[AC] {t('session.actionCount')}: {record.actionCount ?? '—'}</span>
+                                  <span>[TK] {t('session.ticks')}: {record.gameTicks ?? '—'} / {record.gameTime || '—'}</span>
+                                  <span>[TT] {t('session.totalTime')}: {formatTotalTime(record.totalSessionTime)}</span>
                                 </div>
                               </div>
                             )}

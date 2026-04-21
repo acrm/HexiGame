@@ -3,7 +3,7 @@ import './Game.css';
 import type { GameState, Axial } from '../../gameLogic/core/types';
 import type { Params } from '../../gameLogic/core/params';
 import { DefaultParams } from '../../gameLogic/core/params';
-import { equalAxial } from '../../gameLogic/core/grid';
+import { createInitialState, equalAxial } from '../../gameLogic/core/grid';
 import ControlsDesktop from './ControlsInfoDesktop';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField/GameField';
@@ -38,6 +38,7 @@ import {
   loadSessionById,
   loadSessionLog,
   saveSessionLog,
+  initSessionLog,
   type SessionLog,
 } from '../../appLogic/sessionRepository';
 import {
@@ -608,32 +609,20 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const handleStartNewSession = () => {
-    if (currentSessionId) {
-      saveSessionById(currentSessionId, gameState);
-    }
-    resetSession();
-    persistGuestStartFlag();
-    dispatchApp({ type: 'GUEST_STARTED' });
-    dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
-    setTaskIntroModal(null);
-    setPendingForceResetTaskId(null);
-
     const newSession = createNewSessionHistoryRecord(Date.now(), Math.random(), {
       language,
       existingHistory: sessionHistory,
     });
-    saveActiveSessionMeta(localStorage, { id: newSession.id, startTick: 0 });
-    dispatchApp({ type: 'SESSION_STARTED', sessionId: newSession.id, startTick: 0 });
 
-    if (trackSessionHistory) {
-      const history = addSessionToHistory(localStorage, newSession);
-      dispatchApp({ type: 'SET_SESSION_HISTORY', history });
-    }
+    const previewSeed = Date.now();
+    const previewState = createInitialState(mergedParams, mulberry32(previewSeed));
+    saveSessionById(newSession.id, previewState);
+    initSessionLog(newSession.id, previewSeed, previewState.tick);
 
-    controllerRef.current?.initLog(newSession.id);
+    const history = addSessionToHistory(localStorage, newSession);
+    dispatchApp({ type: 'SET_SESSION_HISTORY', history });
 
     playUiClick();
-    playMusicFromInteraction();
   };
 
   const handleContinueSession = (sessionId: string) => {

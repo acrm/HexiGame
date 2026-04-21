@@ -436,14 +436,25 @@ html, body {
   width: min(100%, var(--mobile-game-width));
   height: 100%;
   box-sizing: border-box;
-  color: #ffffff;
-  background: #2a2a2a;
+  color: #FFFFFF;
+  background: #000000;
   font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
   font-size: 16px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   overflow: hidden;
+}
+
+.guest-start-content.hexipedia-style,
+.guest-start-content.hexipedia-style * {
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+}
+
+.guest-start-content.hexipedia-style .settings-button,
+.guest-start-content.hexipedia-style .disconnect-button {
+  font-size: 16px;
+  color: #FFFFFF;
 }
 
 .gs-fixed-header {
@@ -481,12 +492,15 @@ html, body {
   display: flex;
   align-items: center;
   padding: 12px 20px;
-  background: #333333;
-  color: #ffffff;
+  background: #555555;
+  color: #FFFFFF;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.01em;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Language bar — same visual as hexipedia-section-filter */
@@ -507,7 +521,7 @@ html, body {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: #555555 #2a2a2a;
+  scrollbar-color: #AAAAAA #000000;
   scrollbar-width: thin;
 }
 
@@ -515,19 +529,46 @@ html, body {
   width: 100%;
   text-align: left;
   border: none;
+  border-bottom: 1px solid #555555;
+  background: #555555;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gs-panel-toggle-icon {
+  color: #AAFFFF;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.gs-panel-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gs-language-bar .gs-language-label {
   flex: 1;
-  color: #888888;
-  font-size: 15px;
+  color: #FFFFFF;
+  font-size: 16px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gs-lang-select {
-  background: #2a2a2a;
-  border: 1px solid #555555;
-  color: #cccccc;
-  font-size: 15px;
+  background: #000000;
+  border: 1px solid #AAAAAA;
+  color: #FFFFFF;
+  font-size: 16px;
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -535,7 +576,7 @@ html, body {
 }
 
 .gs-lang-select:focus {
-  border-color: #7799cc;
+  border-color: #55FFFF;
 }
 
 /* Sessions section body */
@@ -544,7 +585,7 @@ html, body {
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  background: #2a2a2a;
+  background: #000000;
 }
 
 /* Navigation buttons — visible bordered buttons for screen transitions */
@@ -555,9 +596,9 @@ html, body {
   width: 100%;
   text-align: left;
   padding: 12px 16px;
-  background: #2f2f2f;
-  border: 1px solid #505050;
-  color: #dddddd;
+  background: #555555;
+  border: 1px solid #AAAAAA;
+  color: #FFFFFF;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -565,27 +606,28 @@ html, body {
 }
 
 .gs-nav-btn:hover {
-  background: #383838;
-  border-color: #666666;
+  background: #AAAAAA;
+  border-color: #FFFFFF;
+  color: #000000;
 }
 
 .gs-nav-btn:active {
-  background: #404040;
+  background: #AAAAAA;
 }
 
 /* Secondary variant — for accordion toggles */
 .gs-nav-btn--secondary {
-  background: #252525;
-  border-color: #3d3d3d;
-  color: #999999;
-  font-size: 15px;
+  background: #000000;
+  border-color: #AAAAAA;
+  color: #FFFFFF;
+  font-size: 16px;
   font-weight: 500;
 }
 
 .gs-nav-btn--secondary:hover {
-  background: #2e2e2e;
-  border-color: #4f4f4f;
-  color: #cccccc;
+  background: #555555;
+  border-color: #FFFFFF;
+  color: #FFFFFF;
 }
 
 .gs-nav-btn-chevron {
@@ -604,7 +646,7 @@ html, body {
 .gs-history-list {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid #555555;
 }
 
 .gs-history-row {
@@ -642,8 +684,8 @@ html, body {
 
 .gs-empty {
   padding: 16px;
-  color: #666666;
-  font-size: 15px;
+  color: #AAAAAA;
+  font-size: 16px;
 }
 
 /* Session action buttons row (New + Load + Delete in one row) */
@@ -651,7 +693,7 @@ html, body {
   display: flex;
   gap: 6px;
   padding: 8px 12px;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid #555555;
   flex-wrap: nowrap;
 }
 
@@ -659,8 +701,15 @@ html, body {
   flex: 1;
   min-width: 0;
   padding: 8px 10px;
-  font-size: 15px;
+  font-size: 16px;
   justify-content: center;
+}
+
+.gs-session-actions .gs-nav-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Session card */
@@ -669,13 +718,13 @@ html, body {
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
-  background: #333333;
-  border-bottom: 1px solid #3a3a3a;
+  background: #000000;
+  border-bottom: 1px solid #555555;
 }
 
 .gs-session-card--active {
-  background: #2d333a;
-  border-left: 2px solid #5577aa;
+  background: #000000;
+  border-left: 2px solid #55FFFF;
 }
 
 .gs-session-row {
@@ -692,18 +741,17 @@ html, body {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid #4a4a4a;
-  color: #d3d3d3;
+  border: none;
+  color: #AAFFFF;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .gs-expander-btn:hover {
-  border-color: #666666;
-  color: #f0f0f0;
+  color: #FFFFFF;
 }
 
 .gs-session-title-wrap {
@@ -716,16 +764,24 @@ html, body {
 }
 
 .gs-session-name {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  color: #dde7ff;
+  color: #FFFFFF;
   line-height: 1.15;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gs-session-date-inline {
-  font-size: 13px;
-  color: #b8b8b8;
+  font-size: 14px;
+  color: #AAAAAA;
   line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gs-session-card-actions {
@@ -740,20 +796,21 @@ html, body {
   width: 44px;
   height: 44px;
   border-radius: 6px;
-  border: 1px solid #5a6f8f;
-  background: #27354a;
-  color: #d7e8ff;
+  border: 1px solid #AAAAAA;
+  background: #0055AA;
+  color: #FFFFFF;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 22px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
 .gs-session-start-btn:hover {
-  background: #30425c;
-  border-color: #7896c3;
+  background: #55AAFF;
+  border-color: #FFFFFF;
+  color: #000000;
 }
 
 .gs-session-expanded {
@@ -768,20 +825,15 @@ html, body {
   grid-template-columns: 1fr;
   gap: 4px;
   font-size: 14px;
-  color: #b5b5b5;
-}
-
-.gs-session-meta-grid i {
-  color: #888888;
-  margin-right: 4px;
+  color: #AAAAAA;
 }
 
 /* Download/icon button */
 .gs-icon-btn {
   background: transparent;
-  border: 1px solid #3a3a3a;
+  border: 1px solid #AAAAAA;
   border-radius: 4px;
-  color: #888888;
+  color: #FFFFFF;
   padding: 6px 10px;
   cursor: pointer;
   font-size: 14px;
@@ -789,8 +841,9 @@ html, body {
 }
 
 .gs-icon-btn:hover {
-  color: #aaddff;
-  border-color: #555555;
+  color: #000000;
+  border-color: #FFFFFF;
+  background: #AAAAAA;
 }
 
 .gs-rename-inline {
@@ -802,33 +855,55 @@ html, body {
 .gs-rename-input {
   min-width: 220px;
   max-width: 50vw;
-  background: #1e1e1e;
-  color: #ffffff;
-  border: 1px solid #4c4c4c;
+  background: #000000;
+  color: #FFFFFF;
+  border: 1px solid #AAAAAA;
   border-radius: 4px;
   padding: 6px 8px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .gs-icon-btn--danger {
-  color: #ff9b9b;
-  border-color: #7a3232;
+  color: #FF5555;
+  border-color: #AA0000;
 }
 
 .gs-icon-btn--danger:hover {
-  color: #ffd2d2;
-  border-color: #a84646;
+  color: #FFFFFF;
+  border-color: #FF5555;
+  background: #AA0000;
 }
 
 .gs-icon-btn--danger-confirm {
-  color: #ffdede;
-  border-color: #a84646;
-  background: #5d2020;
+  color: #FFFFFF;
+  border-color: #FF5555;
+  background: #AA0000;
 }
 
 .gs-icon-btn--danger-confirm:hover {
-  background: #743030;
+  background: #FF5555;
+  color: #000000;
+}
+
+.gs-symbol {
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gs-symbol-prefix {
+  margin-right: 6px;
+}
+
+.gs-session-meta-grid span,
+.gs-nav-btn span,
+.gs-system-tab,
+.gs-panel-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gs-delete-toolbar {
