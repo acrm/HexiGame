@@ -229,7 +229,9 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - standalone language panel with its own scroll,
   - standalone sessions panel with its own scroll and collapse toggle (expanded by default).
 - Session list is unified (no separate “current session” card) and sorted by most recent activity.
-- Each session card exposes continue/download/rename actions and renders the same metrics:
+- Each session row is collapsed by default and shows: expander button, codename (large), last-action timestamp (smaller), and a large right-aligned play/start action.
+- Session expand/collapse affordance uses double triangle arrows (`⏷` to expand, `⏶` to collapse), separate from play/start iconography.
+- Expanded session content exposes download/rename/delete actions and renders the same metrics:
   - start time,
   - last action time,
   - action count,
@@ -238,10 +240,10 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Missing metric values render as `—` instead of hiding rows.
 - New sessions receive auto-generated codenames in strict two-part format: `color + flower`.
 - Russian codename generation applies grammatical gender agreement for flower names (masculine/feminine color inflection).
-- Session management supports bulk delete with selection mode, select-all, and explicit confirmation.
+- Session management uses per-session delete with inline confirmation: delete button toggles to cancel in place, and explicit confirm appears on an adjacent button.
 - In HexiOS start-screen header, a dedicated play button (left of Settings) resumes the most recent session.
 - Session-card Continue action uses the same play icon metaphor as start-screen resume.
-- Bulk-delete confirmation is inline and full-width (`Confirm` left in red, `Cancel` right in gray), without browser/system dialogs.
+- Start-screen typography is monospace and intentionally larger to improve legibility in compact portrait layout.
 - In-game Settings no longer include a `Reset Session` action.
 - Hexipedia `Session` section keeps playback controls on a single row and mirrors the same row in a dedicated Session overlay widget.
 - Session overlay widget defaults to `off` and is controlled by the eye-toggle in the `Session` section header.

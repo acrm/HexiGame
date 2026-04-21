@@ -438,6 +438,8 @@ html, body {
   box-sizing: border-box;
   color: #ffffff;
   background: #2a2a2a;
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  font-size: 16px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -481,7 +483,7 @@ html, body {
   padding: 12px 20px;
   background: #333333;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.01em;
   flex: 1;
@@ -518,14 +520,14 @@ html, body {
 .gs-language-bar .gs-language-label {
   flex: 1;
   color: #888888;
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .gs-lang-select {
   background: #2a2a2a;
   border: 1px solid #555555;
   color: #cccccc;
-  font-size: 13px;
+  font-size: 15px;
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -556,7 +558,7 @@ html, body {
   background: #2f2f2f;
   border: 1px solid #505050;
   color: #dddddd;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -576,7 +578,7 @@ html, body {
   background: #252525;
   border-color: #3d3d3d;
   color: #999999;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -641,7 +643,7 @@ html, body {
 .gs-empty {
   padding: 16px;
   color: #666666;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 /* Session action buttons row (New + Load + Delete in one row) */
@@ -657,7 +659,7 @@ html, body {
   flex: 1;
   min-width: 0;
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: 15px;
   justify-content: center;
 }
 
@@ -665,7 +667,7 @@ html, body {
 .gs-session-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 10px 12px;
   background: #333333;
   border-bottom: 1px solid #3a3a3a;
@@ -676,37 +678,96 @@ html, body {
   border-left: 2px solid #5577aa;
 }
 
-.gs-session-card-header {
+.gs-session-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
+}
+
+.gs-expander-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #4a4a4a;
+  color: #d3d3d3;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.gs-expander-btn:hover {
+  border-color: #666666;
+  color: #f0f0f0;
 }
 
 .gs-session-title-wrap {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .gs-session-name {
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 700;
   color: #dde7ff;
+  line-height: 1.15;
+}
+
+.gs-session-date-inline {
+  font-size: 13px;
+  color: #b8b8b8;
+  line-height: 1.1;
 }
 
 .gs-session-card-actions {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+
+.gs-session-start-btn {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  border: 1px solid #5a6f8f;
+  background: #27354a;
+  color: #d7e8ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.gs-session-start-btn:hover {
+  background: #30425c;
+  border-color: #7896c3;
+}
+
+.gs-session-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
 }
 
 .gs-session-meta-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 4px;
-  font-size: 12px;
+  font-size: 14px;
   color: #b5b5b5;
 }
 
@@ -721,9 +782,9 @@ html, body {
   border: 1px solid #3a3a3a;
   border-radius: 4px;
   color: #888888;
-  padding: 4px 8px;
+  padding: 6px 10px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   transition: color 0.15s, border-color 0.15s;
 }
 
@@ -746,6 +807,28 @@ html, body {
   border: 1px solid #4c4c4c;
   border-radius: 4px;
   padding: 6px 8px;
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.gs-icon-btn--danger {
+  color: #ff9b9b;
+  border-color: #7a3232;
+}
+
+.gs-icon-btn--danger:hover {
+  color: #ffd2d2;
+  border-color: #a84646;
+}
+
+.gs-icon-btn--danger-confirm {
+  color: #ffdede;
+  border-color: #a84646;
+  background: #5d2020;
+}
+
+.gs-icon-btn--danger-confirm:hover {
+  background: #743030;
 }
 
 .gs-delete-toolbar {

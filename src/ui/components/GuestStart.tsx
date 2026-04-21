@@ -58,11 +58,10 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 }) => {
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const [sessionsCollapsed, setSessionsCollapsed] = useState(false);
-  const [deleteMode, setDeleteMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [expandedSessionIds, setExpandedSessionIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [confirmDeletePending, setConfirmDeletePending] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const marketingVersion = `v${version.marketing.major}.${version.marketing.minor}.${version.marketing.publicBuild}`;
 
@@ -71,10 +70,8 @@ export const GuestStart: React.FC<GuestStartProps> = ({
     [sessionHistory],
   );
 
-  const allSelected = sortedSessions.length > 0 && sortedSessions.every((session) => selectedIds.has(session.id));
-
-  const toggleSelection = (sessionId: string) => {
-    setSelectedIds((previous) => {
+  const toggleSessionExpanded = (sessionId: string) => {
+    setExpandedSessionIds((previous) => {
       const next = new Set(previous);
       if (next.has(sessionId)) {
         next.delete(sessionId);
@@ -85,40 +82,23 @@ export const GuestStart: React.FC<GuestStartProps> = ({
     });
   };
 
-  const handleToggleDeleteMode = () => {
-    setDeleteMode((previous) => {
-      const next = !previous;
-      if (!next) {
-        setSelectedIds(new Set());
-        setConfirmDeletePending(false);
-      }
+  const requestDelete = (sessionId: string) => {
+    setPendingDeleteId(sessionId);
+  };
+
+  const confirmDelete = (sessionId: string) => {
+    onUiClick();
+    onDeleteSessions([sessionId]);
+    setPendingDeleteId(null);
+    setExpandedSessionIds((previous) => {
+      const next = new Set(previous);
+      next.delete(sessionId);
       return next;
     });
   };
 
-  const handleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds(new Set());
-      return;
-    }
-    setSelectedIds(new Set(sortedSessions.map((session) => session.id)));
-  };
-
-  const handleRequestDelete = () => {
-    if (selectedIds.size === 0) return;
-    setConfirmDeletePending(true);
-  };
-
-  const handleConfirmDelete = () => {
-    onUiClick();
-    onDeleteSessions(Array.from(selectedIds));
-    setSelectedIds(new Set());
-    setDeleteMode(false);
-    setConfirmDeletePending(false);
-  };
-
-  const handleCancelDelete = () => {
-    setConfirmDeletePending(false);
+  const cancelDelete = () => {
+    setPendingDeleteId(null);
   };
 
   const startRename = (record: SessionHistoryRecord) => {
@@ -232,14 +212,6 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                       <i className="fas fa-upload" style={{ marginRight: 6 }} />
                       <span>{t('action.importSession')}</span>
                     </button>
-                    <button
-                      type="button"
-                      className={`gs-nav-btn gs-nav-btn--secondary ${deleteMode ? 'gs-delete-mode-on' : ''}`.trim()}
-                      onClick={handleToggleDeleteMode}
-                    >
-                      <i className="fas fa-trash" style={{ marginRight: 6 }} />
-                      <span>{t('common.delete')}</span>
-                    </button>
                     <input
                       ref={importFileRef}
                       type="file"
@@ -253,44 +225,6 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                     />
                   </div>
 
-                  {deleteMode && (
-                    <div className="gs-delete-toolbar">
-                      {confirmDeletePending ? (
-                        <div className="gs-delete-confirm gs-delete-confirm--full">
-                          <button
-                            type="button"
-                            className="gs-nav-btn gs-nav-btn--danger"
-                            onClick={handleConfirmDelete}
-                          >
-                            {t('session.confirmDeleteAction')}
-                          </button>
-                          <button
-                            type="button"
-                            className="gs-nav-btn gs-nav-btn--secondary"
-                            onClick={handleCancelDelete}
-                          >
-                            {t('session.cancelDeleteAction')}
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <label className="gs-select-all">
-                            <input type="checkbox" checked={allSelected} onChange={handleSelectAll} />
-                            <span>{t('session.selectAll')}</span>
-                          </label>
-                          <button
-                            type="button"
-                            className="gs-nav-btn gs-nav-btn--danger"
-                            disabled={selectedIds.size === 0}
-                            onClick={handleRequestDelete}
-                          >
-                            {t('session.deleteSelected')} ({selectedIds.size})
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-
                   {sortedSessions.length === 0 && (
                     <div className="gs-empty">{t('stats.history.empty')}</div>
                   )}
@@ -300,20 +234,41 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                       {sortedSessions.map((record) => {
                         const displayName = getSessionDisplayName(record);
                         const isEditing = editingId === record.id;
-                        const isSelected = selectedIds.has(record.id);
+                        const isExpanded = expandedSessionIds.has(record.id);
+                        const isDeletePending = pendingDeleteId === record.id;
+                        const lastActionLabel = formatDateTime(record.lastActionTime ?? record.endTime);
 
                         return (
                           <div key={record.id} className={`gs-session-card ${currentSessionId === record.id ? 'gs-session-card--active' : ''}`.trim()}>
-                            <div className="gs-session-card-header">
+                            <div className="gs-session-row">
+                              <button
+                                type="button"
+                                className="gs-expander-btn"
+                                onClick={() => toggleSessionExpanded(record.id)}
+                                aria-label={isExpanded ? t('action.backToStart') : t('action.sessionHistory')}
+                                title={isExpanded ? 'Collapse' : 'Expand'}
+                              >
+                                {isExpanded ? '⏶' : '⏷'}
+                              </button>
                               <div className="gs-session-title-wrap">
-                                {deleteMode && (
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() => toggleSelection(record.id)}
-                                    aria-label={t('session.select')}
-                                  />
-                                )}
+                                <span className="gs-session-name">{displayName}</span>
+                                <span className="gs-session-date-inline">{lastActionLabel}</span>
+                              </div>
+                              <button
+                                type="button"
+                                className="gs-session-start-btn"
+                                onClick={() => {
+                                  onUiClick();
+                                  onContinueSession(record.id);
+                                }}
+                                title={t('action.loadSession')}
+                              >
+                                <i className="fas fa-play" />
+                              </button>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="gs-session-expanded">
                                 {isEditing ? (
                                   <div className="gs-rename-inline">
                                     <input
@@ -335,50 +290,59 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="gs-session-name">{displayName}</span>
+                                  <div className="gs-session-card-actions">
+                                    <button
+                                      type="button"
+                                      className="gs-icon-btn"
+                                      title={t('action.download')}
+                                      onClick={() => onDownloadSession(record.id)}
+                                    >
+                                      <i className="fas fa-download" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="gs-icon-btn"
+                                      title={t('action.renameSession')}
+                                      onClick={() => startRename(record)}
+                                    >
+                                      <i className="fas fa-pen" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="gs-icon-btn gs-icon-btn--danger"
+                                      title={t('common.delete')}
+                                      onClick={() => {
+                                        if (isDeletePending) {
+                                          cancelDelete();
+                                          return;
+                                        }
+                                        requestDelete(record.id);
+                                      }}
+                                    >
+                                      <i className={`fas ${isDeletePending ? 'fa-times' : 'fa-trash'}`} />
+                                    </button>
+                                    {isDeletePending && (
+                                      <button
+                                        type="button"
+                                        className="gs-icon-btn gs-icon-btn--danger-confirm"
+                                        title={t('session.confirmDeleteAction')}
+                                        onClick={() => confirmDelete(record.id)}
+                                      >
+                                        <i className="fas fa-check" />
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
-                              </div>
-                              {!isEditing && (
-                                <div className="gs-session-card-actions">
-                                  <button
-                                    type="button"
-                                    className="gs-icon-btn"
-                                    title={t('action.renameSession')}
-                                    onClick={() => startRename(record)}
-                                  >
-                                    <i className="fas fa-pen" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="gs-icon-btn"
-                                    title={t('action.download')}
-                                    onClick={() => onDownloadSession(record.id)}
-                                  >
-                                    <i className="fas fa-download" />
-                                  </button>
+
+                                <div className="gs-session-meta-grid">
+                                  <span><i className="fas fa-clock" /> {t('session.startTime')}: {formatDateTime(record.startTime)}</span>
+                                  <span><i className="fas fa-history" /> {t('session.lastActionTime')}: {lastActionLabel}</span>
+                                  <span><i className="fas fa-hand-pointer" /> {t('session.actionCount')}: {record.actionCount ?? '—'}</span>
+                                  <span><i className="fas fa-wave-square" /> {t('session.ticks')}: {record.gameTicks ?? '—'} / {record.gameTime || '—'}</span>
+                                  <span><i className="fas fa-stopwatch" /> {t('session.totalTime')}: {formatTotalTime(record.totalSessionTime)}</span>
                                 </div>
-                              )}
-                            </div>
-
-                            <div className="gs-session-meta-grid">
-                              <span><i className="fas fa-clock" /> {t('session.startTime')}: {formatDateTime(record.startTime)}</span>
-                              <span><i className="fas fa-history" /> {t('session.lastActionTime')}: {formatDateTime(record.lastActionTime ?? record.endTime)}</span>
-                              <span><i className="fas fa-hand-pointer" /> {t('session.actionCount')}: {record.actionCount ?? '—'}</span>
-                              <span><i className="fas fa-wave-square" /> {t('session.ticks')}: {record.gameTicks ?? '—'} / {record.gameTime || '—'}</span>
-                              <span><i className="fas fa-stopwatch" /> {t('session.totalTime')}: {formatTotalTime(record.totalSessionTime)}</span>
-                            </div>
-
-                            <button
-                              type="button"
-                              className="gs-nav-btn gs-nav-btn--primary"
-                              onClick={() => {
-                                onUiClick();
-                                onContinueSession(record.id);
-                              }}
-                            >
-                              <span>{t('action.loadSession')}</span>
-                              <i className="fas fa-play gs-nav-btn-chevron" />
-                            </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

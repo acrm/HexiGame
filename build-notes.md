@@ -655,3 +655,5 @@
 - 0.1.0-y26w15b10 — Session naming strict color+flower, HexiOS header play button, play icon for Continue, full-width inline delete confirm
 
 - 0.1.0-y26w15b11 — Remove reset from settings, add Session playback widget, one-line Session playback panel, move download button to panel, add reverse action log
+
+- 0.1.0-y26w17b1 — Start menu sessions compact rows and inline delete confirm
