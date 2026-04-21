@@ -37,6 +37,27 @@ import { applyTaskSetup, resolveTaskTargets } from '../tasks/taskSandbox';
 import { getNextTaskDefinition, getTaskDefinition } from '../tasks/taskLevels';
 import { axialToKey } from '../tasks/taskState';
 
+function normalizeLayerGridForDomain(layerIndex: number, grid: GameState['grid']): GameState['grid'] {
+  if (layerIndex === 0 || grid.size === 0) return grid;
+
+  let hasColored = false;
+  for (const cell of grid.values()) {
+    if (cell.colorIndex !== null) {
+      hasColored = true;
+      break;
+    }
+  }
+  if (!hasColored) return grid;
+
+  const normalized = new Map(grid);
+  for (const cell of normalized.values()) {
+    if (cell.colorIndex !== null) {
+      normalized.set(`${cell.q},${cell.r}`, { ...cell, colorIndex: null });
+    }
+  }
+  return normalized;
+}
+
 function normalizeTaskId(taskId: string | null): string | null {
   if (!taskId) return null;
   return getTaskDefinition(taskId)?.id ?? taskId;
@@ -403,8 +424,13 @@ export function sessionReducer(
         break;
       }
       // Save current grid into layerGrids, load new layer's grid
-      const savedLayerGrids = { ...(state.layerGrids ?? {}), [currentLayerIndex]: state.grid };
-      const newGrid = savedLayerGrids[newLayerIndex] ?? new Map();
+      const normalizedCurrentGrid = normalizeLayerGridForDomain(currentLayerIndex, state.grid);
+      const savedLayerGrids = { ...(state.layerGrids ?? {}), [currentLayerIndex]: normalizedCurrentGrid };
+      const rawTargetGrid = savedLayerGrids[newLayerIndex] ?? new Map();
+      const newGrid = normalizeLayerGridForDomain(newLayerIndex, rawTargetGrid);
+      if (newGrid !== rawTargetGrid) {
+        savedLayerGrids[newLayerIndex] = newGrid;
+      }
       const transformedProtagonist = projectAxialBetweenLayers(state.protagonist, currentLayerIndex, newLayerIndex);
       const transformedWorldViewCenter = projectAxialBetweenLayers(
         state.worldViewCenter ?? state.protagonist,

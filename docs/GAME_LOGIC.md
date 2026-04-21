@@ -60,6 +60,7 @@ CaptureChancePercent = max(0, ChanceBasePercent - ChancePenaltyPerPaletteDistanc
 - As a consequence, one movement step on layer `+1` corresponds to `3` steps in layer `0` projection.
 - Switching layers with `+`/`-` buttons (bottom-left corner) saves the current grid to `layerGrids`, loads target `grid`, and applies coordinate projection.
 - Colored hexes are generated only on layer `0`; non-base layers generate walkable (`null`) cells for navigation.
+- On layer switch, non-base grids are normalized to walkable-only cells to keep this invariant even for legacy session data.
 - While on layer `+1/+2`, additional layer `0` generation is limited to the current visible area projection, not to a global expanded radius.
 - **Rendering**:
   - Deeper layers drawn behind the current layer at reduced size (scale = 1/3^depth) with reduced alpha.
