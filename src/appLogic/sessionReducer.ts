@@ -18,6 +18,7 @@ import {
   attemptMoveByDeltaOnActive,
   attemptMoveTo,
   attemptMoveByDirectionIndex,
+  updateFocusPosition,
   startDrag,
   endDrag,
   dragMoveProtagonist,
@@ -31,7 +32,7 @@ import {
   activateTemplate,
   deactivateTemplate,
 } from '../gameLogic/systems/template';
-import { getCell } from '../gameLogic/core/grid';
+import { getCell, projectAxialBetweenLayers } from '../gameLogic/core/grid';
 import { applyTaskSetup, resolveTaskTargets } from '../tasks/taskSandbox';
 import { getNextTaskDefinition, getTaskDefinition } from '../tasks/taskLevels';
 import { axialToKey } from '../tasks/taskState';
@@ -404,12 +405,26 @@ export function sessionReducer(
       // Save current grid into layerGrids, load new layer's grid
       const savedLayerGrids = { ...(state.layerGrids ?? {}), [currentLayerIndex]: state.grid };
       const newGrid = savedLayerGrids[newLayerIndex] ?? new Map();
-      nextState = {
+      const transformedProtagonist = projectAxialBetweenLayers(state.protagonist, currentLayerIndex, newLayerIndex);
+      const transformedWorldViewCenter = projectAxialBetweenLayers(
+        state.worldViewCenter ?? state.protagonist,
+        currentLayerIndex,
+        newLayerIndex,
+      );
+      const switchedState: GameState = {
         ...state,
         activeLayerIndex: newLayerIndex,
         layerGrids: savedLayerGrids,
         grid: newGrid,
+        protagonist: transformedProtagonist,
+        worldViewCenter: transformedWorldViewCenter,
+        autoFocusTarget: null,
+        autoMoveTarget: null,
+        autoMoveTicksRemaining: 0,
+        autoMoveTargetDir: null,
+        autoMovePath: undefined,
       };
+      nextState = updateFocusPosition(switchedState);
       break;
     }
 

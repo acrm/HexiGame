@@ -16,6 +16,29 @@ export function addAxial(a: Axial, b: Axial): Axial {
   return { q: a.q + b.q, r: a.r + b.r };
 }
 
+export function getLayerScale(layerIndex: number): number {
+  return Math.pow(3, layerIndex);
+}
+
+export function projectAxialBetweenLayers(position: Axial, fromLayer: number, toLayer: number): Axial {
+  const delta = toLayer - fromLayer;
+  if (delta === 0) return { ...position };
+
+  if (delta > 0) {
+    const divisor = Math.pow(3, delta);
+    return {
+      q: Math.round(position.q / divisor),
+      r: Math.round(position.r / divisor),
+    };
+  }
+
+  const multiplier = Math.pow(3, -delta);
+  return {
+    q: position.q * multiplier,
+    r: position.r * multiplier,
+  };
+}
+
 function normalizeDirectionIndex(dirIndex: number): number {
   return ((dirIndex % 6) + 6) % 6;
 }
@@ -166,17 +189,19 @@ export function ensureGeneratedAround(state: GameState, params: Params, rng?: RN
     ? state
     : { ...state, grid: updateCells(state.grid, toAdd) };
 
-  // Always keep layer 0 generated around the protagonist while on a different layer,
-  // so it can be rendered as background and moves synchronously with the active layer.
-  if (activeLayerIndex !== 0) {
-    const scaleFactor = Math.max(1, Math.pow(3, activeLayerIndex));
-    const layer0Radius = Math.max(1, params.GridRadius * 2) * scaleFactor;
+  // Keep base layer generated only for the currently visible area projection
+  // when the active layer is above the base (larger hexes).
+  if (activeLayerIndex > 0) {
+    const viewCenter = nextState.worldViewCenter ?? center;
+    const layer0Center = projectAxialBetweenLayers(viewCenter, activeLayerIndex, 0);
+    const visibleRadius = Math.max(1, params.GridRadius);
+    const layer0Radius = visibleRadius * getLayerScale(activeLayerIndex);
     const layer0Grid: Grid = (nextState.layerGrids ?? {})[0] ?? new Map<string, Cell>();
     const layer0ToAdd: Cell[] = [];
-    for (let q = center.q - layer0Radius; q <= center.q + layer0Radius; q++) {
-      for (let r = center.r - layer0Radius; r <= center.r + layer0Radius; r++) {
+    for (let q = layer0Center.q - layer0Radius; q <= layer0Center.q + layer0Radius; q++) {
+      for (let r = layer0Center.r - layer0Radius; r <= layer0Center.r + layer0Radius; r++) {
         const p = { q, r };
-        if (axialDistance(center, p) > layer0Radius) continue;
+        if (axialDistance(layer0Center, p) > layer0Radius) continue;
         const key = keyOf(q, r);
         if (layer0Grid.has(key)) continue;
         const colorIndex = random() < params.InitialColorProbability

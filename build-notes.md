@@ -677,3 +677,5 @@
 - 0.1.0-y26w17b10 — TUI border continuity and single-line item separators
 
 - 0.1.0-y26w17b11 — TUI sessions double panel frame and single item separators
+
+- 0.1.0-y26w17b12 — layer coordinate projection on switch and visibility-based layer0 generation

@@ -45,14 +45,22 @@ CaptureChancePercent = max(0, ChanceBasePercent - ChancePenaltyPerPaletteDistanc
 - At initialization, cells are generated in a disk of radius `2 * GridRadius` around start `(0,0)`.
 - During gameplay, on movement ticks, all coordinates in a disk of radius `2 * GridRadius` around protagonist are checked; missing cells are generated lazily.
 - Cell generation keeps the same probability model (`InitialColorProbability`) and palette mapping.
+- When active layer is above base (`activeLayerIndex > 0`), layer `0` is generated separately using a projection of the **visible disk** of the active layer into layer `0` space.
 
 ### 2.0.2 Multi-layer hex grid
 - The hex field has 5 independent layers indexed **-2..+2** (0 = base).
 - Each layer stores its own `Grid` (sparse Map of hex cells). Only the active layer's grid is live in `state.grid`; all others are stored in `state.layerGrids`.
 - `state.activeLayerIndex` (default `0`) identifies the current layer.
 - **Positive index** = shallower/larger hexes (×3 bigger per step). **Negative index** = deeper/smaller hexes (×3 smaller per step).
+- Layer coordinates are domain-linked by scale `3^layerIndex` (common world anchor at `(0,0)` across all layers).
 - The turtle can only interact (move, capture, place) with cells on the **active layer**. Cells of other layers act as inert background.
-- Switching layers with `+`/`-` buttons (bottom-left corner) saves the current grid to `layerGrids` and loads the target layer's grid (auto-generated on first visit).
+- On layer switch, the turtle and viewport center are projected into the target layer coordinate space:
+  - switch up (`L -> L+1`): divide axial coordinates by `3` and apply deterministic `round`
+  - switch down (`L -> L-1`): multiply axial coordinates by `3`
+- As a consequence, one movement step on layer `+1` corresponds to `3` steps in layer `0` projection.
+- Switching layers with `+`/`-` buttons (bottom-left corner) saves the current grid to `layerGrids`, loads target `grid`, and applies coordinate projection.
+- Colored hexes are generated only on layer `0`; non-base layers generate walkable (`null`) cells for navigation.
+- While on layer `+1/+2`, additional layer `0` generation is limited to the current visible area projection, not to a global expanded radius.
 - **Rendering**:
   - Deeper layers drawn behind the current layer at reduced size (scale = 1/3^depth) with reduced alpha.
   - Shallower layers are not rendered as their own cells; instead, their colored hexes cast a **flickering tint** on the current-layer cells that fall within the same region.
