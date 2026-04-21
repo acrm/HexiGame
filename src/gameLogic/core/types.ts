@@ -32,6 +32,10 @@ export interface GameState {
   grid: Grid;
   inventoryGrid: Grid;
   activeField?: 'world' | 'inventory';
+  /** Index of the currently active hex layer. 0 = base, positive = shallower/larger, negative = deeper/smaller. Range: -2..+2 */
+  activeLayerIndex?: number;
+  /** Grids for non-active layers, keyed by layer index. The active layer grid is always in `grid`. */
+  layerGrids?: Record<number, Grid>;
   hotbarSlots: Array<number | null>;
   selectedHotbarIndex: number;
   facingDirIndex: number;

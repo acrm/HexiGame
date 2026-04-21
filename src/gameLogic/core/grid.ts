@@ -337,6 +337,8 @@ export function createInitialState(params: Params, rng: RNG): GameState {
     invalidMoveTarget: null,
     inventoryGrid: inv,
     activeField: 'world',
+    activeLayerIndex: 0,
+    layerGrids: {},
     hotbarSlots: [null, null, null, null, null, null],
     selectedHotbarIndex: 0,
     facingDirIndex: initialFacingDirIndex,

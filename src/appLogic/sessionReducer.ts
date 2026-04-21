@@ -110,6 +110,8 @@ export type GameCommand =
   | { type: 'MARK_TUTORIAL_TARGET_VISITED'; key: string }
   | { type: 'COMPLETE_TUTORIAL_LEVEL'; levelId: string; nextLevelId: string | null }
   | { type: 'SET_TUTORIAL_INTERACTION_MODE'; mode: 'desktop' | 'mobile' }
+  // Layer navigation
+  | { type: 'SWITCH_LAYER'; delta: 1 | -1 }
   // State reset
   | { type: 'RESET_STATE'; newState: GameState };
 
@@ -389,6 +391,27 @@ export function sessionReducer(
     case 'SET_TUTORIAL_INTERACTION_MODE':
       nextState = { ...state, taskInteractionMode: command.mode };
       break;
+
+    case 'SWITCH_LAYER': {
+      const MIN_LAYER = -2;
+      const MAX_LAYER = 2;
+      const currentLayerIndex = state.activeLayerIndex ?? 0;
+      const newLayerIndex = Math.max(MIN_LAYER, Math.min(MAX_LAYER, currentLayerIndex + command.delta));
+      if (newLayerIndex === currentLayerIndex) {
+        nextState = state;
+        break;
+      }
+      // Save current grid into layerGrids, load new layer's grid
+      const savedLayerGrids = { ...(state.layerGrids ?? {}), [currentLayerIndex]: state.grid };
+      const newGrid = savedLayerGrids[newLayerIndex] ?? new Map();
+      nextState = {
+        ...state,
+        activeLayerIndex: newLayerIndex,
+        layerGrids: savedLayerGrids,
+        grid: newGrid,
+      };
+      break;
+    }
 
     case 'RESET_STATE':
       nextState = command.newState;

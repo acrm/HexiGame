@@ -6,6 +6,7 @@ import { useViewport } from './useViewport';
 import { useTouchInput } from './useTouchInput';
 import { useMouseInput } from './useMouseInput';
 import { useCanvasRenderer } from './useCanvasRenderer';
+import { LayerControls } from '../LayerControls';
 
 export function shouldDrawWorldFocusOverlay(isInventory: boolean, isTurtleMoving: boolean, hasAutoFocusTarget: boolean): boolean {
   return !isInventory && !isTurtleMoving && !hasAutoFocusTarget;
@@ -42,6 +43,7 @@ interface GameFieldProps {
   highlightTargets?: Axial[];
   visitedHighlightTargets?: Set<string>;
   hideHotbar?: boolean;
+  onSwitchLayer?: (delta: 1 | -1) => void;
 }
 
 export const GameField: React.FC<GameFieldProps> = ({
@@ -66,6 +68,7 @@ export const GameField: React.FC<GameFieldProps> = ({
   highlightTargets = [],
   visitedHighlightTargets = new Set(),
   hideHotbar = false,
+  onSwitchLayer,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -145,6 +148,11 @@ export const GameField: React.FC<GameFieldProps> = ({
   return (
     <div ref={canvasContainerRef} className="game-field" style={{ position: 'relative' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
+      {!gameState.activeField || gameState.activeField === 'world' ?
+        <LayerControls
+          activeLayerIndex={gameState.activeLayerIndex ?? 0}
+          onSwitchLayer={onSwitchLayer}
+        /> : null}
     </div>
   );
 };

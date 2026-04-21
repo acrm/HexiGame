@@ -73,6 +73,12 @@ export interface GameViewModel {
 
   /** Whether protagonist is performing auto-movement. */
   isAutoMoving: boolean;
+
+  /** Currently active hex layer index (-2..+2, 0 = base). */
+  activeLayerIndex: number;
+
+  /** Cells of all layers except the active one, for background/tint rendering. Keyed by layer index. */
+  layerCells: Record<number, CellView[]>;
 }
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
@@ -119,6 +125,21 @@ export function buildGameViewModel(
     inventoryCells.push({ q: cell.q, r: cell.r, colorIndex: cell.colorIndex });
   }
 
+  // Build layerCells for all stored non-active layers
+  const activeLayerIndex = state.activeLayerIndex ?? 0;
+  const layerCells: Record<number, CellView[]> = {};
+  if (state.layerGrids) {
+    for (const [layerKey, layerGrid] of Object.entries(state.layerGrids)) {
+      const layerIndex = Number(layerKey);
+      if (layerIndex === activeLayerIndex) continue;
+      const cells: CellView[] = [];
+      for (const cell of layerGrid.values()) {
+        cells.push({ q: cell.q, r: cell.r, colorIndex: cell.colorIndex });
+      }
+      layerCells[layerIndex] = cells;
+    }
+  }
+
   return {
     tick: state.tick,
     remainingSeconds: state.remainingSeconds,
@@ -137,5 +158,7 @@ export function buildGameViewModel(
     inventoryCells,
     worldViewCenter: { ...(state.worldViewCenter ?? state.protagonist) },
     isAutoMoving: !!state.autoMoveTarget,
+    activeLayerIndex,
+    layerCells,
   };
 }

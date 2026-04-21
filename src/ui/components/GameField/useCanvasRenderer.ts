@@ -278,12 +278,78 @@ export function useCanvasRenderer(options: UseCanvasRendererOptions): void {
           drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
         }
       } else {
+        // === Multi-layer rendering ===
+        const activeLayerIndex = gameState.activeLayerIndex ?? 0;
+        const layerGrids = gameState.layerGrids ?? {};
+        const MIN_LAYER = -2;
+        const MAX_LAYER = 2;
+
+        // Round axial coordinates to nearest hex
+        const roundHex = (fq: number, fr: number): { q: number; r: number } => {
+          const fs = -fq - fr;
+          let rq = Math.round(fq), rr = Math.round(fr), rs = Math.round(fs);
+          const dq = Math.abs(rq - fq), dr = Math.abs(rr - fr), ds = Math.abs(rs - fs);
+          if (dq > dr && dq > ds) rq = -rr - rs;
+          else if (dr > ds) rr = -rq - rs;
+          return { q: rq, r: rr };
+        };
+
+        // 1. Deeper layers (smaller hexes) drawn as background
+        for (let layerIndex = MIN_LAYER; layerIndex < activeLayerIndex; layerIndex++) {
+          const layerGrid = layerGrids[layerIndex];
+          if (!layerGrid || layerGrid.size === 0) continue;
+          const depth = activeLayerIndex - layerIndex;
+          const subScale = Math.pow(3, depth);
+          const subHexSize = HEX_SIZE * scale / subScale;
+          if (subHexSize < 0.5) continue;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0.1, 0.5 / depth);
+          for (const cell of layerGrid.values()) {
+            const pos = hexToPixel(cell.q, cell.r);
+            const scaledX = centerX + pos.x * scale / subScale;
+            const scaledY = centerY + pos.y * scale / subScale;
+            if (
+              scaledX < -subHexSize * 3 || scaledX > canvas.width + subHexSize * 3 ||
+              scaledY < -subHexSize * 3 || scaledY > canvas.height + subHexSize * 3
+            ) continue;
+            if (cell.colorIndex === null) continue;
+            const fill = params.ColorPalette[cell.colorIndex] ?? 'transparent';
+            drawHex(ctx, scaledX, scaledY, subHexSize, fill, 'transparent', 0);
+          }
+          ctx.restore();
+        }
+
+        // 2. Current layer cells
         for (const cell of worldVisibleCells) {
           const pos = hexToPixel(cell.q, cell.r);
           const scaledX = centerX + pos.x * scale;
           const scaledY = centerY + pos.y * scale;
           const fill = cell.colorIndex !== null ? params.ColorPalette[cell.colorIndex] : 'transparent';
           drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
+        }
+
+        // 3. Shallower layer tints (larger hexes) flickering on empty current cells
+        for (let layerIndex = activeLayerIndex + 1; layerIndex <= MAX_LAYER; layerIndex++) {
+          const layerGrid = layerGrids[layerIndex];
+          if (!layerGrid || layerGrid.size === 0) continue;
+          const levelsUp = layerIndex - activeLayerIndex;
+          const parentScale = Math.pow(3, levelsUp);
+          const flickerPhase = (gameState.tick % 8) / 8;
+          const flickerAlpha = (flickerPhase < 0.5 ? flickerPhase * 2 : (1 - flickerPhase) * 2) * 0.35;
+          ctx.save();
+          ctx.globalAlpha = flickerAlpha;
+          for (const cell of worldVisibleCells) {
+            const parentCoord = roundHex(cell.q / parentScale, cell.r / parentScale);
+            const parentKey = `${parentCoord.q},${parentCoord.r}`;
+            const parentCell = layerGrid.get(parentKey);
+            if (!parentCell || parentCell.colorIndex === null) continue;
+            const fill = params.ColorPalette[parentCell.colorIndex] ?? 'transparent';
+            const pos = hexToPixel(cell.q, cell.r);
+            const scaledX = centerX + pos.x * scale;
+            const scaledY = centerY + pos.y * scale;
+            drawHex(ctx, scaledX, scaledY, HEX_SIZE * scale, fill, 'transparent', 0);
+          }
+          ctx.restore();
         }
       }
 

@@ -888,6 +888,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         : [],
     visitedHighlightTargets: resolvedVisitedHighlightTargets,
     hideHotbar: effectiveHideHotbar,
+    onSwitchLayer: (delta) => {
+      dispatch({ type: 'SWITCH_LAYER', delta });
+    },
   };
 
   const settingsProps: React.ComponentProps<typeof Settings> = {
