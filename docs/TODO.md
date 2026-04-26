@@ -1,5 +1,12 @@
 # TODO
 
+## Recently Completed (2026-04-27)
+
+- [x] Field Lab расширен третьим режимом визуализации `Fractal Stack` для тестирования межслойного влияния крупных гексов на пустые клетки текущего слоя
+- [x] В Field Lab добавлена интерактивная панель коэффициентов Fractal Stack (depth/gain/falloff/core-ring weights/antagonism/purity/alpha/cutoff/overlay)
+- [x] Добавлены режимы визуализации наложения `Matter` / `Influence` / `Causality` и hover-inspector с метриками вклада
+- [x] Добавлены unit-тесты чистой модели межслойного вклада для Field Lab (`tests/fieldLabFractal.test.ts`)
+
 ## Recently Completed (2026-04-26)
 
 - [x] Камера переведена на двухфазный режим: при движении черепашки остаётся статичной, после остановки догоняет `focus` по 1 клетке за тик

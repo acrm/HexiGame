@@ -1,3 +1,5 @@
+import { axialDirections, projectAxialBetweenLayers } from '../gameLogic/core/grid';
+
 export interface FieldMatrix {
   coeffs: Float64Array;
 }
@@ -16,6 +18,35 @@ export interface FieldParams {
   mode: 'value' | 'hash';
 }
 
+export interface FractalParams {
+  maxDepth: number;
+  layerGain: number;
+  layerFalloff: number;
+  coreWeight: number;
+  ringWeight: number;
+  antagonism: number;
+  purityExponent: number;
+  alphaGain: number;
+  alphaCutoff: number;
+  overlayStrength: number;
+}
+
+export interface FractalLayerContribution {
+  depth: number;
+  colorIndex: number;
+  rawWeight: number;
+  weightedWeight: number;
+}
+
+export interface FractalInfluenceResult {
+  dominantColor: number | null;
+  alpha: number;
+  confidence: number;
+  instability: number;
+  totalWeight: number;
+  contributions: FractalLayerContribution[];
+}
+
 export const DEFAULT_FIELD_PARAMS: FieldParams = {
   seed: 42,
   K: 6,
@@ -29,6 +60,23 @@ export const DEFAULT_FIELD_PARAMS: FieldParams = {
   blinkOffTicks: 3,
   mode: 'value',
 };
+
+export const DEFAULT_FRACTAL_PARAMS: FractalParams = {
+  maxDepth: 2,
+  layerGain: 0.75,
+  layerFalloff: 9,
+  coreWeight: 1,
+  ringWeight: 1 / 3,
+  antagonism: 0.6,
+  purityExponent: 1.2,
+  alphaGain: 1.6,
+  alphaCutoff: 0.01,
+  overlayStrength: 0.75,
+};
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
 
 function mulberry32(seed: number): () => number {
   let t = seed >>> 0;
@@ -210,4 +258,126 @@ export function evalCellPerspective(
     }
   }
   return { isEmpty: false, colorIndex: base.colorIndex, echoColor: null, echoDepth: 0, decayDepth: null, blinkOn };
+}
+
+export function evalCellFractalInfluence(
+  q: number,
+  r: number,
+  currentTick: number,
+  params: FieldParams,
+  matrix: FieldMatrix,
+  fractal: FractalParams,
+): FractalInfluenceResult {
+  const maxDepth = Math.max(0, Math.floor(fractal.maxDepth));
+  if (maxDepth === 0 || fractal.layerGain <= 0) {
+    return {
+      dominantColor: null,
+      alpha: 0,
+      confidence: 0,
+      instability: 0,
+      totalWeight: 0,
+      contributions: [],
+    };
+  }
+
+  const colorWeights = new Array<number>(Math.max(0, params.K)).fill(0);
+  const contributions: FractalLayerContribution[] = [];
+  let totalWeight = 0;
+
+  for (let depth = 1; depth <= maxDepth; depth += 1) {
+    const parent = projectAxialBetweenLayers({ q, r }, 0, depth);
+    const falloffBase = Math.max(1e-6, fractal.layerFalloff);
+    const depthAttenuation = fractal.layerGain / Math.pow(falloffBase, depth);
+    if (depthAttenuation <= 0) continue;
+
+    const samplePositions = [parent, ...axialDirections.map((dir) => ({ q: parent.q + dir.q, r: parent.r + dir.r }))];
+    for (let idx = 0; idx < samplePositions.length; idx += 1) {
+      const sample = samplePositions[idx];
+      const sampleWeight = idx === 0 ? fractal.coreWeight : fractal.ringWeight;
+      if (sampleWeight <= 0) continue;
+
+      const cell = evalCell(sample.q, sample.r, currentTick, params, matrix);
+      if (cell.isEmpty) continue;
+
+      const weighted = sampleWeight * depthAttenuation;
+      if (weighted <= 0) continue;
+
+      const colorIndex = cell.colorIndex % colorWeights.length;
+      if (colorIndex < 0) continue;
+
+      colorWeights[colorIndex] += weighted;
+      totalWeight += weighted;
+      contributions.push({
+        depth,
+        colorIndex,
+        rawWeight: sampleWeight,
+        weightedWeight: weighted,
+      });
+    }
+  }
+
+  if (totalWeight <= 0 || colorWeights.length === 0) {
+    return {
+      dominantColor: null,
+      alpha: 0,
+      confidence: 0,
+      instability: 0,
+      totalWeight: 0,
+      contributions,
+    };
+  }
+
+  let dominantColor = 0;
+  let dominantWeight = -1;
+  let secondWeight = 0;
+  for (let idx = 0; idx < colorWeights.length; idx += 1) {
+    const value = colorWeights[idx];
+    if (value > dominantWeight) {
+      secondWeight = dominantWeight;
+      dominantWeight = value;
+      dominantColor = idx;
+    } else if (value > secondWeight) {
+      secondWeight = value;
+    }
+  }
+  secondWeight = Math.max(0, secondWeight);
+
+  const suppressed = Math.max(0, dominantWeight - fractal.antagonism * secondWeight);
+  if (suppressed <= 0) {
+    return {
+      dominantColor: null,
+      alpha: 0,
+      confidence: 0,
+      instability: 1,
+      totalWeight,
+      contributions,
+    };
+  }
+
+  const purity = clamp01(dominantWeight / Math.max(1e-9, totalWeight));
+  const purityFactor = Math.pow(purity, Math.max(0.01, fractal.purityExponent));
+  const baseAlpha = 1 - Math.exp(-Math.max(0, fractal.alphaGain) * suppressed);
+  const alpha = clamp01(baseAlpha * purityFactor);
+  const confidence = clamp01(suppressed / Math.max(1e-9, suppressed + secondWeight));
+  const instability = clamp01((1 - purity) * (1 - confidence));
+
+  if (alpha < fractal.alphaCutoff) {
+    return {
+      dominantColor,
+      alpha: 0,
+      confidence,
+      instability,
+      totalWeight,
+      contributions,
+    };
+  }
+
+  return {
+    dominantColor,
+    alpha,
+    confidence,
+    instability,
+    totalWeight,
+    contributions,
+  };
 }

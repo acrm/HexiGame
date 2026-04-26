@@ -713,3 +713,5 @@
 - 0.1.0-y26w17b28 — TUI fix native element stylings and layout bugs
 
 - 0.1.0-y26w17b29 — Fix TUI session borders and controls spacing
+
+- 0.1.0-y26w18b1 — field-lab fractal stack visualization workbench
