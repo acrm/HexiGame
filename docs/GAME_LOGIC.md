@@ -70,9 +70,10 @@ CaptureChancePercent = max(0, ChanceBasePercent - ChancePenaltyPerPaletteDistanc
 
 ### 2.0.1 Moving visible window (camera bounds)
 - Visible world window radius is `GridRadius`.
-- The window center (`worldViewCenter`) is shifted exactly 1 cell forward along the current facing direction.
-- On session start, the spawn area guarantees a clear forward corridor from protagonist to the furthest visible cell on that facing axis.
-- This makes the first visible frontier reachable immediately while keeping the visible field biased toward exploration direction.
+- Camera uses a two-phase follow model:
+  - While turtle is moving (drag or auto-move), camera stays static.
+  - After turtle stops, camera moves toward `focus` exactly 1 hex per game tick until `worldViewCenter == focus`.
+- This keeps movement readable first, then performs deterministic post-move recentering.
 
 ### 2.1 Entities & State
 - `Cell`: `{ q, r, colorIndex | null }`.

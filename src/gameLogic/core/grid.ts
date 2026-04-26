@@ -324,9 +324,21 @@ export function computePathToFocusTarget(grid: Grid, from: Axial, target: Axial)
 }
 
 export function updateWorldViewCenter(state: GameState, params: Params): GameState {
-  const targetCenter = getVisibilityCenter(state.protagonist, state.facingDirIndex);
+  const targetCenter = state.focus;
 
   const currentCenter = state.worldViewCenter ?? targetCenter;
+
+  // Two-phase camera model:
+  // 1) While turtle is moving (drag/auto-move), camera stays static.
+  // 2) After movement stops, camera recenters to focus one cell per tick.
+  const isAutoMoveInProgress = !!state.autoFocusTarget && axialDistance(state.protagonist, state.autoFocusTarget) > 1;
+  const isCameraFrozen = !!state.isDragging || isAutoMoveInProgress;
+  if (isCameraFrozen) {
+    return state.worldViewCenter
+      ? state
+      : { ...state, worldViewCenter: currentCenter, cameraLastMoveTick: state.tick };
+  }
+
   const dist = axialDistance(currentCenter, targetCenter);
 
   // Camera at target - no movement needed
@@ -334,11 +346,11 @@ export function updateWorldViewCenter(state: GameState, params: Params): GameSta
     return state.worldViewCenter ? state : { ...state, worldViewCenter: currentCenter, cameraLastMoveTick: state.tick };
   }
 
-  // Lagged camera: move only once every CameraLagTicks ticks
+  // Move camera at most one cell per game tick.
   const lastMoveTick = state.cameraLastMoveTick ?? 0;
   const ticksSinceLastMove = state.tick - lastMoveTick;
 
-  if (ticksSinceLastMove < params.CameraLagTicks) {
+  if (ticksSinceLastMove < 1) {
     return state;
   }
 
