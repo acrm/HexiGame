@@ -154,7 +154,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 
         <div className="gs-main-panels">
           <div className="gs-language-panel gs-tui-frame">
-            <div className="hexipedia-section-filter gs-language-bar">
+            <div className="gs-language-bar">
               <label className="gs-language-label" htmlFor="guest-start-language">
                 {t('settings.language')}
               </label>
@@ -174,11 +174,11 @@ export const GuestStart: React.FC<GuestStartProps> = ({
           </div>
 
           <div className="gs-sessions-panel">
-            <div className="hexipedia-section-wrapper gs-sessions-section gs-tui-frame">
-              <div className="hexipedia-section-header-container">
+            <div className="gs-sessions-section gs-tui-frame">
+              <div className="gs-sessions-header">
                 <button
                   type="button"
-                  className="hexipedia-section-header gs-section-toggle"
+                  className="gs-section-toggle"
                   onClick={() => setSessionsCollapsed((value) => !value)}
                 >
                   <span className="gs-panel-toggle-icon">{sessionsCollapsed ? '⏷' : '⏶'}</span>

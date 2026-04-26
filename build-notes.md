@@ -687,3 +687,5 @@
 - 0.1.0-y26w17b15 — fix child layer anchoring and keep perimeter dots unclipped
 
 - 0.1.0-y26w17b16 — camera two-phase follow with post-move focus recenter
+
+- 0.1.0-y26w17b17 — Fix TUI borders nesting and native borders layer
