@@ -244,7 +244,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - when opened during active gameplay, **Disconnect** is shown instead of **Reset Session**;
   - when opened from the start screen, **Disconnect** is hidden.
 - Session snapshots are stored both as active session state and per-session history state (`hexigame.session.byId.<sessionId>`), enabling switching between history entries without data loss.
-- Field Lab now exposes two strictly separated visualization families: `Noise (random)` and `Fractal structures (manual)`. In manual fractal mode there is no procedural randomness: hex positions and colors are explicitly entered per layer (`-2..+2`), active layer switching is manual, and display scaling is manual.
+- Field Lab now exposes two strictly separated visualization families: `Noise (random)` and `Fractal structures (manual)`. In manual fractal mode there is no procedural randomness: the editor builds a deterministic layered template (`+2..-2`) and lets the user paint current-layer cells with one of 6 palette colors or `empty`; active layer switching and display scaling are manual.
 
 ## 3.1 Current Session UX Updates (2026-04-08)
 

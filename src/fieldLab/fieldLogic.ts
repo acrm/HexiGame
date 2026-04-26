@@ -473,3 +473,93 @@ export function parseManualLayerDefinition(input: string, colorCount: number): M
     errors,
   };
 }
+
+export interface FractalTemplateCell {
+  q: number;
+  r: number;
+  coverage: 'full' | 'partial';
+}
+
+export type FractalTemplateByLayer = Record<ManualFractalLayerIndex, FractalTemplateCell[]>;
+export type FractalPaintStateByLayer = Record<ManualFractalLayerIndex, Record<string, number | null>>;
+
+function layerCellKey(q: number, r: number): string {
+  return `${q},${r}`;
+}
+
+function buildTopLayerCells(): FractalTemplateCell[] {
+  return [
+    { q: 0, r: 0, coverage: 'full' },
+    ...axialDirections.map((dir) => ({ q: dir.q, r: dir.r, coverage: 'full' as const })),
+  ];
+}
+
+export function createFractalEditorTemplate(): FractalTemplateByLayer {
+  const template = {
+    '-2': [],
+    '-1': [],
+    '0': [],
+    '1': [],
+    '2': buildTopLayerCells(),
+  } as FractalTemplateByLayer;
+
+  const layerMap = {
+    '-2': new Map<string, FractalTemplateCell>(),
+    '-1': new Map<string, FractalTemplateCell>(),
+    '0': new Map<string, FractalTemplateCell>(),
+    '1': new Map<string, FractalTemplateCell>(),
+    '2': new Map<string, FractalTemplateCell>(),
+  } as Record<ManualFractalLayerIndex, Map<string, FractalTemplateCell>>;
+
+  for (const cell of template[2]) {
+    layerMap[2].set(layerCellKey(cell.q, cell.r), cell);
+  }
+
+  for (let layer = 2; layer > -2; layer -= 1) {
+    const source = Array.from(layerMap[layer as ManualFractalLayerIndex].values());
+    const target = layerMap[(layer - 1) as ManualFractalLayerIndex];
+    for (const parent of source) {
+      const centerQ = parent.q * 3;
+      const centerR = parent.r * 3;
+      target.set(layerCellKey(centerQ, centerR), { q: centerQ, r: centerR, coverage: 'full' });
+      for (const dir of axialDirections) {
+        const fullQ = centerQ + dir.q;
+        const fullR = centerR + dir.r;
+        target.set(layerCellKey(fullQ, fullR), { q: fullQ, r: fullR, coverage: 'full' });
+
+        const partialQ = centerQ + dir.q * 2;
+        const partialR = centerR + dir.r * 2;
+        target.set(layerCellKey(partialQ, partialR), { q: partialQ, r: partialR, coverage: 'partial' });
+      }
+    }
+  }
+
+  template[1] = Array.from(layerMap[1].values());
+  template[0] = Array.from(layerMap[0].values());
+  template[-1] = Array.from(layerMap[-1].values());
+  template[-2] = Array.from(layerMap[-2].values());
+  return template;
+}
+
+export function createFractalEditorPaintState(template: FractalTemplateByLayer): FractalPaintStateByLayer {
+  const state = {
+    '-2': {},
+    '-1': {},
+    '0': {},
+    '1': {},
+    '2': {},
+  } as FractalPaintStateByLayer;
+  const layers: ManualFractalLayerIndex[] = [-2, -1, 0, 1, 2];
+  for (const layer of layers) {
+    const layerState: Record<string, number | null> = {};
+    for (const cell of template[layer]) {
+      layerState[layerCellKey(cell.q, cell.r)] = null;
+    }
+    state[layer] = layerState;
+  }
+  return state;
+}
+
+export function getFractalLayerCellKey(q: number, r: number): string {
+  return layerCellKey(q, r);
+}

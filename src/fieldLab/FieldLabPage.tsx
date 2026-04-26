@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   buildMatrix,
+  createFractalEditorPaintState,
+  createFractalEditorTemplate,
   evalCell,
   evalCellPerspective,
-  parseManualLayerDefinition,
+  getFractalLayerCellKey,
   DEFAULT_FIELD_PARAMS,
-  DEFAULT_MANUAL_LAYER_TEXT,
   type FieldMatrix,
   type FieldParams,
-  type ManualFractalHex,
+  type FractalPaintStateByLayer,
+  type FractalTemplateByLayer,
   type ManualFractalLayerIndex,
 } from './fieldLogic';
 import './FieldLabPage.css';
@@ -16,6 +18,7 @@ import './FieldLabPage.css';
 const TICK_RATE = 12;
 const TICK_MS = 1000 / TICK_RATE;
 const LAYERS: ManualFractalLayerIndex[] = [-2, -1, 0, 1, 2];
+const PALETTE_SIZE = 6;
 
 function hsvToHex(h: number, s: number, v: number): string {
   const ss = s / 100;
@@ -40,9 +43,8 @@ function hsvToHex(h: number, s: number, v: number): string {
 }
 
 function buildPalette(k: number): string[] {
-  const safeCount = Math.max(1, k);
-  const step = 360 / safeCount;
-  return Array.from({ length: safeCount }, (_, i) => hsvToHex((30 + i * step) % 360, 70, 75));
+  const step = 360 / Math.max(1, k);
+  return Array.from({ length: Math.max(1, k) }, (_, i) => hsvToHex((30 + i * step) % 360, 70, 75));
 }
 
 function projectAxial(q: number, r: number, size: number): [number, number] {
@@ -75,15 +77,38 @@ function generateGrid(radius: number): Array<[number, number]> {
   return cells;
 }
 
+function axialRound(qf: number, rf: number): [number, number] {
+  const sf = -qf - rf;
+  let q = Math.round(qf);
+  let r = Math.round(rf);
+  let s = Math.round(sf);
+
+  const qDiff = Math.abs(q - qf);
+  const rDiff = Math.abs(r - rf);
+  const sDiff = Math.abs(s - sf);
+
+  if (qDiff > rDiff && qDiff > sDiff) q = -r - s;
+  else if (rDiff > sDiff) r = -q - s;
+  else s = -q - r;
+
+  void s;
+  return [q, r];
+}
+
+function pixelToAxial(x: number, y: number, size: number): [number, number] {
+  const qf = (2 / 3) * x / size;
+  const rf = ((-1 / 3) * x + (1 / Math.sqrt(3)) * y) / size;
+  return axialRound(qf, rf);
+}
+
 interface ViewState {
   gridRadius: number;
   hexSize: number;
-  visualizationMode: 'noise' | 'fractalStructures';
+  visualizationMode: 'noise' | 'fractalEditor';
   noiseView: 'plain' | 'timePerspective';
   speed: number;
   activeLayer: ManualFractalLayerIndex;
-  layerScaleBase: number;
-  layerDisplayScale: number;
+  displayScale: number;
 }
 
 const DEFAULT_VIEW: ViewState = {
@@ -93,27 +118,8 @@ const DEFAULT_VIEW: ViewState = {
   noiseView: 'timePerspective',
   speed: 1,
   activeLayer: 0,
-  layerScaleBase: 3,
-  layerDisplayScale: 1,
+  displayScale: 1,
 };
-
-type LayerCellsByIndex = Record<ManualFractalLayerIndex, ManualFractalHex[]>;
-type LayerTextByIndex = Record<ManualFractalLayerIndex, string>;
-type LayerErrorsByIndex = Record<ManualFractalLayerIndex, string[]>;
-
-function parseAllManualLayers(textByLayer: LayerTextByIndex, colorCount: number): {
-  cellsByLayer: LayerCellsByIndex;
-  errorsByLayer: LayerErrorsByIndex;
-} {
-  const cellsByLayer = {} as LayerCellsByIndex;
-  const errorsByLayer = {} as LayerErrorsByIndex;
-  for (const layer of LAYERS) {
-    const parsed = parseManualLayerDefinition(textByLayer[layer], colorCount);
-    cellsByLayer[layer] = parsed.cells;
-    errorsByLayer[layer] = parsed.errors;
-  }
-  return { cellsByLayer, errorsByLayer };
-}
 
 function Slider(props: {
   label: string;
@@ -148,23 +154,23 @@ export default function FieldLabPage() {
   const lastTickTimeRef = useRef(Date.now());
   const rafRef = useRef(0);
   const matrixRef = useRef<FieldMatrix>(buildMatrix(DEFAULT_FIELD_PARAMS.seed));
-  const paletteRef = useRef<string[]>(buildPalette(DEFAULT_FIELD_PARAMS.K));
+  const paletteRef = useRef<string[]>(buildPalette(PALETTE_SIZE));
+  const hoveredRef = useRef<[number, number] | null>(null);
+
+  const templateRef = useRef<FractalTemplateByLayer>(createFractalEditorTemplate());
 
   const [params, setParams] = useState<FieldParams>(DEFAULT_FIELD_PARAMS);
   const [view, setView] = useState<ViewState>(DEFAULT_VIEW);
   const [displayTick, setDisplayTick] = useState(0);
-  const [layerText, setLayerText] = useState<LayerTextByIndex>(DEFAULT_MANUAL_LAYER_TEXT);
-
-  const initialManual = parseAllManualLayers(DEFAULT_MANUAL_LAYER_TEXT, DEFAULT_FIELD_PARAMS.K);
-  const [manualCellsByLayer, setManualCellsByLayer] = useState<LayerCellsByIndex>(initialManual.cellsByLayer);
-  const [manualErrorsByLayer, setManualErrorsByLayer] = useState<LayerErrorsByIndex>(initialManual.errorsByLayer);
+  const [paintColor, setPaintColor] = useState<number | null>(0);
+  const [paintState, setPaintState] = useState<FractalPaintStateByLayer>(() => createFractalEditorPaintState(templateRef.current));
 
   const paramsRef = useRef(params);
   const viewRef = useRef(view);
-  const manualCellsRef = useRef(manualCellsByLayer);
+  const paintStateRef = useRef(paintState);
   useEffect(() => { paramsRef.current = params; }, [params]);
   useEffect(() => { viewRef.current = view; }, [view]);
-  useEffect(() => { manualCellsRef.current = manualCellsByLayer; }, [manualCellsByLayer]);
+  useEffect(() => { paintStateRef.current = paintState; }, [paintState]);
 
   const setParam = useCallback(<K extends keyof FieldParams>(key: K, value: FieldParams[K]) => {
     setParams((prev) => ({ ...prev, [key]: value }));
@@ -174,28 +180,15 @@ export default function FieldLabPage() {
     setView((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const updateLayerText = useCallback((layer: ManualFractalLayerIndex, nextText: string) => {
-    setLayerText((prev) => {
-      const next = { ...prev, [layer]: nextText };
-      const parsed = parseAllManualLayers(next, paramsRef.current.K);
-      setManualCellsByLayer(parsed.cellsByLayer);
-      setManualErrorsByLayer(parsed.errorsByLayer);
-      return next;
-    });
-  }, []);
-
   useEffect(() => {
     matrixRef.current = buildMatrix(params.seed);
   }, [params.seed]);
 
   useEffect(() => {
-    paletteRef.current = buildPalette(params.K);
-    const parsed = parseAllManualLayers(layerText, params.K);
-    setManualCellsByLayer(parsed.cellsByLayer);
-    setManualErrorsByLayer(parsed.errorsByLayer);
-  }, [params.K, layerText]);
+    paletteRef.current = buildPalette(PALETTE_SIZE);
+  }, []);
 
-  const drawNoiseFrame = (
+  const drawNoise = (
     ctx: CanvasRenderingContext2D,
     width: number,
     height: number,
@@ -208,6 +201,7 @@ export default function FieldLabPage() {
     const cx = width / 2;
     const cy = height / 2;
     const cells = generateGrid(currentView.gridRadius);
+
     for (const [q, r] of cells) {
       const [px, py] = projectAxial(q, r, currentView.hexSize);
       const x = cx + px;
@@ -216,15 +210,14 @@ export default function FieldLabPage() {
       if (currentView.noiseView === 'timePerspective') {
         const pres = evalCellPerspective(q, r, tick, currentParams, matrix);
         if (pres.isEmpty) {
+          ctx.fillStyle = '#0a0e1a';
           if (pres.echoColor !== null && pres.blinkOn) {
-            const alpha = 1 - (pres.echoDepth - 1) / Math.max(1, currentParams.P);
             const color = palette[pres.echoColor % palette.length];
             const rr = parseInt(color.slice(1, 3), 16);
             const rg = parseInt(color.slice(3, 5), 16);
             const rb = parseInt(color.slice(5, 7), 16);
+            const alpha = 1 - (pres.echoDepth - 1) / Math.max(1, currentParams.P);
             ctx.fillStyle = `rgba(${rr},${rg},${rb},${(alpha * 0.6).toFixed(3)})`;
-          } else {
-            ctx.fillStyle = '#0a0e1a';
           }
           drawHexPath(ctx, x, y, currentView.hexSize - 1.5);
           ctx.fill();
@@ -254,57 +247,43 @@ export default function FieldLabPage() {
     }
   };
 
-  const drawFractalStructureFrame = (
+  const drawFractalEditor = (
     ctx: CanvasRenderingContext2D,
     width: number,
     height: number,
     currentView: ViewState,
     palette: string[],
-    cellsByLayer: LayerCellsByIndex,
   ) => {
+    const layer = currentView.activeLayer;
+    const layerCells = templateRef.current[layer];
+    const layerPaint = paintStateRef.current[layer];
+    const base = currentView.hexSize * currentView.displayScale;
     const cx = width / 2;
     const cy = height / 2;
-    const baseSize = currentView.hexSize * currentView.layerDisplayScale;
 
-    const guideCells = generateGrid(currentView.gridRadius);
-    for (const [q, r] of guideCells) {
-      const [gx, gy] = projectAxial(q, r, baseSize);
-      drawHexPath(ctx, cx + gx, cy + gy, Math.max(2, baseSize - 1.5));
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-      ctx.lineWidth = 0.6;
+    for (const cell of layerCells) {
+      const [px, py] = projectAxial(cell.q, cell.r, base);
+      const x = cx + px;
+      const y = cy + py;
+      const key = getFractalLayerCellKey(cell.q, cell.r);
+      const colorIndex = layerPaint[key];
+
+      if (colorIndex === null || colorIndex === undefined) {
+        ctx.fillStyle = cell.coverage === 'partial' ? 'rgba(20,26,42,0.45)' : '#0a0e1a';
+      } else {
+        ctx.fillStyle = palette[colorIndex % palette.length];
+      }
+
+      drawHexPath(ctx, x, y, base - 1.5);
+      ctx.fill();
+      ctx.strokeStyle = cell.coverage === 'partial' ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = cell.coverage === 'partial' ? 0.8 : 1;
       ctx.stroke();
-    }
 
-    for (const layer of [...LAYERS].sort((a, b) => b - a)) {
-      const delta = layer - currentView.activeLayer;
-      const layerFactor = Math.pow(currentView.layerScaleBase, delta);
-      const layerAlpha = layer === currentView.activeLayer
-        ? 0.95
-        : Math.max(0.16, 0.55 - Math.abs(delta) * 0.12);
-
-      for (const cell of cellsByLayer[layer]) {
-        const displayQ = cell.q * layerFactor;
-        const displayR = cell.r * layerFactor;
-        const cellSize = baseSize * layerFactor;
-        if (!Number.isFinite(cellSize) || cellSize < 1 || cellSize > 1200) {
-          continue;
-        }
-
-        const [px, py] = projectAxial(displayQ, displayR, baseSize);
-        const x = cx + px;
-        const y = cy + py;
-        const color = palette[cell.colorIndex % palette.length];
-
-        drawHexPath(ctx, x, y, cellSize - 0.8);
-        ctx.globalAlpha = layerAlpha;
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        ctx.strokeStyle = layer === currentView.activeLayer
-          ? 'rgba(255,255,255,0.82)'
-          : 'rgba(255,255,255,0.18)';
-        ctx.lineWidth = layer === currentView.activeLayer ? 1.25 : 0.8;
+      if (hoveredRef.current && hoveredRef.current[0] === cell.q && hoveredRef.current[1] === cell.r) {
+        drawHexPath(ctx, x, y, base - 0.8);
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = 'rgba(255,255,255,0.86)';
         ctx.stroke();
       }
     }
@@ -321,14 +300,13 @@ export default function FieldLabPage() {
     const currentView = viewRef.current;
     const matrix = matrixRef.current;
     const palette = paletteRef.current;
-    const cellsByLayer = manualCellsRef.current;
     const tick = tickRef.current;
 
     ctx.clearRect(0, 0, width, height);
     if (currentView.visualizationMode === 'noise') {
-      drawNoiseFrame(ctx, width, height, tick, currentParams, currentView, matrix, palette);
+      drawNoise(ctx, width, height, tick, currentParams, currentView, matrix, palette);
     } else {
-      drawFractalStructureFrame(ctx, width, height, currentView, palette, cellsByLayer);
+      drawFractalEditor(ctx, width, height, currentView, palette);
     }
   }, []);
 
@@ -364,11 +342,13 @@ export default function FieldLabPage() {
     if (!canvas) return;
     const parent = canvas.parentElement;
     if (!parent) return;
+
     const ro = new ResizeObserver(() => {
       canvas.width = parent.clientWidth;
       canvas.height = parent.clientHeight;
       drawFrame();
     });
+
     ro.observe(parent);
     canvas.width = parent.clientWidth;
     canvas.height = parent.clientHeight;
@@ -377,8 +357,59 @@ export default function FieldLabPage() {
   }, [drawFrame]);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onMove = (event: MouseEvent) => {
+      if (viewRef.current.visualizationMode !== 'fractalEditor') return;
+      const rect = canvas.getBoundingClientRect();
+      const localX = event.clientX - rect.left - rect.width / 2;
+      const localY = event.clientY - rect.top - rect.height / 2;
+      const size = viewRef.current.hexSize * viewRef.current.displayScale;
+      const [q, r] = pixelToAxial(localX, localY, size);
+      hoveredRef.current = [q, r];
+      drawFrame();
+    };
+
+    const onLeave = () => {
+      hoveredRef.current = null;
+      drawFrame();
+    };
+
+    const onClick = (event: MouseEvent) => {
+      const currentView = viewRef.current;
+      if (currentView.visualizationMode !== 'fractalEditor') return;
+      const rect = canvas.getBoundingClientRect();
+      const localX = event.clientX - rect.left - rect.width / 2;
+      const localY = event.clientY - rect.top - rect.height / 2;
+      const size = currentView.hexSize * currentView.displayScale;
+      const [q, r] = pixelToAxial(localX, localY, size);
+      const key = getFractalLayerCellKey(q, r);
+      const layerCells = templateRef.current[currentView.activeLayer];
+      if (!layerCells.some((cell) => cell.q === q && cell.r === r)) return;
+
+      setPaintState((prev) => ({
+        ...prev,
+        [currentView.activeLayer]: {
+          ...prev[currentView.activeLayer],
+          [key]: paintColor,
+        },
+      }));
+    };
+
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseleave', onLeave);
+    canvas.addEventListener('click', onClick);
+    return () => {
+      canvas.removeEventListener('mousemove', onMove);
+      canvas.removeEventListener('mouseleave', onLeave);
+      canvas.removeEventListener('click', onClick);
+    };
+  }, [drawFrame, paintColor]);
+
+  useEffect(() => {
     drawFrame();
-  }, [params, view, manualCellsByLayer, drawFrame]);
+  }, [params, view, paintState, drawFrame]);
 
   const fmt2 = (v: number) => v.toFixed(2);
   const fmt0 = (v: number) => String(Math.round(v));
@@ -422,8 +453,8 @@ export default function FieldLabPage() {
               value={view.visualizationMode}
               onChange={(e) => setViewValue('visualizationMode', e.target.value as ViewState['visualizationMode'])}
             >
-              <option value="noise">Noise (random)</option>
-              <option value="fractalStructures">Fractal structures (manual)</option>
+              <option value="noise">Noise</option>
+              <option value="fractalEditor">Fractal editor</option>
             </select>
           </div>
         </div>
@@ -431,7 +462,7 @@ export default function FieldLabPage() {
         {view.visualizationMode === 'noise' ? (
           <>
             <div className="field-lab__section">
-              <p className="field-lab__section-title">Noise World</p>
+              <p className="field-lab__section-title">Noise</p>
               <div className="field-lab__row">
                 <span className="field-lab__label">Seed</span>
                 <input
@@ -441,28 +472,8 @@ export default function FieldLabPage() {
                   onChange={(e) => setParam('seed', parseInt(e.target.value, 10) || 0)}
                 />
               </div>
-              <Slider
-                label="Colors (K)"
-                min={2}
-                max={16}
-                step={1}
-                value={params.K}
-                onChange={(v) => setParam('K', Math.round(v))}
-                format={fmt0}
-              />
               <div className="field-lab__row">
-                <span className="field-lab__label">Noise mode</span>
-                <select
-                  className="field-lab__mode-select"
-                  value={params.mode}
-                  onChange={(e) => setParam('mode', e.target.value as 'value' | 'hash')}
-                >
-                  <option value="value">Value (smooth)</option>
-                  <option value="hash">Hash (crispy)</option>
-                </select>
-              </div>
-              <div className="field-lab__row">
-                <span className="field-lab__label">Render view</span>
+                <span className="field-lab__label">Render</span>
                 <select
                   className="field-lab__mode-select"
                   value={view.noiseView}
@@ -472,33 +483,18 @@ export default function FieldLabPage() {
                   <option value="timePerspective">Time perspective</option>
                 </select>
               </div>
-            </div>
-
-            <div className="field-lab__section">
-              <p className="field-lab__section-title">Noise Dynamics</p>
               <Slider label="Time Scale" min={0} max={5} step={0.05} value={params.timeScale} onChange={(v) => setParam('timeScale', v)} format={fmt2} />
               <Slider label="Base Freq" min={0.1} max={4} step={0.05} value={params.baseFreq} onChange={(v) => setParam('baseFreq', v)} format={fmt2} />
               <Slider label="Density Thr." min={0} max={1} step={0.01} value={params.densityThreshold} onChange={(v) => setParam('densityThreshold', v)} format={fmt2} />
-              <Slider label="u1 (X4 offset)" min={-10} max={10} step={0.1} value={params.u1} onChange={(v) => setParam('u1', v)} format={fmt2} />
-              <Slider label="u2 (X5 offset)" min={-10} max={10} step={0.1} value={params.u2} onChange={(v) => setParam('u2', v)} format={fmt2} />
+              <Slider label="u1" min={-10} max={10} step={0.1} value={params.u1} onChange={(v) => setParam('u1', v)} format={fmt2} />
+              <Slider label="u2" min={-10} max={10} step={0.1} value={params.u2} onChange={(v) => setParam('u2', v)} format={fmt2} />
               <Slider label="Lookahead P" min={0} max={60} step={1} value={params.P} onChange={(v) => setParam('P', Math.round(v))} format={fmt0} />
-              <Slider label="Blink ON" min={1} max={24} step={1} value={params.blinkOnTicks} onChange={(v) => setParam('blinkOnTicks', Math.round(v))} format={fmt0} />
-              <Slider label="Blink OFF" min={1} max={24} step={1} value={params.blinkOffTicks} onChange={(v) => setParam('blinkOffTicks', Math.round(v))} format={fmt0} />
             </div>
           </>
         ) : (
           <>
             <div className="field-lab__section">
-              <p className="field-lab__section-title">Fractal Structures</p>
-              <Slider
-                label="Colors (K)"
-                min={2}
-                max={16}
-                step={1}
-                value={params.K}
-                onChange={(v) => setParam('K', Math.round(v))}
-                format={fmt0}
-              />
+              <p className="field-lab__section-title">Fractal Editor</p>
               <div className="field-lab__row">
                 <span className="field-lab__label">Active layer</span>
                 <select
@@ -511,29 +507,35 @@ export default function FieldLabPage() {
                   ))}
                 </select>
               </div>
-              <Slider label="Scale base" min={2} max={4} step={0.1} value={view.layerScaleBase} onChange={(v) => setViewValue('layerScaleBase', v)} format={fmt2} />
-              <Slider label="Display scale" min={0.3} max={2.5} step={0.05} value={view.layerDisplayScale} onChange={(v) => setViewValue('layerDisplayScale', v)} format={fmt2} />
+              <Slider label="Display scale" min={0.3} max={2.5} step={0.05} value={view.displayScale} onChange={(v) => setViewValue('displayScale', v)} format={fmt2} />
+              <div className="field-lab__row">
+                <span className="field-lab__label">Cells on layer</span>
+                <span className="field-lab__value">{templateRef.current[view.activeLayer].length}</span>
+              </div>
             </div>
 
-            {LAYERS.map((layer) => (
-              <div className="field-lab__section" key={`layer-editor-${layer}`}>
-                <p className="field-lab__section-title">Layer {layer}</p>
-                <textarea
-                  className="field-lab__textarea"
-                  value={layerText[layer]}
-                  onChange={(e) => updateLayerText(layer, e.target.value)}
-                  rows={5}
-                  spellCheck={false}
-                />
-                <p className="field-lab__hint">Format: q r colorIndex</p>
-                {manualErrorsByLayer[layer].slice(0, 2).map((error) => (
-                  <p className="field-lab__error" key={`${layer}-${error}`}>{error}</p>
+            <div className="field-lab__section">
+              <p className="field-lab__section-title">Paint</p>
+              <div className="field-lab__palette">
+                {buildPalette(PALETTE_SIZE).map((color, idx) => (
+                  <button
+                    key={`paint-${idx}`}
+                    className={`field-lab__swatch ${paintColor === idx ? 'active' : ''}`}
+                    style={{ background: color }}
+                    onClick={() => setPaintColor(idx)}
+                    title={`Color ${idx}`}
+                  />
                 ))}
-                {manualErrorsByLayer[layer].length > 2 ? (
-                  <p className="field-lab__error">...and {manualErrorsByLayer[layer].length - 2} more</p>
-                ) : null}
+                <button
+                  className={`field-lab__swatch field-lab__swatch-empty ${paintColor === null ? 'active' : ''}`}
+                  onClick={() => setPaintColor(null)}
+                  title="Empty"
+                >
+                  ∅
+                </button>
               </div>
-            ))}
+              <p className="field-lab__hint">Click a cell on current layer to apply selected color (or empty).</p>
+            </div>
           </>
         )}
 
@@ -557,14 +559,12 @@ export default function FieldLabPage() {
               }}
               onClick={() => {
                 tickRef.current = 0;
-                lastTickTimeRef.current = Date.now();
                 setDisplayTick(0);
+                lastTickTimeRef.current = Date.now();
                 setParams(DEFAULT_FIELD_PARAMS);
                 setView(DEFAULT_VIEW);
-                setLayerText(DEFAULT_MANUAL_LAYER_TEXT);
-                const parsed = parseAllManualLayers(DEFAULT_MANUAL_LAYER_TEXT, DEFAULT_FIELD_PARAMS.K);
-                setManualCellsByLayer(parsed.cellsByLayer);
-                setManualErrorsByLayer(parsed.errorsByLayer);
+                setPaintColor(0);
+                setPaintState(createFractalEditorPaintState(templateRef.current));
               }}
             >
               Reset all

@@ -717,3 +717,5 @@
 - 0.1.0-y26w18b1 — field-lab fractal stack visualization workbench
 
 - 0.1.0-y26w18b2 — split field-lab noise and manual fractal modes
+
+- 0.1.0-y26w18b3 — interactive fractal layer grid editor

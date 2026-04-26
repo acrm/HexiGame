@@ -1,30 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  DEFAULT_MANUAL_LAYER_TEXT,
-  parseManualLayerDefinition,
+  createFractalEditorPaintState,
+  createFractalEditorTemplate,
+  getFractalLayerCellKey,
 } from '../src/fieldLab/fieldLogic';
 
-describe('field-lab manual fractal structures', () => {
-  it('parses default manual layers without errors', () => {
-    for (const text of Object.values(DEFAULT_MANUAL_LAYER_TEXT)) {
-      const result = parseManualLayerDefinition(text, 6);
-      expect(result.errors).toEqual([]);
-      expect(result.cells.length).toBeGreaterThan(0);
+describe('field-lab interactive fractal editor', () => {
+  it('creates top layer with exactly seven cells', () => {
+    const template = createFractalEditorTemplate();
+    expect(template[2]).toHaveLength(7);
+  });
+
+  it('expands template down to layer -2 with full and partial cells', () => {
+    const template = createFractalEditorTemplate();
+    expect(template[-2].length).toBeGreaterThan(template[2].length);
+    const hasPartial = template[-2].some((cell) => cell.coverage === 'partial');
+    const hasFull = template[-2].some((cell) => cell.coverage === 'full');
+    expect(hasPartial).toBe(true);
+    expect(hasFull).toBe(true);
+  });
+
+  it('initial paint state contains all cells as empty', () => {
+    const template = createFractalEditorTemplate();
+    const state = createFractalEditorPaintState(template);
+    for (const layer of [-2, -1, 0, 1, 2] as const) {
+      for (const cell of template[layer]) {
+        const key = getFractalLayerCellKey(cell.q, cell.r);
+        expect(state[layer][key]).toBeNull();
+      }
     }
-  });
-
-  it('reports malformed lines and invalid color index', () => {
-    const result = parseManualLayerDefinition('0 0\n1 2 99\na b c', 6);
-    expect(result.cells).toHaveLength(0);
-    expect(result.errors.length).toBe(3);
-  });
-
-  it('last duplicate coordinate wins for deterministic edits', () => {
-    const result = parseManualLayerDefinition('0 0 1\n0 0 3\n1 0 2', 6);
-    expect(result.errors).toEqual([]);
-    expect(result.cells).toHaveLength(2);
-    const atOrigin = result.cells.find((cell) => cell.q === 0 && cell.r === 0);
-    expect(atOrigin?.colorIndex).toBe(3);
   });
 });

@@ -208,6 +208,33 @@ textarea {
   font-size: 11px;
 }
 
+.field-lab__palette {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.field-lab__swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.field-lab__swatch.active {
+  outline: 2px solid rgba(255, 255, 255, 0.88);
+  outline-offset: 1px;
+}
+
+.field-lab__swatch-empty {
+  background: rgba(10, 14, 26, 1);
+  color: #c8d4e8;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .field-lab__toggle-row {
   display: flex;
   align-items: center;

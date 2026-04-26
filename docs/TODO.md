@@ -3,9 +3,9 @@
 ## Recently Completed (2026-04-27)
 
 - [x] Field Lab разделён на независимые режимы визуализации: `Noise (random)` и `Fractal structures (manual)` без смешивания подходов
-- [x] Для `Fractal structures` добавлено полностью ручное задание гексов по слоям (`-2..+2`) через текстовые определения `q r colorIndex`
-- [x] В `Fractal structures` включены ручные контролы `active layer`, `scale base` и `display scale` (переключение слоя и масштаб теперь строго ручные)
-- [x] Добавлена валидация ручных слоёв и обновлены unit-тесты парсинга (`tests/fieldLabFractal.test.ts`)
+- [x] Для `Fractal structures` добавлен интерактивный редактор сетки: клик по клетке текущего слоя назначает один из 6 цветов палитры или `empty`
+- [x] Сетка редактора строится как детерминированная иерархия слоёв (`+2..-2`): стартовые 7 клеток на `+2`, декомпозиция на `7 + 6*(1/3 overlap)` вниз по слоям
+- [x] В `Fractal structures` включены ручные контролы `active layer` и `display scale`; обновлены unit-тесты модели шаблона (`tests/fieldLabFractal.test.ts`)
 
 ## Recently Completed (2026-04-26)
 
