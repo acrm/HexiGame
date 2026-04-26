@@ -2,10 +2,10 @@
 
 ## Recently Completed (2026-04-27)
 
-- [x] Field Lab расширен третьим режимом визуализации `Fractal Stack` для тестирования межслойного влияния крупных гексов на пустые клетки текущего слоя
-- [x] В Field Lab добавлена интерактивная панель коэффициентов Fractal Stack (depth/gain/falloff/core-ring weights/antagonism/purity/alpha/cutoff/overlay)
-- [x] Добавлены режимы визуализации наложения `Matter` / `Influence` / `Causality` и hover-inspector с метриками вклада
-- [x] Добавлены unit-тесты чистой модели межслойного вклада для Field Lab (`tests/fieldLabFractal.test.ts`)
+- [x] Field Lab разделён на независимые режимы визуализации: `Noise (random)` и `Fractal structures (manual)` без смешивания подходов
+- [x] Для `Fractal structures` добавлено полностью ручное задание гексов по слоям (`-2..+2`) через текстовые определения `q r colorIndex`
+- [x] В `Fractal structures` включены ручные контролы `active layer`, `scale base` и `display scale` (переключение слоя и масштаб теперь строго ручные)
+- [x] Добавлена валидация ручных слоёв и обновлены unit-тесты парсинга (`tests/fieldLabFractal.test.ts`)
 
 ## Recently Completed (2026-04-26)
 

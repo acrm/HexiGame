@@ -1,95 +1,30 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildMatrix,
-  DEFAULT_FIELD_PARAMS,
-  DEFAULT_FRACTAL_PARAMS,
-  evalCellFractalInfluence,
+  DEFAULT_MANUAL_LAYER_TEXT,
+  parseManualLayerDefinition,
 } from '../src/fieldLab/fieldLogic';
 
-function findCellWithInfluence() {
-  const matrix = buildMatrix(DEFAULT_FIELD_PARAMS.seed);
-  for (let q = -12; q <= 12; q += 1) {
-    for (let r = -12; r <= 12; r += 1) {
-      const influence = evalCellFractalInfluence(
-        q,
-        r,
-        24,
-        DEFAULT_FIELD_PARAMS,
-        matrix,
-        DEFAULT_FRACTAL_PARAMS,
-      );
-      if (influence.contributions.length > 0) {
-        return { q, r };
-      }
-    }
-  }
-  return null;
-}
-
-describe('field-lab fractal influence model', () => {
-  it('returns bounded metrics and deterministic dominant color', () => {
-    const matrix = buildMatrix(DEFAULT_FIELD_PARAMS.seed);
-    const result = evalCellFractalInfluence(2, -3, 15, DEFAULT_FIELD_PARAMS, matrix, DEFAULT_FRACTAL_PARAMS);
-
-    expect(result.alpha).toBeGreaterThanOrEqual(0);
-    expect(result.alpha).toBeLessThanOrEqual(1);
-    expect(result.confidence).toBeGreaterThanOrEqual(0);
-    expect(result.confidence).toBeLessThanOrEqual(1);
-    expect(result.instability).toBeGreaterThanOrEqual(0);
-    expect(result.instability).toBeLessThanOrEqual(1);
-
-    if (result.dominantColor !== null) {
-      expect(result.dominantColor).toBeGreaterThanOrEqual(0);
-      expect(result.dominantColor).toBeLessThan(DEFAULT_FIELD_PARAMS.K);
+describe('field-lab manual fractal structures', () => {
+  it('parses default manual layers without errors', () => {
+    for (const text of Object.values(DEFAULT_MANUAL_LAYER_TEXT)) {
+      const result = parseManualLayerDefinition(text, 6);
+      expect(result.errors).toEqual([]);
+      expect(result.cells.length).toBeGreaterThan(0);
     }
   });
 
-  it('respects alpha cutoff and can suppress weak influence', () => {
-    const matrix = buildMatrix(DEFAULT_FIELD_PARAMS.seed);
-    const result = evalCellFractalInfluence(
-      0,
-      0,
-      12,
-      DEFAULT_FIELD_PARAMS,
-      matrix,
-      {
-        ...DEFAULT_FRACTAL_PARAMS,
-        alphaCutoff: 1,
-      },
-    );
-
-    expect(result.alpha).toBe(0);
+  it('reports malformed lines and invalid color index', () => {
+    const result = parseManualLayerDefinition('0 0\n1 2 99\na b c', 6);
+    expect(result.cells).toHaveLength(0);
+    expect(result.errors.length).toBe(3);
   });
 
-  it('higher layer gain yields stronger alpha for the same cell', () => {
-    const sample = findCellWithInfluence();
-    expect(sample).not.toBeNull();
-
-    const matrix = buildMatrix(DEFAULT_FIELD_PARAMS.seed);
-    const low = evalCellFractalInfluence(
-      sample!.q,
-      sample!.r,
-      30,
-      DEFAULT_FIELD_PARAMS,
-      matrix,
-      {
-        ...DEFAULT_FRACTAL_PARAMS,
-        layerGain: 0.2,
-      },
-    );
-    const high = evalCellFractalInfluence(
-      sample!.q,
-      sample!.r,
-      30,
-      DEFAULT_FIELD_PARAMS,
-      matrix,
-      {
-        ...DEFAULT_FRACTAL_PARAMS,
-        layerGain: 1.6,
-      },
-    );
-
-    expect(high.alpha).toBeGreaterThanOrEqual(low.alpha);
+  it('last duplicate coordinate wins for deterministic edits', () => {
+    const result = parseManualLayerDefinition('0 0 1\n0 0 3\n1 0 2', 6);
+    expect(result.errors).toEqual([]);
+    expect(result.cells).toHaveLength(2);
+    const atOrigin = result.cells.find((cell) => cell.q === 0 && cell.r === 0);
+    expect(atOrigin?.colorIndex).toBe(3);
   });
 });

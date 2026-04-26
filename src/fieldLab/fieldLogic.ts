@@ -47,6 +47,19 @@ export interface FractalInfluenceResult {
   contributions: FractalLayerContribution[];
 }
 
+export type ManualFractalLayerIndex = -2 | -1 | 0 | 1 | 2;
+
+export interface ManualFractalHex {
+  q: number;
+  r: number;
+  colorIndex: number;
+}
+
+export interface ManualLayerParseResult {
+  cells: ManualFractalHex[];
+  errors: string[];
+}
+
 export const DEFAULT_FIELD_PARAMS: FieldParams = {
   seed: 42,
   K: 6,
@@ -72,6 +85,38 @@ export const DEFAULT_FRACTAL_PARAMS: FractalParams = {
   alphaGain: 1.6,
   alphaCutoff: 0.01,
   overlayStrength: 0.75,
+};
+
+export const DEFAULT_MANUAL_LAYER_TEXT: Record<ManualFractalLayerIndex, string> = {
+  '-2': [
+    '0 0 5',
+    '1 -1 4',
+    '-1 1 4',
+  ].join('\n'),
+  '-1': [
+    '0 0 2',
+    '1 0 3',
+    '0 1 1',
+    '-1 1 0',
+  ].join('\n'),
+  '0': [
+    '0 0 0',
+    '1 0 1',
+    '0 1 2',
+    '-1 1 3',
+    '-1 0 4',
+    '0 -1 5',
+  ].join('\n'),
+  '1': [
+    '0 0 1',
+    '1 0 2',
+    '0 1 2',
+    '-1 1 3',
+  ].join('\n'),
+  '2': [
+    '0 0 4',
+    '1 0 5',
+  ].join('\n'),
 };
 
 function clamp01(value: number): number {
@@ -379,5 +424,52 @@ export function evalCellFractalInfluence(
     instability,
     totalWeight,
     contributions,
+  };
+}
+
+export function parseManualLayerDefinition(input: string, colorCount: number): ManualLayerParseResult {
+  const errors: string[] = [];
+  const entries = new Map<string, ManualFractalHex>();
+  const safeColorCount = Math.max(1, Math.floor(colorCount));
+
+  const lines = input
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  for (let idx = 0; idx < lines.length; idx += 1) {
+    const lineNumber = idx + 1;
+    const parts = lines[idx].split(/[\s,;]+/).filter((part) => part.length > 0);
+    if (parts.length !== 3) {
+      errors.push(`Line ${lineNumber}: expected "q r color"`);
+      continue;
+    }
+
+    const q = Number(parts[0]);
+    const r = Number(parts[1]);
+    const colorIndex = Number(parts[2]);
+    if (!Number.isFinite(q) || !Number.isFinite(r) || !Number.isFinite(colorIndex)) {
+      errors.push(`Line ${lineNumber}: values must be numeric`);
+      continue;
+    }
+
+    const qInt = Math.trunc(q);
+    const rInt = Math.trunc(r);
+    const colorInt = Math.trunc(colorIndex);
+    if (colorInt < 0 || colorInt >= safeColorCount) {
+      errors.push(`Line ${lineNumber}: color must be within [0..${safeColorCount - 1}]`);
+      continue;
+    }
+
+    entries.set(`${qInt},${rInt}`, {
+      q: qInt,
+      r: rInt,
+      colorIndex: colorInt,
+    });
+  }
+
+  return {
+    cells: Array.from(entries.values()),
+    errors,
   };
 }

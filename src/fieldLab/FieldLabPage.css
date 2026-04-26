@@ -179,6 +179,35 @@ textarea {
   border-color: rgba(100, 160, 255, 0.5);
 }
 
+.field-lab__textarea {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  background: rgba(5, 9, 18, 0.9);
+  color: #c8d4e8;
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.field-lab__textarea:focus {
+  outline: none;
+  border-color: rgba(100, 160, 255, 0.5);
+}
+
+.field-lab__hint {
+  margin: 6px 0 0;
+  color: rgba(200, 212, 232, 0.5);
+  font-size: 11px;
+}
+
+.field-lab__error {
+  margin: 4px 0 0;
+  color: rgba(255, 140, 140, 0.95);
+  font-size: 11px;
+}
+
 .field-lab__toggle-row {
   display: flex;
   align-items: center;
