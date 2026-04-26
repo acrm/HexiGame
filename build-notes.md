@@ -691,3 +691,5 @@
 - 0.1.0-y26w17b17 — Fix TUI borders nesting and native borders layer
 
 - 0.1.0-y26w17b18 — Add IndexedDB mirrored persistence bootstrap and audio resume hardening
+
+- 0.1.0-y26w17b19 — Fix session restore without guest flag and auto-persist start marker

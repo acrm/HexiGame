@@ -6,6 +6,7 @@
 - [x] Добавлены тесты поведения камеры: freeze во время drag/auto-move и пошаговое центрирование после остановки
 - [x] Старт внедрения hard persistence: добавлен IndexedDB mirror-слой с dual-write для session/audio ключей и fallback через localStorage
 - [x] Bootstrap обновлён: перед инициализацией игры выполняется hydration localStorage из IndexedDB; добавлен audio cleanup на unmount для HMR/reload
+- [x] Восстановление сессии отвязано от legacy-флага `hexigame.guest.started`: resume определяется по валидному persisted snapshot; флаг теперь проставляется автоматически при сохранении
 
 ## Recently Completed (2026-04-21)
 

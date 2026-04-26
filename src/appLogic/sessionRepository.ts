@@ -273,6 +273,8 @@ export function saveSession(
     const value = JSON.stringify(session);
     storage.setItem(SESSION_KEY, value);
     mirrorStorageSetItem(SESSION_KEY, value);
+    storage.setItem(GUEST_STARTED_KEY, '1');
+    mirrorStorageSetItem(GUEST_STARTED_KEY, '1');
   } catch {
     // ignore write errors
   }
@@ -286,6 +288,8 @@ export function saveSessionSnapshot(
     const value = JSON.stringify(session);
     storage.setItem(SESSION_KEY, value);
     mirrorStorageSetItem(SESSION_KEY, value);
+    storage.setItem(GUEST_STARTED_KEY, '1');
+    mirrorStorageSetItem(GUEST_STARTED_KEY, '1');
   } catch {
     // ignore write errors
   }
@@ -313,10 +317,6 @@ export function clearSession(storage: StorageRemover & StorageReader = localStor
 }
 
 export function canResumeSession(storage: StorageReader = localStorage): boolean {
-  if (!storage.getItem(GUEST_STARTED_KEY)) {
-    return false;
-  }
-
   const session = loadSession(storage);
   return !!session?.gameState;
 }
@@ -326,8 +326,7 @@ export function restoreGameState(
   storage: StorageReader = localStorage,
 ): GameState {
   const session = loadSession(storage);
-  const isGuestStarted = !!storage.getItem(GUEST_STARTED_KEY);
-  if (!isGuestStarted || !session?.gameState) {
+  if (!session?.gameState) {
     return fallbackState;
   }
   return deserializeState(session.gameState, fallbackState);

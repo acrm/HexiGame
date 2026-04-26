@@ -100,4 +100,18 @@ describe('appShellReducer', () => {
     expect(state.currentSessionId).toBe('session_latest');
     expect(state.currentSessionStartTick).toBe(24);
   });
+
+  it('restores resume availability even without guest-started flag', () => {
+    const storage = createStorage({
+      'hexigame.session.state': JSON.stringify({ gameState: { cells: [], cursor: { q: 0, r: 0 } } }),
+      'hexigame.session.active.id': 'session_no_flag',
+      'hexigame.session.active.startTick': '42',
+    });
+
+    const state = createInitialAppShellState(storage);
+
+    expect(state.resumeAvailable).toBe(true);
+    expect(state.currentSessionId).toBe('session_no_flag');
+    expect(state.currentSessionStartTick).toBe(42);
+  });
 });
