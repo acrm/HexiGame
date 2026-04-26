@@ -160,20 +160,23 @@ export const GuestStart: React.FC<GuestStartProps> = ({
               <div className="gs-tui-border-fill"> ═══════════════════════════════════════════════════════════════════════════════</div>
               <div className="gs-tui-border-right">═══╗</div>
             </div>
-            <div className="gs-language-bar">
-              
-              <select
-                id="guest-start-language"
-                className="gs-lang-select"
-                value={language}
-                onChange={(e) => {
-                  onUiClick();
-                  onLanguageChange(e.target.value as Lang);
-                }}
-              >
-                <option value="en">{t('language.en')}</option>
-                <option value="ru">{t('language.ru')}</option>
-              </select>
+            <div className="gs-tui-border-row gs-language-bar">
+              <span className="gs-tui-border-left">║ </span>
+              <div className="gs-tui-border-fill" style={{ padding: "0 1ch" }}>
+                <select
+                  id="guest-start-language"
+                  className="gs-lang-select"
+                  value={language}
+                  onChange={(e) => {
+                    onUiClick();
+                    onLanguageChange(e.target.value as Lang);
+                  }}
+                >
+                  <option value="en">{t('language.en')}</option>
+                  <option value="ru">{t('language.ru')}</option>
+                </select>
+              </div>
+              <span className="gs-tui-border-right">║</span>
             </div>
             <div className="gs-tui-border-row">
               <div className="gs-tui-border-left">╚═══</div>
@@ -215,38 +218,42 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 
               {!sessionsCollapsed && (
                 <div className="gs-session-body">
-                  <div className="gs-session-actions">
-                    <button
-                      type="button"
-                      className="gs-nav-btn"
-                      onClick={() => {
-                        onUiClick();
-                        onNewSession();
-                      }}
-                    >
-                      <span>NEW</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="gs-nav-btn gs-nav-btn--secondary"
-                      onClick={() => {
-                        onUiClick();
-                        importFileRef.current?.click();
-                      }}
-                    >
-                      <span>LOAD</span>
-                    </button>
-                    <input
-                      ref={importFileRef}
-                      type="file"
-                      accept="application/json"
-                      style={{ display: 'none' }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) onImportSession(file);
-                        e.target.value = '';
-                      }}
-                    />
+                  <div className="gs-tui-border-row gs-session-actions">
+                    <span className="gs-tui-border-left">║ </span>
+                    <div className="gs-tui-border-fill" style={{ display: 'flex', gap: '2ch', paddingLeft: '1ch' }}>
+                      <button
+                        type="button"
+                        className="gs-nav-btn"
+                        onClick={() => {
+                          onUiClick();
+                          onNewSession();
+                        }}
+                      >
+                        [ NEW ]
+                      </button>
+                      <button
+                        type="button"
+                        className="gs-nav-btn gs-nav-btn--secondary"
+                        onClick={() => {
+                          onUiClick();
+                          importFileRef.current?.click();
+                        }}
+                      >
+                        [ LOAD ]
+                      </button>
+                      <input
+                        ref={importFileRef}
+                        type="file"
+                        accept="application/json"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) onImportSession(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </div>
+                    <span className="gs-tui-border-right">║</span>
                   </div>
 
                   {sortedSessions.length === 0 && (
@@ -265,7 +272,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                         return (
                           <div key={record.id} className={`gs-session-card ${currentSessionId === record.id ? 'gs-session-card--active' : ''}`.trim()}>
                             <div className="gs-session-row">
-                              <div className="gs-session-line gs-session-line--top">
+                              <div className="gs-tui-border-row gs-session-line gs-session-line--top"><span className="gs-tui-border-left">║ </span><div className="gs-tui-border-fill" style={{display: "flex", flex: "1"}}>
                                 <span className="gs-session-name">{displayName}</span>
                                 <button
                                   type="button"
@@ -276,8 +283,8 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                 >
                                   {isExpanded ? '⏶' : '⏷'}
                                 </button>
-                              </div>
-                              <div className="gs-session-line gs-session-line--bottom">
+                              </div><span className="gs-tui-border-right">║</span></div>
+                              <div className="gs-tui-border-row gs-session-line gs-session-line--bottom"><span className="gs-tui-border-left">║ </span><div className="gs-tui-border-fill" style={{display: "flex", flex: "1", paddingLeft: "1ch", justifyContent: "space-between"}}>
                                 <span className="gs-session-date-inline">{lastActionLabel}</span>
                                 <button
                                   type="button"
@@ -290,7 +297,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                 >
                                   <span className="gs-symbol">RUN</span>
                                 </button>
-                              </div>
+                              </div><span className="gs-tui-border-right">║</span></div>
                             </div>
 
                             {isExpanded && (

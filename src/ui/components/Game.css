@@ -1062,35 +1062,16 @@ html, body {
   position: relative;
   padding: 0;
 }
-.gs-session-body::before, .gs-session-body::after {
-  content: '║';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  color: #AAAAAA;
-  display: flex;
-  align-items: stretch;
-  flex-direction: column;
-  overflow: hidden;
-}
-.gs-session-body::before { left: 0; }
+
 .gs-session-body::after { right: 0; }
 
-.gs-language-bar::before, .gs-language-bar::after {
-  content: '║';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  color: #AAAAAA;
-  display: flex;
-  align-items: center;
-}
-.gs-language-bar::before { left: 0; }
+
 .gs-language-bar::after { right: 0; }
 
 /* Global reset for TUI elements */
 .gs-guest-start-container button,
 .gs-guest-start-container select,
+.gs-guest-start-container input,
 .gs-tab-bar button {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -1102,23 +1083,49 @@ html, body {
   font-size: inherit !important;
   outline: none !important;
   box-shadow: none !important;
-  padding: 0 1ch !important;
+  padding: 0 !important;
   margin: 0 !important;
   cursor: pointer !important;
   border-radius: 0 !important;
 }
 
-.gs-guest-start-container select option {
-  background: #000;
-  color: #AAA;
+.gs-guest-start-container input:focus,
+.gs-guest-start-container select:focus,
+.gs-guest-start-container button:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
-/* Fix vertical gap tearing */
-.gs-tui-vertical-border {
-  font-size: inherit !important;
-  line-height: 1 !important; /* Force no gap */
-  letter-spacing: 0 !important;
-}
 .gs-tui-border-row {
-  line-height: normal !important;
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  align-items: stretch !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+.gs-tui-border-row > span,
+.gs-tui-border-row > div {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.gs-tui-border-fill {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  white-space: pre !important; 
+  overflow: hidden !important;
+  font-family: monospace !important;
+}
+
+.gs-tui-border-left, .gs-tui-border-right {
+  flex: 0 0 auto !important;
+  white-space: pre !important;    
+  font-family: monospace !important;
+  line-height: 1 !important;
+  display: inline-block !important; /* To avoid flex stretch vertical tearing */
+  vertical-align: middle;
 }
