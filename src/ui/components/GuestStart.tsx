@@ -136,7 +136,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 onPlayLatestSession();
               }}
             >
-              <span className="gs-symbol">PLAY</span>
+              <span className="gs-symbol">Run latest</span>
             </button>
             <button
               type="button"
@@ -153,7 +153,13 @@ export const GuestStart: React.FC<GuestStartProps> = ({
         </div>
 
         <div className="gs-main-panels">
-          <div className="gs-language-panel gs-tui-frame">
+          <div className="gs-language-panel">
+            <div className="gs-tui-border-row">
+              <div className="gs-tui-border-left">╔═══ </div>
+              <div className="gs-tui-border-title" style={{color: '#55FFFF', fontWeight: 'bold'}}>Language</div>
+              <div className="gs-tui-border-fill"> ═══════════════════════════════════════════════════════════════════════════════</div>
+              <div className="gs-tui-border-right">═══╗</div>
+            </div>
             <div className="gs-language-bar">
               <label className="gs-language-label" htmlFor="guest-start-language">
                 {t('settings.language')}
@@ -171,18 +177,26 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 <option value="ru">{t('language.ru')}</option>
               </select>
             </div>
+            <div className="gs-tui-border-row">
+              <div className="gs-tui-border-left">╠═══</div>
+              <div className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</div>
+              <div className="gs-tui-border-right">═══╣</div>
+            </div>
           </div>
 
           <div className="gs-sessions-panel">
-            <div className="gs-sessions-section gs-tui-frame">
+            <div className="gs-sessions-section">
               <div className="gs-sessions-header">
                 <button
                   type="button"
-                  className="gs-section-toggle"
+                  className="gs-section-toggle gs-tui-border-row"
                   onClick={() => setSessionsCollapsed((value) => !value)}
                 >
+                  <span className="gs-tui-border-left">╠══ </span>
                   <span className="gs-panel-toggle-icon">{sessionsCollapsed ? '⏷' : '⏶'}</span>
-                  <span className="gs-panel-title">{t('sessions.title')}</span>
+                  <span className="gs-panel-title"> {t('sessions.title')} </span>
+                  <span className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</span>
+                  <span className="gs-tui-border-right">══╣</span>
                 </button>
               </div>
 
@@ -349,6 +363,11 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                   )}
                 </div>
               )}
+              <div className="gs-tui-border-row">
+                <div className="gs-tui-border-left">╚═══</div>
+                <div className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</div>
+                <div className="gs-tui-border-right">═══╝</div>
+              </div>
             </div>
           </div>
         </div>

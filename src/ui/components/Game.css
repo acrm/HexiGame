@@ -475,8 +475,8 @@ html, body {
 .gs-main-panels {
   display: flex;
   flex-direction: column;
-  gap: 1ch;
-  padding: 0 1ch 1ch;
+  gap: 0;
+  padding: 0;
   min-height: 0;
   flex: 1;
   overflow: hidden;
@@ -488,7 +488,8 @@ html, body {
   column-gap: 1ch;
   align-items: stretch;
   height: auto;
-  background: #000000;
+  background: #55FFFF;
+  color: #000000;
   padding: 1ch;
   flex-shrink: 0;
 }
@@ -503,7 +504,7 @@ html, body {
   display: block;
   padding: 0;
   background: transparent;
-  color: #55FFFF;
+  color: #000000;
   font-weight: 700;
   flex: 1;
   overflow: hidden;
@@ -799,17 +800,11 @@ html, body {
   color: #555555;
 }
 
-.gs-session-card--active {
-  background: #000000;
-}
+.gs-session-card--active {}
 
-.gs-session-card--active::before {
-  color: #55FFFF;
-}
 
-.gs-session-card--active::after {
-  color: #55FFFF;
-}
+
+
 
 .gs-session-row {
   position: relative;
@@ -857,10 +852,7 @@ html, body {
   color: #55FFFF;
 }
 
-.gs-session-card--active .gs-session-row {
-  background: #AAAAAA;
-  color: #000000;
-}
+
 
 .gs-expander-btn {
   width: auto;
@@ -1129,14 +1121,21 @@ html, body {
   white-space: nowrap;
 }
 
-.gs-session-card--active .gs-session-line::before,
-.gs-session-card--active .gs-session-line::after,
-.gs-session-card--active .gs-session-card-actions::before,
-.gs-session-card--active .gs-session-card-actions::after,
-.gs-session-card--active .gs-session-meta-grid span::before,
-.gs-session-card--active .gs-session-meta-grid span::after,
-.gs-session-card--active .gs-rename-inline::before,
-.gs-session-card--active .gs-rename-inline::after {
-  color: #000000;
-}
 
+.gs-tui-border-row {
+  display: flex;
+  width: 100%;
+  color: #AAAAAA;
+  align-items: center;
+  font-weight: normal;
+  padding: 0;
+  box-sizing: border-box;
+}
+.gs-tui-border-row.gs-section-toggle {
+  color: #55FFFF;
+  padding: 0;
+  cursor: pointer;
+}
+.gs-tui-border-left { flex: 0 0 auto; white-space: pre; }
+.gs-tui-border-fill { flex: 1 1 0; overflow: hidden; white-space: pre; }
+.gs-tui-border-right { flex: 0 0 auto; white-space: pre; }
