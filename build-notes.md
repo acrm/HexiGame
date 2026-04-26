@@ -703,3 +703,5 @@
 - 0.1.0-y26w17b23 — TUI borders and active states styling
 
 - 0.1.0-y26w17b24 — TUI separated panels, single separators, gray theme
+
+- 0.1.0-y26w17b25 — TUI fix border gaps, restore button brackets, swap expander

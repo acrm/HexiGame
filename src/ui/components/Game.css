@@ -647,8 +647,7 @@ html, body {
   gap: 0;
   padding: 0;
   background: transparent;
-  border-left: 3px double #AAAAAA;
-  border-right: 3px double #AAAAAA;
+  
   box-sizing: border-box;
 }
 
@@ -1057,3 +1056,34 @@ html, body {
 .gs-tui-border-left { flex: 0 0 auto; white-space: pre; }
 .gs-tui-border-fill { flex: 1 1 0; overflow: hidden; white-space: pre; }
 .gs-tui-border-right { flex: 0 0 auto; white-space: pre; }
+
+
+.gs-session-body {
+  position: relative;
+  padding: 0;
+}
+.gs-session-body::before, .gs-session-body::after {
+  content: '║';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  color: #AAAAAA;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  overflow: hidden;
+}
+.gs-session-body::before { left: 0; }
+.gs-session-body::after { right: 0; }
+
+.gs-language-bar::before, .gs-language-bar::after {
+  content: '║';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  color: #AAAAAA;
+  display: flex;
+  align-items: center;
+}
+.gs-language-bar::before { left: 0; }
+.gs-language-bar::after { right: 0; }

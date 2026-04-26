@@ -193,13 +193,22 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                   onClick={() => setSessionsCollapsed((value) => !value)}
                 >
                   <span className="gs-tui-border-left">╔══ </span>
-                  <span className="gs-panel-title"> {t('sessions.title')} </span>
+                  <span className="gs-panel-title" style={{ paddingRight: '1ch' }}>{t('sessions.title')}</span>
                   <span className="gs-panel-toggle-icon">{sessionsCollapsed ? '⏷' : '⏶'}</span>
-                  {sessionsCollapsed && sortedSessions.length > 0 && <span className="gs-panel-title"> [ {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)} ] </span>}
                   <span className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</span>
                   <span className="gs-tui-border-right">══╗</span>
                 </button>
               </div>
+
+              {sessionsCollapsed && sortedSessions.length > 0 && (
+                <div className="gs-session-body">
+                  <div className="gs-tui-border-row" style={{ height: '3ch' }}>
+                    <span className="gs-tui-border-left">║ </span>
+                    <span className="gs-tui-border-fill" style={{ display: 'flex', alignItems: 'center' }}>[ {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)} ]</span>
+                    <span className="gs-tui-border-right"> ║</span>
+                  </div>
+                </div>
+              )}
 
               {!sessionsCollapsed && (
                 <div className="gs-session-body">
@@ -254,6 +263,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                           <div key={record.id} className={`gs-session-card ${currentSessionId === record.id ? 'gs-session-card--active' : ''}`.trim()}>
                             <div className="gs-session-row">
                               <div className="gs-session-line gs-session-line--top">
+                                <span className="gs-session-name">{displayName}</span>
                                 <button
                                   type="button"
                                   className="gs-expander-btn"
@@ -263,7 +273,6 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                 >
                                   {isExpanded ? '⏶' : '⏷'}
                                 </button>
-                                <span className="gs-session-name">{displayName}</span>
                               </div>
                               <div className="gs-session-line gs-session-line--bottom">
                                 <span className="gs-session-date-inline">{lastActionLabel}</span>
