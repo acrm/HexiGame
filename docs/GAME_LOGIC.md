@@ -235,8 +235,10 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - Language switching is rendered as a dedicated selector row on the start screen (search bar is not shown).
 - Language is persisted in `hexigame.lang` (localStorage) and propagated reactively via a subscriber set in `i18n.ts`; all UI components re-render without a page reload.
 - Session lifecycle contract: a game session starts only after the player acts on the start screen (Connect or Start new), persists continuously on every game-state update via `hexigame.session.state` and `hexigame.session.active.*`, survives page reload, and can be detached from gameplay via **Disconnect** (in in-game Settings) without clearing persisted state.
+- Session persistence reliability contract: session keys are dual-written (localStorage + IndexedDB mirror). At bootstrap, localStorage is hydrated from IndexedDB before gameplay initialization, so progress survives dev-server restarts/HMR/reload even if localStorage became stale.
 - Session history switch contract: pressing **Continue** in history first persists the currently active session snapshot, then loads the selected session snapshot, then connects into that selected saved state.
 - Audio contract: background music and UI sounds use the same controller lifecycle on both start screen and gameplay; transitioning between these UI states does not pause music unless music is disabled or the document becomes hidden.
+- Audio resume contract: current track/time are persisted continuously and mirrored to IndexedDB. On restore, the same track and timestamp are resumed; if browser autoplay blocks playback, resume occurs automatically after the first user gesture.
 - In-game Settings action model is context-dependent:
   - when opened during active gameplay, **Disconnect** is shown instead of **Reset Session**;
   - when opened from the start screen, **Disconnect** is hidden.

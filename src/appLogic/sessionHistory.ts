@@ -13,6 +13,7 @@ export interface StorageRemover {
 export type StorageLike = StorageReader & StorageWriter;
 
 import { generateSessionCodename, type SessionNameLanguage } from './sessionNaming';
+import { mirrorStorageRemoveItem, mirrorStorageSetItem } from './persistenceMirror';
 
 export const SESSION_HISTORY_KEY = 'hexigame.session.history';
 export const TRACK_SESSION_HISTORY_KEY = 'hexigame.trackSessionHistory';
@@ -101,7 +102,9 @@ function parseSessionHistory(raw: string | null): SessionHistoryRecord[] {
 }
 
 function persistSessionHistory(storage: StorageWriter, history: SessionHistoryRecord[]): void {
-  storage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
+  const value = JSON.stringify(history);
+  storage.setItem(SESSION_HISTORY_KEY, value);
+  mirrorStorageSetItem(SESSION_HISTORY_KEY, value);
 }
 
 function clampSessionHistory(history: SessionHistoryRecord[], maxRecords: number): SessionHistoryRecord[] {
@@ -133,17 +136,24 @@ export function loadActiveSessionMeta(storage: StorageReader): ActiveSessionMeta
 }
 
 export function saveActiveSessionMeta(storage: StorageWriter, session: ActiveSessionMeta): void {
+  const startTick = String(Math.max(0, Math.floor(session.startTick)));
   storage.setItem(ACTIVE_SESSION_ID_KEY, session.id);
-  storage.setItem(ACTIVE_SESSION_START_TICK_KEY, String(Math.max(0, Math.floor(session.startTick))));
+  mirrorStorageSetItem(ACTIVE_SESSION_ID_KEY, session.id);
+  storage.setItem(ACTIVE_SESSION_START_TICK_KEY, startTick);
+  mirrorStorageSetItem(ACTIVE_SESSION_START_TICK_KEY, startTick);
 }
 
 export function clearActiveSessionMeta(storage: StorageRemover): void {
   storage.removeItem(ACTIVE_SESSION_ID_KEY);
+  mirrorStorageRemoveItem(ACTIVE_SESSION_ID_KEY);
   storage.removeItem(ACTIVE_SESSION_START_TICK_KEY);
+  mirrorStorageRemoveItem(ACTIVE_SESSION_START_TICK_KEY);
 }
 
 export function saveTrackSessionHistoryPreference(storage: StorageWriter, enabled: boolean): void {
-  storage.setItem(TRACK_SESSION_HISTORY_KEY, String(enabled));
+  const value = String(enabled);
+  storage.setItem(TRACK_SESSION_HISTORY_KEY, value);
+  mirrorStorageSetItem(TRACK_SESSION_HISTORY_KEY, value);
 }
 
 export function addSessionToHistory(

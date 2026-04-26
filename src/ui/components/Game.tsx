@@ -35,10 +35,12 @@ import {
   deleteSessionById,
   deleteSessionLog,
   saveSessionById,
+  saveSessionSnapshot,
   loadSessionById,
   loadSessionLog,
   saveSessionLog,
   initSessionLog,
+  persistGuestStartedFlag,
   type SessionLog,
 } from '../../appLogic/sessionRepository';
 import {
@@ -562,10 +564,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     setLanguage(lang);
   };
 
-  const persistGuestStartFlag = () => {
-    localStorage.setItem('hexigame.guest.started', '1');
-  };
-
   const handleDisconnect = () => {
     if (currentSessionId) {
       saveSessionById(currentSessionId, gameState);
@@ -594,8 +592,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     const saved = loadSessionById(sessionId, localStorage);
     if (!saved?.gameState) return;
 
-    localStorage.setItem('hexigame.session.state', JSON.stringify(saved));
-    persistGuestStartFlag();
+    saveSessionSnapshot(saved, localStorage);
+    persistGuestStartedFlag(localStorage);
     reloadSessionFromStorage();
 
     dispatchApp({ type: 'GUEST_CONTINUED' });

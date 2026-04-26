@@ -689,3 +689,5 @@
 - 0.1.0-y26w17b16 — camera two-phase follow with post-move focus recenter
 
 - 0.1.0-y26w17b17 — Fix TUI borders nesting and native borders layer
+
+- 0.1.0-y26w17b18 — Add IndexedDB mirrored persistence bootstrap and audio resume hardening

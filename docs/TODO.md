@@ -4,6 +4,8 @@
 
 - [x] Камера переведена на двухфазный режим: при движении черепашки остаётся статичной, после остановки догоняет `focus` по 1 клетке за тик
 - [x] Добавлены тесты поведения камеры: freeze во время drag/auto-move и пошаговое центрирование после остановки
+- [x] Старт внедрения hard persistence: добавлен IndexedDB mirror-слой с dual-write для session/audio ключей и fallback через localStorage
+- [x] Bootstrap обновлён: перед инициализацией игры выполняется hydration localStorage из IndexedDB; добавлен audio cleanup на unmount для HMR/reload
 
 ## Recently Completed (2026-04-21)
 

@@ -32,6 +32,11 @@ export function useGameAudio(options: UseGameAudioOptions): UseGameAudioApi {
     // is loaded at the correct volume, not the controller's hardcoded default.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     audioController.init(musicVolume, soundVolume);
+
+    return () => {
+      // Keep current track position persisted across HMR remounts.
+      audioController.pauseMusic();
+    };
   }, []);
 
   useEffect(() => {

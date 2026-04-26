@@ -4,6 +4,7 @@ import Game from './ui/components/Game';
 import LoadingScreen from './ui/components/LoadingScreen';
 import { integration } from './appLogic/integration';
 import { audioController } from './appLogic/audioController';
+import { hydrateLocalStorageFromIndexedDb } from './appLogic/persistenceMirror';
 import '@fortawesome/fontawesome-free/css/all.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/700.css';
@@ -81,6 +82,9 @@ function Root() {
 		// Initialize platform integration and preload critical assets
 		(async () => {
 			try {
+				// Restore latest persisted snapshot into localStorage before app boot.
+				await hydrateLocalStorageFromIndexedDb(localStorage);
+
 				// Platform integration (SDK, language, etc.)
 				await integration.init();
 				

@@ -14,6 +14,7 @@ import { clearActiveSessionMeta } from './sessionHistory';
 import type { StorageReader, StorageRemover, StorageWriter, StorageLike } from './sessionHistory';
 import { getTaskDefinition } from '../tasks/taskLevels';
 import type { GameCommand } from './sessionReducer';
+import { mirrorStorageRemoveItem, mirrorStorageSetItem } from './persistenceMirror';
 
 // ─── Storage key ───────────────────────────────────────────────────────────────
 
@@ -269,7 +270,31 @@ export function saveSession(
 ): void {
   try {
     const session: SessionState = { gameState: serializeState(state), ui };
-    storage.setItem(SESSION_KEY, JSON.stringify(session));
+    const value = JSON.stringify(session);
+    storage.setItem(SESSION_KEY, value);
+    mirrorStorageSetItem(SESSION_KEY, value);
+  } catch {
+    // ignore write errors
+  }
+}
+
+export function saveSessionSnapshot(
+  session: SessionState,
+  storage: StorageWriter = localStorage,
+): void {
+  try {
+    const value = JSON.stringify(session);
+    storage.setItem(SESSION_KEY, value);
+    mirrorStorageSetItem(SESSION_KEY, value);
+  } catch {
+    // ignore write errors
+  }
+}
+
+export function persistGuestStartedFlag(storage: StorageWriter = localStorage): void {
+  try {
+    storage.setItem(GUEST_STARTED_KEY, '1');
+    mirrorStorageSetItem(GUEST_STARTED_KEY, '1');
   } catch {
     // ignore write errors
   }
@@ -278,9 +303,13 @@ export function saveSession(
 export function clearSession(storage: StorageRemover & StorageReader = localStorage): void {
   clearActiveSessionMeta(storage);
   storage.removeItem(SESSION_KEY);
+  mirrorStorageRemoveItem(SESSION_KEY);
   storage.removeItem(GUEST_STARTED_KEY);
+  mirrorStorageRemoveItem(GUEST_STARTED_KEY);
   storage.removeItem('hexigame.task.started');
+  mirrorStorageRemoveItem('hexigame.task.started');
   storage.removeItem('hexigame.tutorial.started');
+  mirrorStorageRemoveItem('hexigame.tutorial.started');
 }
 
 export function canResumeSession(storage: StorageReader = localStorage): boolean {
@@ -313,10 +342,13 @@ export function saveSessionById(
   storage: StorageWriter = localStorage,
 ): void {
   try {
+    const key = SESSION_BY_ID_PREFIX + sessionId;
+    const value = JSON.stringify({ gameState: serializeState(state) });
     storage.setItem(
-      SESSION_BY_ID_PREFIX + sessionId,
-      JSON.stringify({ gameState: serializeState(state) }),
+      key,
+      value,
     );
+    mirrorStorageSetItem(key, value);
   } catch {
     // ignore write errors
   }
@@ -349,7 +381,9 @@ export function deleteSessionById(
   sessionId: string,
   storage: StorageRemover = localStorage,
 ): void {
-  storage.removeItem(SESSION_BY_ID_PREFIX + sessionId);
+  const key = SESSION_BY_ID_PREFIX + sessionId;
+  storage.removeItem(key);
+  mirrorStorageRemoveItem(key);
 }
 
 // ─── Session action log ────────────────────────────────────────────────────────
@@ -395,7 +429,10 @@ export function saveSessionLog(
   storage: StorageWriter = localStorage,
 ): void {
   try {
-    storage.setItem(sessionLogKey(log.sessionId), JSON.stringify(log));
+    const key = sessionLogKey(log.sessionId);
+    const value = JSON.stringify(log);
+    storage.setItem(key, value);
+    mirrorStorageSetItem(key, value);
   } catch {
     // ignore write errors
   }
@@ -436,5 +473,7 @@ export function deleteSessionLog(
   sessionId: string,
   storage: StorageRemover = localStorage,
 ): void {
-  storage.removeItem(sessionLogKey(sessionId));
+  const key = sessionLogKey(sessionId);
+  storage.removeItem(key);
+  mirrorStorageRemoveItem(key);
 }

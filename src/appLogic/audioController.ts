@@ -1,5 +1,6 @@
 // Audio orchestration layer (manages state and persistence)
 import { audioDriver, type MusicTrackHandle } from '../audio/audioDriver';
+import { mirrorStorageSetItem } from './persistenceMirror';
 
 const MUSIC_STATE_KEY = 'hexigame.music.state';
 
@@ -50,6 +51,11 @@ class AudioController implements AudioControllerInterface {
   }
 
   init(initialMusicVolume?: number, initialSoundVolume?: number): void {
+    const restoredState = this.loadMusicState();
+    if (restoredState) {
+      this.playbackState = restoredState;
+    }
+
     // Apply initial volumes BEFORE loading the track so the first track
     // is created at the user-configured volume, not the hardcoded default.
     if (initialMusicVolume !== undefined) this.musicVolume = initialMusicVolume;
@@ -122,6 +128,13 @@ class AudioController implements AudioControllerInterface {
           trackIndex: this.playbackState.currentTrackIndex,
           time,
         })
+      );
+      mirrorStorageSetItem(
+        MUSIC_STATE_KEY,
+        JSON.stringify({
+          trackIndex: this.playbackState.currentTrackIndex,
+          time,
+        }),
       );
     } catch (err) {
       // Ignore storage errors
