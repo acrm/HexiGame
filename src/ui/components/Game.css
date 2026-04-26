@@ -715,7 +715,7 @@ html, body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1ch;
-  padding: 1ch;
+  padding: 0;
 }
 
 
@@ -738,7 +738,7 @@ html, body {
 .gs-session-card {
   display: flex;
   flex-direction: column;
-  gap: 1ch;
+  gap: 0;
   padding: 0;
   background: transparent;
   position: relative;
@@ -751,11 +751,8 @@ html, body {
 }
 
 .gs-session-card + .gs-session-card::before {
-  content: '────────────────────────────────────────────────────────────────────────────────────────────────────';
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  color: #AAAAAA;
+  content: '';
+  display: none;
 }
 
 .gs-session-card::after {
@@ -777,9 +774,13 @@ html, body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5ch;
-  padding: 0 1ch;
+  gap: 0;
+  padding: 0;
   color: #FFFFFF;
+}
+
+.gs-session-separator {
+  color: #AAAAAA;
 }
 
 .gs-session-line {
@@ -1100,11 +1101,13 @@ html, body {
 .gs-tui-border-row {
   display: flex !important;
   flex-direction: row !important;
+  flex-wrap: nowrap !important;
   width: 100% !important;
   align-items: stretch !important;
   margin: 0 !important;
   padding: 0 !important;
   line-height: 1 !important;
+  white-space: pre !important; 
 }
 
 .gs-tui-border-row > span,
@@ -1126,6 +1129,6 @@ html, body {
   white-space: pre !important;    
   font-family: monospace !important;
   line-height: 1 !important;
-  display: inline-block !important; /* To avoid flex stretch vertical tearing */
-  vertical-align: middle;
+  display: flex !important;
+  align-items: center !important;
 }

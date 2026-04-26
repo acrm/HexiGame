@@ -711,3 +711,5 @@
 - 0.1.0-y26w17b27 — TUI fix layout tearing and border sizes, add snapshot debug
 
 - 0.1.0-y26w17b28 — TUI fix native element stylings and layout bugs
+
+- 0.1.0-y26w17b29 — Fix TUI session borders and controls spacing
