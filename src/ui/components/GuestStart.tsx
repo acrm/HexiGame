@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, {  useMemo, useRef, useState , useEffect } from 'react';
 import { t, type Lang } from '../i18n';
 import { getSessionDisplayName, type SessionHistoryRecord } from '../../appLogic/sessionHistory';
 import version from '../../../version.json';
@@ -161,9 +161,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
               <div className="gs-tui-border-right">═══╗</div>
             </div>
             <div className="gs-language-bar">
-              <label className="gs-language-label" htmlFor="guest-start-language">
-                {t('settings.language')}
-              </label>
+              
               <select
                 id="guest-start-language"
                 className="gs-lang-select"
@@ -204,8 +202,13 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 <div className="gs-session-body">
                   <div className="gs-tui-border-row" style={{ height: '3ch' }}>
                     <span className="gs-tui-border-left">║ </span>
-                    <span className="gs-tui-border-fill" style={{ display: 'flex', alignItems: 'center' }}>[ {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)} ]</span>
-                    <span className="gs-tui-border-right"> ║</span>
+                    <span className="gs-tui-border-fill" style={{ display: 'flex', alignItems: 'center' }}>{sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)}</span>
+                    <span className="gs-tui-border-right">║</span>
+                  </div>
+                  <div className="gs-tui-border-row">
+                    <span className="gs-tui-border-left">╚═══</span>
+                    <span className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</span>
+                    <span className="gs-tui-border-right">═══╝</span>
                   </div>
                 </div>
               )}

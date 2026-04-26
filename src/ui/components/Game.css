@@ -1087,3 +1087,38 @@ html, body {
 }
 .gs-language-bar::before { left: 0; }
 .gs-language-bar::after { right: 0; }
+
+/* Global reset for TUI elements */
+.gs-guest-start-container button,
+.gs-guest-start-container select,
+.gs-tab-bar button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 1ch !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  border-radius: 0 !important;
+}
+
+.gs-guest-start-container select option {
+  background: #000;
+  color: #AAA;
+}
+
+/* Fix vertical gap tearing */
+.gs-tui-vertical-border {
+  font-size: inherit !important;
+  line-height: 1 !important; /* Force no gap */
+  letter-spacing: 0 !important;
+}
+.gs-tui-border-row {
+  line-height: normal !important;
+}

@@ -707,3 +707,5 @@
 - 0.1.0-y26w17b25 — TUI fix border gaps, restore button brackets, swap expander
 
 - 0.1.0-y26w17b26 — TUI fix layout tearing and border sizes
+
+- 0.1.0-y26w17b27 — TUI fix layout tearing and border sizes, add snapshot debug
