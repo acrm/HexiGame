@@ -72,8 +72,9 @@ describe('appShellReducer', () => {
 
     const state = createInitialAppShellState(storage);
 
-    expect(state.guestStarted).toBe(false);  // always false until user acts on start screen
-    expect(state.resumeAvailable).toBe(true); // session exists → Continue/Restart offered
+    expect(state.guestStarted).toBe(true);
+    expect(state.resumeAvailable).toBe(true);
+    expect(state.startupAnimationShown).toBe(true);
     expect(state.currentSessionId).toBe('session_abc');
     expect(state.currentSessionStartTick).toBe(128);
     expect(state.lastSessionSaveTick).toBe(128);
@@ -96,6 +97,7 @@ describe('appShellReducer', () => {
 
     const state = createInitialAppShellState(storage);
 
+    expect(state.guestStarted).toBe(true);
     expect(state.resumeAvailable).toBe(true);
     expect(state.currentSessionId).toBe('session_latest');
     expect(state.currentSessionStartTick).toBe(24);
@@ -110,6 +112,7 @@ describe('appShellReducer', () => {
 
     const state = createInitialAppShellState(storage);
 
+    expect(state.guestStarted).toBe(true);
     expect(state.resumeAvailable).toBe(true);
     expect(state.currentSessionId).toBe('session_no_flag');
     expect(state.currentSessionStartTick).toBe(42);

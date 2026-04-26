@@ -142,4 +142,14 @@ describe('audioController', () => {
     // First track must be loaded at the provided music volume, not the default 0.5
     expect(tracks[0].setVolume).toHaveBeenCalledWith(0.22);
   });
+
+  it('restores saved track position on init', async () => {
+    const { audioController, tracks, storage } = await loadAudioController();
+
+    storage.setItem('hexigame.music.state', JSON.stringify({ trackIndex: 1, time: 48.5 }));
+
+    audioController.init();
+
+    expect(tracks[0].seek).toHaveBeenCalledWith(48.5);
+  });
 });

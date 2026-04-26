@@ -7,8 +7,6 @@ import {
 } from './sessionHistory';
 import { canResumeSession } from './sessionRepository';
 
-const GUEST_STARTED_KEY = 'hexigame.guest.started';
-
 export type MobileTab = 'map' | 'lab' | 'hexipedia';
 export type InteractionMode = 'desktop' | 'mobile';
 
@@ -66,7 +64,7 @@ export function createInitialAppShellState(storage: StorageReader): AppShellStat
     mobileTab: 'map',
     isPaused: false,
     interactionMode: 'mobile',
-    guestStarted: false,
+    guestStarted: hasResumeAvailable,
     resumeAvailable: hasResumeAvailable,
     startupAnimationShown: hasResumeAvailable,
     isSettingsOpen: false,

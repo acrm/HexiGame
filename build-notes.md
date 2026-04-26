@@ -697,3 +697,5 @@
 - 0.1.0-y26w17b20 — Add VS Code task to trigger Vite reload without code changes
 
 - 0.1.0-y26w17b21 — Add debug-panel trigger for Vite reload
+
+- 0.1.0-y26w17b22 — Auto-resume gameplay on reload and defer audio seek until metadata

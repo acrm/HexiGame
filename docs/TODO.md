@@ -7,6 +7,8 @@
 - [x] Старт внедрения hard persistence: добавлен IndexedDB mirror-слой с dual-write для session/audio ключей и fallback через localStorage
 - [x] Bootstrap обновлён: перед инициализацией игры выполняется hydration localStorage из IndexedDB; добавлен audio cleanup на unmount для HMR/reload
 - [x] Восстановление сессии отвязано от legacy-флага `hexigame.guest.started`: resume определяется по валидному persisted snapshot; флаг теперь проставляется автоматически при сохранении
+- [x] Reload теперь автоматически возвращает в gameplay при наличии валидной сохранённой сессии, без возврата на стартовый экран
+- [x] Resume музыки усилен: `seek` откладывается до `loadedmetadata`, поэтому трек продолжается с сохранённого момента после reload
 
 ## Recently Completed (2026-04-21)
 

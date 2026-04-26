@@ -29,6 +29,7 @@ class MusicTrack implements MusicTrackHandle {
   private audio: HTMLAudioElement;
   private endedCallback: (() => void) | null = null;
   private timeUpdateCallback: ((time: number) => void) | null = null;
+  private pendingSeekTime: number | null = null;
 
   constructor(trackPath: string) {
     this.audio = new Audio(trackPath);
@@ -38,7 +39,10 @@ class MusicTrack implements MusicTrackHandle {
   }
 
   private handleMetadataLoaded = () => {
-    // Metadata loaded, safe to seek/play
+    if (this.pendingSeekTime === null) return;
+    const pendingSeekTime = this.pendingSeekTime;
+    this.pendingSeekTime = null;
+    this.seek(pendingSeekTime);
   };
 
   private handleEnded = () => {
@@ -58,9 +62,13 @@ class MusicTrack implements MusicTrackHandle {
   }
 
   seek(time: number): void {
-    if (isNaN(this.audio.duration)) return;
+    if (isNaN(this.audio.duration)) {
+      this.pendingSeekTime = Math.max(time, 0);
+      return;
+    }
     const safeTime = Math.min(Math.max(time, 0), Math.max(0, this.audio.duration - 0.25));
     this.audio.currentTime = safeTime;
+    this.pendingSeekTime = null;
   }
 
   getCurrentTime(): number {
@@ -90,6 +98,7 @@ class MusicTrack implements MusicTrackHandle {
     this.audio.removeEventListener('loadedmetadata', this.handleMetadataLoaded);
     this.endedCallback = null;
     this.timeUpdateCallback = null;
+    this.pendingSeekTime = null;
   }
 }
 
