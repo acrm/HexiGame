@@ -701,3 +701,5 @@
 - 0.1.0-y26w17b22 — Auto-resume gameplay on reload and defer audio seek until metadata
 
 - 0.1.0-y26w17b23 — TUI borders and active states styling
+
+- 0.1.0-y26w17b24 — TUI separated panels, single separators, gray theme

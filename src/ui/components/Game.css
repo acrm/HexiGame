@@ -457,7 +457,7 @@ html, body {
 .guest-start-content.hexipedia-style .settings-button,
 .guest-start-content.hexipedia-style .disconnect-button {
   font-size: 16px;
-  color: #FFFFFF;
+  color: #000000;
   border: none;
   background: transparent;
   height: auto;
@@ -488,7 +488,7 @@ html, body {
   column-gap: 1ch;
   align-items: stretch;
   height: auto;
-  background: #55FFFF;
+  background: #AAAAAA;
   color: #000000;
   padding: 1ch;
   flex-shrink: 0;
@@ -534,21 +534,11 @@ html, body {
   padding: 1ch;
 }
 
-.gs-language-bar::before,
-.gs-language-bar::after {
-  content: '│';
-  position: absolute;
-  top: 1ch;
-  color: #AAAAAA;
-}
 
-.gs-language-bar::before {
-  left: 0;
-}
 
-.gs-language-bar::after {
-  right: 0;
-}
+
+
+
 
 .gs-language-panel {
   flex-shrink: 0;
@@ -593,7 +583,7 @@ html, body {
   text-align: left;
   border: none;
   background: transparent;
-  color: #55FFFF;
+  color: #AAAAAA;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -601,24 +591,14 @@ html, body {
   font-weight: 700;
 }
 
-.gs-section-toggle::before,
-.gs-section-toggle::after {
-  content: '║';
-  position: absolute;
-  top: 1ch;
-  color: #AAAAAA;
-}
 
-.gs-section-toggle::before {
-  left: 0;
-}
 
-.gs-section-toggle::after {
-  right: 0;
-}
+
+
+
 
 .gs-panel-toggle-icon {
-  color: #55FFFF;
+  color: #AAAAAA;
   font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
@@ -658,15 +638,18 @@ html, body {
 }
 
 .gs-lang-select:focus {
-  color: #55FFFF;
+  color: #AAAAAA;
 }
 
 .gs-session-body {
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 0 0 1ch;
-  background: #000000;
+  padding: 0;
+  background: transparent;
+  border-left: 3px double #AAAAAA;
+  border-right: 3px double #AAAAAA;
+  box-sizing: border-box;
 }
 
 .gs-sessions-section.gs-tui-frame::before {
@@ -704,7 +687,7 @@ html, body {
 }
 
 .gs-nav-btn:hover {
-  color: #55FFFF;
+  color: #AAAAAA;
 }
 
 .gs-nav-btn--secondary {
@@ -714,7 +697,7 @@ html, body {
 }
 
 .gs-nav-btn--secondary:hover {
-  color: #55FFFF;
+  color: #AAAAAA;
 }
 
 .gs-history-list {
@@ -736,21 +719,11 @@ html, body {
   padding: 1ch;
 }
 
-.gs-session-actions::before,
-.gs-session-actions::after {
-  content: '║';
-  position: absolute;
-  top: 1ch;
-  color: #AAAAAA;
-}
 
-.gs-session-actions::before {
-  left: 0;
-}
 
-.gs-session-actions::after {
-  right: 0;
-}
+
+
+
 
 .gs-session-actions .gs-nav-btn {
   min-width: 0;
@@ -767,11 +740,10 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 1ch;
-  padding: 0 1ch;
-  background: #000000;
+  padding: 0;
+  background: transparent;
   position: relative;
-  border-left: none;
-  border-right: none;
+  border: none;
 }
 
 .gs-session-card::before {
@@ -780,11 +752,11 @@ html, body {
 }
 
 .gs-session-card + .gs-session-card::before {
-  content: '├────────────────────────────────────────────────────────────────────────────────────────────────────┤';
+  content: '────────────────────────────────────────────────────────────────────────────────────────────────────';
   display: block;
   overflow: hidden;
   white-space: nowrap;
-  color: #555555;
+  color: #AAAAAA;
 }
 
 .gs-session-card::after {
@@ -793,11 +765,7 @@ html, body {
 }
 
 .gs-session-card:last-child::after {
-  content: '└────────────────────────────────────────────────────────────────────────────────────────────────────┘';
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  color: #555555;
+  display: none;
 }
 
 .gs-session-card--active {}
@@ -824,21 +792,11 @@ html, body {
   padding-right: 2ch;
 }
 
-.gs-session-line::before,
-.gs-session-line::after {
-  content: '║';
-  position: absolute;
-  top: 0;
-  color: #55FFFF;
-}
 
-.gs-session-line::before {
-  left: 0;
-}
 
-.gs-session-line::after {
-  right: 0;
-}
+
+
+
 
 .gs-session-line--top {
   grid-template-columns: 3ch minmax(0, 1fr);
@@ -849,7 +807,7 @@ html, body {
 }
 
 .gs-session-card:hover .gs-session-row {
-  color: #55FFFF;
+  color: #AAAAAA;
 }
 
 
@@ -862,7 +820,7 @@ html, body {
   justify-content: center;
   background: transparent;
   border: none;
-  color: #55FFFF;
+  color: #AAAAAA;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -887,7 +845,7 @@ html, body {
 }
 
 .gs-session-date-inline {
-  color: #55FFFF;
+  color: #AAAAAA;
   text-align: left;
   min-width: 0;
   overflow: hidden;
@@ -911,21 +869,11 @@ html, body {
   padding: 0 2ch 0 2ch;
 }
 
-.gs-session-card-actions::before,
-.gs-session-card-actions::after {
-  content: '║';
-  position: absolute;
-  top: 0;
-  color: #55FFFF;
-}
 
-.gs-session-card-actions::before {
-  left: 0;
-}
 
-.gs-session-card-actions::after {
-  right: 0;
-}
+
+
+
 
 .gs-session-start-btn {
   margin-left: 0;
@@ -943,7 +891,7 @@ html, body {
 }
 
 .gs-session-start-btn:hover {
-  color: #55FFFF;
+  color: #AAAAAA;
 }
 
 .gs-session-card--active .gs-session-start-btn,
@@ -974,21 +922,11 @@ html, body {
   padding: 0 1ch 1ch 2ch;
 }
 
-.gs-session-expanded::before,
-.gs-session-expanded::after {
-  content: '║';
-  position: absolute;
-  top: 0;
-  color: #55FFFF;
-}
 
-.gs-session-expanded::before {
-  left: 0;
-}
 
-.gs-session-expanded::after {
-  right: 0;
-}
+
+
+
 
 .gs-session-meta-grid {
   display: grid;
@@ -1003,21 +941,11 @@ html, body {
   padding-right: 2ch;
 }
 
-.gs-session-meta-grid span::before,
-.gs-session-meta-grid span::after {
-  content: '║';
-  position: absolute;
-  top: 0;
-  color: #55FFFF;
-}
 
-.gs-session-meta-grid span::before {
-  left: 0;
-}
 
-.gs-session-meta-grid span::after {
-  right: 0;
-}
+
+
+
 
 .gs-icon-btn {
   background: transparent;
@@ -1038,7 +966,7 @@ html, body {
 }
 
 .gs-icon-btn:hover {
-  color: #55FFFF;
+  color: #AAAAAA;
 }
 
 .gs-rename-inline {
@@ -1050,21 +978,11 @@ html, body {
   padding: 0 2ch 0 2ch;
 }
 
-.gs-rename-inline::before,
-.gs-rename-inline::after {
-  content: '║';
-  position: absolute;
-  top: 0;
-  color: #55FFFF;
-}
 
-.gs-rename-inline::before {
-  left: 0;
-}
 
-.gs-rename-inline::after {
-  right: 0;
-}
+
+
+
 
 .gs-rename-input {
   min-width: 0;
@@ -1132,7 +1050,7 @@ html, body {
   box-sizing: border-box;
 }
 .gs-tui-border-row.gs-section-toggle {
-  color: #55FFFF;
+  color: #AAAAAA;
   padding: 0;
   cursor: pointer;
 }

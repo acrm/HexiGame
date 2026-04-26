@@ -178,9 +178,9 @@ export const GuestStart: React.FC<GuestStartProps> = ({
               </select>
             </div>
             <div className="gs-tui-border-row">
-              <div className="gs-tui-border-left">╠═══</div>
-              <div className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</div>
-              <div className="gs-tui-border-right">═══╣</div>
+              <div className="gs-tui-border-left">╚═══</div>
+                <div className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</div>
+                <div className="gs-tui-border-right">═══╝</div>
             </div>
           </div>
 
@@ -192,11 +192,12 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                   className="gs-section-toggle gs-tui-border-row"
                   onClick={() => setSessionsCollapsed((value) => !value)}
                 >
-                  <span className="gs-tui-border-left">╠══ </span>
-                  <span className="gs-panel-toggle-icon">{sessionsCollapsed ? '⏷' : '⏶'}</span>
+                  <span className="gs-tui-border-left">╔══ </span>
                   <span className="gs-panel-title"> {t('sessions.title')} </span>
+                  <span className="gs-panel-toggle-icon">{sessionsCollapsed ? '⏷' : '⏶'}</span>
+                  {sessionsCollapsed && sortedSessions.length > 0 && <span className="gs-panel-title"> [ {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)} ] </span>}
                   <span className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</span>
-                  <span className="gs-tui-border-right">══╣</span>
+                  <span className="gs-tui-border-right">══╗</span>
                 </button>
               </div>
 
