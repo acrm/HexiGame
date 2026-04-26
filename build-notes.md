@@ -705,3 +705,5 @@
 - 0.1.0-y26w17b24 — TUI separated panels, single separators, gray theme
 
 - 0.1.0-y26w17b25 — TUI fix border gaps, restore button brackets, swap expander
+
+- 0.1.0-y26w17b26 — TUI fix layout tearing and border sizes
