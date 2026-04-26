@@ -5,9 +5,12 @@ import LoadingScreen from './ui/components/LoadingScreen';
 import { integration } from './appLogic/integration';
 import { audioController } from './appLogic/audioController';
 import { hydrateLocalStorageFromIndexedDb } from './appLogic/persistenceMirror';
+import { DEV_RELOAD_MARKER } from './appLogic/devReloadMarker';
 import '@fortawesome/fontawesome-free/css/all.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/700.css';
+
+void DEV_RELOAD_MARKER;
 
 // PWA Service Worker Registration
 async function registerServiceWorker() {
