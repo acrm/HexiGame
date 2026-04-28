@@ -1,4 +1,5 @@
 import { CONFIG } from '../config';
+import { mirrorStorageSetItem } from '../appLogic/indexedDbMirror';
 
 export type Lang = 'en' | 'ru';
 
@@ -444,10 +445,12 @@ export function getLanguage(): Lang {
 export function setLanguage(lang: Lang) {
   if (current === lang) {
     localStorage.setItem(STORAGE_KEY, lang);
+    mirrorStorageSetItem(STORAGE_KEY, lang);
     return;
   }
   current = lang;
   localStorage.setItem(STORAGE_KEY, lang);
+  mirrorStorageSetItem(STORAGE_KEY, lang);
   listeners.forEach((listener) => listener(lang));
 }
 

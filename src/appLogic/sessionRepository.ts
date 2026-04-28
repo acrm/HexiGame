@@ -55,7 +55,6 @@ type SerializedGameState = Partial<{
   remainingSeconds: number;
   focus: { q: number; r: number };
   protagonist: { q: number; r: number };
-  flash: { type: 'success' | 'failure'; startedTick: number } | null;
   grid: SerializedCell[];
   inventoryGrid: SerializedCell[];
   activeField: 'world' | 'inventory';
@@ -67,6 +66,7 @@ type SerializedGameState = Partial<{
   isDragging: boolean;
   autoMoveTarget: { q: number; r: number } | null;
   autoMoveTicksRemaining: number;
+  autoMovePath: Array<{ q: number; r: number }>;
   autoFocusTarget: { q: number; r: number } | null;
   autoMoveTargetDir: number | null;
   worldViewCenter: { q: number; r: number };
@@ -120,7 +120,6 @@ function serializeState(state: GameState): SerializedGameState {
     remainingSeconds: state.remainingSeconds,
     focus: state.focus,
     protagonist: state.protagonist,
-    flash: state.flash,
     grid: serializeGrid(state.grid),
     inventoryGrid: serializeGrid(state.inventoryGrid),
     activeField: state.activeField,
@@ -136,6 +135,7 @@ function serializeState(state: GameState): SerializedGameState {
     isDragging: state.isDragging,
     autoMoveTarget: state.autoMoveTarget,
     autoMoveTicksRemaining: state.autoMoveTicksRemaining,
+    autoMovePath: state.autoMovePath,
     autoFocusTarget: state.autoFocusTarget,
     autoMoveTargetDir: state.autoMoveTargetDir,
     worldViewCenter: state.worldViewCenter,
@@ -203,7 +203,7 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
     remainingSeconds: s.remainingSeconds ?? fallback.remainingSeconds,
     focus: s.focus ?? fallback.focus,
     protagonist: s.protagonist ?? fallback.protagonist,
-    flash: s.flash ?? fallback.flash,
+    flash: null,
     grid,
     inventoryGrid,
     activeField: s.activeField ?? fallback.activeField,
@@ -219,6 +219,7 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
     isDragging: s.isDragging ?? fallback.isDragging,
     autoMoveTarget: s.autoMoveTarget ?? fallback.autoMoveTarget,
     autoMoveTicksRemaining: s.autoMoveTicksRemaining ?? fallback.autoMoveTicksRemaining,
+    autoMovePath: s.autoMovePath ?? fallback.autoMovePath,
     autoFocusTarget: s.autoFocusTarget ?? fallback.autoFocusTarget,
     autoMoveTargetDir: s.autoMoveTargetDir ?? fallback.autoMoveTargetDir,
     worldViewCenter: s.worldViewCenter ?? fallback.worldViewCenter,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   saveSession,
   restoreGameState,
+  loadSession,
 } from '../src/appLogic/sessionRepository';
 import { createInitialState, DefaultParams } from '../src/gameLogic';
 import { updateCells } from '../src/gameLogic/core/grid';
@@ -84,5 +85,38 @@ describe('sessionRepository — multi-layer persistence', () => {
 
     // Without guest started flag, restoreGameState returns fallback
     expect(restored.activeLayerIndex).toBe(fallback.activeLayerIndex);
+  });
+
+  it('saves and restores autoMovePath', () => {
+    const storage = createStorage({ 'hexigame.guest.started': '1' });
+    const path = [{ q: 1, r: 0 }, { q: 2, r: -1 }, { q: 3, r: -2 }];
+    const state = {
+      ...createInitialState(emptyParams, () => 0),
+      autoMovePath: path,
+    };
+
+    saveSession(state, undefined, storage);
+    const restored = restoreGameState(createInitialState(emptyParams, () => 0), storage);
+
+    expect(restored.autoMovePath).toEqual(path);
+  });
+
+  it('does not serialize flash; deserialization always returns flash: null', () => {
+    const storage = createStorage({ 'hexigame.guest.started': '1' });
+    const state = {
+      ...createInitialState(emptyParams, () => 0),
+      flash: { type: 'success' as const, startedTick: 42 },
+    };
+
+    saveSession(state, undefined, storage);
+
+    // The raw stored JSON should NOT contain flash
+    const session = loadSession(storage);
+    expect(session?.gameState).toBeDefined();
+    expect('flash' in (session!.gameState as object)).toBe(false);
+
+    // Restored state always has flash: null
+    const restored = restoreGameState(createInitialState(emptyParams, () => 0), storage);
+    expect(restored.flash).toBeNull();
   });
 });

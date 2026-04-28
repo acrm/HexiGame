@@ -691,3 +691,5 @@
 - 0.1.0-y26w18b1 — Persist activeLayerIndex and layerGrids in session serialization
 
 - 0.1.0-y26w18b2 — Persist activeLayerIndex and layerGrids in session serialization
+
+- 0.1.0-y26w18b3 — full state persistence refactor: autoMovePath, flash null, IndexedDB mirror, HexipediaShellState, wasInGameplay, mobileTab from session
