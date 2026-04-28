@@ -117,4 +117,18 @@ describe('appShellReducer', () => {
     expect(state.currentSessionId).toBe('session_no_flag');
     expect(state.currentSessionStartTick).toBe(42);
   });
+
+  it('restores mobileTab from saved session ui state', () => {
+    const storage = createStorage({
+      'hexigame.guest.started': '1',
+      'hexigame.session.state': JSON.stringify({
+        gameState: {},
+        ui: { mobileTab: 'lab' },
+      }),
+    });
+
+    const state = createInitialAppShellState(storage);
+
+    expect(state.mobileTab).toBe('lab');
+  });
 });

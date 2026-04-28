@@ -1,3 +1,5 @@
+import { mirrorStorageSetItem } from './indexedDbMirror';
+
 export interface StorageReader {
   getItem: (key: string) => string | null;
 }
@@ -165,15 +167,27 @@ export function userSettingsReducer(
 
 export function persistUserSettings(storage: StorageWriter, state: UserSettingsState): void {
   storage.setItem(SETTINGS_KEYS.soundEnabled, String(state.soundEnabled));
+  mirrorStorageSetItem(SETTINGS_KEYS.soundEnabled, String(state.soundEnabled));
   storage.setItem(SETTINGS_KEYS.soundVolume, String(state.soundVolume));
+  mirrorStorageSetItem(SETTINGS_KEYS.soundVolume, String(state.soundVolume));
   storage.setItem(SETTINGS_KEYS.musicEnabled, String(state.musicEnabled));
+  mirrorStorageSetItem(SETTINGS_KEYS.musicEnabled, String(state.musicEnabled));
   storage.setItem(SETTINGS_KEYS.musicVolume, String(state.musicVolume));
+  mirrorStorageSetItem(SETTINGS_KEYS.musicVolume, String(state.musicVolume));
   storage.setItem(SETTINGS_KEYS.showFPS, String(state.showFPS));
+  mirrorStorageSetItem(SETTINGS_KEYS.showFPS, String(state.showFPS));
   storage.setItem(SETTINGS_KEYS.isLeftHanded, String(state.isLeftHanded));
+  mirrorStorageSetItem(SETTINGS_KEYS.isLeftHanded, String(state.isLeftHanded));
   storage.setItem(SETTINGS_KEYS.selectedColorIndex, String(state.selectedColorIndex));
+  mirrorStorageSetItem(SETTINGS_KEYS.selectedColorIndex, String(state.selectedColorIndex));
   storage.setItem(SETTINGS_KEYS.autoBaseColorEnabled, String(state.autoBaseColorEnabled));
+  mirrorStorageSetItem(SETTINGS_KEYS.autoBaseColorEnabled, String(state.autoBaseColorEnabled));
   storage.setItem(SETTINGS_KEYS.showColorWidget, String(state.showColorWidget));
+  mirrorStorageSetItem(SETTINGS_KEYS.showColorWidget, String(state.showColorWidget));
   storage.setItem(SETTINGS_KEYS.showTaskWidget, String(state.showTaskWidget));
+  mirrorStorageSetItem(SETTINGS_KEYS.showTaskWidget, String(state.showTaskWidget));
   storage.setItem(SETTINGS_KEYS.showStructureWidget, String(state.showStructureWidget));
+  mirrorStorageSetItem(SETTINGS_KEYS.showStructureWidget, String(state.showStructureWidget));
   storage.setItem(SETTINGS_KEYS.showSessionWidget, String(state.showSessionWidget));
+  mirrorStorageSetItem(SETTINGS_KEYS.showSessionWidget, String(state.showSessionWidget));
 }

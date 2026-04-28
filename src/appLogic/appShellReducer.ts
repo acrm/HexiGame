@@ -5,10 +5,65 @@ import {
   type SessionHistoryRecord,
   type StorageReader,
 } from './sessionHistory';
-import { canResumeSession } from './sessionRepository';
+import { canResumeSession, loadSession } from './sessionRepository';
+import { mirrorStorageSetItem } from './indexedDbMirror';
 
+const GUEST_STARTED_KEY = 'hexigame.guest.started';
+const HEXIPEDIA_SHELL_KEY = 'hexigame.ui.hexipedia';
+const WAS_IN_GAMEPLAY_KEY = 'hexigame.shell.wasInGameplay';
 export type MobileTab = 'map' | 'lab' | 'hexipedia';
 export type InteractionMode = 'desktop' | 'mobile';
+export type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
+
+export interface HexipediaShellState {
+  enabledSections: HexipediaSectionId[];
+  pinnedSections: HexipediaSectionId[];
+  sectionOrder: HexipediaSectionId[];
+}
+
+const DEFAULT_HEXIPEDIA: HexipediaShellState = {
+  enabledSections: ['tasks'],
+  pinnedSections: ['tasks'],
+  sectionOrder: ['tasks', 'session', 'structures', 'colors'],
+};
+
+function loadHexipediaShell(storage: StorageReader): HexipediaShellState {
+  try {
+    const raw = storage.getItem(HEXIPEDIA_SHELL_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<HexipediaShellState>;
+      return {
+        enabledSections: parsed.enabledSections ?? DEFAULT_HEXIPEDIA.enabledSections,
+        pinnedSections: parsed.pinnedSections ?? DEFAULT_HEXIPEDIA.pinnedSections,
+        sectionOrder: parsed.sectionOrder ?? DEFAULT_HEXIPEDIA.sectionOrder,
+      };
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return { ...DEFAULT_HEXIPEDIA };
+}
+
+function filterEnabledToPinned(hexipedia: HexipediaShellState): HexipediaShellState {
+  return {
+    ...hexipedia,
+    enabledSections: hexipedia.enabledSections.filter(s =>
+      hexipedia.pinnedSections.includes(s)
+    ),
+  };
+}
+
+export function persistHexipediaShell(hexipedia: HexipediaShellState): void {
+  const value = JSON.stringify(hexipedia);
+  localStorage.setItem(HEXIPEDIA_SHELL_KEY, value);
+  mirrorStorageSetItem(HEXIPEDIA_SHELL_KEY, value);
+}
+
+export function persistWasInGameplay(wasInGameplay: boolean): void {
+  const value = String(wasInGameplay);
+  localStorage.setItem(WAS_IN_GAMEPLAY_KEY, value);
+  mirrorStorageSetItem(WAS_IN_GAMEPLAY_KEY, value);
+}
 
 export interface AppShellState {
   isInventory: boolean;
@@ -16,6 +71,7 @@ export interface AppShellState {
   isPaused: boolean;
   interactionMode: InteractionMode;
   guestStarted: boolean;
+  wasInGameplay: boolean;
   resumeAvailable: boolean;
   startupAnimationShown: boolean;
   isSettingsOpen: boolean;
@@ -25,6 +81,7 @@ export interface AppShellState {
   trackSessionHistory: boolean;
   currentSessionId: string | null;
   currentSessionStartTick: number;
+  hexipedia: HexipediaShellState;
 }
 
 export type AppShellCommand =
@@ -44,10 +101,16 @@ export type AppShellCommand =
   | { type: 'SET_SESSION_HISTORY'; history: SessionHistoryRecord[] }
   | { type: 'SESSION_STARTED'; sessionId: string; startTick: number }
   | { type: 'SESSION_SAVE_TICK'; tick: number }
-  | { type: 'CLEAR_ACTIVE_SESSION' };
+  | { type: 'CLEAR_ACTIVE_SESSION' }
+  | { type: 'HEXIPEDIA_TOGGLE_SECTION'; sectionId: HexipediaSectionId; enabled: boolean }
+  | { type: 'HEXIPEDIA_PIN_SECTION'; sectionId: HexipediaSectionId }
+  | { type: 'HEXIPEDIA_UNPIN_SECTION'; sectionId: HexipediaSectionId }
+  | { type: 'HEXIPEDIA_REORDER'; order: HexipediaSectionId[] }
+  | { type: 'HEXIPEDIA_OPEN_SECTION'; sectionId: HexipediaSectionId };
 
 export function createInitialAppShellState(storage: StorageReader): AppShellState {
   const hasResumeAvailable = canResumeSession(storage);
+  const wasInGameplay = storage.getItem(WAS_IN_GAMEPLAY_KEY) === 'true';
   const history = loadSessionHistory(storage);
   const activeSession = hasResumeAvailable
     ? (loadActiveSessionMeta(storage)
@@ -59,12 +122,16 @@ export function createInitialAppShellState(storage: StorageReader): AppShellStat
         : null))
     : null;
 
+  const savedSession = hasResumeAvailable ? loadSession(storage) : null;
+  const savedMobileTab = (savedSession?.ui?.mobileTab as MobileTab | undefined) ?? 'map';
+
   return {
     isInventory: false,
-    mobileTab: 'map',
+    mobileTab: savedMobileTab,
     isPaused: false,
     interactionMode: 'mobile',
     guestStarted: hasResumeAvailable,
+    wasInGameplay,
     resumeAvailable: hasResumeAvailable,
     startupAnimationShown: hasResumeAvailable,
     isSettingsOpen: false,
@@ -74,6 +141,7 @@ export function createInitialAppShellState(storage: StorageReader): AppShellStat
     trackSessionHistory: loadTrackSessionHistoryPreference(storage, true),
     currentSessionId: activeSession?.id ?? null,
     currentSessionStartTick: activeSession?.startTick ?? 0,
+    hexipedia: loadHexipediaShell(storage),
   };
 }
 
@@ -94,12 +162,17 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
     case 'SET_INTERACTION_MODE':
       return { ...state, interactionMode: command.mode };
 
-    case 'SET_MOBILE_TAB':
+    case 'SET_MOBILE_TAB': {
+      const newHexipedia = command.tab !== 'hexipedia'
+        ? filterEnabledToPinned(state.hexipedia)
+        : state.hexipedia;
       return {
         ...state,
         mobileTab: command.tab,
         isInventory: command.tab === 'lab',
+        hexipedia: newHexipedia,
       };
+    }
 
     case 'OPEN_SETTINGS':
       return {
@@ -174,6 +247,7 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
       return {
         ...state,
         guestStarted: false,
+        wasInGameplay: false,
         resumeAvailable: false,
         startupAnimationShown: false,
         isPaused: true,
@@ -218,6 +292,66 @@ export function appShellReducer(state: AppShellState, command: AppShellCommand):
         currentSessionStartTick: 0,
         lastSessionSaveTick: 0,
       };
+
+    case 'HEXIPEDIA_TOGGLE_SECTION': {
+      const { sectionId, enabled } = command;
+      const newEnabled = enabled
+        ? (state.hexipedia.enabledSections.includes(sectionId)
+            ? state.hexipedia.enabledSections
+            : [...state.hexipedia.enabledSections, sectionId])
+        : state.hexipedia.enabledSections.filter(id => id !== sectionId);
+      const newPinned = enabled
+        ? state.hexipedia.pinnedSections
+        : state.hexipedia.pinnedSections.filter(id => id !== sectionId);
+      return {
+        ...state,
+        hexipedia: { ...state.hexipedia, enabledSections: newEnabled, pinnedSections: newPinned },
+      };
+    }
+
+    case 'HEXIPEDIA_PIN_SECTION': {
+      const { sectionId } = command;
+      const newPinned = state.hexipedia.pinnedSections.includes(sectionId)
+        ? state.hexipedia.pinnedSections
+        : [...state.hexipedia.pinnedSections, sectionId];
+      const newEnabled = state.hexipedia.enabledSections.includes(sectionId)
+        ? state.hexipedia.enabledSections
+        : [...state.hexipedia.enabledSections, sectionId];
+      return {
+        ...state,
+        hexipedia: { ...state.hexipedia, pinnedSections: newPinned, enabledSections: newEnabled },
+      };
+    }
+
+    case 'HEXIPEDIA_UNPIN_SECTION': {
+      const { sectionId } = command;
+      const newPinned = state.hexipedia.pinnedSections.filter(id => id !== sectionId);
+      // If not on hexipedia tab, also remove from enabled (same rule as filterEnabledToPinned)
+      const newEnabled = state.mobileTab !== 'hexipedia'
+        ? state.hexipedia.enabledSections.filter(id => id !== sectionId)
+        : state.hexipedia.enabledSections;
+      return {
+        ...state,
+        hexipedia: { ...state.hexipedia, pinnedSections: newPinned, enabledSections: newEnabled },
+      };
+    }
+
+    case 'HEXIPEDIA_REORDER':
+      return {
+        ...state,
+        hexipedia: { ...state.hexipedia, sectionOrder: command.order },
+      };
+
+    case 'HEXIPEDIA_OPEN_SECTION': {
+      const { sectionId } = command;
+      const newEnabled = state.hexipedia.enabledSections.includes(sectionId)
+        ? state.hexipedia.enabledSections
+        : [...state.hexipedia.enabledSections, sectionId];
+      return {
+        ...state,
+        hexipedia: { ...state.hexipedia, enabledSections: newEnabled },
+      };
+    }
 
     default:
       return state;

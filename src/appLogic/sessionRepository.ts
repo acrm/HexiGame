@@ -56,16 +56,18 @@ type SerializedGameState = Partial<{
   remainingSeconds: number;
   focus: { q: number; r: number };
   protagonist: { q: number; r: number };
-  flash: { type: 'success' | 'failure'; startedTick: number } | null;
   grid: SerializedCell[];
   inventoryGrid: SerializedCell[];
   activeField: 'world' | 'inventory';
+  activeLayerIndex: number;
+  layerGrids: Record<number, SerializedCell[]>;
   hotbarSlots: Array<number | null>;
   selectedHotbarIndex: number;
   facingDirIndex: number;
   isDragging: boolean;
   autoMoveTarget: { q: number; r: number } | null;
   autoMoveTicksRemaining: number;
+  autoMovePath: Array<{ q: number; r: number }>;
   autoFocusTarget: { q: number; r: number } | null;
   autoMoveTargetDir: number | null;
   worldViewCenter: { q: number; r: number };
@@ -119,16 +121,22 @@ function serializeState(state: GameState): SerializedGameState {
     remainingSeconds: state.remainingSeconds,
     focus: state.focus,
     protagonist: state.protagonist,
-    flash: state.flash,
     grid: serializeGrid(state.grid),
     inventoryGrid: serializeGrid(state.inventoryGrid),
     activeField: state.activeField,
+    activeLayerIndex: state.activeLayerIndex,
+    layerGrids: state.layerGrids
+      ? Object.fromEntries(
+          Object.entries(state.layerGrids).map(([key, grid]) => [key, serializeGrid(grid)])
+        )
+      : undefined,
     hotbarSlots: state.hotbarSlots,
     selectedHotbarIndex: state.selectedHotbarIndex,
     facingDirIndex: state.facingDirIndex,
     isDragging: state.isDragging,
     autoMoveTarget: state.autoMoveTarget,
     autoMoveTicksRemaining: state.autoMoveTicksRemaining,
+    autoMovePath: state.autoMovePath,
     autoFocusTarget: state.autoFocusTarget,
     autoMoveTargetDir: state.autoMoveTargetDir,
     worldViewCenter: state.worldViewCenter,
@@ -196,16 +204,23 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
     remainingSeconds: s.remainingSeconds ?? fallback.remainingSeconds,
     focus: s.focus ?? fallback.focus,
     protagonist: s.protagonist ?? fallback.protagonist,
-    flash: s.flash ?? fallback.flash,
+    flash: null,
     grid,
     inventoryGrid,
     activeField: s.activeField ?? fallback.activeField,
+    activeLayerIndex: s.activeLayerIndex ?? fallback.activeLayerIndex,
+    layerGrids: s.layerGrids !== undefined
+      ? Object.fromEntries(
+          Object.entries(s.layerGrids).map(([key, cells]) => [Number(key), deserializeGrid(cells) ?? new Map()])
+        )
+      : fallback.layerGrids,
     hotbarSlots: s.hotbarSlots ?? fallback.hotbarSlots,
     selectedHotbarIndex: s.selectedHotbarIndex ?? fallback.selectedHotbarIndex,
     facingDirIndex: s.facingDirIndex ?? fallback.facingDirIndex,
     isDragging: s.isDragging ?? fallback.isDragging,
     autoMoveTarget: s.autoMoveTarget ?? fallback.autoMoveTarget,
     autoMoveTicksRemaining: s.autoMoveTicksRemaining ?? fallback.autoMoveTicksRemaining,
+    autoMovePath: s.autoMovePath ?? fallback.autoMovePath,
     autoFocusTarget: s.autoFocusTarget ?? fallback.autoFocusTarget,
     autoMoveTargetDir: s.autoMoveTargetDir ?? fallback.autoMoveTargetDir,
     worldViewCenter: s.worldViewCenter ?? fallback.worldViewCenter,

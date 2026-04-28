@@ -686,7 +686,7 @@
 
 - 0.1.0-y26w17b15 — fix child layer anchoring and keep perimeter dots unclipped
 
-- 0.1.0-y26w17b16 — camera two-phase follow with post-move focus recenter
+- 0.1.0-y26w17b16 — camera two-phase follow with post-move focus recenter; fix Linux case-sensitive file resolution for Hexipedia component
 
 - 0.1.0-y26w17b17 — Fix TUI borders nesting and native borders layer
 
@@ -714,8 +714,8 @@
 
 - 0.1.0-y26w17b29 — Fix TUI session borders and controls spacing
 
-- 0.1.0-y26w18b1 — field-lab fractal stack visualization workbench
+- 0.1.0-y26w18b1 — field-lab fractal stack visualization workbench; persist activeLayerIndex and layerGrids in session serialization
 
-- 0.1.0-y26w18b2 — split field-lab noise and manual fractal modes
+- 0.1.0-y26w18b2 — split field-lab noise and manual fractal modes; persist activeLayerIndex and layerGrids in session serialization
 
-- 0.1.0-y26w18b3 — interactive fractal layer grid editor
+- 0.1.0-y26w18b3 — interactive fractal layer grid editor; full state persistence refactor: autoMovePath, flash null, IndexedDB mirror, HexipediaShellState, wasInGameplay, mobileTab from session
