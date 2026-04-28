@@ -59,6 +59,8 @@ type SerializedGameState = Partial<{
   grid: SerializedCell[];
   inventoryGrid: SerializedCell[];
   activeField: 'world' | 'inventory';
+  activeLayerIndex: number;
+  layerGrids: Record<number, SerializedCell[]>;
   hotbarSlots: Array<number | null>;
   selectedHotbarIndex: number;
   facingDirIndex: number;
@@ -122,6 +124,12 @@ function serializeState(state: GameState): SerializedGameState {
     grid: serializeGrid(state.grid),
     inventoryGrid: serializeGrid(state.inventoryGrid),
     activeField: state.activeField,
+    activeLayerIndex: state.activeLayerIndex,
+    layerGrids: state.layerGrids
+      ? Object.fromEntries(
+          Object.entries(state.layerGrids).map(([key, grid]) => [key, serializeGrid(grid)])
+        ) as Record<number, SerializedCell[]>
+      : undefined,
     hotbarSlots: state.hotbarSlots,
     selectedHotbarIndex: state.selectedHotbarIndex,
     facingDirIndex: state.facingDirIndex,
@@ -199,6 +207,12 @@ function deserializeState(s: SerializedGameState, fallback: GameState): GameStat
     grid,
     inventoryGrid,
     activeField: s.activeField ?? fallback.activeField,
+    activeLayerIndex: s.activeLayerIndex ?? fallback.activeLayerIndex,
+    layerGrids: s.layerGrids !== undefined
+      ? Object.fromEntries(
+          Object.entries(s.layerGrids).map(([key, cells]) => [Number(key), deserializeGrid(cells) ?? new Map()])
+        )
+      : fallback.layerGrids,
     hotbarSlots: s.hotbarSlots ?? fallback.hotbarSlots,
     selectedHotbarIndex: s.selectedHotbarIndex ?? fallback.selectedHotbarIndex,
     facingDirIndex: s.facingDirIndex ?? fallback.facingDirIndex,
