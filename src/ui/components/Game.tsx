@@ -17,6 +17,9 @@ import { integration } from '../../appLogic/integration';
 import {
   appShellReducer,
   createInitialAppShellState,
+  persistHexipediaShell,
+  persistWasInGameplay,
+  type HexipediaSectionId,
 } from '../../appLogic/appShellReducer';
 import {
   addSessionToHistory,
@@ -78,7 +81,6 @@ import {
 import { mulberry32 } from '../../gameLogic/core/params';
 
 const MASCOT_FACING_DIR_INDEX = 1;
-type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
 interface TaskIntroModalState {
   taskId: string;
@@ -107,6 +109,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     trackSessionHistory,
     currentSessionId,
     currentSessionStartTick,
+    hexipedia,
   } = appShellState;
   const [settingsState, dispatchSettings] = useReducer(
     userSettingsReducer,
@@ -127,14 +130,10 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     showStructureWidget,
     showSessionWidget,
   } = settingsState;
-  const [enabledHexipediaSections, setEnabledHexipediaSections] = useState<HexipediaSectionId[]>([
-    'tasks',
-  ]);
-  const [pinnedHexipediaSections, setPinnedHexipediaSections] = useState<HexipediaSectionId[]>([
-    'tasks',
-  ]);
+  // focusHexipediaSection is intentionally kept as local state: it is transient one-shot
+  // UI state (fires once to scroll/highlight a section, then cleared) and does not need
+  // to survive page reloads or be shared across components.
   const [focusHexipediaSection, setFocusHexipediaSection] = useState<HexipediaSectionId | null>(null);
-  const [sectionOrder, setSectionOrder] = useState<HexipediaSectionId[]>(['tasks', 'session', 'structures', 'colors']);
   const [taskIntroModal, setTaskIntroModal] = useState<TaskIntroModalState | null>(null);
   const [pendingForceResetTaskId, setPendingForceResetTaskId] = useState<string | null>(null);
   const taskWidgetRef = useRef<HTMLDivElement | null>(null);
@@ -195,6 +194,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   useEffect(() => {
     controllerRef.current?.setPaused(isPaused || playbackIsPaused || taskIntroModal !== null);
   }, [isPaused, playbackIsPaused, taskIntroModal]);
+
+  // Persist hexipedia shell state to localStorage
+  useEffect(() => {
+    persistHexipediaShell(hexipedia);
+  }, [hexipedia]);
+
+  // Persist wasInGameplay flag to localStorage
+  useEffect(() => {
+    persistWasInGameplay(guestStarted);
+  }, [guestStarted]);
 
   // Reset session wrapper
   const resetSession = () => {
@@ -426,35 +435,23 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const setHexipediaSectionEnabled = (sectionId: HexipediaSectionId, enabled: boolean) => {
-    setEnabledHexipediaSections((prev) => {
-      if (enabled) {
-        return prev.includes(sectionId) ? prev : [...prev, sectionId];
-      }
-      return prev.filter((id) => id !== sectionId);
-    });
-
+    dispatchApp({ type: 'HEXIPEDIA_TOGGLE_SECTION', sectionId, enabled });
     if (!enabled) {
-      setPinnedHexipediaSections((prev) => prev.filter((id) => id !== sectionId));
       setFocusHexipediaSection((prev) => (prev === sectionId ? null : prev));
     }
   };
 
   const setHexipediaSectionPinned = (sectionId: HexipediaSectionId, pinned: boolean) => {
-    setPinnedHexipediaSections((prev) => {
-      if (pinned) {
-        return prev.includes(sectionId) ? prev : [...prev, sectionId];
-      }
-      return prev.filter((id) => id !== sectionId);
-    });
-
     if (pinned) {
-      setEnabledHexipediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
+      dispatchApp({ type: 'HEXIPEDIA_PIN_SECTION', sectionId });
+    } else {
+      dispatchApp({ type: 'HEXIPEDIA_UNPIN_SECTION', sectionId });
     }
   };
 
   const openHexipediaSection = (sectionId: HexipediaSectionId) => {
     playUiClick();
-    setEnabledHexipediaSections((prev) => (prev.includes(sectionId) ? prev : [...prev, sectionId]));
+    dispatchApp({ type: 'HEXIPEDIA_OPEN_SECTION', sectionId });
     setFocusHexipediaSection(sectionId);
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
@@ -515,14 +512,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     if (!isMobileLayout) return;
     dispatch({ type: 'SET_ACTIVE_FIELD', field: mobileTab === 'lab' ? 'inventory' : 'world' });
   }, [isMobileLayout, mobileTab, dispatch]);
-
-  // Keep only pinned sections enabled when Hexipedia tab is not active.
-  useEffect(() => {
-    if (mobileTab === 'hexipedia') return;
-    setEnabledHexipediaSections((prev) =>
-      prev.filter((sectionId) => pinnedHexipediaSections.includes(sectionId)),
-    );
-  }, [mobileTab, pinnedHexipediaSections]);
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'lab' : isInventory;
 
@@ -770,16 +759,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     onToggleStructureWidget: (visible: boolean) => {
       dispatchSettings({ type: 'SET_SHOW_STRUCTURE_WIDGET', visible });
     },
-    enabledSections: enabledHexipediaSections,
-    pinnedSections: pinnedHexipediaSections,
+    enabledSections: hexipedia.enabledSections,
+    pinnedSections: hexipedia.pinnedSections,
     onSetSectionEnabled: setHexipediaSectionEnabled,
     onSetSectionPinned: setHexipediaSectionPinned,
     focusSectionId: focusHexipediaSection,
     onFocusSectionHandled: () => {
       setFocusHexipediaSection(null);
     },
-    sectionOrder,
-    onChangeSectionOrder: setSectionOrder,
+    sectionOrder: hexipedia.sectionOrder,
+    onChangeSectionOrder: (order: HexipediaSectionId[]) => dispatchApp({ type: 'HEXIPEDIA_REORDER', order }),
     currentSessionStartTick,
     currentSessionId: currentSessionId ?? null,
     currentSessionRecord,
@@ -1066,7 +1055,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         colorPaletteWidgetProps={colorPaletteWidgetProps}
         structureWidgetProps={structureWidgetProps}
         sessionWidgetProps={sessionWidgetProps}
-        sectionOrder={sectionOrder}
+        sectionOrder={hexipedia.sectionOrder}
         showGuestStart={!guestStarted}
         sessionHistory={sessionHistory}
         currentSessionId={currentSessionId ?? null}

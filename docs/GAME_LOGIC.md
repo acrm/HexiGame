@@ -609,6 +609,11 @@ Defined in `src/templates/templateLogic.ts`:
 - **Task Progress**: Tracks selected task, completed task IDs, interaction mode, and in-session scripted metrics (visited targets, collected marked hexes, excavation clears, 3+3 opposite-color set, structure fill counts)
 - **Structure Instances**: Active structure instance and the per-session structure history survive page reload inside the same active session
 - **Completed Templates**: Finished structure IDs persist for the duration of the active session and across reloads
+- **Multi-layer state**: Active layer index (`activeLayerIndex`) and all non-active layer grids (`layerGrids`) are serialized and restored on page reload
+- **Auto-move path**: The `autoMovePath` array (pathfinding route to auto-move target) is serialized and restored; `flash` is intentionally excluded (reset to `null` on restore)
+- **HexiPedia UI shell**: Enabled/pinned sections and section order are persisted under key `hexigame.ui.hexipedia` (localStorage + IndexedDB mirror)
+- **Was-in-gameplay flag**: Whether the user was in an active game session is stored under key `hexigame.shell.wasInGameplay` (localStorage + IndexedDB mirror); used on next load to auto-resume gameplay without showing the start screen
+- **Mobile tab**: The last active mobile tab (`mobileTab`) is restored from the saved session's `ui.mobileTab` field on startup
 
 ### 8.5 Audio resume behavior
 - **Music state persistence**:

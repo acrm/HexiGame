@@ -687,3 +687,9 @@
 - 0.1.0-y26w17b15 — fix child layer anchoring and keep perimeter dots unclipped
 
 - 0.1.0-y26w17b16 — Fix Linux case-sensitive file resolution for Hexipedia component
+
+- 0.1.0-y26w18b1 — Persist activeLayerIndex and layerGrids in session serialization
+
+- 0.1.0-y26w18b2 — Persist activeLayerIndex and layerGrids in session serialization
+
+- 0.1.0-y26w18b3 — full state persistence refactor: autoMovePath, flash null, IndexedDB mirror, HexipediaShellState, wasInGameplay, mobileTab from session
