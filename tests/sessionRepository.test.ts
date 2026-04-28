@@ -56,16 +56,17 @@ describe('sessionRepository — multi-layer persistence', () => {
     expect(restored.layerGrids![0].get('1,0')).toEqual({ q: 1, r: 0, colorIndex: null });
   });
 
-  it('restores undefined layerGrids as fallback when not saved', () => {
+  it('restores empty layerGrids correctly when saved with no layer entries', () => {
     const storage = createStorage({ 'hexigame.guest.started': '1' });
+    // createInitialState sets layerGrids: {} (empty object, no entries for other layers)
     const state = createInitialState(emptyParams, () => 0);
-    // state.layerGrids is {} (empty object) from createInitialState
+    expect(Object.keys(state.layerGrids!)).toHaveLength(0);
 
     saveSession(state, undefined, storage);
     const fallback = createInitialState(emptyParams, () => 0);
     const restored = restoreGameState(fallback, storage);
 
-    // layerGrids serialized as {} (empty object from createInitialState), deserialized back as {}
+    // Empty layerGrids is round-tripped as an empty object
     expect(restored.layerGrids).toBeDefined();
     expect(Object.keys(restored.layerGrids!)).toHaveLength(0);
   });

@@ -128,7 +128,7 @@ function serializeState(state: GameState): SerializedGameState {
     layerGrids: state.layerGrids
       ? Object.fromEntries(
           Object.entries(state.layerGrids).map(([key, grid]) => [key, serializeGrid(grid)])
-        ) as Record<number, SerializedCell[]>
+        )
       : undefined,
     hotbarSlots: state.hotbarSlots,
     selectedHotbarIndex: state.selectedHotbarIndex,

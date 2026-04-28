@@ -689,3 +689,5 @@
 - 0.1.0-y26w17b16 — Fix Linux case-sensitive file resolution for Hexipedia component
 
 - 0.1.0-y26w18b1 — Persist activeLayerIndex and layerGrids in session serialization
+
+- 0.1.0-y26w18b2 — Persist activeLayerIndex and layerGrids in session serialization

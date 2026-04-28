@@ -609,6 +609,7 @@ Defined in `src/templates/templateLogic.ts`:
 - **Task Progress**: Tracks selected task, completed task IDs, interaction mode, and in-session scripted metrics (visited targets, collected marked hexes, excavation clears, 3+3 opposite-color set, structure fill counts)
 - **Structure Instances**: Active structure instance and the per-session structure history survive page reload inside the same active session
 - **Completed Templates**: Finished structure IDs persist for the duration of the active session and across reloads
+- **Multi-layer state**: Active layer index (`activeLayerIndex`) and all non-active layer grids (`layerGrids`) are serialized and restored on page reload
 
 ### 8.5 Audio resume behavior
 - **Music state persistence**:
