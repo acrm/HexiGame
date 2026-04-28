@@ -66,7 +66,11 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 
   useEffect(() => {
     if (containerRef.current) {
-      console.log("=== TUI SNAPSHOT ===\n" + containerRef.current.innerText);
+      const rows = containerRef.current.querySelectorAll('.gs-tui-border-row');
+      const snapshot = rows.length > 0
+        ? Array.from(rows).map(r => (r as HTMLElement).innerText.replace(/\s+/g, ' ').trim()).join('\n')
+        : containerRef.current.innerText;
+      console.log("=== TUI SNAPSHOT ===\n" + snapshot);
     }
   });
 

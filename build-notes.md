@@ -719,3 +719,5 @@
 - 0.1.0-y26w18b2 — split field-lab noise and manual fractal modes; persist activeLayerIndex and layerGrids in session serialization
 
 - 0.1.0-y26w18b3 — interactive fractal layer grid editor; full state persistence refactor: autoMovePath, flash null, IndexedDB mirror, HexipediaShellState, wasInGameplay, mobileTab from session
+
+- 0.1.0-y26w18b4 — Fix TUI line-height gaps, active session text visibility, improve console snapshot

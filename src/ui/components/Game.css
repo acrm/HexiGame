@@ -440,7 +440,7 @@ html, body {
   background: #000000;
   font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
   font-size: 16px;
-  line-height: 1.25;
+  line-height: 1;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -451,7 +451,7 @@ html, body {
 .guest-start-content.hexipedia-style * {
   font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
   font-size: 16px;
-  line-height: 1.25;
+  line-height: 1;
 }
 
 .guest-start-content.hexipedia-style .settings-button,
@@ -832,7 +832,7 @@ html, body {
 
 .gs-session-card--active .gs-expander-btn,
 .gs-session-card--active .gs-expander-btn:hover {
-  color: #000000;
+  color: #FFFFFF;
 }
 
 .gs-session-name {
@@ -855,7 +855,7 @@ html, body {
 
 .gs-session-card--active .gs-session-name,
 .gs-session-card--active .gs-session-date-inline {
-  color: #000000;
+  color: #FFFFFF;
 }
 
 .gs-session-card-actions {
@@ -896,7 +896,7 @@ html, body {
 
 .gs-session-card--active .gs-session-start-btn,
 .gs-session-card--active .gs-session-start-btn:hover {
-  color: #000000;
+  color: #FFFFFF;
 }
 
 .gs-session-start-btn::before {
@@ -911,7 +911,7 @@ html, body {
 
 .gs-session-card--active .gs-session-start-btn::before,
 .gs-session-card--active .gs-session-start-btn::after {
-  color: #000000;
+  color: #AAAAAA;
 }
 
 .gs-session-expanded {
@@ -1064,10 +1064,10 @@ html, body {
   padding: 0;
 }
 
-.gs-session-body::after { right: 0; }
+.gs-session-body::after { right: 0; content: none; }
 
 
-.gs-language-bar::after { right: 0; }
+.gs-language-bar::after { right: 0; content: none; }
 
 /* Global reset for TUI elements */
 .gs-guest-start-container button,
