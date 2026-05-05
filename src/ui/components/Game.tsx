@@ -1048,7 +1048,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   return (
     <div
       className="game-root mobile-forced"
-      style={{ backgroundColor: '#3a3a3a', ['--game-bg' as any]: backgroundColor }}
+      style={{
+        backgroundColor: '#3a3a3a',
+        ['--game-bg' as any]: backgroundColor,
+        ['--tab-map-bg' as any]: ColorScheme.outside.background,
+        ['--tab-hexipedia-bg' as any]: '#2f2f2f',
+      }}
     >
       {!isMobileLayout && (
         <div className="game-panel">

@@ -737,3 +737,5 @@
 - 0.1.0-y26w19b7 — Align runtime gameplay UI with HexiOS style and force debug widgets/hotbar
 
 - 0.1.0-y26w19b8 — Restrict forced widgets to map tab, restore tab backgrounds, unify global monospace and [X] close
+
+- 0.1.0-y26w19b9 — Use TUI extended symbols, TUI task controls, and tab-specific active header backgrounds

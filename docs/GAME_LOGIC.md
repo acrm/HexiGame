@@ -207,11 +207,12 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Task completion only fires on state transition (incomplete → complete), but advancing to the next pending task happens only after the player clicks the widget in `complete` phase.
 - The hotbar and HexiLab are disabled at session start and remain disabled through `task_1_explore`; they are explicitly unlocked when `task_2_collect_beyond_visibility` starts. The palette widget becomes available from task 4 onward, and the structures widget appears during the final Yin-Yang task.
 - Tasks run in one continuous world: starting the next task does not rebuild the whole sandbox. Task setup only applies minimal targeted injections (task-specific cells/structures), while turtle position, hotbar contents, and surrounding world state are preserved.
-- Top overlay widgets share the standard ASCII edge button `>` for quick navigation to the corresponding HexiPedia panel. The task widget body controls task flow, and the structure widget opens the `Structures` panel.
+- Top overlay widgets share the TUI right-pointer `►` for quick navigation to the corresponding HexiPedia panel. The task widget body controls task flow, and the structure widget opens the `Structures` panel.
 - HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Structures`, `Colors`) start disabled (not rendered).
 - Enabled panels that are not pinned auto-hide after leaving HexiPedia; pinned panels remain enabled across tab switches.
 - Disabled panels are completely removed from the DOM (not just collapsed). They can be restored via the search bar dropdown which lists all panels. Clicking a panel in the dropdown enables and scrolls to it.
 - Panel header controls (left → right): widget visibility toggle (tasks/structures/colors) | ▲▼ reorder | 📌 pin. No enable/disable toggle button — panel disappears automatically when not pinned and not active.
+- Task list in HexiPedia uses TUI-style controls: completion checkboxes are rendered as `[■]` / `[·]`, and activate/restart actions use bracketed TUI buttons.
 - Panel section order is synced between HexiPedia and GameOverlays; overlay widgets (task, palette, structure) stack in section order.
 - The `Tasks`, `Structures`, and `Colors` panels include eye-toggle controls for their corresponding overlay widgets.
 - Mobile gameplay layout uses a fixed design width (`420px`, clamped by device width) and adapts vertically to the device height.

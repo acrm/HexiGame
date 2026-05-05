@@ -116,7 +116,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
           aria-label="Open palette details"
           className="overlay-widget-edge-button color-palette-widget__navigate-button tui-icon-btn--no-brackets"
         >
-          {'>'}
+          {'►'}
         </TuiIconButton>
       )}
     </div>

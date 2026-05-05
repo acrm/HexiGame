@@ -8,7 +8,7 @@ import { getAllTaskDefinitions } from '../../tasks/taskLevels';
 import { ALL_TEMPLATES, getTemplateById } from '../../templates/templateLibrary';
 import { audioController } from '../../appLogic/audioController';
 import type { SessionLog } from '../../appLogic/sessionRepository';
-import { TuiBorderRow, TuiIconButton } from '../tui';
+import { TuiBorderRow, TuiButton, TuiIconButton } from '../tui';
 import './Hexipedia/Hexipedia.css';
 
 interface SessionHistoryRecord {
@@ -388,7 +388,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
             }
           }}
         >
-          <span className="hexipedia-section-toggle">{isCollapsed ? 'exp' : 'EXP'}</span>
+          <span className="hexipedia-section-toggle">{isCollapsed ? '►' : '▼'}</span>
           <span className="hexipedia-section-title">{title}</span>
         </div>
       }
@@ -414,7 +414,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 title={t('hexipedia.section.moveUp')}
                 aria-label={t('hexipedia.section.moveUp')}
               >
-                UP
+                  ▲
               </TuiIconButton>
               <TuiIconButton
                 className="hexipedia-section-move"
@@ -423,7 +423,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 title={t('hexipedia.section.moveDown')}
                 aria-label={t('hexipedia.section.moveDown')}
               >
-                DN
+                  ▼
               </TuiIconButton>
             </>
           )}
@@ -563,15 +563,16 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                       return (
                         <div key={definition.id} className="hexipedia-accordion-item">
                           <div className="hexipedia-accordion-title" onClick={() => toggleTaskExpansion(definition.id)}>
-                            <span className={`hexipedia-task-checkbox ${isCompleted ? 'checked' : ''}`}>
-                              {isCompleted ? 'OK' : ''}
+                            <span className={`hexipedia-task-checkbox ${isCompleted ? 'checked' : ''}`} aria-hidden="true">
+                              {isCompleted ? '[■]' : '[·]'}
                             </span>
                             <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
                               {getLocalizedText(definition.name, lang)}
                             </span>
                             <div className="hexipedia-task-actions">
                               {!isCompleted ? (
-                                <button
+                                <TuiButton
+                                  variant={isCurrent ? 'secondary' : 'primary'}
                                   className={`hexipedia-task-action ${isCurrent ? 'active' : ''}`}
                                   onClick={(event) => {
                                     event.stopPropagation();
@@ -580,10 +581,11 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                                   }}
                                   disabled={isCurrent}
                                 >
-                                  {isCurrent ? t('task.current') : t('task.activate')}
-                                </button>
+                                  {isCurrent ? `■ ${t('task.current')}` : `► ${t('task.activate')}`}
+                                </TuiButton>
                               ) : (
-                                <button
+                                <TuiButton
+                                  variant="secondary"
                                   className="hexipedia-task-action restart"
                                   onClick={(event) => {
                                     event.stopPropagation();
@@ -591,8 +593,8 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                                     onRestartTask?.(definition.id);
                                   }}
                                 >
-                                  {t('task.restart')}
-                                </button>
+                                  {`► ${t('task.restart')}`}
+                                </TuiButton>
                               )}
                             </div>
                           </div>

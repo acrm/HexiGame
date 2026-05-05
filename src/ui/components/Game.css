@@ -1171,8 +1171,16 @@ html, body {
 }
 
 .game-root.mobile-forced .mobile-tab.active {
-  background: var(--game-bg, #2f2f2f);
   color: #ffffff !important;
+  text-decoration: none;
+}
+
+.game-root.mobile-forced .mobile-tab--map.active {
+  background: var(--tab-map-bg, #00264C);
+}
+
+.game-root.mobile-forced .mobile-tab--hexipedia.active {
+  background: var(--tab-hexipedia-bg, #2f2f2f);
 }
 
 .game-root.mobile-forced .mobile-tab.disabled,
