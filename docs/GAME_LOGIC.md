@@ -219,7 +219,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Mobile control blocks (tab bar + widget stack) are placed in normal document flow, so they do not overlap the playable field.
 - If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
 - Runtime gameplay UI uses the same monospace font stack and base font size as the start screen.
-- Mobile tab content keeps its original per-tab background color; the active tab title uses the same background color with white text.
+- Mobile tab content keeps its original per-tab background color; the active tab header fills the full tab-header area using the same background color with white text and blends seamlessly into the tab content. Inactive tab headers keep the default panel background.
 - Debug runtime mode can force all overlay widgets visible and keep hotbar enabled, but widgets still render only on the `map` tab.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).

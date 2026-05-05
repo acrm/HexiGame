@@ -1155,19 +1155,25 @@ html, body {
   column-gap: 1ch;
   align-items: stretch;
   height: auto;
-  padding: 1ch;
+  padding: 0 1ch;
 }
 
 .game-root.mobile-forced .mobile-tabs-container {
-  gap: 1ch;
+  gap: 0;
+  align-items: stretch;
 }
 
 .game-root.mobile-forced .mobile-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
   color: #000000;
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
-  padding: 0 0.5ch;
+  background: transparent;
+  padding: 1ch 0.75ch;
 }
 
 .game-root.mobile-forced .mobile-tab.active {
@@ -1187,4 +1193,12 @@ html, body {
 .game-root.mobile-forced .mobile-tab:disabled {
   background: transparent;
   color: #555555;
+}
+
+.game-root.mobile-forced .game-mobile-tab-bar .disconnect-button,
+.game-root.mobile-forced .game-mobile-tab-bar .settings-button,
+.game-root.mobile-forced .game-mobile-tab-bar .game-mobile-action-btn {
+  align-self: center;
+  padding-top: 1ch;
+  padding-bottom: 1ch;
 }

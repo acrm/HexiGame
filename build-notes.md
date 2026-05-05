@@ -741,3 +741,5 @@
 - 0.1.0-y26w19b9 — Use TUI extended symbols, TUI task controls, and tab-specific active header backgrounds
 
 - 0.1.0-y26w19b10 — Scope TUI tab-bar reset to start screen so active map/hexipedia header background works
+
+- 0.1.0-y26w19b11 — Make active mobile tab header full-height and seamless with tab content
