@@ -101,11 +101,8 @@ html, body {
 
 .mobile-tab-bar {
   display: none;
-  background: #000;
+  background: #aaaaaa;
   position: relative;
-  height: 48px;
-  grid-template-columns: minmax(0, 1fr) 56px 56px;
-  align-items: stretch;
 }
 
 .game-root.mobile-forced {
@@ -122,9 +119,9 @@ html, body {
 }
 
 .game-root.mobile-forced .mobile-tab-bar {
-  display: grid;
+  display: block;
   width: min(100%, var(--mobile-game-width));
-  background: #000000;
+  background: #aaaaaa;
   flex-shrink: 0;
 }
 
@@ -150,66 +147,46 @@ html, body {
   flex: 1;
 }
 
+.game-mobile-tab-bar {
+  width: 100%;
+}
+
 .mobile-tabs-container {
   display: flex;
   width: 100%;
   min-width: 0;
-  background: var(--game-bg, #370152ff);
+  background: transparent;
+  gap: 1ch;
 }
 
 .mobile-tab {
-  padding: 12px 20px;
+  padding: 0;
   border: none;
-  border-top: 2px solid transparent;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
+  color: #000000;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, border-top-color 0.2s;
-  flex: 1;
+  transition: color 0.2s;
+  min-width: 0;
   text-align: center;
 }
 
 .mobile-tab.disabled,
 .mobile-tab:disabled {
-  opacity: 0.5;
+  opacity: 1;
+  color: #555555;
   cursor: not-allowed;
-  filter: grayscale(0.4);
-}
-
-/* Semantic tab colors */
-.mobile-tab--map {
-  background: #2b0041;
-}
-
-.mobile-tab--lab {
-  background: #663300;
-}
-
-.mobile-tab--hexipedia {
-  background: #2a2a2a;
+  filter: none;
 }
 
 .mobile-tab.active {
-  color: #fff;
-  border-top-color: #ffffff;
+  color: #000000;
+  text-decoration: underline;
 }
 
 .wiki-placeholder {
   flex: 1;
   background: #2f2f2f;
-}
-
-.mobile-tab--map.active {
-  background: #00264C;
-}
-
-.mobile-tab--lab.active {
-  background: #994D00;
-}
-
-.mobile-tab--hexipedia.active {
-  background: #333333;
 }
 
 @media (max-width: 900px) {
@@ -290,6 +267,32 @@ html, body {
 
 .disconnect-button:hover {
   background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.game-mobile-action-btn {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  color: #000000 !important;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  background: transparent !important;
+}
+
+.mobile-tab-bar .disconnect-button::before,
+.mobile-tab-bar .settings-button::before,
+.mobile-tab-bar .disconnect-button::after,
+.mobile-tab-bar .settings-button::after {
+  color: #555555;
+}
+
+.mobile-tab-bar .disconnect-button:hover,
+.mobile-tab-bar .settings-button:hover {
+  background: transparent !important;
+  color: #333333 !important;
 }
 
 .settings-overlay {

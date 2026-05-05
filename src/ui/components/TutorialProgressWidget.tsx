@@ -41,7 +41,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
       >
         {phase === 'pending' && (
           <div className="tutorial-progress-row">
-            <span className="tutorial-task-icon" aria-hidden="true">▶</span>
+            <span className="tutorial-task-icon" aria-hidden="true">tsk</span>
             <span className="tutorial-task-name">{taskName}</span>
           </div>
         )}
@@ -55,7 +55,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
 
         {phase === 'complete' && (
           <div className="tutorial-progress-row">
-            <span className="tutorial-progress-checkbox checked" aria-hidden="true">✓</span>
+            <span className="tutorial-progress-checkbox checked" aria-hidden="true">OK</span>
             <span className="tutorial-complete-text">{completeText}</span>
           </div>
         )}
@@ -71,7 +71,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           title={t('tutorial.widget.openTasks')}
           aria-label={t('tutorial.widget.openTasks')}
         >
-          »
+          NAV
         </TuiIconButton>
       )}
     </div>

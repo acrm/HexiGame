@@ -1,7 +1,7 @@
 import React from 'react';
 import type { MobileTab } from '../../../appLogic/appShellReducer';
 import { t } from '../../i18n';
-import { TuiIconButton } from '../../tui';
+import { TuiTabBar } from '../../tui';
 
 interface GameMobileTabsProps {
   mobileTab: MobileTab;
@@ -22,54 +22,75 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
   onDisconnect,
   onPlayLatestSession,
 }) => {
+  const mapLabel = mobileTab === 'map' ? 'MAP' : 'map';
+  const labLabel = mobileTab === 'lab' ? 'LAB' : 'lab';
+  const hexiLabel = mobileTab === 'hexipedia' ? 'HEXI' : 'hexi';
+
   return (
     <div className="mobile-tab-bar">
-      <div className="mobile-tabs-container">
-        <button
-          className={`mobile-tab mobile-tab--map ${mobileTab === 'map' ? 'active' : ''}`}
-          onClick={onSelectMap}
-        >
-          {t('tab.map')}
-        </button>
-        <button
-          className={`mobile-tab mobile-tab--lab ${mobileTab === 'lab' ? 'active' : ''} disabled`}
-          onClick={() => {}}
-          disabled
-        >
-          {t('tab.lab')}
-        </button>
-        <button
-          className={`mobile-tab mobile-tab--hexipedia ${mobileTab === 'hexipedia' ? 'active' : ''}`}
-          onClick={onSelectHexipedia}
-        >
-          {t('tab.hexipedia')}
-        </button>
-      </div>
-      {isHexiOsMode ? (
-        <TuiIconButton
-          className="disconnect-button tui-icon-btn--no-brackets"
-          onClick={onPlayLatestSession}
-          title={t('action.loadSession')}
-        >
-          <i className="fas fa-play"></i>
-        </TuiIconButton>
-      ) : (
-        <TuiIconButton
-          variant="danger"
-          className="disconnect-button tui-icon-btn--no-brackets"
-          onClick={onDisconnect}
-          title={t('action.disconnect')}
-        >
-          <i className="fas fa-stop"></i>
-        </TuiIconButton>
-      )}
-      <TuiIconButton
-        className="settings-button tui-icon-btn--no-brackets"
-        onClick={onOpenSettings}
-        title={t('settings.open')}
-      >
-        <i className="fas fa-cog"></i>
-      </TuiIconButton>
+      <TuiTabBar
+        className="gs-tab-bar game-mobile-tab-bar"
+        title={(
+          <div className="gs-tabs-container mobile-tabs-container">
+            <button
+              className={`mobile-tab mobile-tab--map ${mobileTab === 'map' ? 'active' : ''}`}
+              onClick={onSelectMap}
+              title={t('tab.map')}
+              aria-label={t('tab.map')}
+            >
+              {mapLabel}
+            </button>
+            <button
+              className={`mobile-tab mobile-tab--lab ${mobileTab === 'lab' ? 'active' : ''} disabled`}
+              onClick={() => {}}
+              disabled
+              title={t('tab.lab')}
+              aria-label={t('tab.lab')}
+            >
+              {labLabel}
+            </button>
+            <button
+              className={`mobile-tab mobile-tab--hexipedia ${mobileTab === 'hexipedia' ? 'active' : ''}`}
+              onClick={onSelectHexipedia}
+              title={t('tab.hexipedia')}
+              aria-label={t('tab.hexipedia')}
+            >
+              {hexiLabel}
+            </button>
+          </div>
+        )}
+        actions={(
+          <>
+            {isHexiOsMode ? (
+              <button
+                type="button"
+                className="disconnect-button game-mobile-action-btn"
+                onClick={onPlayLatestSession}
+                title={t('action.loadSession')}
+              >
+                RUN
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="disconnect-button game-mobile-action-btn"
+                onClick={onDisconnect}
+                title={t('action.disconnect')}
+              >
+                STOP
+              </button>
+            )}
+            <button
+              type="button"
+              className="settings-button game-mobile-action-btn"
+              onClick={onOpenSettings}
+              title={t('settings.open')}
+            >
+              CFG
+            </button>
+          </>
+        )}
+      />
     </div>
   );
 };

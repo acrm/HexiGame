@@ -112,7 +112,7 @@ export const Mascot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <div className="mascot-overlay" onClick={onClose}>
       <div className="mascot-display">
         <canvas ref={canvasRef} />
-        <div className="mascot-text">🐢 Click anywhere to close</div>
+        <div className="mascot-text">TURTLE: click anywhere to close</div>
       </div>
     </div>
   );

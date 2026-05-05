@@ -81,12 +81,12 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                     />
                     <span className="hexipedia-template-name">{template.name.en}</span>
                     <span className={`hexipedia-template-difficulty ${template.difficulty}`}>
-                      {template.difficulty === 'easy' && '●'}
-                      {template.difficulty === 'medium' && '●●'}
-                      {template.difficulty === 'hard' && '●●●'}
+                      {template.difficulty === 'easy' && 'E1'}
+                      {template.difficulty === 'medium' && 'M2'}
+                      {template.difficulty === 'hard' && 'H3'}
                     </span>
                     <span className={`hexipedia-template-status ${isCompleted ? 'completed' : ''}`}>
-                      {isCompleted ? '✓' : ''}
+                      {isCompleted ? 'OK' : ''}
                     </span>
                   </label>
                   
@@ -98,7 +98,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                     }}
                     aria-label="Show template details"
                   >
-                    ▼
+                    MORE
                   </button>
                 </div>
 

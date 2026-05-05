@@ -120,7 +120,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
             <div key={level.id} className="hexipedia-accordion-item">
               <div className="hexipedia-accordion-title" onClick={() => toggleSection(level.id)}>
                 <span className={`hexipedia-task-checkbox ${isCompleted ? 'checked' : ''}`}>
-                  {isCompleted ? '✓' : ''}
+                  {isCompleted ? 'OK' : ''}
                 </span>
                 <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
                   {getLocalizedText(level.objective, getLanguage())}

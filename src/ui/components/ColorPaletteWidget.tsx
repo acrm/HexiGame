@@ -33,7 +33,7 @@ function calculateRelativePercent(
 
 function formatPercent(percent: number): string {
   if (percent === 0) return '0%';
-  if (Math.abs(percent) === 50) return '±50%';
+  if (Math.abs(percent) === 50) return '+/-50%';
   const sign = percent > 0 ? '+' : '-';
   const absValue = Math.abs(percent);
   const rounded = absValue % 1 === 0 ? absValue.toString() : absValue.toFixed(1).replace(/\.0$/, '');
@@ -76,7 +76,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
           title={isAutoBaseColorEnabled ? 'Auto base color: on' : 'Auto base color: off'}
           className={`color-palette-widget__auto-button ${isAutoBaseColorEnabled ? 'is-active' : ''}`}
         >
-          <i className="fas fa-crosshairs" aria-hidden="true" />
+          {isAutoBaseColorEnabled ? 'AUTO' : 'auto'}
         </TuiIconButton>
         <div className="color-palette-widget__palette">
         {displayOrder.map((colorIndex, displayIndex) => {
@@ -116,7 +116,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
           aria-label="Open palette details"
           className="overlay-widget-edge-button color-palette-widget__navigate-button tui-icon-btn--no-brackets"
         >
-          »
+          NAV
         </TuiIconButton>
       )}
     </div>

@@ -32,7 +32,7 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           disabled={!onSetPlaybackPaused}
           title={isPlaybackPaused ? t('playback.resume') : t('playback.pause')}
         >
-          <i className={`fas ${isPlaybackPaused ? 'fa-play' : 'fa-pause'}`} />
+          {isPlaybackPaused ? 'play' : 'PLAY'}
         </TuiButton>
 
         <input
@@ -58,7 +58,7 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           disabled={!onSeekToTick}
           title={t('playback.play')}
         >
-          <i className="fas fa-forward" />
+          GO
         </TuiButton>
 
         <TuiButton
@@ -69,7 +69,7 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           onClick={() => onSeekToTick?.(currentTick + 1)}
           title={t('playback.step')}
         >
-          <i className="fas fa-step-forward" />
+          STEP
         </TuiButton>
       </div>
 
@@ -81,7 +81,7 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           title={t('hexipedia.widget.openSession')}
           aria-label={t('hexipedia.widget.openSession')}
         >
-          »
+          NAV
         </TuiIconButton>
       )}
     </div>

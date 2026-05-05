@@ -250,6 +250,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 
 - Mobile tabs are named `Map`, `Lab`, and `Hexipedia`.
 - Disconnect is a dedicated in-game tab-bar button and is visually aligned with Settings (same size/background).
+- In-game mobile top bar now mirrors HexiOS header composition (`TuiTabBar` layout with tab area + right action area) and uses ASCII-only labels.
 - Settings is always rendered above start-screen overlays (higher z-order), so it is visible both in gameplay and on session-selection screen.
 - Start screen layout is split into independent zones:
   - fixed non-scroll header (`HexiOS + Settings`),
@@ -291,6 +292,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - `Download session` action is placed inside Session panel content (not in section header controls).
 - Session panel includes expanded metadata plus a scrollable action log ordered from newest to oldest.
 - Active runtime Hexipedia (`src/ui/components/Hexipedia.tsx`) now renders section headers and filter row through TUI primitives (`TuiBorderRow` + bracketed icon controls), while preserving the same section behavior (collapse/reorder/pin/widget toggles).
+- Icon glyphs are removed from active UI controls; buttons use short ASCII labels.
+- Toggle-style controls follow one text-state convention: uppercase label for enabled/active (`on`), lowercase label for disabled/inactive (`off`).
 - Mobile tab color states are mapped by semantic tab classes (`mobile-tab--map/lab/hexipedia`) rather than positional `nth-child` selectors to keep styling deterministic under layout refactors.
 - In-game Settings volume controls use structured CSS classes for range rows (no inline slider/value styles), preserving existing audio behavior.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.

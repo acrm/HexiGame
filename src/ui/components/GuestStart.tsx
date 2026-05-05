@@ -285,7 +285,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 >
                   <span className="gs-tui-border-left">╔══ </span>
                   <span className="gs-panel-title" style={{ paddingRight: '1ch' }}>{t('sessions.title')}</span>
-                  <span className="gs-panel-toggle-icon">{sessionsCollapsed ? '⏷' : '⏶'}</span>
+                  <span className="gs-panel-toggle-icon">{sessionsCollapsed ? 'open' : 'OPEN'}</span>
                   <span className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</span>
                   <span className="gs-tui-border-right">══╗</span>
                 </button>
@@ -394,7 +394,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       aria-label={isExpanded ? t('action.backToStart') : t('action.sessionHistory')}
                                       title={isExpanded ? 'Collapse' : 'Expand'}
                                     >
-                                      {isExpanded ? '⏶' : '⏷'}
+                                      {isExpanded ? 'OPEN' : 'open'}
                                     </button>
                                   </div>
                                 </TuiBorderRow>

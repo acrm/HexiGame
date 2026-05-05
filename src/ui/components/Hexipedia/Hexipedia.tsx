@@ -118,7 +118,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
   return (
     <div className="hexipedia-root">
       <div className="hexipedia-section-filter">
-        <i className="fas fa-search hexipedia-section-filter-icon" aria-hidden="true"></i>
+        <span className="hexipedia-section-filter-icon" aria-hidden="true">FND</span>
         <input
           className="hexipedia-section-filter-input"
           type="text"

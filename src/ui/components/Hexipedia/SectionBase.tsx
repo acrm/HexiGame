@@ -38,7 +38,7 @@ const SectionBase: React.FC<SectionBaseProps> = ({
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggleCollapse(); }}
           >
-            <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+            <span className="hexipedia-section-toggle">{isCollapsed ? 'exp' : 'EXP'}</span>
             <span className="hexipedia-section-title">{title}</span>
           </div>
         }
@@ -51,7 +51,7 @@ const SectionBase: React.FC<SectionBaseProps> = ({
               title="Move up"
               aria-label="Move up"
             >
-              ▲
+              UP
             </TuiIconButton>
             <TuiIconButton
               onClick={onMoveDown}
@@ -59,7 +59,7 @@ const SectionBase: React.FC<SectionBaseProps> = ({
               title="Move down"
               aria-label="Move down"
             >
-              ▼
+              DN
             </TuiIconButton>
           </div>
         }

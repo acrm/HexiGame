@@ -7,6 +7,9 @@
 - [x] Активная runtime-версия Hexipedia (`src/ui/components/Hexipedia.tsx`) переведена на TUI-строки заголовков секций и TUI-строку фильтра (поиск/дропдаун сохранены)
 - [x] В mobile tab bar вкладки переведены на семантические CSS-классы (`mobile-tab--map/lab/hexipedia`) вместо `nth-child`-правил
 - [x] Во внутриигровых Settings убраны inline-стили слайдеров громкости; добавлены структурные классы диапазонов и значений
+- [x] Все иконки в активном UI (Hexipedia/виджеты/Settings/mobile tabs/GuestStart) заменены на ASCII-текстовые метки
+- [x] Тумблеры в кнопках унифицированы по состояниям: `UPPER` для `on`, `lower` для `off`
+- [x] Верхняя мобильная панель вкладок переведена на HexiOS-стиль через `TuiTabBar` с ASCII-лейблами действий
 
 ## Recently Completed (2026-04-27)
 

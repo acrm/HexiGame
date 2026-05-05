@@ -388,7 +388,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
             }
           }}
         >
-          <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+          <span className="hexipedia-section-toggle">{isCollapsed ? 'exp' : 'EXP'}</span>
           <span className="hexipedia-section-title">{title}</span>
         </div>
       }
@@ -402,7 +402,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
               title={widgetVisible ? widgetHideTitle : widgetShowTitle}
               aria-label={widgetVisible ? widgetHideTitle : widgetShowTitle}
             >
-              <i className={`fas ${widgetVisible ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
+              {widgetVisible ? 'WID' : 'wid'}
             </TuiIconButton>
           )}
           {isPinned && (
@@ -414,7 +414,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 title={t('hexipedia.section.moveUp')}
                 aria-label={t('hexipedia.section.moveUp')}
               >
-                ▲
+                UP
               </TuiIconButton>
               <TuiIconButton
                 className="hexipedia-section-move"
@@ -423,7 +423,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 title={t('hexipedia.section.moveDown')}
                 aria-label={t('hexipedia.section.moveDown')}
               >
-                ▼
+                DN
               </TuiIconButton>
             </>
           )}
@@ -434,7 +434,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
             title={pinTitle}
             aria-label={pinAriaLabel}
           >
-            <i className="fas fa-thumbtack" aria-hidden="true" />
+            {isPinned ? 'PIN' : 'pin'}
           </TuiIconButton>
         </div>
       }
@@ -447,7 +447,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
         <div className="hexipedia-section-filter-shell">
           <TuiBorderRow
             className="hexipedia-section-filter-row"
-            left={<i className="fas fa-search hexipedia-section-filter-icon" aria-hidden="true"></i>}
+            left={<span className="hexipedia-section-filter-icon" aria-hidden="true">FND</span>}
             right={<span className="hexipedia-section-filter-right" aria-hidden="true" />}
           >
             <input
@@ -473,7 +473,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                   }}
                 >
                   <span className="hexipedia-section-dropdown-name">{sectionTitles[id]}</span>
-                  {isSectionPinned(id) && <i className="fas fa-thumbtack hexipedia-section-dropdown-pin" aria-hidden="true" />}
+                  {isSectionPinned(id) && <span className="hexipedia-section-dropdown-pin" aria-hidden="true">PIN</span>}
                 </button>
               ))}
             </div>
@@ -564,7 +564,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                         <div key={definition.id} className="hexipedia-accordion-item">
                           <div className="hexipedia-accordion-title" onClick={() => toggleTaskExpansion(definition.id)}>
                             <span className={`hexipedia-task-checkbox ${isCompleted ? 'checked' : ''}`}>
-                              {isCompleted ? '✓' : ''}
+                              {isCompleted ? 'OK' : ''}
                             </span>
                             <span className={`hexipedia-task-name ${isCurrent ? 'current' : ''}`}>
                               {getLocalizedText(definition.name, lang)}
@@ -686,7 +686,6 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                                 className="hexipedia-task-action"
                                 onClick={() => onDownloadSession?.(currentSessionId)}
                               >
-                                <i className="fas fa-download" aria-hidden="true" />{' '}
                                 {t('action.download')}
                               </button>
                             )}
@@ -743,7 +742,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                                   className="hexipedia-task-action"
                                   onClick={() => onSetPlaybackPaused?.(!isPlaybackPaused)}
                                 >
-                                  <i className={`fas ${isPlaybackPaused ? 'fa-play' : 'fa-pause'}`} />
+                                  {isPlaybackPaused ? 'play' : 'PLAY'}
                                 </button>
                                 <div className="hexipedia-playback-seek">
                                   <input
@@ -774,7 +773,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                                     onSeekToTick(gameState.tick + 1);
                                   }}
                                 >
-                                  <i className="fas fa-step-forward" />
+                                  STEP
                                 </button>
                               </div>
                             </div>
@@ -849,7 +848,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                           <span className="hexipedia-structure-type-trigger-label">
                             {selectedStructureTemplate?.name[lang] ?? ''}
                           </span>
-                          <span className="hexipedia-structure-type-trigger-chevron" aria-hidden="true">▾</span>
+                          <span className="hexipedia-structure-type-trigger-chevron" aria-hidden="true">v</span>
                         </button>
                         {showStructureTypeDropdown && (
                           <div className="hexipedia-section-dropdown hexipedia-structure-type-dropdown" role="listbox">
