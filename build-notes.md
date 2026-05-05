@@ -739,3 +739,5 @@
 - 0.1.0-y26w19b8 — Restrict forced widgets to map tab, restore tab backgrounds, unify global monospace and [X] close
 
 - 0.1.0-y26w19b9 — Use TUI extended symbols, TUI task controls, and tab-specific active header backgrounds
+
+- 0.1.0-y26w19b10 — Scope TUI tab-bar reset to start screen so active map/hexipedia header background works

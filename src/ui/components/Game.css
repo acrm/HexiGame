@@ -1085,10 +1085,10 @@ html, body {
 .gs-language-bar::after { right: 0; content: none; }
 
 /* Global reset for TUI elements */
-.gs-guest-start-container button,
-.gs-guest-start-container select,
-.gs-guest-start-container input,
-.gs-tab-bar button {
+.guest-start-content.hexipedia-style button,
+.guest-start-content.hexipedia-style select,
+.guest-start-content.hexipedia-style input,
+.guest-start-content.hexipedia-style .gs-tab-bar button {
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
@@ -1105,9 +1105,9 @@ html, body {
   border-radius: 0 !important;
 }
 
-.gs-guest-start-container input:focus,
-.gs-guest-start-container select:focus,
-.gs-guest-start-container button:focus {
+.guest-start-content.hexipedia-style input:focus,
+.guest-start-content.hexipedia-style select:focus,
+.guest-start-content.hexipedia-style button:focus {
   outline: none !important;
   border: none !important;
   box-shadow: none !important;
