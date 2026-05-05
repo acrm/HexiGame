@@ -71,7 +71,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           title={t('tutorial.widget.openTasks')}
           aria-label={t('tutorial.widget.openTasks')}
         >
-          NAV
+          {'>'}
         </TuiIconButton>
       )}
     </div>

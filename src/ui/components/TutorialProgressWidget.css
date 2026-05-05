@@ -25,6 +25,7 @@
   transition: background 0.2s;
   user-select: none;
   outline: none;
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
 }
 
 /* ── Pending state: orange inner glow + pulse ─────────────────────────── */

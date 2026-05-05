@@ -84,6 +84,9 @@ import { mulberry32 } from '../../gameLogic/core/params';
 
 const MASCOT_FACING_DIR_INDEX = 1;
 
+// DEBUG: Set localStorage.DEBUG_WIDGETS = 'true' in browser console to show all widgets and hotbar
+const DEBUG = typeof window !== 'undefined' && window.localStorage?.getItem('DEBUG_WIDGETS') === 'true';
+
 interface TaskIntroModalState {
   taskId: string;
 }
@@ -517,10 +520,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'lab' : isInventory;
 
-  const effectiveShowColorWidget = taskUiGate.canShowPaletteWidget && showColorWidget;
-  const effectiveShowTaskWidget = !!gameState.taskId && showTaskWidget;
-  const effectiveShowStructureWidget = taskUiGate.canShowStructureWidget && showStructureWidget;
-  const effectiveHideHotbar = taskUiGate.hideHotbar || (activeTask?.hideHotbar ?? false);
+  // DEBUG mode: show all widgets and hotbar regardless of task UI gate
+  const effectiveShowColorWidget = DEBUG ? showColorWidget : (taskUiGate.canShowPaletteWidget && showColorWidget);
+  const effectiveShowTaskWidget = DEBUG ? showTaskWidget : (!!gameState.taskId && showTaskWidget);
+  const effectiveShowStructureWidget = DEBUG ? showStructureWidget : (taskUiGate.canShowStructureWidget && showStructureWidget);
+  const effectiveHideHotbar = DEBUG ? false : (taskUiGate.hideHotbar || (activeTask?.hideHotbar ?? false));
 
   const resolvedVisitedHighlightTargets =
     activeTaskTargetHexes.length > 0

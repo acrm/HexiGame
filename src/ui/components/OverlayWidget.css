@@ -3,6 +3,7 @@
   align-items: stretch;
   gap: 0;
   box-sizing: border-box;
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
 }
 
 .overlay-widget-body {

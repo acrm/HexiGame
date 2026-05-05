@@ -81,7 +81,7 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           title={t('hexipedia.widget.openSession')}
           aria-label={t('hexipedia.widget.openSession')}
         >
-          NAV
+          {'>'}
         </TuiIconButton>
       )}
     </div>

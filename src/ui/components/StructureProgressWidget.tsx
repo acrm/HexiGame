@@ -64,7 +64,7 @@ export const StructureProgressWidget: React.FC<StructureProgressWidgetProps> = (
           title={t('structures.widget.openStructures')}
           aria-label={t('structures.widget.openStructures')}
         >
-          NAV
+          {'>'}
         </TuiIconButton>
       )}
     </div>

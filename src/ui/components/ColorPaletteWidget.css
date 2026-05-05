@@ -1,6 +1,7 @@
 .color-palette-widget {
   margin: 0 8px;
   z-index: 50;
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
 }
 
 .color-palette-widget__body {
