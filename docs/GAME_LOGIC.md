@@ -258,6 +258,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Session list is unified (no separate “current session” card) and sorted by most recent activity.
 - Each session row is collapsed by default and shows: expander button, codename (large), last-action timestamp (smaller), and a large right-aligned play/start action.
 - Session expand/collapse affordance uses double triangle arrows (`⏷` to expand, `⏶` to collapse), separate from play/start iconography.
+- TUI UI layer is extracted into a reusable toolkit module under `src/ui/tui` (primitives + session wrappers), so new start-like pages can reuse consistent border rows, tab bars, bracket buttons, and session card chrome without duplicating markup.
 - Expanded session content exposes download/rename/delete actions and renders the same metrics:
   - start time,
   - last action time,

@@ -1,5 +1,10 @@
 # TODO
 
+## Recently Completed (2026-05-05)
+
+- [x] Из стартовой страницы извлечён переиспользуемый TUI toolkit в `src/ui/tui` (базовые примитивы + session wrappers + отдельный `tui.css`)
+- [x] `GuestStart` переведён на новые TUI-компоненты без изменения бизнес-логики сессий
+
 ## Recently Completed (2026-04-27)
 
 - [x] Field Lab разделён на независимые режимы визуализации: `Noise (random)` и `Fractal structures (manual)` без смешивания подходов

@@ -721,3 +721,5 @@
 - 0.1.0-y26w18b3 — interactive fractal layer grid editor; full state persistence refactor: autoMovePath, flash null, IndexedDB mirror, HexipediaShellState, wasInGameplay, mobileTab from session
 
 - 0.1.0-y26w18b4 — Fix TUI line-height gaps, active session text visibility, improve console snapshot
+
+- 0.1.0-y26w19b1 — Extract reusable TUI toolkit from GuestStart

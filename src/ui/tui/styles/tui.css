@@ -1,0 +1,124 @@
+.tui-border-row {
+  display: flex;
+  width: 100%;
+  color: #aaaaaa;
+  align-items: center;
+  font-weight: normal;
+  padding: 0;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.tui-border-left,
+.tui-border-right {
+  flex: 0 0 auto;
+  white-space: pre;
+}
+
+.tui-border-fill {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.tui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.tui-btn::before {
+  content: '[ ';
+  color: #aaaaaa;
+}
+
+.tui-btn::after {
+  content: ' ]';
+  color: #aaaaaa;
+}
+
+.tui-btn--no-brackets::before,
+.tui-btn--no-brackets::after {
+  content: none;
+}
+
+.tui-btn:hover {
+  color: #aaaaaa;
+}
+
+.tui-btn--secondary {
+  color: #ffff55;
+}
+
+.tui-icon-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tui-icon-btn::before {
+  content: '[ ';
+  color: #aaaaaa;
+}
+
+.tui-icon-btn::after {
+  content: ' ]';
+  color: #aaaaaa;
+}
+
+.tui-icon-btn:hover {
+  color: #aaaaaa;
+}
+
+.tui-icon-btn--danger {
+  color: #ff5555;
+}
+
+.tui-icon-btn--confirm {
+  color: #ffff55;
+}
+
+.tui-icon-btn--no-brackets::before,
+.tui-icon-btn--no-brackets::after {
+  content: none;
+}
+
+.tui-tab-bar-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tui-session-actions-row {
+  position: relative;
+}
+
+.tui-session-actions-fill {
+  display: flex;
+  gap: 2ch;
+  padding-left: 1ch;
+}
+
+.tui-session-card-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: transparent;
+}
+
+.tui-session-meta-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  color: #aaaaaa;
+}
