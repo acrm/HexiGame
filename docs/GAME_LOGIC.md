@@ -290,6 +290,9 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Session overlay widget defaults to `off` and is controlled by the eye-toggle in the `Session` section header.
 - `Download session` action is placed inside Session panel content (not in section header controls).
 - Session panel includes expanded metadata plus a scrollable action log ordered from newest to oldest.
+- Active runtime Hexipedia (`src/ui/components/Hexipedia.tsx`) now renders section headers and filter row through TUI primitives (`TuiBorderRow` + bracketed icon controls), while preserving the same section behavior (collapse/reorder/pin/widget toggles).
+- Mobile tab color states are mapped by semantic tab classes (`mobile-tab--map/lab/hexipedia`) rather than positional `nth-child` selectors to keep styling deterministic under layout refactors.
+- In-game Settings volume controls use structured CSS classes for range rows (no inline slider/value styles), preserving existing audio behavior.
 - Page reload is treated as resume, not as a new session boundary; the latest persisted state is restored before gameplay loop resumes.
 - `Restart session` creates a fresh RNG from `Date.now()` seed so each new game has a different procedural world.
 - Startup animation timings are accelerated by a factor of 3 while preserving the same phase order and visual beats.

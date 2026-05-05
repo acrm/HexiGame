@@ -83,21 +83,21 @@ export const Settings: React.FC<SettingsProps> = ({
           />
         </div>
 
-        <div className="settings-row">
+        <div className="settings-row settings-row--range">
           <label>{t('settings.soundVolume')}</label>
-          <input 
-            type="range" 
-            min="0" 
-            max="1" 
-            step="0.01"
-            value={soundVolume}
-            onChange={(e) => onSoundVolumeChange(parseFloat(e.target.value))}
-            disabled={!soundEnabled}
-            style={{ flex: 1 }}
-          />
-          <span style={{ marginLeft: 8, minWidth: 40, textAlign: 'right' }}>
-            {Math.round(soundVolume * 100)}%
-          </span>
+          <div className="settings-range-group">
+            <input
+              className="settings-range-input"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={soundVolume}
+              onChange={(e) => onSoundVolumeChange(parseFloat(e.target.value))}
+              disabled={!soundEnabled}
+            />
+            <span className="settings-range-value">{Math.round(soundVolume * 100)}%</span>
+          </div>
         </div>
 
         <div className="settings-row">
@@ -109,21 +109,21 @@ export const Settings: React.FC<SettingsProps> = ({
           />
         </div>
 
-        <div className="settings-row">
+        <div className="settings-row settings-row--range">
           <label>{t('settings.musicVolume')}</label>
-          <input 
-            type="range" 
-            min="0" 
-            max="1" 
-            step="0.01"
-            value={musicVolume}
-            onChange={(e) => onMusicVolumeChange(parseFloat(e.target.value))}
-            disabled={!musicEnabled}
-            style={{ flex: 1 }}
-          />
-          <span style={{ marginLeft: 8, minWidth: 40, textAlign: 'right' }}>
-            {Math.round(musicVolume * 100)}%
-          </span>
+          <div className="settings-range-group">
+            <input
+              className="settings-range-input"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={musicVolume}
+              onChange={(e) => onMusicVolumeChange(parseFloat(e.target.value))}
+              disabled={!musicEnabled}
+            />
+            <span className="settings-range-value">{Math.round(musicVolume * 100)}%</span>
+          </div>
         </div>
 
         <div className="settings-row">

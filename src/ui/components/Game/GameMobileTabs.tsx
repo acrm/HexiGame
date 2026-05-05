@@ -26,20 +26,20 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
     <div className="mobile-tab-bar">
       <div className="mobile-tabs-container">
         <button
-          className={`mobile-tab ${mobileTab === 'map' ? 'active' : ''}`}
+          className={`mobile-tab mobile-tab--map ${mobileTab === 'map' ? 'active' : ''}`}
           onClick={onSelectMap}
         >
           {t('tab.map')}
         </button>
         <button
-          className={`mobile-tab ${mobileTab === 'lab' ? 'active' : ''} disabled`}
+          className={`mobile-tab mobile-tab--lab ${mobileTab === 'lab' ? 'active' : ''} disabled`}
           onClick={() => {}}
           disabled
         >
           {t('tab.lab')}
         </button>
         <button
-          className={`mobile-tab ${mobileTab === 'hexipedia' ? 'active' : ''}`}
+          className={`mobile-tab mobile-tab--hexipedia ${mobileTab === 'hexipedia' ? 'active' : ''}`}
           onClick={onSelectHexipedia}
         >
           {t('tab.hexipedia')}

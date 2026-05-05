@@ -43,9 +43,6 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   padding: 10px 12px;
   background: #2a2a2a;
   border: 1px solid #aaaaaa;
@@ -53,9 +50,28 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
+.hexipedia-section-filter-shell {
+  position: relative;
+}
+
+.hexipedia-section-filter-row {
+  background: #1a1a1a;
+  color: #aaaaaa;
+}
+
+.hexipedia-section-filter-row .tui-border-left,
+.hexipedia-section-filter-row .tui-border-right {
+  padding: 0 8px;
+}
+
 .hexipedia-section-filter-icon {
   color: #888888;
   font-size: 12px;
+}
+
+.hexipedia-section-filter-right {
+  display: inline-block;
+  min-width: 8px;
 }
 
 .hexipedia-section-filter-input {

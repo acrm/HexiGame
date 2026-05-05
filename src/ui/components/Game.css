@@ -177,16 +177,16 @@ html, body {
   filter: grayscale(0.4);
 }
 
-/* Semantic tab colors replacing nth-child selectors */
-.mobile-tab:nth-child(1) {
+/* Semantic tab colors */
+.mobile-tab--map {
   background: #2b0041;
 }
 
-.mobile-tab:nth-child(2) {
+.mobile-tab--lab {
   background: #663300;
 }
 
-.mobile-tab:nth-child(3) {
+.mobile-tab--hexipedia {
   background: #2a2a2a;
 }
 
@@ -200,20 +200,16 @@ html, body {
   background: #2f2f2f;
 }
 
-.mobile-tab:nth-child(1).active {
+.mobile-tab--map.active {
   background: #00264C;
 }
 
-.mobile-tab:nth-child(2).active {
+.mobile-tab--lab.active {
   background: #994D00;
 }
 
-.mobile-tab:nth-child(3).active {
+.mobile-tab--hexipedia.active {
   background: #333333;
-}
-
-.mobile-tab.active {
-  background: var(--game-bg, #00264C);
 }
 
 @media (max-width: 900px) {
@@ -340,6 +336,39 @@ html, body {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.settings-row label {
+  flex: 0 0 auto;
+}
+
+.settings-row select {
+  min-width: 140px;
+  background: #111111;
+  color: #ffffff;
+  border: 1px solid #aaaaaa;
+  padding: 4px 6px;
+}
+
+.settings-row--range {
+  align-items: center;
+}
+
+.settings-range-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-range-input {
+  flex: 1;
+}
+
+.settings-range-value {
+  min-width: 40px;
+  text-align: right;
+  color: #aaaaaa;
 }
 
 .settings-action-button {
@@ -747,8 +776,6 @@ html, body {
 .gs-session-card:last-child::after {
   display: none;
 }
-
-.gs-session-card--active {}
 
 .gs-session-row {
   position: relative;

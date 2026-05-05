@@ -8,6 +8,7 @@ import { getAllTaskDefinitions } from '../../tasks/taskLevels';
 import { ALL_TEMPLATES, getTemplateById } from '../../templates/templateLibrary';
 import { audioController } from '../../appLogic/audioController';
 import type { SessionLog } from '../../appLogic/sessionRepository';
+import { TuiBorderRow, TuiIconButton } from '../tui';
 import './Hexipedia/Hexipedia.css';
 
 interface SessionHistoryRecord {
@@ -339,37 +340,145 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
     return sectionTitles[id].toLowerCase().includes(sectionFilterValue);
   });
 
+  const renderSectionHeader = ({
+    title,
+    isCollapsed,
+    onToggleCollapse,
+    isPinned,
+    canMoveUp,
+    canMoveDown,
+    onMoveUp,
+    onMoveDown,
+    onTogglePin,
+    pinTitle,
+    pinAriaLabel,
+    widgetVisible,
+    onToggleWidget,
+    widgetShowTitle,
+    widgetHideTitle,
+  }: {
+    title: string;
+    isCollapsed: boolean;
+    onToggleCollapse: () => void;
+    isPinned: boolean;
+    canMoveUp: boolean;
+    canMoveDown: boolean;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    onTogglePin: () => void;
+    pinTitle: string;
+    pinAriaLabel: string;
+    widgetVisible?: boolean;
+    onToggleWidget?: () => void;
+    widgetShowTitle?: string;
+    widgetHideTitle?: string;
+  }) => (
+    <TuiBorderRow
+      className="hexipedia-section-header-row"
+      left={
+        <div
+          className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
+          onClick={onToggleCollapse}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onToggleCollapse();
+            }
+          }}
+        >
+          <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+          <span className="hexipedia-section-title">{title}</span>
+        </div>
+      }
+      right={
+        <div className="hexipedia-section-controls">
+          {onToggleWidget && (
+            <TuiIconButton
+              className={`hexipedia-section-move hexipedia-widget-toggle ${widgetVisible ? 'on' : 'off'}`}
+              variant={widgetVisible ? 'confirm' : 'default'}
+              onClick={onToggleWidget}
+              title={widgetVisible ? widgetHideTitle : widgetShowTitle}
+              aria-label={widgetVisible ? widgetHideTitle : widgetShowTitle}
+            >
+              <i className={`fas ${widgetVisible ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
+            </TuiIconButton>
+          )}
+          {isPinned && (
+            <>
+              <TuiIconButton
+                className="hexipedia-section-move"
+                onClick={onMoveUp}
+                disabled={!canMoveUp}
+                title={t('hexipedia.section.moveUp')}
+                aria-label={t('hexipedia.section.moveUp')}
+              >
+                ▲
+              </TuiIconButton>
+              <TuiIconButton
+                className="hexipedia-section-move"
+                onClick={onMoveDown}
+                disabled={!canMoveDown}
+                title={t('hexipedia.section.moveDown')}
+                aria-label={t('hexipedia.section.moveDown')}
+              >
+                ▼
+              </TuiIconButton>
+            </>
+          )}
+          <TuiIconButton
+            className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
+            variant={isPinned ? 'confirm' : 'default'}
+            onClick={onTogglePin}
+            title={pinTitle}
+            aria-label={pinAriaLabel}
+          >
+            <i className="fas fa-thumbtack" aria-hidden="true" />
+          </TuiIconButton>
+        </div>
+      }
+    />
+  );
+
   return (
     <div className="hexipedia-root">
-      <div className="hexipedia-section-filter" style={{ position: 'relative' }}>
-        <i className="fas fa-search hexipedia-section-filter-icon" aria-hidden="true"></i>
-        <input
-          className="hexipedia-section-filter-input"
-          type="text"
-          value={sectionFilter}
-          onChange={(event) => setSectionFilter(event.target.value)}
-          onFocus={() => setShowSearchDropdown(true)}
-          onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
-          placeholder={t('hexipedia.searchPlaceholder')}
-          aria-label={t('hexipedia.searchAria')}
-        />
-        {showSearchDropdown && (
-          <div className="hexipedia-section-dropdown">
-            {dropdownSections.map(id => (
-              <button
-                key={id}
-                className={`hexipedia-section-dropdown-item ${isSectionEnabled(id) ? 'is-enabled' : ''} ${isSectionPinned(id) ? 'is-pinned' : ''}`}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  openSectionFromSearch(id);
-                }}
-              >
-                <span className="hexipedia-section-dropdown-name">{sectionTitles[id]}</span>
-                {isSectionPinned(id) && <i className="fas fa-thumbtack hexipedia-section-dropdown-pin" aria-hidden="true" />}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="hexipedia-section-filter">
+        <div className="hexipedia-section-filter-shell">
+          <TuiBorderRow
+            className="hexipedia-section-filter-row"
+            left={<i className="fas fa-search hexipedia-section-filter-icon" aria-hidden="true"></i>}
+            right={<span className="hexipedia-section-filter-right" aria-hidden="true" />}
+          >
+            <input
+              className="hexipedia-section-filter-input"
+              type="text"
+              value={sectionFilter}
+              onChange={(event) => setSectionFilter(event.target.value)}
+              onFocus={() => setShowSearchDropdown(true)}
+              onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
+              placeholder={t('hexipedia.searchPlaceholder')}
+              aria-label={t('hexipedia.searchAria')}
+            />
+          </TuiBorderRow>
+          {showSearchDropdown && (
+            <div className="hexipedia-section-dropdown">
+              {dropdownSections.map(id => (
+                <button
+                  key={id}
+                  className={`hexipedia-section-dropdown-item ${isSectionEnabled(id) ? 'is-enabled' : ''} ${isSectionPinned(id) ? 'is-pinned' : ''}`}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    openSectionFromSearch(id);
+                  }}
+                >
+                  <span className="hexipedia-section-dropdown-name">{sectionTitles[id]}</span>
+                  {isSectionPinned(id) && <i className="fas fa-thumbtack hexipedia-section-dropdown-pin" aria-hidden="true" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="hexipedia-scrollable-content">
@@ -391,56 +500,23 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 }}
                 className="hexipedia-section-wrapper"
               >
-                <div className="hexipedia-section-header-container">
-                  <div
-                    className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
-                    onClick={() => toggleSectionCollapse('tasks')}
-                  >
-                    <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
-                    <span className="hexipedia-section-title">{t('task.tasksTitle')}</span>
-                  </div>
-                  <div className="hexipedia-section-controls">
-                    <button
-                      className={`hexipedia-section-move hexipedia-widget-toggle ${showTaskWidget ? 'on' : 'off'}`}
-                      onClick={() => onToggleTaskWidget?.(!showTaskWidget)}
-                      disabled={!onToggleTaskWidget}
-                      title={showTaskWidget ? t('hexipedia.widget.hideTasks') : t('hexipedia.widget.showTasks')}
-                      aria-label={showTaskWidget ? t('hexipedia.widget.hideTasks') : t('hexipedia.widget.showTasks')}
-                    >
-                      <i className={`fas ${showTaskWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
-                    </button>
-                    {isPinned && (
-                      <>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionUp('tasks')}
-                          disabled={!canMoveUp}
-                          title={t('hexipedia.section.moveUp')}
-                          aria-label={t('hexipedia.section.moveUp')}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionDown('tasks')}
-                          disabled={!canMoveDown}
-                          title={t('hexipedia.section.moveDown')}
-                          aria-label={t('hexipedia.section.moveDown')}
-                        >
-                          ▼
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
-                      onClick={() => toggleSectionPinned('tasks')}
-                      title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                      aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                    >
-                      <i className="fas fa-thumbtack" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
+                {renderSectionHeader({
+                  title: t('task.tasksTitle'),
+                  isCollapsed,
+                  onToggleCollapse: () => toggleSectionCollapse('tasks'),
+                  isPinned,
+                  canMoveUp,
+                  canMoveDown,
+                  onMoveUp: () => moveSectionUp('tasks'),
+                  onMoveDown: () => moveSectionDown('tasks'),
+                  onTogglePin: () => toggleSectionPinned('tasks'),
+                  pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                  pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                  widgetVisible: showTaskWidget,
+                  onToggleWidget: onToggleTaskWidget ? () => onToggleTaskWidget(!showTaskWidget) : undefined,
+                  widgetShowTitle: t('hexipedia.widget.showTasks'),
+                  widgetHideTitle: t('hexipedia.widget.hideTasks'),
+                })}
 
                 {!isCollapsed && (
                   <div className="hexipedia-accordion-list">
@@ -583,56 +659,23 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                     }}
                     className="hexipedia-section-wrapper"
                   >
-                    <div className="hexipedia-section-header-container">
-                      <div
-                        className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
-                        onClick={() => toggleSectionCollapse('session')}
-                      >
-                        <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
-                        <span className="hexipedia-section-title">{t('session.title')}</span>
-                      </div>
-                      <div className="hexipedia-section-controls">
-                        <button
-                          className={`hexipedia-section-move hexipedia-widget-toggle ${showSessionWidget ? 'on' : 'off'}`}
-                          onClick={() => onToggleSessionWidget?.(!showSessionWidget)}
-                          disabled={!onToggleSessionWidget}
-                          title={showSessionWidget ? t('hexipedia.widget.hideSession') : t('hexipedia.widget.showSession')}
-                          aria-label={showSessionWidget ? t('hexipedia.widget.hideSession') : t('hexipedia.widget.showSession')}
-                        >
-                          <i className={`fas ${showSessionWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
-                        </button>
-                        {isPinned && (
-                          <>
-                            <button
-                              className="hexipedia-section-move"
-                              onClick={() => moveSectionUp('session')}
-                              disabled={!canMoveUp}
-                              title={t('hexipedia.section.moveUp')}
-                              aria-label={t('hexipedia.section.moveUp')}
-                            >
-                              ▲
-                            </button>
-                            <button
-                              className="hexipedia-section-move"
-                              onClick={() => moveSectionDown('session')}
-                              disabled={!canMoveDown}
-                              title={t('hexipedia.section.moveDown')}
-                              aria-label={t('hexipedia.section.moveDown')}
-                            >
-                              ▼
-                            </button>
-                          </>
-                        )}
-                        <button
-                          className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
-                          onClick={() => toggleSectionPinned('session')}
-                          title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                          aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                        >
-                          <i className="fas fa-thumbtack" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
+                    {renderSectionHeader({
+                      title: t('session.title'),
+                      isCollapsed,
+                      onToggleCollapse: () => toggleSectionCollapse('session'),
+                      isPinned,
+                      canMoveUp,
+                      canMoveDown,
+                      onMoveUp: () => moveSectionUp('session'),
+                      onMoveDown: () => moveSectionDown('session'),
+                      onTogglePin: () => toggleSectionPinned('session'),
+                      pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                      pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                      widgetVisible: showSessionWidget,
+                      onToggleWidget: onToggleSessionWidget ? () => onToggleSessionWidget(!showSessionWidget) : undefined,
+                      widgetShowTitle: t('hexipedia.widget.showSession'),
+                      widgetHideTitle: t('hexipedia.widget.hideSession'),
+                    })}
 
                     {!isCollapsed && (
                       <div className="hexipedia-stats-section">
@@ -772,56 +815,23 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 }}
                 className="hexipedia-section-wrapper"
               >
-                <div className="hexipedia-section-header-container">
-                  <div
-                    className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
-                    onClick={() => toggleSectionCollapse('structures')}
-                  >
-                    <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
-                    <span className="hexipedia-section-title">{t('structures.title')}</span>
-                  </div>
-                  <div className="hexipedia-section-controls">
-                    <button
-                      className={`hexipedia-section-move hexipedia-widget-toggle ${showStructureWidget ? 'on' : 'off'}`}
-                      onClick={() => onToggleStructureWidget?.(!showStructureWidget)}
-                      disabled={!onToggleStructureWidget}
-                      title={showStructureWidget ? t('hexipedia.widget.hideStructures') : t('hexipedia.widget.showStructures')}
-                      aria-label={showStructureWidget ? t('hexipedia.widget.hideStructures') : t('hexipedia.widget.showStructures')}
-                    >
-                      <i className={`fas ${showStructureWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
-                    </button>
-                    {isPinned && (
-                      <>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionUp('structures')}
-                          disabled={!canMoveUp}
-                          title={t('hexipedia.section.moveUp')}
-                          aria-label={t('hexipedia.section.moveUp')}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionDown('structures')}
-                          disabled={!canMoveDown}
-                          title={t('hexipedia.section.moveDown')}
-                          aria-label={t('hexipedia.section.moveDown')}
-                        >
-                          ▼
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
-                      onClick={() => toggleSectionPinned('structures')}
-                      title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                      aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                    >
-                      <i className="fas fa-thumbtack" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
+                {renderSectionHeader({
+                  title: t('structures.title'),
+                  isCollapsed,
+                  onToggleCollapse: () => toggleSectionCollapse('structures'),
+                  isPinned,
+                  canMoveUp,
+                  canMoveDown,
+                  onMoveUp: () => moveSectionUp('structures'),
+                  onMoveDown: () => moveSectionDown('structures'),
+                  onTogglePin: () => toggleSectionPinned('structures'),
+                  pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                  pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                  widgetVisible: showStructureWidget,
+                  onToggleWidget: onToggleStructureWidget ? () => onToggleStructureWidget(!showStructureWidget) : undefined,
+                  widgetShowTitle: t('hexipedia.widget.showStructures'),
+                  widgetHideTitle: t('hexipedia.widget.hideStructures'),
+                })}
 
                 {!isCollapsed && (
                   <div className="hexipedia-templates-section">
@@ -968,56 +978,23 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 }}
                 className="hexipedia-section-wrapper"
               >
-                <div className="hexipedia-section-header-container">
-                  <div
-                    className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
-                    onClick={() => toggleSectionCollapse('colors')}
-                  >
-                    <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
-                    <span className="hexipedia-section-title">{t('colors.title')}</span>
-                  </div>
-                  <div className="hexipedia-section-controls">
-                    <button
-                      className={`hexipedia-section-move hexipedia-widget-toggle ${showColorWidget ? 'on' : 'off'}`}
-                      onClick={() => onToggleColorWidget?.(!showColorWidget)}
-                      disabled={!onToggleColorWidget}
-                      title={showColorWidget ? t('hexipedia.widget.hideColors') : t('hexipedia.widget.showColors')}
-                      aria-label={showColorWidget ? t('hexipedia.widget.hideColors') : t('hexipedia.widget.showColors')}
-                    >
-                      <i className={`fas ${showColorWidget ? 'fa-eye' : 'fa-eye-slash'}`} aria-hidden="true" />
-                    </button>
-                    {isPinned && (
-                      <>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionUp('colors')}
-                          disabled={!canMoveUp}
-                          title={t('hexipedia.section.moveUp')}
-                          aria-label={t('hexipedia.section.moveUp')}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          className="hexipedia-section-move"
-                          onClick={() => moveSectionDown('colors')}
-                          disabled={!canMoveDown}
-                          title={t('hexipedia.section.moveDown')}
-                          aria-label={t('hexipedia.section.moveDown')}
-                        >
-                          ▼
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
-                      onClick={() => toggleSectionPinned('colors')}
-                      title={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                      aria-label={isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin')}
-                    >
-                      <i className="fas fa-thumbtack" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
+                {renderSectionHeader({
+                  title: t('colors.title'),
+                  isCollapsed,
+                  onToggleCollapse: () => toggleSectionCollapse('colors'),
+                  isPinned,
+                  canMoveUp,
+                  canMoveDown,
+                  onMoveUp: () => moveSectionUp('colors'),
+                  onMoveDown: () => moveSectionDown('colors'),
+                  onTogglePin: () => toggleSectionPinned('colors'),
+                  pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                  pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                  widgetVisible: showColorWidget,
+                  onToggleWidget: onToggleColorWidget ? () => onToggleColorWidget(!showColorWidget) : undefined,
+                  widgetShowTitle: t('hexipedia.widget.showColors'),
+                  widgetHideTitle: t('hexipedia.widget.hideColors'),
+                })}
 
                 {!isCollapsed && (
                   <div className="hexipedia-colors-section">
