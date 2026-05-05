@@ -733,3 +733,5 @@
 - 0.1.0-y26w19b5 — Replace UI icons with ASCII labels and align mobile top tabs with HexiOS tab bar
 
 - 0.1.0-y26w19b6 — Add monospace font to widgets, use ASCII arrow > for navigation, add DEBUG mode
+
+- 0.1.0-y26w19b7 — Align runtime gameplay UI with HexiOS style and force debug widgets/hotbar

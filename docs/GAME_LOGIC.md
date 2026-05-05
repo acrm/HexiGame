@@ -207,7 +207,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Task completion only fires on state transition (incomplete → complete), but advancing to the next pending task happens only after the player clicks the widget in `complete` phase.
 - The hotbar and HexiLab are disabled at session start and remain disabled through `task_1_explore`; they are explicitly unlocked when `task_2_collect_beyond_visibility` starts. The palette widget becomes available from task 4 onward, and the structures widget appears during the final Yin-Yang task.
 - Tasks run in one continuous world: starting the next task does not rebuild the whole sandbox. Task setup only applies minimal targeted injections (task-specific cells/structures), while turtle position, hotbar contents, and surrounding world state are preserved.
-- Top overlay widgets share the standard `»` edge button for quick navigation to the corresponding HexiPedia panel. The task widget body controls task flow, and the structure widget opens the `Structures` panel.
+- Top overlay widgets share the standard ASCII edge button `>` for quick navigation to the corresponding HexiPedia panel. The task widget body controls task flow, and the structure widget opens the `Structures` panel.
 - HexiPedia panel defaults: `Tasks` is enabled and pinned; other panels (`Stats`, `Structures`, `Colors`) start disabled (not rendered).
 - Enabled panels that are not pinned auto-hide after leaving HexiPedia; pinned panels remain enabled across tab switches.
 - Disabled panels are completely removed from the DOM (not just collapsed). They can be restored via the search bar dropdown which lists all panels. Clicking a panel in the dropdown enables and scrolls to it.
@@ -217,6 +217,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Mobile gameplay layout uses a fixed design width (`420px`, clamped by device width) and adapts vertically to the device height.
 - Mobile control blocks (tab bar + widget stack) are placed in normal document flow, so they do not overlap the playable field.
 - If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
+- Runtime gameplay UI is visually aligned with the start screen HexiOS TUI style: unified monospace font stack, black background, square borders, and text-first controls.
+- Debug runtime mode can force all overlay widgets to stay visible simultaneously and disables hotbar hiding for rapid UI verification.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).

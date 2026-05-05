@@ -16,6 +16,7 @@ type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 interface GameOverlaysProps {
   isMobileLayout: boolean;
   mobileTab: MobileTab;
+  forceShowWidgetStack?: boolean;
   taskWidgetProps: React.ComponentProps<typeof TutorialProgressWidget> | null;
   taskIntroModalProps: React.ComponentProps<typeof TutorialTaskIntroModal> | null;
   colorPaletteWidgetProps: React.ComponentProps<typeof ColorPaletteWidget> | null;
@@ -45,6 +46,7 @@ interface GameOverlaysProps {
 export const GameOverlays: React.FC<GameOverlaysProps> = ({
   isMobileLayout,
   mobileTab,
+  forceShowWidgetStack = false,
   taskWidgetProps,
   taskIntroModalProps,
   colorPaletteWidgetProps,
@@ -72,7 +74,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
 }) => {
   return (
     <>
-      {isMobileLayout && mobileTab === 'map' && (
+      {isMobileLayout && (mobileTab === 'map' || forceShowWidgetStack) && (
         <div className="widget-stack-overlay">
           {sectionOrder.map(sectionId => {
             if (sectionId === 'tasks' && taskWidgetProps) {

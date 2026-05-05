@@ -84,8 +84,11 @@ import { mulberry32 } from '../../gameLogic/core/params';
 
 const MASCOT_FACING_DIR_INDEX = 1;
 
-// DEBUG: Set localStorage.DEBUG_WIDGETS = 'true' in browser console to show all widgets and hotbar
-const DEBUG = typeof window !== 'undefined' && window.localStorage?.getItem('DEBUG_WIDGETS') === 'true';
+// DEBUG: force full runtime UI visibility during tuning (widgets + hotbar)
+const FORCE_DEBUG_UI = true;
+const DEBUG = FORCE_DEBUG_UI || (
+  typeof window !== 'undefined' && window.localStorage?.getItem('DEBUG_WIDGETS') === 'true'
+);
 
 interface TaskIntroModalState {
   taskId: string;
@@ -520,10 +523,11 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   const effectiveIsInventory = isMobileLayout ? mobileTab === 'lab' : isInventory;
 
-  // DEBUG mode: show all widgets and hotbar regardless of task UI gate
-  const effectiveShowColorWidget = DEBUG ? showColorWidget : (taskUiGate.canShowPaletteWidget && showColorWidget);
-  const effectiveShowTaskWidget = DEBUG ? showTaskWidget : (!!gameState.taskId && showTaskWidget);
-  const effectiveShowStructureWidget = DEBUG ? showStructureWidget : (taskUiGate.canShowStructureWidget && showStructureWidget);
+  // DEBUG mode: show all widgets and hotbar regardless of task UI gate and user toggles
+  const effectiveShowColorWidget = DEBUG ? true : (taskUiGate.canShowPaletteWidget && showColorWidget);
+  const effectiveShowTaskWidget = DEBUG ? true : (!!gameState.taskId && showTaskWidget);
+  const effectiveShowStructureWidget = DEBUG ? true : (taskUiGate.canShowStructureWidget && showStructureWidget);
+  const effectiveShowSessionWidget = DEBUG ? true : showSessionWidget;
   const effectiveHideHotbar = DEBUG ? false : (taskUiGate.hideHotbar || (activeTask?.hideHotbar ?? false));
 
   const resolvedVisitedHighlightTargets =
@@ -784,7 +788,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     },
     onDownloadSession: handleDownloadSession,
     currentSessionLog,
-    showSessionWidget,
+    showSessionWidget: effectiveShowSessionWidget,
     onToggleSessionWidget: (visible: boolean) => {
       dispatchSettings({ type: 'SET_SHOW_SESSION_WIDGET', visible });
     },
@@ -926,7 +930,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     'task.cellsPlaced': t('task.complete.cellsPlaced'),
   };
 
-  const taskWidgetProps = currentTask && taskWidgetPhase !== 'hidden'
+  const taskWidgetProps: React.ComponentProps<typeof TutorialProgressWidget> | null = currentTask && taskWidgetPhase !== 'hidden'
     ? {
         phase: taskWidgetPhase as TutorialWidgetPhase,
         taskName: getLocalizedText(currentTask.name, language),
@@ -940,7 +944,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         onNavigateToTasks: handleViewCurrentTask,
         containerRef: taskWidgetRef,
       }
-    : null;
+    : DEBUG
+      ? {
+          phase: 'pending',
+          taskName: 'TASK',
+          progressCurrent: 0,
+          progressTotal: 0,
+          progressLabel: '0 / 0',
+          completeText: 'OK',
+          onWidgetClick: handleWidgetClick,
+          onNavigateToTasks: handleViewCurrentTask,
+          containerRef: taskWidgetRef,
+        }
+      : null;
 
   const visibleTaskWidgetProps = effectiveShowTaskWidget ? taskWidgetProps : null;
 
@@ -986,22 +1002,34 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     : undefined;
 
   const structureWidgetProps: React.ComponentProps<typeof StructureProgressWidget> | null =
-    effectiveShowStructureWidget && gameState.activeTemplate && activeStructureTemplate
-      ? {
-          structureName: activeStructureTemplate.name[language],
-          progressCurrent: gameState.activeTemplate.filledCells.size,
-          progressTotal: activeStructureTemplate.structure.cells.length,
-          hasErrors: gameState.activeTemplate.hasErrors,
-          isCompleted: !!gameState.activeTemplate.completedAtTick,
-          baseColor:
-            gameState.activeTemplate.anchoredAt
-              ? mergedParams.ColorPalette[gameState.activeTemplate.anchoredAt.baseColorIndex] ?? null
-              : null,
-          onNavigateToStructures: () => { openHexipediaSection('structures'); },
-        }
+    effectiveShowStructureWidget
+      ? (gameState.activeTemplate && activeStructureTemplate
+          ? {
+              structureName: activeStructureTemplate.name[language],
+              progressCurrent: gameState.activeTemplate.filledCells.size,
+              progressTotal: activeStructureTemplate.structure.cells.length,
+              hasErrors: gameState.activeTemplate.hasErrors,
+              isCompleted: !!gameState.activeTemplate.completedAtTick,
+              baseColor:
+                gameState.activeTemplate.anchoredAt
+                  ? mergedParams.ColorPalette[gameState.activeTemplate.anchoredAt.baseColorIndex] ?? null
+                  : null,
+              onNavigateToStructures: () => { openHexipediaSection('structures'); },
+            }
+          : DEBUG
+            ? {
+                structureName: 'STRUCT',
+                progressCurrent: 0,
+                progressTotal: 0,
+                hasErrors: false,
+                isCompleted: false,
+                baseColor: null,
+                onNavigateToStructures: () => { openHexipediaSection('structures'); },
+              }
+            : null)
       : null;
 
-  const sessionWidgetProps = showSessionWidget && currentSessionId
+  const sessionWidgetProps = effectiveShowSessionWidget
     ? {
         isPlaybackPaused: playbackIsPaused,
         currentTick: gameState.tick,
@@ -1052,6 +1080,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       <GameOverlays
         isMobileLayout={isMobileLayout}
         mobileTab={mobileTab}
+        forceShowWidgetStack={DEBUG}
         taskWidgetProps={visibleTaskWidgetProps}
         taskIntroModalProps={taskIntroModalProps}
         colorPaletteWidgetProps={colorPaletteWidgetProps}
