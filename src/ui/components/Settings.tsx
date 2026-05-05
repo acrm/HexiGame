@@ -48,8 +48,8 @@ export const Settings: React.FC<SettingsProps> = ({
           className="settings-header"
           left={<span>{t('settings.title')}</span>}
           right={
-            <TuiIconButton onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); onClose(); }}>
-              CLS
+            <TuiIconButton className="tui-icon-btn--no-brackets" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); onClose(); }}>
+              [X]
             </TuiIconButton>
           }
         />

@@ -16,7 +16,7 @@ html, body {
   position: relative;
   background: var(--game-bg, #370152ff);
   color: #fff;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
 }
 
 .game-main {
@@ -1148,34 +1148,7 @@ html, body {
   align-items: center !important;
 }
 
-/* Runtime HexiOS alignment: make gameplay UI visually match start screen */
-.game-root.mobile-forced,
-.game-root.mobile-forced * {
-  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
-}
-
-.game-root.mobile-forced {
-  background: #000000 !important;
-  color: #ffffff;
-}
-
-.game-root.mobile-forced .game-main,
-.game-root.mobile-forced .game-field-area,
-.game-root.mobile-forced .game-field,
-.game-root.mobile-forced .game-footer-controls,
-.game-root.mobile-forced .wiki-placeholder,
-.game-root.mobile-forced .hexipedia-root,
-.game-root.mobile-forced .hexipedia-scrollable-content {
-  background: #000000 !important;
-  color: #ffffff;
-}
-
-.game-root.mobile-forced .mobile-tab-bar,
-.game-root.mobile-forced .game-mobile-tab-bar {
-  background: #aaaaaa !important;
-  color: #000000 !important;
-}
-
+/* Active tab header mirrors current tab content background */
 .game-root.mobile-forced .game-mobile-tab-bar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content max-content;
@@ -1190,200 +1163,20 @@ html, body {
 }
 
 .game-root.mobile-forced .mobile-tab {
-  color: #000000 !important;
+  color: #000000;
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
+  padding: 0 0.5ch;
 }
 
 .game-root.mobile-forced .mobile-tab.active {
-  color: #000000 !important;
-  text-decoration: none;
+  background: var(--game-bg, #2f2f2f);
+  color: #ffffff !important;
 }
 
 .game-root.mobile-forced .mobile-tab.disabled,
 .game-root.mobile-forced .mobile-tab:disabled {
-  color: #555555 !important;
-}
-
-.game-root.mobile-forced .disconnect-button,
-.game-root.mobile-forced .settings-button,
-.game-root.mobile-forced .game-mobile-action-btn {
-  width: auto;
-  min-width: 0;
-  height: auto;
-  padding: 0;
-  margin: 0;
-  font-size: 16px;
-  color: #000000 !important;
-  background: transparent !important;
-}
-
-.game-root.mobile-forced .widget-stack-overlay {
-  background: #000000 !important;
-  gap: 0;
-  padding: 0;
-}
-
-.game-root.mobile-forced .overlay-widget-shell {
-  margin: 0 !important;
-}
-
-.game-root.mobile-forced .overlay-widget-body,
-.game-root.mobile-forced .overlay-widget-edge-button,
-.game-root.mobile-forced .tutorial-progress-widget,
-.game-root.mobile-forced .structure-progress-widget,
-.game-root.mobile-forced .session-playback-widget,
-.game-root.mobile-forced .color-palette-widget__body {
-  background: #000000 !important;
-  border-color: #aaaaaa !important;
-  color: #ffffff !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.game-root.mobile-forced .tutorial-progress-widget.phase-pending,
-.game-root.mobile-forced .tutorial-progress-widget.phase-complete {
-  animation: none !important;
-  box-shadow: none !important;
-  border-color: #aaaaaa !important;
-}
-
-.game-root.mobile-forced .tutorial-task-icon,
-.game-root.mobile-forced .tutorial-task-name,
-.game-root.mobile-forced .tutorial-progress-count,
-.game-root.mobile-forced .tutorial-progress-label,
-.game-root.mobile-forced .tutorial-complete-text,
-.game-root.mobile-forced .structure-progress-widget__name,
-.game-root.mobile-forced .structure-progress-widget__status,
-.game-root.mobile-forced .structure-progress-widget__progress,
-.game-root.mobile-forced .color-palette-widget__percent {
-  color: #ffffff !important;
-}
-
-.game-root.mobile-forced .session-playback-widget {
-  border-right: 1px solid #aaaaaa !important;
-  gap: 1ch;
-  padding: 1ch;
-}
-
-.game-root.mobile-forced .session-playback-widget__button {
-  width: auto;
-  min-width: 0;
-  height: auto;
-  border: none !important;
-  background: transparent !important;
-  color: #ffffff !important;
-  padding: 0;
-}
-
-.game-root.mobile-forced .session-playback-widget__input,
-.game-root.mobile-forced .hexipedia-seek-input,
-.game-root.mobile-forced .hexipedia-section-filter-input {
-  background: #000000 !important;
-  border: 1px solid #aaaaaa !important;
-  color: #ffffff !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  font-size: 16px !important;
-  padding: 0 1ch !important;
-}
-
-.game-root.mobile-forced .hexipedia-section-filter,
-.game-root.mobile-forced .hexipedia-panel,
-.game-root.mobile-forced .hexipedia-section-wrapper,
-.game-root.mobile-forced .hexipedia-accordion-title,
-.game-root.mobile-forced .hexipedia-accordion-content,
-.game-root.mobile-forced .hexipedia-stats-section,
-.game-root.mobile-forced .hexipedia-history-subsection,
-.game-root.mobile-forced .hexipedia-colors-section,
-.game-root.mobile-forced .hexipedia-templates-section,
-.game-root.mobile-forced .hexipedia-session-action-item,
-.game-root.mobile-forced .hexipedia-history-item,
-.game-root.mobile-forced .hexipedia-history-empty,
-.game-root.mobile-forced .hexipedia-section-dropdown,
-.game-root.mobile-forced .hexipedia-structure-type-trigger,
-.game-root.mobile-forced .hexipedia-color-item {
-  background: #000000 !important;
-  border-color: #aaaaaa !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.game-root.mobile-forced .hexipedia-section-filter,
-.game-root.mobile-forced .hexipedia-panel {
-  padding: 1ch !important;
-}
-
-.game-root.mobile-forced .hexipedia-section-header-row {
-  background: #000000 !important;
-  border-bottom: 1px solid #aaaaaa !important;
-}
-
-.game-root.mobile-forced .hexipedia-section-header {
-  color: #ffffff !important;
-  font-size: 16px !important;
-  font-weight: 700;
-  padding: 0 1ch !important;
-}
-
-.game-root.mobile-forced .hexipedia-section-toggle,
-.game-root.mobile-forced .hexipedia-section-title,
-.game-root.mobile-forced .hexipedia-history-title,
-.game-root.mobile-forced .hexipedia-stat-label,
-.game-root.mobile-forced .hexipedia-detail-label {
-  color: #aaaaaa !important;
-}
-
-.game-root.mobile-forced .hexipedia-stat-value,
-.game-root.mobile-forced .hexipedia-color-percent,
-.game-root.mobile-forced .hexipedia-session-action-meta {
-  color: #88ccff !important;
-  font-family: inherit !important;
-}
-
-.game-root.mobile-forced .hexipedia-session-action-main {
-  color: #ffffff !important;
-  font-family: inherit !important;
-}
-
-.game-root.mobile-forced .hexipedia-task-action,
-.game-root.mobile-forced .hexipedia-history-clear-btn,
-.game-root.mobile-forced .hexipedia-confirm-yes,
-.game-root.mobile-forced .hexipedia-confirm-no {
-  background: transparent !important;
-  border: none !important;
-  color: #ffffff !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-}
-
-.game-root.mobile-forced .hexipedia-task-action::before,
-.game-root.mobile-forced .hexipedia-history-clear-btn::before,
-.game-root.mobile-forced .hexipedia-confirm-yes::before,
-.game-root.mobile-forced .hexipedia-confirm-no::before {
-  content: '[ ';
-  color: #aaaaaa;
-}
-
-.game-root.mobile-forced .hexipedia-task-action::after,
-.game-root.mobile-forced .hexipedia-history-clear-btn::after,
-.game-root.mobile-forced .hexipedia-confirm-yes::after,
-.game-root.mobile-forced .hexipedia-confirm-no::after {
-  content: ' ]';
-  color: #aaaaaa;
-}
-
-.game-root.mobile-forced .hexipedia-scrollable-content,
-.game-root.mobile-forced .hexipedia-session-action-list,
-.game-root.mobile-forced .hexipedia-history-list {
-  scrollbar-color: #555555 #000000;
-}
-
-.game-root.mobile-forced .hexipedia-scrollable-content::-webkit-scrollbar-track,
-.game-root.mobile-forced .hexipedia-session-action-list::-webkit-scrollbar-track,
-.game-root.mobile-forced .hexipedia-history-list::-webkit-scrollbar-track {
-  background: #000000;
+  background: transparent;
+  color: #555555;
 }

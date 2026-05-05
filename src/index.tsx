@@ -7,8 +7,7 @@ import { audioController } from './appLogic/audioController';
 import { hydrateLocalStorageFromIndexedDb } from './appLogic/persistenceMirror';
 import { DEV_RELOAD_MARKER } from './appLogic/devReloadMarker';
 import '@fortawesome/fontawesome-free/css/all.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/700.css';
+import './ui/globalTypography.css';
 
 void DEV_RELOAD_MARKER;
 

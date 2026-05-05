@@ -1080,7 +1080,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       <GameOverlays
         isMobileLayout={isMobileLayout}
         mobileTab={mobileTab}
-        forceShowWidgetStack={DEBUG}
         taskWidgetProps={visibleTaskWidgetProps}
         taskIntroModalProps={taskIntroModalProps}
         colorPaletteWidgetProps={colorPaletteWidgetProps}

@@ -1,7 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/700.css';
+import './ui/globalTypography.css';
 import FieldLabPage from './fieldLab/FieldLabPage';
 
 const version = (import.meta as ImportMeta & { env?: { APP_VERSION?: string; DEV?: boolean; MODE?: string } }).env?.APP_VERSION;

@@ -1,0 +1,25 @@
+:root {
+  --hexi-font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  --hexi-font-size: 16px;
+  --hexi-line-height: 1;
+}
+
+html,
+body,
+#root {
+  font-family: var(--hexi-font-family) !important;
+  font-size: var(--hexi-font-size) !important;
+  line-height: var(--hexi-line-height) !important;
+}
+
+#root *,
+button,
+input,
+select,
+textarea,
+option,
+label {
+  font-family: var(--hexi-font-family) !important;
+  font-size: var(--hexi-font-size) !important;
+  line-height: var(--hexi-line-height) !important;
+}
