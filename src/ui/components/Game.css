@@ -585,26 +585,16 @@ html, body {
   background: transparent;
   color: #AAAAAA;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 1ch;
-  font-weight: 700;
+.gs-session-actions .gs-nav-btn {
+  min-width: 0;
 }
 
-
-
-
-
-
-
-.gs-panel-toggle-icon {
-  color: #AAAAAA;
-  font-size: 16px;
-  line-height: 1;
-  flex-shrink: 0;
+.gs-session-actions .gs-nav-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.gs-panel-title {
   display: inline-block;
   min-width: 0;
   overflow: hidden;
@@ -714,15 +704,9 @@ html, body {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1ch;
+  gap: 0;
   padding: 0;
 }
-
-
-
-
-
-
 
 .gs-session-actions .gs-nav-btn {
   min-width: 0;
@@ -733,6 +717,10 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gs-session-expanded-fill {
+  padding: 0 2ch;
 }
 
 .gs-session-card {
@@ -765,10 +753,6 @@ html, body {
 }
 
 .gs-session-card--active {}
-
-
-
-
 
 .gs-session-row {
   position: relative;
@@ -866,7 +850,7 @@ html, body {
   justify-content: start;
   align-items: center;
   gap: 1ch;
-  padding: 0 2ch 0 2ch;
+  padding: 0;
 }
 
 
@@ -918,8 +902,8 @@ html, body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1ch;
-  padding: 0 1ch 1ch 2ch;
+  gap: 0;
+  padding: 0;
 }
 
 
@@ -929,16 +913,19 @@ html, body {
 
 
 .gs-session-meta-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 0;
   color: #AAAAAA;
 }
 
-.gs-session-meta-grid span {
+.gs-session-meta-text {
   position: relative;
-  padding-left: 2ch;
-  padding-right: 2ch;
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
@@ -975,7 +962,7 @@ html, body {
   grid-template-columns: minmax(0, 1fr) max-content max-content;
   align-items: center;
   gap: 1ch;
-  padding: 0 2ch 0 2ch;
+  padding: 0;
 }
 
 
@@ -1027,7 +1014,7 @@ html, body {
   margin-right: 6px;
 }
 
-.gs-session-meta-grid span,
+.gs-session-meta-text,
 .gs-nav-btn span,
 .gs-system-tab,
 .gs-panel-title,
@@ -1049,11 +1036,13 @@ html, body {
   padding: 0;
   box-sizing: border-box;
 }
+
 .gs-tui-border-row.gs-section-toggle {
   color: #AAAAAA;
   padding: 0;
   cursor: pointer;
 }
+
 .gs-tui-border-left { flex: 0 0 auto; white-space: pre; }
 .gs-tui-border-fill { flex: 1 1 0; overflow: hidden; white-space: pre; }
 .gs-tui-border-right { flex: 0 0 auto; white-space: pre; }

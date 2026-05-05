@@ -51,6 +51,56 @@ function formatTotalTime(milliseconds?: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+function glyphLength(text: string): number {
+  return Array.from(text).length;
+}
+
+function truncateToWidth(text: string, width: number): string {
+  if (width <= 0) return '';
+  const glyphs = Array.from(text);
+  if (glyphs.length <= width) return text;
+  return glyphs.slice(0, width).join('');
+}
+
+function normalizeRowSegment(text: string): string {
+  return text.replace(/\s+/g, ' ');
+}
+
+function collectFixedWidthTuiSnapshot(container: HTMLElement, totalWidth = 80): string {
+  const rows = container.querySelectorAll('.gs-tui-border-row');
+  if (rows.length === 0) {
+    return container.innerText;
+  }
+
+  return Array.from(rows)
+    .map((row) => {
+      const leftEl = row.querySelector('.gs-tui-border-left');
+      const fillEl = row.querySelector('.gs-tui-border-fill');
+      const rightEl = row.querySelector('.gs-tui-border-right');
+
+      if (!leftEl || !fillEl || !rightEl) {
+        const fallback = normalizeRowSegment((row as HTMLElement).innerText).trim();
+        return truncateToWidth(fallback, totalWidth);
+      }
+
+      const left = normalizeRowSegment((leftEl as HTMLElement).innerText);
+      const right = normalizeRowSegment((rightEl as HTMLElement).innerText);
+      const fillRaw = normalizeRowSegment((fillEl as HTMLElement).innerText).trim();
+
+      const leftLen = glyphLength(left);
+      const rightLen = glyphLength(right);
+      const fillWidth = totalWidth - leftLen - rightLen;
+
+      if (fillWidth <= 0) {
+        return truncateToWidth(left + right, totalWidth);
+      }
+
+      const fill = truncateToWidth(fillRaw, fillWidth).padEnd(fillWidth, ' ');
+      return `${left}${fill}${right}`;
+    })
+    .join('\n');
+}
+
 export const GuestStart: React.FC<GuestStartProps> = ({
   sessionHistory,
   currentSessionId,
@@ -76,10 +126,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
 
   useEffect(() => {
     if (containerRef.current) {
-      const rows = containerRef.current.querySelectorAll('.gs-tui-border-row');
-      const snapshot = rows.length > 0
-        ? Array.from(rows).map(r => (r as HTMLElement).innerText.replace(/\s+/g, ' ').trim()).join('\n')
-        : containerRef.current.innerText;
+      const snapshot = collectFixedWidthTuiSnapshot(containerRef.current, 80);
       console.log("=== TUI SNAPSHOT ===\n" + snapshot);
     }
   });
@@ -379,74 +426,137 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                               {isExpanded && (
                                 <div className="gs-session-expanded">
                                 {isEditing ? (
-                                  <div className="gs-rename-inline">
-                                    <input
-                                      className="gs-rename-input"
-                                      value={editingName}
-                                      onChange={(e) => setEditingName(e.target.value)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') submitRename();
-                                        if (e.key === 'Escape') cancelRename();
-                                      }}
-                                      placeholder={record.name}
-                                      autoFocus
-                                    />
-                                    <TuiIconButton className="gs-icon-btn" onClick={submitRename} title={t('common.yes')}>
-                                      <span className="gs-symbol">SAVE</span>
-                                    </TuiIconButton>
-                                    <TuiIconButton className="gs-icon-btn" onClick={cancelRename} title={t('common.no')}>
-                                      <span className="gs-symbol">CANC</span>
-                                    </TuiIconButton>
-                                  </div>
-                                ) : (
-                                  <div className="gs-session-card-actions">
-                                    <TuiIconButton
-                                      className="gs-icon-btn"
-                                      title={t('action.download')}
-                                      onClick={() => onDownloadSession(record.id)}
-                                    >
-                                      <span className="gs-symbol">SAVE</span>
-                                    </TuiIconButton>
-                                    <TuiIconButton
-                                      className="gs-icon-btn"
-                                      title={t('action.renameSession')}
-                                      onClick={() => startRename(record)}
-                                    >
-                                      <span className="gs-symbol">REN</span>
-                                    </TuiIconButton>
-                                    <TuiIconButton
-                                      variant="danger"
-                                      className="gs-icon-btn gs-icon-btn--danger"
-                                      title={t('common.delete')}
-                                      onClick={() => {
-                                        if (isDeletePending) {
-                                          cancelDelete();
-                                          return;
-                                        }
-                                        requestDelete(record.id);
-                                      }}
-                                    >
-                                      <span className="gs-symbol">{isDeletePending ? 'CANC' : 'DEL'}</span>
-                                    </TuiIconButton>
-                                    {isDeletePending && (
-                                      <TuiIconButton
-                                        variant="confirm"
-                                        className="gs-icon-btn gs-icon-btn--danger-confirm"
-                                        title={t('session.confirmDeleteAction')}
-                                        onClick={() => confirmDelete(record.id)}
-                                      >
-                                        <span className="gs-symbol">CONF</span>
+                                  <TuiBorderRow
+                                    className="gs-tui-border-row gs-session-expanded-row"
+                                    leftClassName="gs-tui-border-left"
+                                    fillClassName="gs-tui-border-fill gs-session-expanded-fill"
+                                    rightClassName="gs-tui-border-right"
+                                    left="║ "
+                                    right="║"
+                                  >
+                                    <div className="gs-rename-inline">
+                                      <input
+                                        className="gs-rename-input"
+                                        value={editingName}
+                                        onChange={(e) => setEditingName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') submitRename();
+                                          if (e.key === 'Escape') cancelRename();
+                                        }}
+                                        placeholder={record.name}
+                                        autoFocus
+                                      />
+                                      <TuiIconButton className="gs-icon-btn" onClick={submitRename} title={t('common.yes')}>
+                                        <span className="gs-symbol">SAVE</span>
                                       </TuiIconButton>
-                                    )}
-                                  </div>
+                                      <TuiIconButton className="gs-icon-btn" onClick={cancelRename} title={t('common.no')}>
+                                        <span className="gs-symbol">CANC</span>
+                                      </TuiIconButton>
+                                    </div>
+                                  </TuiBorderRow>
+                                ) : (
+                                  <TuiBorderRow
+                                    className="gs-tui-border-row gs-session-expanded-row"
+                                    leftClassName="gs-tui-border-left"
+                                    fillClassName="gs-tui-border-fill gs-session-expanded-fill"
+                                    rightClassName="gs-tui-border-right"
+                                    left="║ "
+                                    right="║"
+                                  >
+                                    <div className="gs-session-card-actions">
+                                      <TuiIconButton
+                                        className="gs-icon-btn"
+                                        title={t('action.download')}
+                                        onClick={() => onDownloadSession(record.id)}
+                                      >
+                                        <span className="gs-symbol">SAVE</span>
+                                      </TuiIconButton>
+                                      <TuiIconButton
+                                        className="gs-icon-btn"
+                                        title={t('action.renameSession')}
+                                        onClick={() => startRename(record)}
+                                      >
+                                        <span className="gs-symbol">REN</span>
+                                      </TuiIconButton>
+                                      <TuiIconButton
+                                        variant="danger"
+                                        className="gs-icon-btn gs-icon-btn--danger"
+                                        title={t('common.delete')}
+                                        onClick={() => {
+                                          if (isDeletePending) {
+                                            cancelDelete();
+                                            return;
+                                          }
+                                          requestDelete(record.id);
+                                        }}
+                                      >
+                                        <span className="gs-symbol">{isDeletePending ? 'CANC' : 'DEL'}</span>
+                                      </TuiIconButton>
+                                      {isDeletePending && (
+                                        <TuiIconButton
+                                          variant="confirm"
+                                          className="gs-icon-btn gs-icon-btn--danger-confirm"
+                                          title={t('session.confirmDeleteAction')}
+                                          onClick={() => confirmDelete(record.id)}
+                                        >
+                                          <span className="gs-symbol">CONF</span>
+                                        </TuiIconButton>
+                                      )}
+                                    </div>
+                                  </TuiBorderRow>
                                 )}
 
                                   <TuiSessionMetaRow className="gs-session-meta-grid">
-                                    <span>[ST] {t('session.startTime')}: {formatDateTime(record.startTime)}</span>
-                                    <span>[LA] {t('session.lastActionTime')}: {lastActionLabel}</span>
-                                    <span>[AC] {t('session.actionCount')}: {record.actionCount ?? '—'}</span>
-                                    <span>[TK] {t('session.ticks')}: {record.gameTicks ?? '—'} / {record.gameTime || '—'}</span>
-                                    <span>[TT] {t('session.totalTime')}: {formatTotalTime(record.totalSessionTime)}</span>
+                                    <TuiBorderRow
+                                      className="gs-tui-border-row gs-session-meta-line"
+                                      leftClassName="gs-tui-border-left"
+                                      fillClassName="gs-tui-border-fill gs-session-expanded-fill"
+                                      rightClassName="gs-tui-border-right"
+                                      left="║ "
+                                      right="║"
+                                    >
+                                      <span className="gs-session-meta-text">[ST] {t('session.startTime')}: {formatDateTime(record.startTime)}</span>
+                                    </TuiBorderRow>
+                                    <TuiBorderRow
+                                      className="gs-tui-border-row gs-session-meta-line"
+                                      leftClassName="gs-tui-border-left"
+                                      fillClassName="gs-tui-border-fill gs-session-expanded-fill"
+                                      rightClassName="gs-tui-border-right"
+                                      left="║ "
+                                      right="║"
+                                    >
+                                      <span className="gs-session-meta-text">[LA] {t('session.lastActionTime')}: {lastActionLabel}</span>
+                                    </TuiBorderRow>
+                                    <TuiBorderRow
+                                      className="gs-tui-border-row gs-session-meta-line"
+                                      leftClassName="gs-tui-border-left"
+                                      fillClassName="gs-tui-border-fill gs-session-expanded-fill"
+                                      rightClassName="gs-tui-border-right"
+                                      left="║ "
+                                      right="║"
+                                    >
+                                      <span className="gs-session-meta-text">[AC] {t('session.actionCount')}: {record.actionCount ?? '—'}</span>
+                                    </TuiBorderRow>
+                                    <TuiBorderRow
+                                      className="gs-tui-border-row gs-session-meta-line"
+                                      leftClassName="gs-tui-border-left"
+                                      fillClassName="gs-tui-border-fill gs-session-expanded-fill"
+                                      rightClassName="gs-tui-border-right"
+                                      left="║ "
+                                      right="║"
+                                    >
+                                      <span className="gs-session-meta-text">[TK] {t('session.ticks')}: {record.gameTicks ?? '—'} / {record.gameTime || '—'}</span>
+                                    </TuiBorderRow>
+                                    <TuiBorderRow
+                                      className="gs-tui-border-row gs-session-meta-line"
+                                      leftClassName="gs-tui-border-left"
+                                      fillClassName="gs-tui-border-fill gs-session-expanded-fill"
+                                      rightClassName="gs-tui-border-right"
+                                      left="║ "
+                                      right="║"
+                                    >
+                                      <span className="gs-session-meta-text">[TT] {t('session.totalTime')}: {formatTotalTime(record.totalSessionTime)}</span>
+                                    </TuiBorderRow>
                                   </TuiSessionMetaRow>
                                 </div>
                               )}

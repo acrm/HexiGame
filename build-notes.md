@@ -723,3 +723,5 @@
 - 0.1.0-y26w18b4 — Fix TUI line-height gaps, active session text visibility, improve console snapshot
 
 - 0.1.0-y26w19b1 — Extract reusable TUI toolkit from GuestStart
+
+- 0.1.0-y26w19b2 — Fix TUI snapshot width and expanded border continuity
