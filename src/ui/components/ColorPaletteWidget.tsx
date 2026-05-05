@@ -32,12 +32,11 @@ function calculateRelativePercent(
 }
 
 function formatPercent(percent: number): string {
-  if (percent === 0) return '0%';
-  if (Math.abs(percent) === 50) return '+/-50%';
+  if (percent === 0) return '0';
+  if (Math.abs(percent) === 50) return '+/-50';
   const sign = percent > 0 ? '+' : '-';
-  const absValue = Math.abs(percent);
-  const rounded = absValue % 1 === 0 ? absValue.toString() : absValue.toFixed(1).replace(/\.0$/, '');
-  return `${sign}${rounded}%`;
+  const rounded = Math.round(Math.abs(percent));
+  return `${sign}${rounded}`;
 }
 
 const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({

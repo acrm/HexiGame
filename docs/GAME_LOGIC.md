@@ -221,6 +221,9 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Runtime gameplay UI uses the same monospace font stack and base font size as the start screen.
 - Mobile tab content keeps its original per-tab background color; the active tab header fills the full tab-header area using the same background color with white text and blends seamlessly into the tab content. Inactive tab headers keep the default panel background.
 - Debug runtime mode can force all overlay widgets visible and keep hotbar enabled, but widgets still render only on the `map` tab.
+- Session playback controls use compact horizontal spacing and auto-width action buttons to avoid merged labels on narrow mobile layouts.
+- Palette widget uses compact relative color labels (short signed integers and `+/-50`) for stable rendering without text overlap.
+- Overlay right-edge navigation buttons use a consistent `3ch` width and centered TUI arrow glyph across all widgets.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).

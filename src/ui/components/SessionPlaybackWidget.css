@@ -5,7 +5,7 @@
 .session-playback-widget {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.75ch;
   background: #2a2a2a;
   border: 1px solid #555555;
   border-right: none;
@@ -14,12 +14,14 @@
 }
 
 .session-playback-widget__button {
-  width: 30px;
-  min-width: 30px;
+  width: auto;
+  min-width: 0;
   height: 30px;
   border: 1px solid #555555;
   background: #3a3a3a;
   color: #cccccc;
+  padding: 0 0.45ch;
+  white-space: nowrap;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -38,13 +40,13 @@
 
 .session-playback-widget__input {
   flex: 1;
-  min-width: 0;
+  min-width: 10ch;
   height: 30px;
   border: 1px solid #555555;
   background: #1e1e1e;
   color: #cccccc;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .session-playback-widget__input:focus {

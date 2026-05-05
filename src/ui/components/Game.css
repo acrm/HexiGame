@@ -140,6 +140,7 @@ html, body {
 .game-root.mobile-forced .widget-stack-overlay {
   width: min(100%, var(--mobile-game-width));
   flex-shrink: 0;
+  background: var(--game-bg, #370152ff);
 }
 
 .game-root.mobile-forced .game-field {
@@ -1168,6 +1169,13 @@ html, body {
   align-items: center;
   justify-content: center;
   align-self: stretch;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
   color: #000000;
   font-size: 16px;
   font-weight: 700;
@@ -1176,17 +1184,23 @@ html, body {
   padding: 1ch 0.75ch;
 }
 
+.game-root.mobile-forced .mobile-tab:focus,
+.game-root.mobile-forced .mobile-tab:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .game-root.mobile-forced .mobile-tab.active {
   color: #ffffff !important;
   text-decoration: none;
 }
 
 .game-root.mobile-forced .mobile-tab--map.active {
-  background: var(--tab-map-bg, #00264C);
+  background: var(--tab-map-bg, #00264C) !important;
 }
 
 .game-root.mobile-forced .mobile-tab--hexipedia.active {
-  background: var(--tab-hexipedia-bg, #2f2f2f);
+  background: var(--tab-hexipedia-bg, #2f2f2f) !important;
 }
 
 .game-root.mobile-forced .mobile-tab.disabled,

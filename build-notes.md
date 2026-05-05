@@ -743,3 +743,5 @@
 - 0.1.0-y26w19b10 — Scope TUI tab-bar reset to start screen so active map/hexipedia header background works
 
 - 0.1.0-y26w19b11 — Make active mobile tab header full-height and seamless with tab content
+
+- 0.1.0-y26w19b12 — Fix mobile tab visuals and compact widget layout for map readability
