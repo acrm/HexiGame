@@ -1,4 +1,5 @@
 import React from 'react';
+import { TuiBorderRow, TuiIconButton } from '../../tui';
 
 interface SectionBaseProps {
   sectionId: string;
@@ -27,36 +28,42 @@ const SectionBase: React.FC<SectionBaseProps> = ({
 }) => {
   return (
     <div key={sectionId} className="hexipedia-section-wrapper">
-      <div className="hexipedia-section-header-container">
-        <div 
-          className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
-          onClick={onToggleCollapse}
-        >
-          <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
-          <span className="hexipedia-section-title">{title}</span>
-        </div>
-        <div className="hexipedia-section-controls">
-          {headerExtra}
-          <button
-            className="hexipedia-section-move"
-            onClick={onMoveUp}
-            disabled={!canMoveUp}
-            title="Move up"
-            aria-label="Move up"
+      <TuiBorderRow
+        className="hexipedia-section-header-row"
+        left={
+          <div
+            className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`}
+            onClick={onToggleCollapse}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggleCollapse(); }}
           >
-            ▲
-          </button>
-          <button
-            className="hexipedia-section-move"
-            onClick={onMoveDown}
-            disabled={!canMoveDown}
-            title="Move down"
-            aria-label="Move down"
-          >
-            ▼
-          </button>
-        </div>
-      </div>
+            <span className="hexipedia-section-toggle">{isCollapsed ? '▶' : '▼'}</span>
+            <span className="hexipedia-section-title">{title}</span>
+          </div>
+        }
+        right={
+          <div className="hexipedia-section-controls">
+            {headerExtra}
+            <TuiIconButton
+              onClick={onMoveUp}
+              disabled={!canMoveUp}
+              title="Move up"
+              aria-label="Move up"
+            >
+              ▲
+            </TuiIconButton>
+            <TuiIconButton
+              onClick={onMoveDown}
+              disabled={!canMoveDown}
+              title="Move down"
+              aria-label="Move down"
+            >
+              ▼
+            </TuiIconButton>
+          </div>
+        }
+      />
       {!isCollapsed && children}
     </div>
   );

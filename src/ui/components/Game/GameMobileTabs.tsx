@@ -1,6 +1,7 @@
 import React from 'react';
 import type { MobileTab } from '../../../appLogic/appShellReducer';
 import { t } from '../../i18n';
+import { TuiIconButton } from '../../tui';
 
 interface GameMobileTabsProps {
   mobileTab: MobileTab;
@@ -45,29 +46,30 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
         </button>
       </div>
       {isHexiOsMode ? (
-        <button
-          className="disconnect-button"
+        <TuiIconButton
+          className="disconnect-button tui-icon-btn--no-brackets"
           onClick={onPlayLatestSession}
           title={t('action.loadSession')}
         >
           <i className="fas fa-play"></i>
-        </button>
+        </TuiIconButton>
       ) : (
-        <button
-          className="disconnect-button"
+        <TuiIconButton
+          variant="danger"
+          className="disconnect-button tui-icon-btn--no-brackets"
           onClick={onDisconnect}
           title={t('action.disconnect')}
         >
           <i className="fas fa-stop"></i>
-        </button>
+        </TuiIconButton>
       )}
-      <button
-        className="settings-button"
+      <TuiIconButton
+        className="settings-button tui-icon-btn--no-brackets"
         onClick={onOpenSettings}
         title={t('settings.open')}
       >
         <i className="fas fa-cog"></i>
-      </button>
+      </TuiIconButton>
     </div>
   );
 };

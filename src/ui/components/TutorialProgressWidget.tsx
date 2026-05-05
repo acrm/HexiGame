@@ -1,5 +1,6 @@
 import React from 'react';
 import { t } from '../i18n';
+import { TuiIconButton } from '../tui';
 import './OverlayWidget.css';
 import './TutorialProgressWidget.css';
 
@@ -60,9 +61,9 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
         )}
       </div>
       {onNavigateToTasks && (
-        <button
+        <TuiIconButton
           type="button"
-          className="overlay-widget-edge-button tutorial-info-button"
+          className="overlay-widget-edge-button tutorial-info-button tui-icon-btn--no-brackets"
           onClick={(event) => {
             event.stopPropagation();
             onNavigateToTasks();
@@ -71,7 +72,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
           aria-label={t('tutorial.widget.openTasks')}
         >
           »
-        </button>
+        </TuiIconButton>
       )}
     </div>
   );

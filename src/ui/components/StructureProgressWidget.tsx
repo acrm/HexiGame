@@ -1,5 +1,6 @@
 import React from 'react';
 import { t } from '../i18n';
+import { TuiIconButton } from '../tui';
 import './OverlayWidget.css';
 import './StructureProgressWidget.css';
 
@@ -56,15 +57,15 @@ export const StructureProgressWidget: React.FC<StructureProgressWidgetProps> = (
         </div>
       </button>
       {onNavigateToStructures && (
-        <button
+        <TuiIconButton
           type="button"
-          className="overlay-widget-edge-button structure-progress-widget__navigate-button"
+          className="overlay-widget-edge-button structure-progress-widget__navigate-button tui-icon-btn--no-brackets"
           onClick={onNavigateToStructures}
           title={t('structures.widget.openStructures')}
           aria-label={t('structures.widget.openStructures')}
         >
           »
-        </button>
+        </TuiIconButton>
       )}
     </div>
   );

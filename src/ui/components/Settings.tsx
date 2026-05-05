@@ -2,6 +2,7 @@ import React from 'react';
 import { t, type Lang } from '../i18n';
 import version from '../../../version.json';
 import { audioController } from '../../appLogic/audioController';
+import { TuiBorderRow, TuiButton, TuiIconButton } from '../tui';
 
 interface SettingsProps {
   language: Lang;
@@ -43,12 +44,15 @@ export const Settings: React.FC<SettingsProps> = ({
   return (
     <div className="settings-overlay">
       <div className="settings-panel">
-        <div className="settings-header">
-          <span>{t('settings.title')}</span>
-          <button className="settings-close" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); onClose(); }}>
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
+        <TuiBorderRow
+          className="settings-header"
+          left={<span>{t('settings.title')}</span>}
+          right={
+            <TuiIconButton onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); onClose(); }}>
+              <i className="fas fa-times"></i>
+            </TuiIconButton>
+          }
+        />
         
         <div className="settings-row">
           <label>{t('settings.language')}</label>
@@ -143,12 +147,12 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
 
         <div className="settings-row">
-          <button className="settings-action-button" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); onShowMascot(); }}>
+          <TuiButton variant="secondary" onClick={() => { audioController.playRandomSound(soundEnabled, soundVolume); onShowMascot(); }}>
             {t('settings.mascot')}
-          </button>
+          </TuiButton>
         </div>
 
-        <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+        <div className="settings-version">
           v{version.currentVersion}
         </div>
       </div>

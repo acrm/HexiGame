@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { t } from '../i18n';
+import { TuiIconButton, TuiButton } from '../tui';
 import './OverlayWidget.css';
 import './SessionPlaybackWidget.css';
 
@@ -23,7 +24,8 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
   return (
     <div className="overlay-widget-shell session-playback-widget-shell">
       <div className="overlay-widget-body session-playback-widget">
-        <button
+        <TuiButton
+          variant="secondary"
           type="button"
           className="session-playback-widget__button"
           onClick={() => onSetPlaybackPaused?.(!isPlaybackPaused)}
@@ -31,7 +33,7 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           title={isPlaybackPaused ? t('playback.resume') : t('playback.pause')}
         >
           <i className={`fas ${isPlaybackPaused ? 'fa-play' : 'fa-pause'}`} />
-        </button>
+        </TuiButton>
 
         <input
           type="number"
@@ -42,7 +44,8 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           onChange={(e) => setSeekTickInput(e.target.value)}
         />
 
-        <button
+        <TuiButton
+          variant="secondary"
           type="button"
           className="session-playback-widget__button"
           onClick={() => {
@@ -56,9 +59,10 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           title={t('playback.play')}
         >
           <i className="fas fa-forward" />
-        </button>
+        </TuiButton>
 
-        <button
+        <TuiButton
+          variant="secondary"
           type="button"
           className="session-playback-widget__button"
           disabled={!onSeekToTick || !isPlaybackPaused}
@@ -66,19 +70,19 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
           title={t('playback.step')}
         >
           <i className="fas fa-step-forward" />
-        </button>
+        </TuiButton>
       </div>
 
       {onNavigateToSession && (
-        <button
+        <TuiIconButton
           type="button"
-          className="overlay-widget-edge-button"
+          className="overlay-widget-edge-button tui-icon-btn--no-brackets"
           onClick={onNavigateToSession}
           title={t('hexipedia.widget.openSession')}
           aria-label={t('hexipedia.widget.openSession')}
         >
           »
-        </button>
+        </TuiIconButton>
       )}
     </div>
   );

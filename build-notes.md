@@ -725,3 +725,5 @@
 - 0.1.0-y26w19b1 — Extract reusable TUI toolkit from GuestStart
 
 - 0.1.0-y26w19b2 — Fix TUI snapshot width and expanded border continuity
+
+- 0.1.0-y26w19b3 — Apply TUI styles to HexiPedia sections, Settings, overlay widgets, mobile tabs

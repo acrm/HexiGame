@@ -1,4 +1,5 @@
 import React from 'react';
+import { TuiIconButton } from '../tui';
 import './ColorPaletteWidget.css';
 import './OverlayWidget.css';
 
@@ -67,7 +68,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
       style={{ top: topOffset }}
     >
       <div className="overlay-widget-body color-palette-widget__body">
-        <button
+        <TuiIconButton
           type="button"
           onClick={onToggleAutoBaseColor}
           disabled={!onToggleAutoBaseColor}
@@ -76,7 +77,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
           className={`color-palette-widget__auto-button ${isAutoBaseColorEnabled ? 'is-active' : ''}`}
         >
           <i className="fas fa-crosshairs" aria-hidden="true" />
-        </button>
+        </TuiIconButton>
         <div className="color-palette-widget__palette">
         {displayOrder.map((colorIndex, displayIndex) => {
           const color = colorPalette[colorIndex];
@@ -108,15 +109,15 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
         </div>
       </div>
       {onNavigateToPalette && (
-        <button
+        <TuiIconButton
           type="button"
           onClick={onNavigateToPalette}
           title="Open palette details"
           aria-label="Open palette details"
-          className="overlay-widget-edge-button color-palette-widget__navigate-button"
+          className="overlay-widget-edge-button color-palette-widget__navigate-button tui-icon-btn--no-brackets"
         >
           »
-        </button>
+        </TuiIconButton>
       )}
     </div>
   );
