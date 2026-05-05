@@ -1,6 +1,7 @@
 import React from 'react';
 import { t } from '../i18n';
 import { TuiIconButton } from '../tui';
+import OverlayWidgetFrame from './OverlayWidgetFrame';
 import './OverlayWidget.css';
 import './StructureProgressWidget.css';
 
@@ -32,42 +33,44 @@ export const StructureProgressWidget: React.FC<StructureProgressWidgetProps> = (
   const statusLabel = getStatusLabel(hasErrors, isCompleted);
 
   return (
-    <div className="overlay-widget-shell structure-progress-widget-shell">
-      <button
-        type="button"
-        className={`overlay-widget-body structure-progress-widget ${hasErrors ? 'is-invalid' : ''} ${isCompleted ? 'is-complete' : ''}`.trim()}
-        onClick={onNavigateToStructures}
-        disabled={!onNavigateToStructures}
-      >
-        <div className="structure-progress-widget__header">
-          <span className="structure-progress-widget__name">{structureName}</span>
-          <span className="structure-progress-widget__status">{statusLabel}</span>
-        </div>
-        <div className="structure-progress-widget__meta">
-          {baseColor && (
-            <span
-              className="structure-progress-widget__swatch"
-              style={{ backgroundColor: baseColor }}
-              aria-hidden="true"
-            />
-          )}
-          <span className="structure-progress-widget__progress">
-            {progressCurrent} / {progressTotal}
-          </span>
-        </div>
-      </button>
-      {onNavigateToStructures && (
-        <TuiIconButton
+    <OverlayWidgetFrame className="structure-progress-widget-shell">
+      <div className="overlay-widget-shell">
+        <button
           type="button"
-          className="overlay-widget-edge-button structure-progress-widget__navigate-button tui-icon-btn--no-brackets"
+          className={`overlay-widget-body structure-progress-widget ${hasErrors ? 'is-invalid' : ''} ${isCompleted ? 'is-complete' : ''}`.trim()}
           onClick={onNavigateToStructures}
-          title={t('structures.widget.openStructures')}
-          aria-label={t('structures.widget.openStructures')}
+          disabled={!onNavigateToStructures}
         >
-          {'►'}
-        </TuiIconButton>
-      )}
-    </div>
+          <div className="structure-progress-widget__header">
+            <span className="structure-progress-widget__name">{structureName}</span>
+            <span className="structure-progress-widget__status">{statusLabel}</span>
+          </div>
+          <div className="structure-progress-widget__meta">
+            {baseColor && (
+              <span
+                className="structure-progress-widget__swatch"
+                style={{ backgroundColor: baseColor }}
+                aria-hidden="true"
+              />
+            )}
+            <span className="structure-progress-widget__progress">
+              {progressCurrent} / {progressTotal}
+            </span>
+          </div>
+        </button>
+        {onNavigateToStructures && (
+          <TuiIconButton
+            type="button"
+            className="overlay-widget-edge-button structure-progress-widget__navigate-button tui-icon-btn--no-brackets"
+            onClick={onNavigateToStructures}
+            title={t('structures.widget.openStructures')}
+            aria-label={t('structures.widget.openStructures')}
+          >
+            {'►'}
+          </TuiIconButton>
+        )}
+      </div>
+    </OverlayWidgetFrame>
   );
 };
 

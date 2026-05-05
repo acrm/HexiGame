@@ -1,5 +1,6 @@
 import React from 'react';
 import { TuiIconButton } from '../tui';
+import OverlayWidgetFrame from './OverlayWidgetFrame';
 import './ColorPaletteWidget.css';
 import './OverlayWidget.css';
 
@@ -62,63 +63,62 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   }
 
   return (
-    <div
-      className="overlay-widget-shell color-palette-widget"
-      style={{ top: topOffset }}
-    >
-      <div className="overlay-widget-body color-palette-widget__body">
-        <TuiIconButton
-          type="button"
-          onClick={onToggleAutoBaseColor}
-          disabled={!onToggleAutoBaseColor}
-          aria-pressed={isAutoBaseColorEnabled}
-          title={isAutoBaseColorEnabled ? 'Auto base color: on' : 'Auto base color: off'}
-          className={`color-palette-widget__auto-button ${isAutoBaseColorEnabled ? 'is-active' : ''}`}
-        >
-          {isAutoBaseColorEnabled ? 'AUTO' : 'auto'}
-        </TuiIconButton>
-        <div className="color-palette-widget__palette">
-        {displayOrder.map((colorIndex, displayIndex) => {
-          const color = colorPalette[colorIndex];
-          const percent = relativeBaseColorIndex === null
-            ? null
-            : calculateRelativePercent(colorIndex, relativeBaseColorIndex, paletteSize);
-          const isManuallySelectedColor = !isAutoBaseColorEnabled && colorIndex === selectedColorIndex;
-          const canSelectColor = !isAutoBaseColorEnabled && !!onColorSelect;
+    <OverlayWidgetFrame className="color-palette-widget" style={{ top: topOffset }}>
+      <div className="overlay-widget-shell">
+        <div className="overlay-widget-body color-palette-widget__body">
+          <TuiIconButton
+            type="button"
+            onClick={onToggleAutoBaseColor}
+            disabled={!onToggleAutoBaseColor}
+            aria-pressed={isAutoBaseColorEnabled}
+            title={isAutoBaseColorEnabled ? 'Auto base color: on' : 'Auto base color: off'}
+            className={`color-palette-widget__auto-button tui-icon-btn--no-brackets ${isAutoBaseColorEnabled ? 'is-active' : ''}`}
+          >
+            {isAutoBaseColorEnabled ? '[A]' : '[a]'}
+          </TuiIconButton>
+          <div className="color-palette-widget__palette">
+            {displayOrder.map((colorIndex, displayIndex) => {
+              const color = colorPalette[colorIndex];
+              const percent = relativeBaseColorIndex === null
+                ? null
+                : calculateRelativePercent(colorIndex, relativeBaseColorIndex, paletteSize);
+              const isManuallySelectedColor = !isAutoBaseColorEnabled && colorIndex === selectedColorIndex;
+              const canSelectColor = !isAutoBaseColorEnabled && !!onColorSelect;
 
-          return (
-            <button
-              key={`${displayIndex}-${colorIndex}`}
-              type="button"
-              onClick={canSelectColor ? () => onColorSelect(colorIndex) : undefined}
-              disabled={!canSelectColor}
-              className={[
-                'color-palette-widget__swatch',
-                canSelectColor ? 'is-clickable' : '',
-                isManuallySelectedColor ? 'is-selected' : '',
-              ].filter(Boolean).join(' ')}
-              style={{ ['--swatch-color' as string]: color }}
-            >
-              <span className="color-palette-widget__percent">
-                {percent !== null ? formatPercent(percent) : ''}
-              </span>
-            </button>
-          );
-        })}
+              return (
+                <button
+                  key={`${displayIndex}-${colorIndex}`}
+                  type="button"
+                  onClick={canSelectColor ? () => onColorSelect(colorIndex) : undefined}
+                  disabled={!canSelectColor}
+                  className={[
+                    'color-palette-widget__swatch',
+                    canSelectColor ? 'is-clickable' : '',
+                    isManuallySelectedColor ? 'is-selected' : '',
+                  ].filter(Boolean).join(' ')}
+                  style={{ ['--swatch-color' as string]: color }}
+                >
+                  <span className="color-palette-widget__percent">
+                    {percent !== null ? formatPercent(percent) : ''}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+        {onNavigateToPalette && (
+          <TuiIconButton
+            type="button"
+            onClick={onNavigateToPalette}
+            title="Open palette details"
+            aria-label="Open palette details"
+            className="overlay-widget-edge-button color-palette-widget__navigate-button tui-icon-btn--no-brackets"
+          >
+            {'►'}
+          </TuiIconButton>
+        )}
       </div>
-      {onNavigateToPalette && (
-        <TuiIconButton
-          type="button"
-          onClick={onNavigateToPalette}
-          title="Open palette details"
-          aria-label="Open palette details"
-          className="overlay-widget-edge-button color-palette-widget__navigate-button tui-icon-btn--no-brackets"
-        >
-          {'►'}
-        </TuiIconButton>
-      )}
-    </div>
+    </OverlayWidgetFrame>
   );
 };
 

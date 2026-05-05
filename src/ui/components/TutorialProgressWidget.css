@@ -13,7 +13,6 @@
   align-items: center;
   flex: 1;
   background: #2b2b2b;
-  border: 1px solid #555555;
   padding: 6px 10px;
   box-sizing: border-box;
   text-align: left;
@@ -30,41 +29,34 @@
 
 /* ── Pending state: orange inner glow + pulse ─────────────────────────── */
 .tutorial-progress-widget.phase-pending {
-  border-color: rgba(255, 160, 60, 0.7);
   animation: tutorialWidgetPendingPulse 1.8s ease-in-out infinite;
 }
 
 @keyframes tutorialWidgetPendingPulse {
   0%, 100% {
     box-shadow: inset 0 0 12px 2px rgba(255, 140, 30, 0.18);
-    border-color: rgba(255, 160, 60, 0.55);
   }
   50% {
     box-shadow: inset 0 0 24px 6px rgba(255, 150, 40, 0.42);
-    border-color: rgba(255, 180, 80, 0.9);
   }
 }
 
 /* ── Active (in-progress) state ───────────────────────────────────────── */
 .tutorial-progress-widget.phase-active {
-  border-color: #555555;
   box-shadow: none;
 }
 
 /* ── Complete state: green inner glow + pulse ─────────────────────────── */
 .tutorial-progress-widget.phase-complete {
-  border-color: rgba(80, 220, 120, 0.7);
   animation: tutorialWidgetCompletePulse 1.8s ease-in-out infinite;
 }
 
 @keyframes tutorialWidgetCompletePulse {
   0%, 100% {
     box-shadow: inset 0 0 12px 2px rgba(60, 210, 100, 0.18);
-    border-color: rgba(80, 220, 120, 0.55);
   }
   50% {
     box-shadow: inset 0 0 24px 6px rgba(60, 210, 100, 0.40);
-    border-color: rgba(100, 240, 140, 0.9);
   }
 }
 

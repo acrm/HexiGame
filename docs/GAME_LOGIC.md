@@ -223,7 +223,9 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Debug runtime mode can force all overlay widgets visible and keep hotbar enabled, but widgets still render only on the `map` tab.
 - Session playback controls use compact horizontal spacing and auto-width action buttons to avoid merged labels on narrow mobile layouts.
 - Palette widget uses compact relative color labels (short signed integers and `+/-50`) for stable rendering without text overlap.
+- Palette widget auto-base toggle uses compact TUI states `[A]` (enabled) and `[a]` (disabled).
 - Overlay right-edge navigation buttons use a consistent `3ch` width and centered TUI arrow glyph across all widgets.
+- Overlay widgets render their outer frame with box-drawing symbols (`┌ ┐ │ └ ┘` + horizontal line fill); widget bodies no longer rely on CSS outer borders.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).

@@ -1,6 +1,7 @@
 import React from 'react';
 import { t } from '../i18n';
 import { TuiIconButton } from '../tui';
+import OverlayWidgetFrame from './OverlayWidgetFrame';
 import './OverlayWidget.css';
 import './TutorialProgressWidget.css';
 
@@ -30,51 +31,53 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   containerRef,
 }) => {
   return (
-    <div ref={containerRef} className="overlay-widget-shell tutorial-progress-container">
-      <div
-        className={`overlay-widget-body tutorial-progress-widget phase-${phase}`}
-        onClick={onWidgetClick}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onWidgetClick(); }}
-        aria-label={phase === 'pending' ? taskName : undefined}
-      >
-        {phase === 'pending' && (
-          <div className="tutorial-progress-row">
-            <span className="tutorial-task-icon" aria-hidden="true">tsk</span>
-            <span className="tutorial-task-name">{taskName}</span>
-          </div>
-        )}
+    <OverlayWidgetFrame ref={containerRef} className="tutorial-progress-container">
+      <div className="overlay-widget-shell">
+        <div
+          className={`overlay-widget-body tutorial-progress-widget phase-${phase}`}
+          onClick={onWidgetClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onWidgetClick(); }}
+          aria-label={phase === 'pending' ? taskName : undefined}
+        >
+          {phase === 'pending' && (
+            <div className="tutorial-progress-row">
+              <span className="tutorial-task-icon" aria-hidden="true">tsk</span>
+              <span className="tutorial-task-name">{taskName}</span>
+            </div>
+          )}
 
-        {phase === 'active' && (
-          <div className="tutorial-progress-row">
-            <span className="tutorial-progress-count">{progressCurrent} / {progressTotal}</span>
-            <span className="tutorial-progress-label">{progressLabel}</span>
-          </div>
-        )}
+          {phase === 'active' && (
+            <div className="tutorial-progress-row">
+              <span className="tutorial-progress-count">{progressCurrent} / {progressTotal}</span>
+              <span className="tutorial-progress-label">{progressLabel}</span>
+            </div>
+          )}
 
-        {phase === 'complete' && (
-          <div className="tutorial-progress-row">
-            <span className="tutorial-progress-checkbox checked" aria-hidden="true">OK</span>
-            <span className="tutorial-complete-text">{completeText}</span>
-          </div>
+          {phase === 'complete' && (
+            <div className="tutorial-progress-row">
+              <span className="tutorial-progress-checkbox checked" aria-hidden="true">OK</span>
+              <span className="tutorial-complete-text">{completeText}</span>
+            </div>
+          )}
+        </div>
+        {onNavigateToTasks && (
+          <TuiIconButton
+            type="button"
+            className="overlay-widget-edge-button tutorial-info-button tui-icon-btn--no-brackets"
+            onClick={(event) => {
+              event.stopPropagation();
+              onNavigateToTasks();
+            }}
+            title={t('tutorial.widget.openTasks')}
+            aria-label={t('tutorial.widget.openTasks')}
+          >
+            {'►'}
+          </TuiIconButton>
         )}
       </div>
-      {onNavigateToTasks && (
-        <TuiIconButton
-          type="button"
-          className="overlay-widget-edge-button tutorial-info-button tui-icon-btn--no-brackets"
-          onClick={(event) => {
-            event.stopPropagation();
-            onNavigateToTasks();
-          }}
-          title={t('tutorial.widget.openTasks')}
-          aria-label={t('tutorial.widget.openTasks')}
-        >
-          {'►'}
-        </TuiIconButton>
-      )}
-    </div>
+    </OverlayWidgetFrame>
   );
 };
 
