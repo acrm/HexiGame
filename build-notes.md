@@ -749,3 +749,5 @@
 - 0.1.0-y26w19b13 — TUI widget symbol frames and auto toggle labels
 
 - 0.1.0-y26w19b14 — Two-row gameplay header and shared TUI widget stack
+
+- 0.1.0-y26w19b15 — Polish gameplay two-row header and widget stack separators

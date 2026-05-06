@@ -83,13 +83,21 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
       {isMobileLayout && mobileTab === 'map' && (
         <div className="widget-stack-overlay">
           {visibleSectionOrder.map((sectionId, index) => {
-            const suppressTopBorder = index > 0;
+            const totalVisible = visibleSectionOrder.length;
+            const stackRole = totalVisible === 1
+              ? 'single'
+              : index === 0
+                ? 'first'
+                : index === totalVisible - 1
+                  ? 'last'
+                  : 'middle';
+
             if (sectionId === 'tasks' && taskWidgetProps) {
               return (
                 <TutorialProgressWidget
                   key="tasks"
                   {...taskWidgetProps}
-                  suppressTopBorder={suppressTopBorder}
+                  stackRole={stackRole}
                 />
               );
             }
@@ -98,7 +106,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                 <ColorPaletteWidget
                   key="colors"
                   {...colorPaletteWidgetProps}
-                  suppressTopBorder={suppressTopBorder}
+                  stackRole={stackRole}
                 />
               );
             }
@@ -107,7 +115,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                 <StructureProgressWidget
                   key="structures"
                   {...structureWidgetProps}
-                  suppressTopBorder={suppressTopBorder}
+                  stackRole={stackRole}
                 />
               );
             }
@@ -116,7 +124,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
                 <SessionPlaybackWidget
                   key="session"
                   {...sessionWidgetProps}
-                  suppressTopBorder={suppressTopBorder}
+                  stackRole={stackRole}
                 />
               );
             }

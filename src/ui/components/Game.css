@@ -148,7 +148,30 @@ html, body {
 }
 
 .game-root.mobile-forced .game-top-header-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  column-gap: 1ch;
+  align-items: center;
   width: 100%;
+  background: #aaaaaa;
+  color: #000000;
+  padding: 0 1ch;
+  margin: 0;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.game-root.mobile-forced .game-top-header-title {
+  min-width: 0;
+}
+
+.game-root.mobile-forced .game-top-header-system {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
 }
 
 .game-root.mobile-forced .mobile-tab-bar--header .disconnect-button,
@@ -168,6 +191,8 @@ html, body {
 }
 
 .game-root.mobile-forced .mobile-tab-bar--tabs {
+  display: flex;
+  align-items: center;
   width: min(100%, var(--mobile-game-width));
   background: #aaaaaa;
   padding: 0;
@@ -178,6 +203,7 @@ html, body {
 }
 
 .game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tabs-container {
+  display: flex;
   gap: 0;
   align-items: center;
   width: 100%;
@@ -186,6 +212,7 @@ html, body {
   margin: 0;
   line-height: 1;
   overflow: hidden;
+  white-space: nowrap;
 }
 
 .game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab {
@@ -205,11 +232,18 @@ html, body {
   text-decoration: none;
   background: transparent;
   line-height: 1;
-  height: 1em;
+  height: auto;
   padding: 0;
   margin: 0;
   min-width: 0;
   flex: 0 0 auto;
+}
+
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab-separator {
+  flex: 0 0 auto;
+  color: #333333;
+  line-height: 1;
+  user-select: none;
 }
 
 .game-root.mobile-forced .game-field {

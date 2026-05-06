@@ -1,7 +1,7 @@
 import React from 'react';
 import { t } from '../i18n';
 import { TuiIconButton } from '../tui';
-import OverlayWidgetFrame from './OverlayWidgetFrame';
+import OverlayWidgetFrame, { type OverlayWidgetStackRole } from './OverlayWidgetFrame';
 import './OverlayWidget.css';
 import './TutorialProgressWidget.css';
 
@@ -17,8 +17,7 @@ interface TutorialProgressWidgetProps {
   onWidgetClick: () => void;
   onNavigateToTasks?: () => void;
   containerRef?: React.Ref<HTMLDivElement>;
-  suppressTopBorder?: boolean;
-  suppressBottomBorder?: boolean;
+  stackRole?: OverlayWidgetStackRole;
 }
 
 export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
@@ -31,15 +30,13 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   onWidgetClick,
   onNavigateToTasks,
   containerRef,
-  suppressTopBorder,
-  suppressBottomBorder,
+  stackRole,
 }) => {
   return (
     <OverlayWidgetFrame
       ref={containerRef}
       className="tutorial-progress-container"
-      suppressTopBorder={suppressTopBorder}
-      suppressBottomBorder={suppressBottomBorder}
+      stackRole={stackRole}
     >
       <div className="overlay-widget-shell">
         <div

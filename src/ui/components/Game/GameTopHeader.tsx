@@ -16,10 +16,10 @@ export const GameTopHeader: React.FC<GameTopHeaderProps> = ({
   return (
     <div className="mobile-tab-bar mobile-tab-bar--header">
       <TuiTabBar
-        className="gs-tab-bar game-top-header-bar"
+        className="game-top-header-bar"
         title={(
-          <div className="gs-tabs-container">
-            <div className="gs-system-tab">HexiOS {marketingVersion}</div>
+          <div className="game-top-header-title">
+            <div className="game-top-header-system">HexiOS {marketingVersion}</div>
           </div>
         )}
         actions={(

@@ -1,7 +1,7 @@
 import React from 'react';
 import { t } from '../i18n';
 import { TuiIconButton } from '../tui';
-import OverlayWidgetFrame from './OverlayWidgetFrame';
+import OverlayWidgetFrame, { type OverlayWidgetStackRole } from './OverlayWidgetFrame';
 import './OverlayWidget.css';
 import './StructureProgressWidget.css';
 
@@ -13,8 +13,7 @@ interface StructureProgressWidgetProps {
   isCompleted: boolean;
   baseColor: string | null;
   onNavigateToStructures?: () => void;
-  suppressTopBorder?: boolean;
-  suppressBottomBorder?: boolean;
+  stackRole?: OverlayWidgetStackRole;
 }
 
 function getStatusLabel(hasErrors: boolean, isCompleted: boolean): string {
@@ -31,16 +30,14 @@ export const StructureProgressWidget: React.FC<StructureProgressWidgetProps> = (
   isCompleted,
   baseColor,
   onNavigateToStructures,
-  suppressTopBorder,
-  suppressBottomBorder,
+  stackRole,
 }) => {
   const statusLabel = getStatusLabel(hasErrors, isCompleted);
 
   return (
     <OverlayWidgetFrame
       className="structure-progress-widget-shell"
-      suppressTopBorder={suppressTopBorder}
-      suppressBottomBorder={suppressBottomBorder}
+      stackRole={stackRole}
     >
       <div className="overlay-widget-shell">
         <button

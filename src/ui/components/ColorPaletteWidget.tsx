@@ -1,6 +1,6 @@
 import React from 'react';
 import { TuiIconButton } from '../tui';
-import OverlayWidgetFrame from './OverlayWidgetFrame';
+import OverlayWidgetFrame, { type OverlayWidgetStackRole } from './OverlayWidgetFrame';
 import './ColorPaletteWidget.css';
 import './OverlayWidget.css';
 
@@ -13,8 +13,7 @@ interface ColorPaletteWidgetProps {
   onColorSelect?: (index: number) => void;
   onToggleAutoBaseColor?: () => void;
   onNavigateToPalette?: () => void;
-  suppressTopBorder?: boolean;
-  suppressBottomBorder?: boolean;
+  stackRole?: OverlayWidgetStackRole;
 }
 
 /**
@@ -50,8 +49,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   onColorSelect,
   onToggleAutoBaseColor,
   onNavigateToPalette,
-  suppressTopBorder,
-  suppressBottomBorder,
+  stackRole,
 }) => {
   const paletteSize = colorPalette.length;
   const antagonistIndex = (playerBaseColorIndex + paletteSize / 2) % paletteSize;
@@ -67,8 +65,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   return (
     <OverlayWidgetFrame
       className="color-palette-widget"
-      suppressTopBorder={suppressTopBorder}
-      suppressBottomBorder={suppressBottomBorder}
+      stackRole={stackRole}
     >
       <div className="overlay-widget-shell">
         <div className="overlay-widget-body color-palette-widget__body">

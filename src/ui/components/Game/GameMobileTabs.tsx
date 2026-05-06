@@ -28,6 +28,7 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
         >
           {mapLabel}
         </button>
+        <span className="mobile-tab-separator" aria-hidden="true">|</span>
         <button
           className={`mobile-tab mobile-tab--lab ${mobileTab === 'lab' ? 'active' : ''} disabled`}
           onClick={() => {}}
@@ -37,6 +38,7 @@ export const GameMobileTabs: React.FC<GameMobileTabsProps> = ({
         >
           {labLabel}
         </button>
+        <span className="mobile-tab-separator" aria-hidden="true">|</span>
         <button
           className={`mobile-tab mobile-tab--hexipedia ${mobileTab === 'hexipedia' ? 'active' : ''}`}
           onClick={onSelectHexipedia}

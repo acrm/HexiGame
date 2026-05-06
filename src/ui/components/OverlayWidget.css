@@ -24,10 +24,14 @@
 }
 
 .overlay-widget-border-row--middle .tui-border-fill {
-  white-space: pre;
+  white-space: normal;
   overflow: hidden;
   display: flex;
   align-items: center;
+}
+
+.overlay-widget-border-row--separator {
+  background: var(--tab-map-bg, #00264c);
 }
 
 .overlay-widget-border-row--middle {
