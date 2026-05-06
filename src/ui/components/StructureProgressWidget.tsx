@@ -13,6 +13,8 @@ interface StructureProgressWidgetProps {
   isCompleted: boolean;
   baseColor: string | null;
   onNavigateToStructures?: () => void;
+  suppressTopBorder?: boolean;
+  suppressBottomBorder?: boolean;
 }
 
 function getStatusLabel(hasErrors: boolean, isCompleted: boolean): string {
@@ -29,11 +31,17 @@ export const StructureProgressWidget: React.FC<StructureProgressWidgetProps> = (
   isCompleted,
   baseColor,
   onNavigateToStructures,
+  suppressTopBorder,
+  suppressBottomBorder,
 }) => {
   const statusLabel = getStatusLabel(hasErrors, isCompleted);
 
   return (
-    <OverlayWidgetFrame className="structure-progress-widget-shell">
+    <OverlayWidgetFrame
+      className="structure-progress-widget-shell"
+      suppressTopBorder={suppressTopBorder}
+      suppressBottomBorder={suppressBottomBorder}
+    >
       <div className="overlay-widget-shell">
         <button
           type="button"
@@ -41,21 +49,21 @@ export const StructureProgressWidget: React.FC<StructureProgressWidgetProps> = (
           onClick={onNavigateToStructures}
           disabled={!onNavigateToStructures}
         >
-          <div className="structure-progress-widget__header">
+          <div className="structure-progress-widget__row">
             <span className="structure-progress-widget__name">{structureName}</span>
-            <span className="structure-progress-widget__status">{statusLabel}</span>
-          </div>
-          <div className="structure-progress-widget__meta">
             {baseColor && (
               <span
                 className="structure-progress-widget__swatch"
-                style={{ backgroundColor: baseColor }}
+                style={{ color: baseColor }}
                 aria-hidden="true"
-              />
+              >
+                {'■'}
+              </span>
             )}
             <span className="structure-progress-widget__progress">
               {progressCurrent} / {progressTotal}
             </span>
+            <span className="structure-progress-widget__status">{statusLabel}</span>
           </div>
         </button>
         {onNavigateToStructures && (

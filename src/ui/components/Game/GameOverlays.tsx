@@ -70,22 +70,55 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   isMascotOpen,
   onCloseMascot,
 }) => {
+  const visibleSectionOrder = sectionOrder.filter((sectionId) => {
+    if (sectionId === 'tasks') return !!taskWidgetProps;
+    if (sectionId === 'colors') return !!colorPaletteWidgetProps;
+    if (sectionId === 'structures') return !!structureWidgetProps;
+    if (sectionId === 'session') return !!sessionWidgetProps;
+    return false;
+  });
+
   return (
     <>
       {isMobileLayout && mobileTab === 'map' && (
         <div className="widget-stack-overlay">
-          {sectionOrder.map(sectionId => {
+          {visibleSectionOrder.map((sectionId, index) => {
+            const suppressTopBorder = index > 0;
             if (sectionId === 'tasks' && taskWidgetProps) {
-              return <TutorialProgressWidget key="tasks" {...taskWidgetProps} />;
+              return (
+                <TutorialProgressWidget
+                  key="tasks"
+                  {...taskWidgetProps}
+                  suppressTopBorder={suppressTopBorder}
+                />
+              );
             }
             if (sectionId === 'colors' && colorPaletteWidgetProps) {
-              return <ColorPaletteWidget key="colors" {...colorPaletteWidgetProps} />;
+              return (
+                <ColorPaletteWidget
+                  key="colors"
+                  {...colorPaletteWidgetProps}
+                  suppressTopBorder={suppressTopBorder}
+                />
+              );
             }
             if (sectionId === 'structures' && structureWidgetProps) {
-              return <StructureProgressWidget key="structures" {...structureWidgetProps} />;
+              return (
+                <StructureProgressWidget
+                  key="structures"
+                  {...structureWidgetProps}
+                  suppressTopBorder={suppressTopBorder}
+                />
+              );
             }
             if (sectionId === 'session' && sessionWidgetProps) {
-              return <SessionPlaybackWidget key="session" {...sessionWidgetProps} />;
+              return (
+                <SessionPlaybackWidget
+                  key="session"
+                  {...sessionWidgetProps}
+                  suppressTopBorder={suppressTopBorder}
+                />
+              );
             }
             return null;
           })}

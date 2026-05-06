@@ -11,6 +11,8 @@ interface SessionPlaybackWidgetProps {
   onSetPlaybackPaused?: (paused: boolean) => void;
   onSeekToTick?: (tick: number) => void;
   onNavigateToSession?: () => void;
+  suppressTopBorder?: boolean;
+  suppressBottomBorder?: boolean;
 }
 
 export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
@@ -19,11 +21,17 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
   onSetPlaybackPaused,
   onSeekToTick,
   onNavigateToSession,
+  suppressTopBorder,
+  suppressBottomBorder,
 }) => {
   const [seekTickInput, setSeekTickInput] = useState('');
 
   return (
-    <OverlayWidgetFrame className="session-playback-widget-shell">
+    <OverlayWidgetFrame
+      className="session-playback-widget-shell"
+      suppressTopBorder={suppressTopBorder}
+      suppressBottomBorder={suppressBottomBorder}
+    >
       <div className="overlay-widget-shell">
         <div className="overlay-widget-body session-playback-widget">
           <TuiButton

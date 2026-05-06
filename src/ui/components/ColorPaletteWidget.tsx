@@ -10,10 +10,11 @@ interface ColorPaletteWidgetProps {
   relativeBaseColorIndex: number | null;
   playerBaseColorIndex: number;
   isAutoBaseColorEnabled: boolean;
-  topOffset?: number;
   onColorSelect?: (index: number) => void;
   onToggleAutoBaseColor?: () => void;
   onNavigateToPalette?: () => void;
+  suppressTopBorder?: boolean;
+  suppressBottomBorder?: boolean;
 }
 
 /**
@@ -46,10 +47,11 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   relativeBaseColorIndex,
   playerBaseColorIndex,
   isAutoBaseColorEnabled,
-  topOffset = 8,
   onColorSelect,
   onToggleAutoBaseColor,
   onNavigateToPalette,
+  suppressTopBorder,
+  suppressBottomBorder,
 }) => {
   const paletteSize = colorPalette.length;
   const antagonistIndex = (playerBaseColorIndex + paletteSize / 2) % paletteSize;
@@ -63,7 +65,11 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   }
 
   return (
-    <OverlayWidgetFrame className="color-palette-widget" style={{ top: topOffset }}>
+    <OverlayWidgetFrame
+      className="color-palette-widget"
+      suppressTopBorder={suppressTopBorder}
+      suppressBottomBorder={suppressBottomBorder}
+    >
       <div className="overlay-widget-shell">
         <div className="overlay-widget-body color-palette-widget__body">
           <TuiIconButton

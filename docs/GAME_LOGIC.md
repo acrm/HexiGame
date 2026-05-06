@@ -219,6 +219,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Mobile control blocks (tab bar + widget stack) are placed in normal document flow, so they do not overlap the playable field.
 - If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
 - Runtime gameplay UI uses the same monospace font stack and base font size as the start screen.
+- Gameplay mobile header is split into two rows: row 1 uses the HexiOS header (`HexiOS v<marketing>`) with `STOP` and `CFG` actions, row 2 contains only `Map/Lab/Hexipedia` tabs.
+- Gameplay tabs row is rendered as a strict single text line (no inner/outer spacing), starts flush at the left edge, and is clamped to screen width without right overflow.
 - Mobile tab content keeps its original per-tab background color; the active tab header fills the full tab-header area using the same background color with white text and blends seamlessly into the tab content. Inactive tab headers keep the default panel background.
 - Debug runtime mode can force all overlay widgets visible and keep hotbar enabled, but widgets still render only on the `map` tab.
 - Session playback controls use compact horizontal spacing and auto-width action buttons to avoid merged labels on narrow mobile layouts.
@@ -226,6 +228,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Palette widget auto-base toggle uses compact TUI states `[A]` (enabled) and `[a]` (disabled).
 - Overlay right-edge navigation buttons use a consistent `3ch` width and centered TUI arrow glyph across all widgets.
 - Overlay widgets render their outer frame with box-drawing symbols (`┌ ┐ │ └ ┘` + horizontal line fill); widget bodies no longer rely on CSS outer borders.
+- Overlay widget content is rendered as a single middle row (Hexipedia background), while top/bottom border rows use map background; widget stack has zero gaps and neighboring widgets share a common border line.
+- Task overlay widget no longer uses pulsing glow; pending state shows symbolic marker `[·]` before the task title.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).

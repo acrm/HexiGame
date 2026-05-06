@@ -143,13 +143,78 @@ html, body {
   background: var(--game-bg, #370152ff);
 }
 
+.game-root.mobile-forced .mobile-tab-bar--header {
+  width: min(100%, var(--mobile-game-width));
+}
+
+.game-root.mobile-forced .game-top-header-bar {
+  width: 100%;
+}
+
+.game-root.mobile-forced .mobile-tab-bar--header .disconnect-button,
+.game-root.mobile-forced .mobile-tab-bar--header .settings-button {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  color: #000000 !important;
+}
+
+.game-root.mobile-forced .mobile-tab-bar--header .game-mobile-action-btn {
+  align-self: center;
+  line-height: 1;
+}
+
+.game-root.mobile-forced .mobile-tab-bar--tabs {
+  width: min(100%, var(--mobile-game-width));
+  background: #aaaaaa;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tabs-container {
+  gap: 0;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  color: #000000;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  background: transparent;
+  line-height: 1;
+  height: 1em;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
 .game-root.mobile-forced .game-field {
   min-height: 0;
   flex: 1;
-}
-
-.game-mobile-tab-bar {
-  width: 100%;
 }
 
 .mobile-tabs-container {
@@ -157,7 +222,7 @@ html, body {
   width: 100%;
   min-width: 0;
   background: transparent;
-  gap: 1ch;
+  gap: 0;
 }
 
 .mobile-tab {
@@ -439,9 +504,9 @@ html, body {
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
   width: min(100%, var(--mobile-game-width));
-  padding: 4px 0;
+  padding: 0;
   background: transparent;
 }
 
@@ -1150,69 +1215,27 @@ html, body {
 }
 
 /* Active tab header mirrors current tab content background */
-.game-root.mobile-forced .game-mobile-tab-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
-  column-gap: 1ch;
-  align-items: stretch;
-  height: auto;
-  padding: 0 1ch;
-}
-
-.game-root.mobile-forced .mobile-tabs-container {
-  gap: 0;
-  align-items: stretch;
-}
-
-.game-root.mobile-forced .mobile-tab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  border: 0;
-  border-radius: 0;
-  outline: none;
-  box-shadow: none;
-  color: #000000;
-  font-size: 16px;
-  font-weight: 700;
-  text-decoration: none;
-  background: transparent;
-  padding: 1ch 0.75ch;
-}
-
-.game-root.mobile-forced .mobile-tab:focus,
-.game-root.mobile-forced .mobile-tab:focus-visible {
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab:focus,
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
-.game-root.mobile-forced .mobile-tab.active {
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab.active {
   color: #ffffff !important;
   text-decoration: none;
 }
 
-.game-root.mobile-forced .mobile-tab--map.active {
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab--map.active {
   background: var(--tab-map-bg, #00264C) !important;
 }
 
-.game-root.mobile-forced .mobile-tab--hexipedia.active {
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab--hexipedia.active {
   background: var(--tab-hexipedia-bg, #2f2f2f) !important;
 }
 
-.game-root.mobile-forced .mobile-tab.disabled,
-.game-root.mobile-forced .mobile-tab:disabled {
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab.disabled,
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab:disabled {
   background: transparent;
   color: #555555;
-}
-
-.game-root.mobile-forced .game-mobile-tab-bar .disconnect-button,
-.game-root.mobile-forced .game-mobile-tab-bar .settings-button,
-.game-root.mobile-forced .game-mobile-tab-bar .game-mobile-action-btn {
-  align-self: center;
-  padding-top: 1ch;
-  padding-bottom: 1ch;
 }

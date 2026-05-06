@@ -17,6 +17,8 @@ interface TutorialProgressWidgetProps {
   onWidgetClick: () => void;
   onNavigateToTasks?: () => void;
   containerRef?: React.Ref<HTMLDivElement>;
+  suppressTopBorder?: boolean;
+  suppressBottomBorder?: boolean;
 }
 
 export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
@@ -29,9 +31,16 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   onWidgetClick,
   onNavigateToTasks,
   containerRef,
+  suppressTopBorder,
+  suppressBottomBorder,
 }) => {
   return (
-    <OverlayWidgetFrame ref={containerRef} className="tutorial-progress-container">
+    <OverlayWidgetFrame
+      ref={containerRef}
+      className="tutorial-progress-container"
+      suppressTopBorder={suppressTopBorder}
+      suppressBottomBorder={suppressBottomBorder}
+    >
       <div className="overlay-widget-shell">
         <div
           className={`overlay-widget-body tutorial-progress-widget phase-${phase}`}
@@ -43,7 +52,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
         >
           {phase === 'pending' && (
             <div className="tutorial-progress-row">
-              <span className="tutorial-task-icon" aria-hidden="true">tsk</span>
+              <span className="tutorial-task-icon" aria-hidden="true">[·]</span>
               <span className="tutorial-task-name">{taskName}</span>
             </div>
           )}
@@ -57,7 +66,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
 
           {phase === 'complete' && (
             <div className="tutorial-progress-row">
-              <span className="tutorial-progress-checkbox checked" aria-hidden="true">OK</span>
+              <span className="tutorial-progress-checkbox" aria-hidden="true">[■]</span>
               <span className="tutorial-complete-text">{completeText}</span>
             </div>
           )}

@@ -9,6 +9,7 @@ import PaletteCluster from './PaletteCluster';
 import GameField from './GameField/GameField';
 import Settings from './Settings';
 import GameMobileTabs from './Game/GameMobileTabs';
+import GameTopHeader from './Game/GameTopHeader';
 import GamePanels from './Game/GamePanels';
 import GameOverlays from './Game/GameOverlays';
 import { getLanguage, setLanguage, subscribeToLanguageChange, t, type Lang } from '../i18n';
@@ -81,6 +82,7 @@ import {
   type SessionController,
 } from '../../appLogic/sessionController';
 import { mulberry32 } from '../../gameLogic/core/params';
+import version from '../../../version.json';
 
 const MASCOT_FACING_DIR_INDEX = 1;
 
@@ -89,6 +91,7 @@ const FORCE_DEBUG_UI = true;
 const DEBUG = FORCE_DEBUG_UI || (
   typeof window !== 'undefined' && window.localStorage?.getItem('DEBUG_WIDGETS') === 'true'
 );
+const MARKETING_VERSION = `v${version.marketing.major}.${version.marketing.minor}.${version.marketing.publicBuild}`;
 
 interface TaskIntroModalState {
   taskId: string;
@@ -1070,16 +1073,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <ControlsDesktop />
         </div>
       )}
-      {isMobileLayout && (
-        <GameMobileTabs
-          mobileTab={mobileTab}
-          isHexiOsMode={!guestStarted}
-          onSelectMap={handleSelectMapTab}
-          onSelectHexipedia={handleSelectHexipediaTab}
-          onOpenSettings={handleOpenSettings}
-          onDisconnect={handleDisconnect}
-          onPlayLatestSession={handlePlayLatestSession}
-        />
+      {isMobileLayout && guestStarted && (
+        <>
+          <GameTopHeader
+            marketingVersion={MARKETING_VERSION}
+            onOpenSettings={handleOpenSettings}
+            onDisconnect={handleDisconnect}
+          />
+          <GameMobileTabs
+            mobileTab={mobileTab}
+            onSelectMap={handleSelectMapTab}
+            onSelectHexipedia={handleSelectHexipediaTab}
+          />
+        </>
       )}
 
       <GameOverlays
