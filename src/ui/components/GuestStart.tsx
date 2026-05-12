@@ -11,6 +11,7 @@ import {
   TuiSessionMetaRow,
   TuiTabBar,
 } from '../tui';
+import HexiStatusLine from './Game/HexiStatusLine';
 import '../tui/styles/tui.css';
 
 interface GuestStartProps {
@@ -228,51 +229,24 @@ export const GuestStart: React.FC<GuestStartProps> = ({
         </div>
 
         <div className="gs-main-panels">
-          <div className="gs-language-panel">
-            <TuiBorderRow
-              className="gs-tui-border-row"
-              leftClassName="gs-tui-border-left"
-              fillClassName="gs-tui-border-fill"
-              rightClassName="gs-tui-border-right"
-              left="╔═══ "
-              right="═══╗"
+          <div className="gs-mode-strip" role="region" aria-label={t('settings.language')}>
+            <span className="gs-mode-strip-label">START</span>
+            <span className="gs-mode-strip-divider" aria-hidden="true">|</span>
+            <label className="gs-mode-strip-language" htmlFor="guest-start-language">LANG</label>
+            <select
+              id="guest-start-language"
+              className="gs-lang-select gs-lang-select--strip"
+              value={language}
+              onChange={(e) => {
+                onUiClick();
+                onLanguageChange(e.target.value as Lang);
+              }}
             >
-              <span className="gs-tui-border-title" style={{color: '#55FFFF', fontWeight: 'bold'}}>Language</span>
-              <span> ═══════════════════════════════════════════════════════════════════════════════</span>
-            </TuiBorderRow>
-            <TuiBorderRow
-              className="gs-tui-border-row gs-language-bar"
-              leftClassName="gs-tui-border-left"
-              fillClassName="gs-tui-border-fill"
-              rightClassName="gs-tui-border-right"
-              left="║ "
-              right="║"
-            >
-              <div style={{ padding: '0 1ch' }}>
-                <select
-                  id="guest-start-language"
-                  className="gs-lang-select"
-                  value={language}
-                  onChange={(e) => {
-                    onUiClick();
-                    onLanguageChange(e.target.value as Lang);
-                  }}
-                >
-                  <option value="en">{t('language.en')}</option>
-                  <option value="ru">{t('language.ru')}</option>
-                </select>
-              </div>
-            </TuiBorderRow>
-            <TuiBorderRow
-              className="gs-tui-border-row"
-              leftClassName="gs-tui-border-left"
-              fillClassName="gs-tui-border-fill"
-              rightClassName="gs-tui-border-right"
-              left="╚═══"
-              right="═══╝"
-            >
-              ════════════════════════════════════════════════════════════════════════════════════════════════════
-            </TuiBorderRow>
+              <option value="en">{t('language.en')}</option>
+              <option value="ru">{t('language.ru')}</option>
+            </select>
+            <span className="gs-mode-strip-divider" aria-hidden="true">|</span>
+            <span className="gs-mode-strip-hint">[RUN latest] [NEW] [CFG]</span>
           </div>
 
           <div className="gs-sessions-panel">
@@ -581,6 +555,14 @@ export const GuestStart: React.FC<GuestStartProps> = ({
             </div>
           </div>
         </div>
+
+        <HexiStatusLine
+          mode="guest"
+          notice={sortedSessions.length > 0
+            ? `${t('sessions.title')}: ${sortedSessions.length}`
+            : t('stats.history.empty')}
+          className="game-status-line--guest"
+        />
       </div>
     </div>
   );

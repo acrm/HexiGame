@@ -220,9 +220,11 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
 - Runtime gameplay UI uses the same monospace font stack and base font size as the start screen.
 - Gameplay mobile header is split into two rows: row 1 uses the HexiOS header (`HexiOS v<marketing>`) with `STOP` and `CFG` actions, row 2 contains only `Map/Lab/Hexipedia` tabs.
+- Session desktop includes a compact pseudo-terminal launcher window above the active tab content. The launcher supports text commands (`map`, `hexi`, `cfg`, `stop`, `help`, `clear`) and mirrored shortcut buttons (`[MAP] [HEXI] [CFG] [STOP]`).
 - Gameplay tabs row is rendered as a strict single text line (no inner/outer spacing), starts flush at the left edge, and is clamped to screen width without right overflow.
 - Gameplay tabs row includes symbolic separators between tabs to preserve readability in the one-line dense mode.
 - Mobile tab content keeps its original per-tab background color; the active tab header fills the full tab-header area using the same background color with white text and blends seamlessly into the tab content. Inactive tab headers keep the default panel background.
+- A global HexiOS status line is rendered at the bottom of both runtime and start-screen modes. Runtime status includes session tick/time, cursor coordinates, notice state, and hotkey hints.
 - Debug runtime mode can force all overlay widgets visible and keep hotbar enabled, but widgets still render only on the `map` tab.
 - Session playback controls use compact horizontal spacing and auto-width action buttons to avoid merged labels on narrow mobile layouts.
 - Palette widget uses compact relative color labels (short signed integers and `+/-50`) for stable rendering without text overlap.
@@ -242,6 +244,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
 - **Start screen** (shown while guest gameplay is disconnected) uses HexiPedia visual language (dark section blocks, compact header, in-panel controls) and stays inside the same forced-portrait mobile viewport container as gameplay:
   - Header contains a single-tab title: **HexiOS v<marketing-version>** (for example `v0.1.0`, sourced from `version.json` marketing metadata).
+  - The second shell row is a mode strip (`START | LANG | [RUN latest] [NEW] [CFG]`) rather than a framed panel.
   - Settings are opened from a gear button in the top-right corner (same interaction model as in-game mobile tab bar).
   - If an active resumable session exists: **Connect** is shown.
   - Always available: **New session**.

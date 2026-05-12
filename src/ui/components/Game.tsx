@@ -12,6 +12,7 @@ import GameMobileTabs from './Game/GameMobileTabs';
 import GameTopHeader from './Game/GameTopHeader';
 import GamePanels from './Game/GamePanels';
 import GameOverlays from './Game/GameOverlays';
+import HexiStatusLine from './Game/HexiStatusLine';
 import { getLanguage, setLanguage, subscribeToLanguageChange, t, type Lang } from '../i18n';
 import { getTemplateById } from '../../templates/templateLibrary';
 import { integration } from '../../appLogic/integration';
@@ -1048,6 +1049,22 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       }
     : null;
 
+  const terminalLauncherProps = guestStarted
+    ? {
+        mobileTab,
+        onSelectMap: handleSelectMapTab,
+        onSelectHexipedia: handleSelectHexipediaTab,
+        onOpenSettings: handleOpenSettings,
+        onDisconnect: handleDisconnect,
+      }
+    : null;
+
+  const statusNotice = taskIntroModal
+    ? t('status.noticeTaskPending')
+    : playbackIsPaused
+      ? t('status.noticePaused')
+      : null;
+
   return (
     <div
       className="game-root mobile-forced"
@@ -1122,7 +1139,19 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         mobileTab={mobileTab}
         hexiPediaProps={hexiPediaProps}
         gameFieldProps={gameFieldProps}
+        terminalLauncherProps={terminalLauncherProps}
       />
+
+      {guestStarted && (
+        <HexiStatusLine
+          mode="session"
+          mobileTab={mobileTab}
+          tick={gameState.tick}
+          sessionStartTick={currentSessionStartTick}
+          cursor={gameState.focus}
+          notice={statusNotice}
+        />
+      )}
 
       {guestStarted && !startupAnimationShown && (
         <StartupAnimation

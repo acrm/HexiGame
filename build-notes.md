@@ -751,3 +751,5 @@
 - 0.1.0-y26w19b14 — Two-row gameplay header and shared TUI widget stack
 
 - 0.1.0-y26w19b15 — Polish gameplay two-row header and widget stack separators
+
+- 0.1.0-y26w20b1 — HexiOS status line and session terminal launcher MVP

@@ -1,5 +1,11 @@
 # TODO
 
+## Recently Completed (2026-05-12)
+
+- [x] Добавлена глобальная нижняя строка статуса HexiOS для runtime и start-режима (mode/tick/time/cursor/notice/hotkeys)
+- [x] В runtime (режим сессии) добавлено псевдо-терминальное окно launcher над рабочей областью (`map/hexi/cfg/stop/help/clear`)
+- [x] Во втором ряду start-режима вместо отдельного language-окна внедрена режимная строка `START | LANG | [RUN latest] [NEW] [CFG]`
+
 ## Recently Completed (2026-05-05)
 
 - [x] Из стартовой страницы извлечён переиспользуемый TUI toolkit в `src/ui/tui` (базовые примитивы + session wrappers + отдельный `tui.css`)

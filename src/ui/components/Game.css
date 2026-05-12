@@ -26,6 +26,53 @@ html, body {
   min-height: 0;
 }
 
+.session-terminal-panel {
+  display: none;
+}
+
+.game-status-line {
+  width: min(100%, var(--mobile-game-width));
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr) max-content minmax(0, 1fr) max-content minmax(0, 1.2fr);
+  align-items: center;
+  column-gap: 1ch;
+  padding: 0 1ch;
+  min-height: 1.8em;
+  box-sizing: border-box;
+  background: #000000;
+  border-top: 1px solid #333333;
+  color: #55ff55;
+  flex-shrink: 0;
+}
+
+.game-status-line-segment {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-status-line-segment--left {
+  color: #55ffff;
+}
+
+.game-status-line-segment--notice {
+  color: #ffff55;
+}
+
+.game-status-line-segment--hotkeys {
+  color: #aaaaaa;
+}
+
+.game-status-line-divider {
+  color: #555555;
+  user-select: none;
+}
+
+.game-status-line--guest {
+  width: 100%;
+}
+
 .game-panel {
   width: 33.33vw;
   min-width: 260px;
@@ -132,9 +179,97 @@ html, body {
   min-height: 0;
 }
 
+.game-root.mobile-forced .session-terminal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #000000;
+  color: #aaaaaa;
+  border-top: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.game-root.mobile-forced .session-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1ch;
+  color: #55ffff;
+}
+
+.game-root.mobile-forced .session-terminal-command-row {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  column-gap: 1ch;
+  padding: 0 1ch;
+}
+
+.game-root.mobile-forced .session-terminal-prompt {
+  color: #55ff55;
+  white-space: nowrap;
+}
+
+.game-root.mobile-forced .session-terminal-input {
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: #000000;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.game-root.mobile-forced .session-terminal-input::placeholder {
+  color: #555555;
+}
+
+.game-root.mobile-forced .session-terminal-run-btn,
+.game-root.mobile-forced .session-terminal-shortcut {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.game-root.mobile-forced .session-terminal-run-btn:hover,
+.game-root.mobile-forced .session-terminal-shortcut:hover {
+  color: #aaaaaa;
+}
+
+.game-root.mobile-forced .session-terminal-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  padding: 0 1ch;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.game-root.mobile-forced .session-terminal-shortcuts::-webkit-scrollbar {
+  display: none;
+}
+
+.game-root.mobile-forced .session-terminal-output {
+  padding: 0 1ch;
+  color: #aaaaaa;
+  min-height: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .game-root.mobile-forced .game-field-area {
   width: 100%;
   min-width: 0;
+  flex: 1;
 }
 
 .game-root.mobile-forced .widget-stack-overlay {
@@ -660,6 +795,44 @@ html, body {
   align-items: center;
   column-gap: 1ch;
   padding: 1ch;
+}
+
+.gs-mode-strip {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  min-height: 1.8em;
+  background: #aaaaaa;
+  color: #000000;
+  padding: 0 1ch;
+  flex-shrink: 0;
+}
+
+.gs-mode-strip-label {
+  font-weight: 700;
+}
+
+.gs-mode-strip-divider {
+  color: #555555;
+  user-select: none;
+}
+
+.gs-mode-strip-language {
+  color: #000000;
+}
+
+.gs-lang-select.gs-lang-select--strip {
+  background: transparent;
+  color: #000000;
+}
+
+.gs-mode-strip-hint {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111111;
 }
 
 
