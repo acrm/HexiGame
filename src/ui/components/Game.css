@@ -5,6 +5,11 @@ html, body {
 
 :root {
   --mobile-game-width: 420px;
+  --shell-row-bg: #aaaaaa;
+  --shell-row-fg: #000000;
+  --shell-panel-bg: #000000;
+  --shell-border: #aaaaaa;
+  --shell-muted: #555555;
 }
 
 .game-root {
@@ -24,10 +29,6 @@ html, body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.session-terminal-panel {
-  display: none;
 }
 
 .game-status-line {
@@ -144,7 +145,7 @@ html, body {
 
 .mobile-tab-bar {
   display: none;
-  background: #aaaaaa;
+  background: var(--shell-row-bg);
   position: relative;
 }
 
@@ -154,7 +155,7 @@ html, body {
   height: calc(var(--vh, 1vh) * 100);
   max-height: calc(var(--vh, 1vh) * 100);
   overflow: hidden;
-  background: #3a3a3a;
+  background: var(--shell-panel-bg);
 }
 
 .game-root.mobile-forced .game-panel {
@@ -164,7 +165,7 @@ html, body {
 .game-root.mobile-forced .mobile-tab-bar {
   display: block;
   width: min(100%, var(--mobile-game-width));
-  background: #aaaaaa;
+  background: var(--shell-row-bg);
   flex-shrink: 0;
 }
 
@@ -173,93 +174,6 @@ html, body {
   background: var(--game-bg, #370152ff);
   overflow: hidden;
   min-height: 0;
-}
-
-.game-root.mobile-forced .session-terminal-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  background: #000000;
-  color: #aaaaaa;
-  border-top: 1px solid #333333;
-  border-bottom: 1px solid #333333;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.game-root.mobile-forced .session-terminal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1ch;
-  color: #55ffff;
-}
-
-.game-root.mobile-forced .session-terminal-command-row {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
-  align-items: center;
-  column-gap: 1ch;
-  padding: 0 1ch;
-}
-
-.game-root.mobile-forced .session-terminal-prompt {
-  color: #55ff55;
-  white-space: nowrap;
-}
-
-.game-root.mobile-forced .session-terminal-input {
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: #000000;
-  color: #ffffff;
-  font-family: inherit;
-  font-size: inherit;
-  padding: 0;
-}
-
-.game-root.mobile-forced .session-terminal-input::placeholder {
-  color: #555555;
-}
-
-.game-root.mobile-forced .session-terminal-run-btn,
-.game-root.mobile-forced .session-terminal-shortcut {
-  border: none;
-  background: transparent;
-  color: #ffffff;
-  font-family: inherit;
-  font-size: inherit;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-}
-
-.game-root.mobile-forced .session-terminal-run-btn:hover,
-.game-root.mobile-forced .session-terminal-shortcut:hover {
-  color: #aaaaaa;
-}
-
-.game-root.mobile-forced .session-terminal-shortcuts {
-  display: flex;
-  align-items: center;
-  gap: 1ch;
-  padding: 0 1ch;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.game-root.mobile-forced .session-terminal-shortcuts::-webkit-scrollbar {
-  display: none;
-}
-
-.game-root.mobile-forced .session-terminal-output {
-  padding: 0 1ch;
-  color: #aaaaaa;
-  min-height: 1em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .game-root.mobile-forced .game-field-area {
@@ -284,8 +198,8 @@ html, body {
   column-gap: 1ch;
   align-items: center;
   width: 100%;
-  background: #aaaaaa;
-  color: #000000;
+  background: var(--shell-row-bg);
+  color: var(--shell-row-fg);
   padding: 0 1ch;
   margin: 0;
   line-height: 1;
@@ -313,7 +227,7 @@ html, body {
   margin: 0;
   padding: 0;
   font-size: 16px;
-  color: #000000 !important;
+  color: var(--shell-row-fg) !important;
 }
 
 .game-root.mobile-forced .mobile-tab-bar--header .game-mobile-action-btn {
@@ -325,7 +239,7 @@ html, body {
   display: flex;
   align-items: center;
   width: min(100%, var(--mobile-game-width));
-  background: #aaaaaa;
+  background: var(--shell-row-bg);
   padding: 0;
   margin: 0;
   overflow: hidden;
@@ -357,7 +271,7 @@ html, body {
   border-radius: 0;
   outline: none;
   box-shadow: none;
-  color: #000000;
+  color: var(--shell-row-fg);
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
@@ -372,7 +286,7 @@ html, body {
 
 .game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab-separator {
   flex: 0 0 auto;
-  color: #333333;
+  color: var(--shell-muted);
   line-height: 1;
   user-select: none;
 }
@@ -393,7 +307,7 @@ html, body {
 .mobile-tab {
   padding: 0;
   border: none;
-  color: #000000;
+  color: var(--shell-row-fg);
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -411,7 +325,7 @@ html, body {
 }
 
 .mobile-tab.active {
-  color: #000000;
+  color: var(--shell-row-fg);
   text-decoration: underline;
 }
 
@@ -696,7 +610,7 @@ html, body {
   height: 100%;
   box-sizing: border-box;
   color: #FFFFFF;
-  background: #000000;
+  background: var(--shell-panel-bg);
   font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
   font-size: 16px;
   line-height: 1;
@@ -747,8 +661,8 @@ html, body {
   column-gap: 1ch;
   align-items: stretch;
   height: auto;
-  background: #AAAAAA;
-  color: #000000;
+  background: var(--shell-row-bg);
+  color: var(--shell-row-fg);
   padding: 1ch;
   flex-shrink: 0;
 }
@@ -763,7 +677,7 @@ html, body {
   display: block;
   padding: 0;
   background: transparent;
-  color: #000000;
+  color: var(--shell-row-fg);
   font-weight: 700;
   flex: 1;
   overflow: hidden;
@@ -798,8 +712,8 @@ html, body {
   align-items: center;
   gap: 1ch;
   min-height: 1.8em;
-  background: #aaaaaa;
-  color: #000000;
+  background: var(--shell-row-bg);
+  color: var(--shell-row-fg);
   padding: 0 1ch;
   flex-shrink: 0;
 }
@@ -809,26 +723,17 @@ html, body {
 }
 
 .gs-mode-strip-divider {
-  color: #555555;
+  color: var(--shell-muted);
   user-select: none;
 }
 
 .gs-mode-strip-language {
-  color: #000000;
+  color: var(--shell-row-fg);
 }
 
 .gs-lang-select.gs-lang-select--strip {
   background: transparent;
-  color: #000000;
-}
-
-.gs-mode-strip-hint {
-  margin-left: auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #111111;
+  color: var(--shell-row-fg);
 }
 
 

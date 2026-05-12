@@ -245,8 +245,6 @@ export const GuestStart: React.FC<GuestStartProps> = ({
               <option value="en">EN</option>
               <option value="ru">RU</option>
             </select>
-            <span className="gs-mode-strip-divider" aria-hidden="true">|</span>
-            <span className="gs-mode-strip-hint">[RUN] [NEW] [CFG]</span>
           </div>
 
           <div className="gs-sessions-panel">

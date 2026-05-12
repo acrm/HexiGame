@@ -541,7 +541,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Determine background color based on active tab
   const backgroundColor = isMobileLayout 
-    ? (mobileTab === 'map' ? ColorScheme.outside.background : mobileTab === 'lab' ? ColorScheme.inside.background : '#2f2f2f')
+    ? (mobileTab === 'map' ? ColorScheme.outside.background : mobileTab === 'lab' ? ColorScheme.inside.background : '#000000')
     : '#370152ff';
 
   const paletteTopOffset = isMobileLayout && mobileTab === 'map' && activeTask ? 56 : 8;
@@ -739,6 +739,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       if (tab === 'map') {
         dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
       }
+      if (tab === 'hexipedia') {
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+      }
       if (tab === 'colors') {
         openHexipediaSection('colors');
       }
@@ -746,6 +749,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         openHexipediaSection('structures');
       }
     },
+    onOpenSettings: handleOpenSettings,
+    onDisconnect: handleDisconnect,
     onActivateTemplate: (templateId: string) => {
       if (templateId === '') {
         dispatch({ type: 'DEACTIVATE_TEMPLATE' });
@@ -1049,16 +1054,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       }
     : null;
 
-  const terminalLauncherProps = guestStarted
-    ? {
-        mobileTab,
-        onSelectMap: handleSelectMapTab,
-        onSelectHexipedia: handleSelectHexipediaTab,
-        onOpenSettings: handleOpenSettings,
-        onDisconnect: handleDisconnect,
-      }
-    : null;
-
   const statusNotice = taskIntroModal
     ? t('status.noticeTaskPending')
     : playbackIsPaused
@@ -1139,7 +1134,6 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         mobileTab={mobileTab}
         hexiPediaProps={hexiPediaProps}
         gameFieldProps={gameFieldProps}
-        terminalLauncherProps={terminalLauncherProps}
       />
 
       {guestStarted && (

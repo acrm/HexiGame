@@ -755,3 +755,5 @@
 - 0.1.0-y26w20b1 — HexiOS status line and session terminal launcher MVP
 
 - 0.1.0-y26w20b2 — Polish HexiOS status line and session list compactness
+
+- 0.1.0-y26w20b3 — Rework FND as Hexipedia-only terminal launcher

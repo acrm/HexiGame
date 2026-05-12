@@ -24,6 +24,22 @@ interface SessionHistoryRecord {
 
 type HexipediaSectionId = 'tasks' | 'session' | 'structures' | 'colors';
 
+type LauncherCommandId = 'map' | 'hexi' | 'cfg' | 'stop' | 'help' | 'clear';
+
+interface LauncherCommandOption {
+  id: LauncherCommandId;
+  aliases: string[];
+}
+
+const LAUNCHER_COMMANDS: LauncherCommandOption[] = [
+  { id: 'map', aliases: ['map'] },
+  { id: 'hexi', aliases: ['hexi', 'hexipedia'] },
+  { id: 'cfg', aliases: ['cfg', 'settings', 'set'] },
+  { id: 'stop', aliases: ['stop', 'disconnect', 'exit'] },
+  { id: 'help', aliases: ['help'] },
+  { id: 'clear', aliases: ['clear', 'cls'] },
+];
+
 interface HexipediaProps {
   gameState: GameState;
   params: Params;
@@ -42,6 +58,8 @@ interface HexipediaProps {
   onDeleteSessionRecord?: (recordId: string) => void;
   onClearSessionHistory?: () => void;
   onSwitchTab?: (tab: string) => void;
+  onOpenSettings?: () => void;
+  onDisconnect?: () => void;
   onActivateTemplate?: (templateId: string) => void;
   selectedColorIndex?: number;
   onColorSelect?: (index: number) => void;
@@ -148,6 +166,8 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
   onDeleteSessionRecord,
   onClearSessionHistory,
   onSwitchTab,
+  onOpenSettings,
+  onDisconnect,
   onActivateTemplate,
   selectedColorIndex,
   onColorSelect,
@@ -178,6 +198,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
 }) => {
   const [seekTickInput, setSeekTickInput] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
+  const [launcherStatus, setLauncherStatus] = useState('READY');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(task?.id ?? null);
   const [collapsedSections, setCollapsedSections] = useState<Set<HexipediaSectionId>>(
     new Set<HexipediaSectionId>(['session', 'structures', 'colors']),
@@ -207,6 +228,21 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
   const allTasks = getAllTaskDefinitions();
   const sessionDuration = gameState.tick - currentSessionStartTick;
   const sectionFilterValue = sectionFilter.trim().toLowerCase();
+  const sectionTitles: Record<HexipediaSectionId, string> = {
+    tasks: t('task.tasksTitle'),
+    session: t('session.title'),
+    structures: t('structures.title'),
+    colors: t('colors.title'),
+  };
+  const commandSuggestions = LAUNCHER_COMMANDS.filter(({ id, aliases }) => {
+    if (!sectionFilterValue) return false;
+    if (id.startsWith(sectionFilterValue)) return true;
+    return aliases.some(alias => alias.startsWith(sectionFilterValue));
+  });
+  const sectionSuggestions = sectionOrder.filter(id => {
+    if (!sectionFilterValue) return true;
+    return sectionTitles[id].toLowerCase().includes(sectionFilterValue);
+  });
   const selectedStructureTemplate = getTemplateById(selectedStructureTypeId) ?? ALL_TEMPLATES[0] ?? null;
   const structureInstances = useMemo(
     () => (gameState.structureInstances ?? [])
@@ -272,6 +308,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
   };
 
   const openSectionFromSearch = (sectionId: HexipediaSectionId) => {
+    audioController.playRandomSound(soundEnabled, soundVolume);
     onSetSectionEnabled?.(sectionId, true);
     setCollapsedSections(prev => {
       if (!prev.has(sectionId)) return prev;
@@ -280,6 +317,90 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
       return next;
     });
     setLocalFocusSectionId(sectionId);
+    setLauncherStatus(`OPEN: ${sectionId.toUpperCase()}`);
+    setSectionFilter('');
+    setShowSearchDropdown(false);
+  };
+
+  const resolveLauncherCommand = (input: string): LauncherCommandOption | null => {
+    if (!input) return null;
+    const normalizedInput = input.trim().toLowerCase();
+    return LAUNCHER_COMMANDS.find(({ id, aliases }) => (
+      id === normalizedInput || aliases.includes(normalizedInput)
+    )) ?? null;
+  };
+
+  const executeLauncherCommand = (commandId: LauncherCommandId) => {
+    audioController.playRandomSound(soundEnabled, soundVolume);
+
+    switch (commandId) {
+      case 'map': {
+        if (!onSwitchTab) {
+          setLauncherStatus('ERR: map');
+          return;
+        }
+        onSwitchTab('map');
+        setLauncherStatus('OK: MAP');
+        break;
+      }
+      case 'hexi': {
+        if (!onSwitchTab) {
+          setLauncherStatus('ERR: hexi');
+          return;
+        }
+        onSwitchTab('hexipedia');
+        setLauncherStatus('OK: HEXI');
+        break;
+      }
+      case 'cfg': {
+        if (!onOpenSettings) {
+          setLauncherStatus('ERR: cfg');
+          return;
+        }
+        onOpenSettings();
+        setLauncherStatus('OK: CFG');
+        break;
+      }
+      case 'stop': {
+        if (!onDisconnect) {
+          setLauncherStatus('ERR: stop');
+          return;
+        }
+        onDisconnect();
+        setLauncherStatus('OK: STOP');
+        break;
+      }
+      case 'help': {
+        setLauncherStatus('CMDS: map hexi cfg stop help clear');
+        break;
+      }
+      case 'clear': {
+        setLauncherStatus('');
+        break;
+      }
+      default:
+        setLauncherStatus(`ERR: ${commandId}`);
+    }
+
+    setSectionFilter('');
+    setShowSearchDropdown(false);
+  };
+
+  const submitLauncherInput = () => {
+    if (!sectionFilterValue) return;
+
+    const command = resolveLauncherCommand(sectionFilterValue);
+    if (command) {
+      executeLauncherCommand(command.id);
+      return;
+    }
+
+    if (sectionSuggestions.length > 0) {
+      openSectionFromSearch(sectionSuggestions[0]);
+      return;
+    }
+
+    setLauncherStatus(`ERR: ${sectionFilterValue}`);
     setSectionFilter('');
     setShowSearchDropdown(false);
   };
@@ -327,18 +448,6 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
 
     return () => cancelAnimationFrame(animationFrameId);
   }, [activeFocusSectionId, enabledSections, focusSectionId, onFocusSectionHandled]);
-
-  const sectionTitles: Record<HexipediaSectionId, string> = {
-    tasks: t('task.tasksTitle'),
-    session: t('session.title'),
-    structures: t('structures.title'),
-    colors: t('colors.title'),
-  };
-
-  const dropdownSections = sectionOrder.filter(id => {
-    if (!sectionFilterValue) return true;
-    return sectionTitles[id].toLowerCase().includes(sectionFilterValue);
-  });
 
   const renderSectionHeader = ({
     title,
@@ -447,23 +556,55 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
         <div className="hexipedia-section-filter-shell">
           <TuiBorderRow
             className="hexipedia-section-filter-row"
-            left={<span className="hexipedia-section-filter-icon" aria-hidden="true">FND</span>}
-            right={<span className="hexipedia-section-filter-right" aria-hidden="true" />}
+            left={<span className="hexipedia-section-filter-icon" aria-hidden="true">FND&gt;</span>}
+            right={(
+              <button
+                type="button"
+                className="hexipedia-section-filter-run"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={submitLauncherInput}
+              >
+                RUN
+              </button>
+            )}
           >
             <input
               className="hexipedia-section-filter-input"
               type="text"
               value={sectionFilter}
               onChange={(event) => setSectionFilter(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  submitLauncherInput();
+                }
+              }}
               onFocus={() => setShowSearchDropdown(true)}
               onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
               placeholder={t('hexipedia.searchPlaceholder')}
               aria-label={t('hexipedia.searchAria')}
             />
           </TuiBorderRow>
+
+          <div className="hexipedia-launcher-status">{launcherStatus || ' '}</div>
+
           {showSearchDropdown && (
             <div className="hexipedia-section-dropdown">
-              {dropdownSections.map(id => (
+              {commandSuggestions.map(({ id }) => (
+                <button
+                  key={`cmd-${id}`}
+                  className="hexipedia-section-dropdown-item is-command"
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    executeLauncherCommand(id);
+                  }}
+                >
+                  <span className="hexipedia-section-dropdown-name">{id}</span>
+                  <span className="hexipedia-section-dropdown-tag" aria-hidden="true">CMD</span>
+                </button>
+              ))}
+
+              {sectionSuggestions.map(id => (
                 <button
                   key={id}
                   className={`hexipedia-section-dropdown-item ${isSectionEnabled(id) ? 'is-enabled' : ''} ${isSectionPinned(id) ? 'is-pinned' : ''}`}
@@ -473,9 +614,13 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                   }}
                 >
                   <span className="hexipedia-section-dropdown-name">{sectionTitles[id]}</span>
-                  {isSectionPinned(id) && <span className="hexipedia-section-dropdown-pin" aria-hidden="true">PIN</span>}
+                  {isSectionPinned(id) && <span className="hexipedia-section-dropdown-tag" aria-hidden="true">PIN</span>}
                 </button>
               ))}
+
+              {commandSuggestions.length === 0 && sectionSuggestions.length === 0 && (
+                <div className="hexipedia-section-dropdown-empty">NO MATCH</div>
+              )}
             </div>
           )}
         </div>
