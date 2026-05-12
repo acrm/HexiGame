@@ -757,3 +757,5 @@
 - 0.1.0-y26w20b2 — Polish HexiOS status line and session list compactness
 
 - 0.1.0-y26w20b3 — Rework FND as Hexipedia-only terminal launcher
+
+- 0.1.0-y26w20b4 — Unify shell top rows renderer

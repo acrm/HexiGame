@@ -219,7 +219,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Mobile control blocks (tab bar + widget stack) are placed in normal document flow, so they do not overlap the playable field.
 - If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
 - Runtime gameplay UI uses the same monospace font stack and base font size as the start screen.
-- Gameplay mobile header is split into two rows: row 1 uses the HexiOS header (`HexiOS v<marketing>`) with `STOP` and `CFG` actions, row 2 contains only `Map/Lab/Hexipedia` tabs.
+- Gameplay mobile header is split into two rows: row 1 uses the HexiOS header (`HexiOS v<marketing>`) with primary action + `CFG`, row 2 contains either `Map/Lab/Hexipedia` tabs (session mode) or `START | LANG | <EN/RU>` (start mode).
+- The top two shell rows are rendered by one shared component (`ShellTopRows`) for both start and session states; mode-specific differences are data-only (labels/actions/content), not separate JSX branches.
 - Terminal launcher behavior is implemented via the existing Hexipedia `FND` row (command+search). The command mode supports `map`, `hexi`, `cfg`, `stop`, `help`, and `clear`.
 - Terminal launcher visibility is restricted to the Hexipedia tab; no separate terminal block is rendered on map/lab tabs.
 - Gameplay tabs row is rendered as a strict single text line (no inner/outer spacing), starts flush at the left edge, and is clamped to screen width without right overflow.
@@ -266,16 +267,16 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Session snapshots are stored both as active session state and per-session history state (`hexigame.session.byId.<sessionId>`), enabling switching between history entries without data loss.
 - Field Lab now exposes two strictly separated visualization families: `Noise (random)` and `Fractal structures (manual)`. In manual fractal mode there is no procedural randomness: the editor builds a deterministic layered template (`+2..-2`) and lets the user paint current-layer cells with one of 6 palette colors or `empty`; active layer switching and display scaling are manual.
 
-## 3.1 Current Session UX Updates (2026-04-08)
+## 3.1 Current Session UX Updates (2026-05-12)
 
 - Mobile tabs are named `Map`, `Lab`, and `Hexipedia`.
 - Disconnect is a dedicated in-game tab-bar button and is visually aligned with Settings (same size/background).
 - In-game mobile top bar now mirrors HexiOS header composition (`TuiTabBar` layout with tab area + right action area) and uses ASCII-only labels.
 - Settings is always rendered above start-screen overlays (higher z-order), so it is visible both in gameplay and on session-selection screen.
-- Start screen layout is split into independent zones:
-  - fixed non-scroll header (`HexiOS + Settings`),
-  - standalone language panel with its own scroll,
-  - standalone sessions panel with its own scroll and collapse toggle (expanded by default).
+- Start/session shell top area is unified: both rows are rendered by a single shared top-rows component (`ShellTopRows`) mounted at the root shell level.
+- Start screen content is split into independent zones:
+  - sessions panel with its own scroll and collapse toggle (expanded by default),
+  - global bottom status line.
 - Session list is unified (no separate “current session” card) and sorted by most recent activity.
 - Each session row is collapsed by default and shows: expander button, codename (large), last-action timestamp (smaller), and a large right-aligned play/start action.
 - Session expand/collapse affordance uses double triangle arrows (`⏷` to expand, `⏶` to collapse), separate from play/start iconography.

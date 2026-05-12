@@ -5,6 +5,8 @@ html, body {
 
 :root {
   --mobile-game-width: 420px;
+  --shell-top-row-height: 1.8em;
+  --shell-top-rows-height: calc(var(--shell-top-row-height) * 2);
   --shell-row-bg: #aaaaaa;
   --shell-row-fg: #000000;
   --shell-panel-bg: #000000;
@@ -149,6 +151,21 @@ html, body {
   position: relative;
 }
 
+.shell-top-rows {
+  width: min(100%, var(--mobile-game-width));
+  position: relative;
+  z-index: 2100;
+  flex-shrink: 0;
+}
+
+.shell-top-rows .mobile-tab-bar {
+  width: 100%;
+}
+
+.shell-top-row {
+  min-height: var(--shell-top-row-height);
+}
+
 .game-root.mobile-forced {
   flex-direction: column;
   align-items: center;
@@ -197,6 +214,7 @@ html, body {
   grid-template-columns: minmax(0, 1fr) max-content max-content;
   column-gap: 1ch;
   align-items: center;
+  min-height: var(--shell-top-row-height);
   width: 100%;
   background: var(--shell-row-bg);
   color: var(--shell-row-fg);
@@ -238,6 +256,7 @@ html, body {
 .game-root.mobile-forced .mobile-tab-bar--tabs {
   display: flex;
   align-items: center;
+  min-height: var(--shell-top-row-height);
   width: min(100%, var(--mobile-game-width));
   background: var(--shell-row-bg);
   padding: 0;
@@ -289,6 +308,39 @@ html, body {
   color: var(--shell-muted);
   line-height: 1;
   user-select: none;
+}
+
+.shell-mode-strip {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  padding: 0 1ch;
+}
+
+.shell-mode-strip-label {
+  color: var(--shell-row-fg);
+  font-weight: 700;
+}
+
+.shell-mode-strip-language {
+  color: var(--shell-row-fg);
+}
+
+.shell-mode-strip-select {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: var(--shell-row-fg);
+  font: inherit;
+  line-height: 1;
+  min-width: 4ch;
+}
+
+.shell-mode-strip-select option {
+  color: #000000;
 }
 
 .game-root.mobile-forced .game-field {
@@ -601,7 +653,8 @@ html, body {
   justify-content: center;
   z-index: 2000;
   background: transparent;
-  padding: 0;
+  padding: var(--shell-top-rows-height) 0 0;
+  box-sizing: border-box;
 }
 
 /* TUI start screen */

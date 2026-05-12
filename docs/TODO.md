@@ -3,6 +3,7 @@
 ## Recently Completed (2026-05-12)
 
 - [x] Добавлена глобальная нижняя строка статуса HexiOS для runtime и start-режима (mode/tick/time/cursor/notice/hotkeys)
+- [x] Верхние shell-строки start/session унифицированы в единый рендер-компонент `ShellTopRows` (одна кодовая база Row 1 + Row 2)
 - [x] Терминальный launcher перенесен в существующую FND-строку Hexipedia (command+search), отдельный runtime-блок терминала удален
 - [x] Терминальный UX ограничен вкладкой Hexipedia; на map/lab отдельный терминальный блок не рендерится
 - [x] Во втором ряду start-режима оставлена только режимная строка `START | LANG | <EN/RU>` без дублирующих action-хинтов

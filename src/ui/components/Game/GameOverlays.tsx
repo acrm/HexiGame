@@ -1,7 +1,6 @@
 import React from 'react';
 import type { MobileTab } from '../../../appLogic/appShellReducer';
 import type { SessionHistoryRecord } from '../../../appLogic/sessionHistory';
-import type { Lang } from '../../i18n';
 import GuestStart from '../GuestStart';
 import Mascot from '../Mascot';
 import Settings from '../Settings';
@@ -26,16 +25,12 @@ interface GameOverlaysProps {
   sessionHistory: SessionHistoryRecord[];
   currentSessionId: string | null;
   onContinueSession: (sessionId: string) => void;
-  onPlayLatestSession: () => void;
   onNewSession: () => void;
   onDownloadSession: (sessionId: string) => void;
   onImportSession: (file: File) => void;
   onRenameSession: (sessionId: string, customName: string) => void;
   onDeleteSessions: (sessionIds: string[]) => void;
-  onOpenSettings: () => void;
   onGuestStartUiClick: () => void;
-  language: Lang;
-  onLanguageChange: (lang: Lang) => void;
   isSettingsOpen: boolean;
   settingsProps: React.ComponentProps<typeof Settings>;
   isMascotOpen: boolean;
@@ -53,7 +48,6 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   sectionOrder,
   showGuestStart,
   onContinueSession,
-  onPlayLatestSession,
   sessionHistory,
   currentSessionId,
   onNewSession,
@@ -61,10 +55,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   onImportSession,
   onRenameSession,
   onDeleteSessions,
-  onOpenSettings,
   onGuestStartUiClick,
-  language,
-  onLanguageChange,
   isSettingsOpen,
   settingsProps,
   isMascotOpen,
@@ -140,16 +131,12 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
           sessionHistory={sessionHistory}
           currentSessionId={currentSessionId}
           onContinueSession={onContinueSession}
-          onPlayLatestSession={onPlayLatestSession}
           onNewSession={onNewSession}
           onDownloadSession={onDownloadSession}
           onImportSession={onImportSession}
           onRenameSession={onRenameSession}
           onDeleteSessions={onDeleteSessions}
-          onOpenSettings={onOpenSettings}
           onUiClick={onGuestStartUiClick}
-          language={language}
-          onLanguageChange={onLanguageChange}
         />
       )}
 

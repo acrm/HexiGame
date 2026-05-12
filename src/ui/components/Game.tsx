@@ -8,8 +8,7 @@ import ControlsDesktop from './ControlsInfoDesktop';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField/GameField';
 import Settings from './Settings';
-import GameMobileTabs from './Game/GameMobileTabs';
-import GameTopHeader from './Game/GameTopHeader';
+import ShellTopRows from './Game/ShellTopRows';
 import GamePanels from './Game/GamePanels';
 import GameOverlays from './Game/GameOverlays';
 import HexiStatusLine from './Game/HexiStatusLine';
@@ -561,6 +560,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
   };
 
+  const handleTopRowsLanguageChange = (lang: Lang) => {
+    playUiClick();
+    handleLanguageChange(lang);
+  };
+
+  const handleTopRowsPrimaryAction = () => {
+    if (guestStarted) {
+      playUiClick();
+      handlePlayLatestSession();
+      return;
+    }
+
+    handleDisconnect();
+  };
+
   const handleLanguageChange = (lang: Lang) => {
     setLanguage(lang);
   };
@@ -1085,19 +1099,18 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
           <ControlsDesktop />
         </div>
       )}
-      {isMobileLayout && guestStarted && (
-        <>
-          <GameTopHeader
-            marketingVersion={MARKETING_VERSION}
-            onOpenSettings={handleOpenSettings}
-            onDisconnect={handleDisconnect}
-          />
-          <GameMobileTabs
-            mobileTab={mobileTab}
-            onSelectMap={handleSelectMapTab}
-            onSelectHexipedia={handleSelectHexipediaTab}
-          />
-        </>
+      {isMobileLayout && (
+        <ShellTopRows
+          mode={guestStarted ? 'session' : 'guest'}
+          marketingVersion={MARKETING_VERSION}
+          mobileTab={mobileTab}
+          language={language}
+          onPrimaryAction={handleTopRowsPrimaryAction}
+          onOpenSettings={handleOpenSettings}
+          onSelectMap={handleSelectMapTab}
+          onSelectHexipedia={handleSelectHexipediaTab}
+          onLanguageChange={handleTopRowsLanguageChange}
+        />
       )}
 
       <GameOverlays
@@ -1113,16 +1126,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         sessionHistory={sessionHistory}
         currentSessionId={currentSessionId ?? null}
         onContinueSession={handleContinueSession}
-        onPlayLatestSession={handlePlayLatestSession}
         onNewSession={handleStartNewSession}
         onDownloadSession={handleDownloadSession}
         onImportSession={handleImportSession}
         onRenameSession={handleRenameSession}
         onDeleteSessions={handleDeleteSessions}
-        onOpenSettings={handleOpenSettings}
         onGuestStartUiClick={playUiClick}
-        language={language}
-        onLanguageChange={handleLanguageChange}
         isSettingsOpen={isSettingsOpen}
         settingsProps={settingsProps}
         isMascotOpen={isMascotOpen}
