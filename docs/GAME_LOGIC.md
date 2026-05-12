@@ -224,7 +224,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Gameplay tabs row is rendered as a strict single text line (no inner/outer spacing), starts flush at the left edge, and is clamped to screen width without right overflow.
 - Gameplay tabs row includes symbolic separators between tabs to preserve readability in the one-line dense mode.
 - Mobile tab content keeps its original per-tab background color; the active tab header fills the full tab-header area using the same background color with white text and blends seamlessly into the tab content. Inactive tab headers keep the default panel background.
-- A global HexiOS status line is rendered at the bottom of both runtime and start-screen modes. Runtime status includes session tick/time, cursor coordinates, notice state, and hotkey hints.
+- A global HexiOS status line is rendered at the bottom of both runtime and start-screen modes. The line is compact 3-segment (`mode | state | hotkeys`) to fit forced-mobile width; runtime status includes session tick/time, cursor coordinates, and notice state.
 - Debug runtime mode can force all overlay widgets visible and keep hotbar enabled, but widgets still render only on the `map` tab.
 - Session playback controls use compact horizontal spacing and auto-width action buttons to avoid merged labels on narrow mobile layouts.
 - Palette widget uses compact relative color labels (short signed integers and `+/-50`) for stable rendering without text overlap.
@@ -245,6 +245,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - **Start screen** (shown while guest gameplay is disconnected) uses HexiPedia visual language (dark section blocks, compact header, in-panel controls) and stays inside the same forced-portrait mobile viewport container as gameplay:
   - Header contains a single-tab title: **HexiOS v<marketing-version>** (for example `v0.1.0`, sourced from `version.json` marketing metadata).
   - The second shell row is a mode strip (`START | LANG | [RUN latest] [NEW] [CFG]`) rather than a framed panel.
+  - Header action labels are short shell codes (`RUN`, `CFG`) to match dense TUI line constraints.
   - Settings are opened from a gear button in the top-right corner (same interaction model as in-game mobile tab bar).
   - If an active resumable session exists: **Connect** is shown.
   - Always available: **New session**.

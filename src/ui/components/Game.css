@@ -33,9 +33,9 @@ html, body {
 .game-status-line {
   width: min(100%, var(--mobile-game-width));
   display: grid;
-  grid-template-columns: max-content max-content minmax(0, 1fr) max-content minmax(0, 1fr) max-content minmax(0, 1.2fr);
+  grid-template-columns: max-content max-content minmax(0, 1fr) max-content minmax(0, max-content);
   align-items: center;
-  column-gap: 1ch;
+  column-gap: 0.5ch;
   padding: 0 1ch;
   min-height: 1.8em;
   box-sizing: border-box;
@@ -54,10 +54,6 @@ html, body {
 
 .game-status-line-segment--left {
   color: #55ffff;
-}
-
-.game-status-line-segment--notice {
-  color: #ffff55;
 }
 
 .game-status-line-segment--hotkeys {
@@ -885,17 +881,6 @@ html, body {
   border: none;
   background: transparent;
   color: #AAAAAA;
-  display: flex;
-.gs-session-actions .gs-nav-btn {
-  min-width: 0;
-}
-
-.gs-session-actions .gs-nav-btn span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
   display: inline-block;
   min-width: 0;
   overflow: hidden;
@@ -1085,6 +1070,13 @@ html, body {
   grid-template-columns: 3ch minmax(0, 1fr);
 }
 
+.gs-session-title-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 1ch;
+}
+
 .gs-session-line--bottom {
   grid-template-columns: minmax(0, 1fr) 7ch;
 }
@@ -1096,7 +1088,7 @@ html, body {
 
 
 .gs-expander-btn {
-  width: auto;
+  width: 3ch;
   height: auto;
   display: inline-flex;
   align-items: center;
@@ -1119,6 +1111,7 @@ html, body {
 }
 
 .gs-session-name {
+  flex: 1;
   font-weight: 700;
   color: #FFFFFF;
   min-width: 0;

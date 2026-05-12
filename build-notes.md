@@ -753,3 +753,5 @@
 - 0.1.0-y26w19b15 — Polish gameplay two-row header and widget stack separators
 
 - 0.1.0-y26w20b1 — HexiOS status line and session terminal launcher MVP
+
+- 0.1.0-y26w20b2 — Polish HexiOS status line and session list compactness

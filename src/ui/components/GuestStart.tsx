@@ -210,7 +210,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                     onPlayLatestSession();
                   }}
                 >
-                  <span className="gs-symbol">[ Run latest ]</span>
+                  <span className="gs-symbol">RUN</span>
                 </button>
                 <button
                   type="button"
@@ -221,7 +221,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                     onOpenSettings();
                   }}
                 >
-                  <span className="gs-symbol">[ SET ]</span>
+                  <span className="gs-symbol">CFG</span>
                 </button>
               </>
             )}
@@ -242,11 +242,11 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                 onLanguageChange(e.target.value as Lang);
               }}
             >
-              <option value="en">{t('language.en')}</option>
-              <option value="ru">{t('language.ru')}</option>
+              <option value="en">EN</option>
+              <option value="ru">RU</option>
             </select>
             <span className="gs-mode-strip-divider" aria-hidden="true">|</span>
-            <span className="gs-mode-strip-hint">[RUN latest] [NEW] [CFG]</span>
+            <span className="gs-mode-strip-hint">[RUN] [NEW] [CFG]</span>
           </div>
 
           <div className="gs-sessions-panel">
@@ -359,7 +359,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                   left="║ "
                                   right="║"
                                 >
-                                  <div style={{ display: 'flex', flex: '1' }}>
+                                  <div className="gs-session-title-row">
                                     <span className="gs-session-name">{displayName}</span>
                                     <button
                                       type="button"
@@ -368,7 +368,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       aria-label={isExpanded ? t('action.backToStart') : t('action.sessionHistory')}
                                       title={isExpanded ? 'Collapse' : 'Expand'}
                                     >
-                                      {isExpanded ? 'OPEN' : 'open'}
+                                      {isExpanded ? 'v' : '>'}
                                     </button>
                                   </div>
                                 </TuiBorderRow>

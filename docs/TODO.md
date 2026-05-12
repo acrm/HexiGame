@@ -5,6 +5,7 @@
 - [x] Добавлена глобальная нижняя строка статуса HexiOS для runtime и start-режима (mode/tick/time/cursor/notice/hotkeys)
 - [x] В runtime (режим сессии) добавлено псевдо-терминальное окно launcher над рабочей областью (`map/hexi/cfg/stop/help/clear`)
 - [x] Во втором ряду start-режима вместо отдельного language-окна внедрена режимная строка `START | LANG | [RUN latest] [NEW] [CFG]`
+- [x] Полировка shell-компакта: status line уплотнена до 3 сегментов, hotkeys сокращены, устранено слипание имен сессий с expander-лейблом
 
 ## Recently Completed (2026-05-05)
 

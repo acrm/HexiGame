@@ -46,7 +46,7 @@ export const HexiStatusLine: React.FC<HexiStatusLineProps> = ({
     : t('status.modeGuest');
 
   const centerText = mode === 'session'
-    ? `t${tickValue} ${formatElapsedTicks(elapsedTicks)} ${t('status.cursor')} ${cursor?.q ?? 0}:${cursor?.r ?? 0}`
+    ? `t${tickValue} ${formatElapsedTicks(elapsedTicks)} ${t('status.cursor')} ${cursor?.q ?? 0}:${cursor?.r ?? 0} ${noticeText}`
     : noticeText;
 
   const hotkeysText = mode === 'session'
@@ -58,8 +58,6 @@ export const HexiStatusLine: React.FC<HexiStatusLineProps> = ({
       <span className="game-status-line-segment game-status-line-segment--left">{leftText}</span>
       <span className="game-status-line-divider" aria-hidden="true">|</span>
       <span className="game-status-line-segment game-status-line-segment--center">{centerText}</span>
-      <span className="game-status-line-divider" aria-hidden="true">|</span>
-      <span className="game-status-line-segment game-status-line-segment--notice">{noticeText}</span>
       <span className="game-status-line-divider" aria-hidden="true">|</span>
       <span className="game-status-line-segment game-status-line-segment--hotkeys">{hotkeysText}</span>
     </div>

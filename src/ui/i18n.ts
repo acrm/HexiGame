@@ -232,8 +232,8 @@ const dict: Record<Lang, Record<string, string>> = {
     'status.noticeReady': 'READY',
     'status.noticePaused': 'PAUSED',
     'status.noticeTaskPending': 'TASK WAITING',
-    'status.hotkeysGuest': 'HOT: RUN NEW CFG',
-    'status.hotkeysSession': 'HOT: MAP HEXI CFG STOP',
+    'status.hotkeysGuest': 'HOT: R/N/C',
+    'status.hotkeysSession': 'HOT: M/H/C/S',
   },
   ru: {
     'tab.map': 'Map',
@@ -445,8 +445,8 @@ const dict: Record<Lang, Record<string, string>> = {
     'status.noticeReady': 'ГОТОВО',
     'status.noticePaused': 'ПАУЗА',
     'status.noticeTaskPending': 'ОЖИДАЕТ ЗАДАЧА',
-    'status.hotkeysGuest': 'КЛАВИШИ: RUN NEW CFG',
-    'status.hotkeysSession': 'КЛАВИШИ: MAP HEXI CFG STOP',
+    'status.hotkeysGuest': 'КЛАВ: R/N/C',
+    'status.hotkeysSession': 'КЛАВ: M/H/C/S',
   },
 };
 
