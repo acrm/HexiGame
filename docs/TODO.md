@@ -1,5 +1,18 @@
 # TODO
 
+## Recently Completed (2026-05-13)
+
+- [x] Исправлена логика primary-action в первой shell-строке: в start-режиме `Enter` подключает последнюю сессию, в session-режиме `Quit` выполняет корректный выход
+- [x] В первой shell-строке подписи действий унифицированы как `Enter/CFG` (start) и `Quit/CFG` (session)
+- [x] Во второй shell-строке start-режима оставлены только языковые настройки (`LANG | EN/RU`), убран лишний токен `START`
+- [x] Исправлена геометрия shell-строк: активная вкладка второй строки заполняет всю высоту ряда, верхние две строки примыкают без визуального зазора
+- [x] Добавлен единый примитив `WindowFrame` и начата унификация оконного рендера для Hexipedia, Start Screen, Settings и map-widget stack
+- [x] `OverlayWidgetFrame` переведён на `WindowFrame` в stack-режиме с сохранением особой логики стека (`first/middle/last/single`)
+- [x] В Hexipedia добавлено отдельное верхнее окно `Terminal`; launcher `FND` встроен внутрь этого окна
+- [x] Секции Hexipedia (`Tasks`, `Session`, `Structures`, `Colors`) переведены на общий оконный рендер `WindowFrame`
+- [x] Окно сессий на Start Screen переведено на `WindowFrame`; action в строке сессии переименован в `Enter`
+- [x] Окно Settings переведено на `WindowFrame` с явным закрытием через `[X]`
+
 ## Recently Completed (2026-05-12)
 
 - [x] Добавлена глобальная нижняя строка статуса HexiOS для runtime и start-режима (mode/tick/time/cursor/notice/hotkeys)

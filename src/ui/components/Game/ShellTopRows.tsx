@@ -50,7 +50,7 @@ export const ShellTopRows: React.FC<ShellTopRowsProps> = ({
                 onClick={onPrimaryAction}
                 title={mode === 'session' ? t('action.disconnect') : t('action.loadSession')}
               >
-                {mode === 'session' ? 'STOP' : 'RUN'}
+                {mode === 'session' ? 'Quit' : 'Enter'}
               </button>
               <button
                 type="button"
@@ -100,8 +100,6 @@ export const ShellTopRows: React.FC<ShellTopRowsProps> = ({
       ) : (
         <div className="mobile-tab-bar mobile-tab-bar--tabs shell-top-row shell-top-row--tabs" role="region" aria-label={t('settings.language')}>
           <div className="mobile-tabs-container shell-mode-strip">
-            <span className="shell-mode-strip-label">START</span>
-            <span className="mobile-tab-separator" aria-hidden="true">|</span>
             <label className="shell-mode-strip-language" htmlFor="shell-top-language">LANG</label>
             <select
               id="shell-top-language"

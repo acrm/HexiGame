@@ -156,6 +156,7 @@ html, body {
   position: relative;
   z-index: 2100;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .shell-top-rows .mobile-tab-bar {
@@ -163,6 +164,7 @@ html, body {
 }
 
 .shell-top-row {
+  height: var(--shell-top-row-height);
   min-height: var(--shell-top-row-height);
 }
 
@@ -214,6 +216,7 @@ html, body {
   grid-template-columns: minmax(0, 1fr) max-content max-content;
   column-gap: 1ch;
   align-items: center;
+  height: 100%;
   min-height: var(--shell-top-row-height);
   width: 100%;
   background: var(--shell-row-bg);
@@ -255,7 +258,8 @@ html, body {
 
 .game-root.mobile-forced .mobile-tab-bar--tabs {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  height: 100%;
   min-height: var(--shell-top-row-height);
   width: min(100%, var(--mobile-game-width));
   background: var(--shell-row-bg);
@@ -269,7 +273,8 @@ html, body {
 .game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tabs-container {
   display: flex;
   gap: 0;
-  align-items: center;
+  align-items: stretch;
+  height: 100%;
   width: 100%;
   min-width: 0;
   padding: 0;
@@ -282,7 +287,7 @@ html, body {
 .game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -296,7 +301,7 @@ html, body {
   text-decoration: none;
   background: transparent;
   line-height: 1;
-  height: auto;
+  height: 100%;
   padding: 0;
   margin: 0;
   min-width: 0;
@@ -502,17 +507,27 @@ html, body {
   z-index: 3000;
 }
 
-.settings-panel {
-  background: #000;
+.settings-window {
   color: #fff;
-  border: 1px solid #aaaaaa;
   min-width: 280px;
   max-width: 360px;
-  padding: 16px;
 }
 
-.settings-header {
-  margin-bottom: 12px;
+.settings-window .window-frame-title-text {
+  color: #aaaaaa;
+}
+
+.settings-window .window-frame-content {
+  padding: 12px 16px 16px;
+  box-sizing: border-box;
+}
+
+.settings-title-row,
+.settings-separator-row,
+.settings-content-row,
+.settings-window .window-frame-row--top,
+.settings-window .window-frame-row--bottom {
+  background: #000000;
   color: #aaaaaa;
 }
 
@@ -688,6 +703,33 @@ html, body {
   background: transparent;
   height: auto;
   min-width: 0;
+  width: auto;
+}
+
+.gs-window {
+  color: var(--shell-border, #aaaaaa);
+}
+
+.gs-window .window-frame-row {
+  background: var(--shell-panel-bg, #000000);
+  color: var(--shell-border, #aaaaaa);
+}
+
+.gs-window .window-frame-title-text {
+  color: #cccccc;
+}
+
+.gs-window .window-frame-content {
+  padding: 0;
+}
+
+.gs-window-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1ch;
+}
+
+.gs-window-actions .gs-nav-btn {
   width: auto;
 }
 
@@ -891,6 +933,35 @@ html, body {
 
 .gs-sessions-section.gs-tui-frame::after {
   content: '╚════════════════════════════════════════════════════════════════════════════════════════════════════╝';
+}
+
+.hexipedia-window-anchor {
+  margin: 0;
+}
+
+.hexipedia-window {
+  width: 100%;
+}
+
+.hexipedia-window .window-frame-row {
+  background: var(--shell-panel-bg, #000000);
+  color: var(--shell-border, #aaaaaa);
+}
+
+.hexipedia-window .window-frame-content {
+  padding: 0;
+}
+
+.hexipedia-window--terminal .window-frame-content {
+  overflow: visible;
+}
+
+.hexipedia-window-content-row .tui-border-fill {
+  overflow: visible;
+}
+
+.hexipedia-window-title-row .window-frame-title-text {
+  color: #cccccc;
 }
 
 .gs-nav-btn {

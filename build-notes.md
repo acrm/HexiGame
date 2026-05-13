@@ -759,3 +759,5 @@
 - 0.1.0-y26w20b3 — Rework FND as Hexipedia-only terminal launcher
 
 - 0.1.0-y26w20b4 — Unify shell top rows renderer
+
+- 0.1.0-y26w20b5 — Unify windows and fix shell actions

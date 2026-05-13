@@ -219,10 +219,11 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Mobile control blocks (tab bar + widget stack) are placed in normal document flow, so they do not overlap the playable field.
 - If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
 - Runtime gameplay UI uses the same monospace font stack and base font size as the start screen.
-- Gameplay mobile header is split into two rows: row 1 uses the HexiOS header (`HexiOS v<marketing>`) with primary action + `CFG`, row 2 contains either `Map/Lab/Hexipedia` tabs (session mode) or `START | LANG | <EN/RU>` (start mode).
+- Gameplay mobile header is split into two rows: row 1 uses the HexiOS header (`HexiOS v<marketing>`) with mode-aware primary action (`Enter` in start mode, `Quit` in session mode) + `CFG`, row 2 contains either `Map/Lab/Hexipedia` tabs (session mode) or a language strip (`LANG | <EN/RU>`) in start mode.
 - The top two shell rows are rendered by one shared component (`ShellTopRows`) for both start and session states; mode-specific differences are data-only (labels/actions/content), not separate JSX branches.
-- Terminal launcher behavior is implemented via the existing Hexipedia `FND` row (command+search). The command mode supports `map`, `hexi`, `cfg`, `stop`, `help`, and `clear`.
-- Terminal launcher visibility is restricted to the Hexipedia tab; no separate terminal block is rendered on map/lab tabs.
+- The top two shell rows are visually contiguous (no gap between rows), and the active session tab background fills the full row height.
+- Hexipedia includes a dedicated `Terminal` window section at the top. Inside this window, terminal launcher behavior is implemented via the `FND` row (command+search) and supports `map`, `hexi`, `cfg`, `stop`, `help`, and `clear`.
+- Terminal window visibility is restricted to the Hexipedia tab; map/lab tabs do not render a terminal window.
 - Gameplay tabs row is rendered as a strict single text line (no inner/outer spacing), starts flush at the left edge, and is clamped to screen width without right overflow.
 - Gameplay tabs row includes symbolic separators between tabs to preserve readability in the one-line dense mode.
 - Mobile tab content keeps its original per-tab background color; the active tab header fills the full tab-header area using the same background color with white text and blends seamlessly into the tab content. Inactive tab headers keep the default panel background.
@@ -235,6 +236,7 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Overlay widgets render their outer frame with box-drawing symbols (`┌ ┐ │ └ ┘` + horizontal line fill); widget bodies no longer rely on CSS outer borders.
 - Overlay widget content is rendered as a single middle row (Hexipedia background), while top/bottom border rows use map background; widget stack has zero gaps and neighboring widgets share a common border line.
 - Widget stack border ownership uses roles (`first/middle/last/single`) so internal boundaries are rendered as separators (`├ ┤`) and only the last widget closes with bottom corners (`└ ┘`).
+- Window chrome is unified through a shared `WindowFrame` primitive across Hexipedia windows, Start screen sessions window, Settings window, and map-widget stack framing (with stack-role rendering rules for widgets).
 - Task overlay widget no longer uses pulsing glow; pending state shows symbolic marker `[·]` before the task title.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
@@ -246,10 +248,10 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
 - **Start screen** (shown while guest gameplay is disconnected) uses HexiPedia visual language (dark section blocks, compact header, in-panel controls) and stays inside the same forced-portrait mobile viewport container as gameplay:
   - Header contains a single-tab title: **HexiOS v<marketing-version>** (for example `v0.1.0`, sourced from `version.json` marketing metadata).
-  - The second shell row is a mode strip (`START | LANG | <EN/RU>`) rather than a framed panel.
-  - Header action labels are short shell codes (`RUN`, `CFG`) to match dense TUI line constraints.
+  - The second shell row is a compact language strip (`LANG | <EN/RU>`) without an extra `START` token.
+  - Header action labels are `Enter` and `CFG`.
   - Settings are opened from a gear button in the top-right corner (same interaction model as in-game mobile tab bar).
-  - If an active resumable session exists: **Connect** is shown.
+  - If an active resumable session exists: **Enter** in the header resumes the latest session.
   - Always available: **New session**.
   - If history contains records: **Session history** opens a sub-view with per-session **Continue** actions.
   - Session panel title is **Сессии**.
@@ -278,8 +280,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - sessions panel with its own scroll and collapse toggle (expanded by default),
   - global bottom status line.
 - Session list is unified (no separate “current session” card) and sorted by most recent activity.
-- Each session row is collapsed by default and shows: expander button, codename (large), last-action timestamp (smaller), and a large right-aligned play/start action.
-- Session expand/collapse affordance uses double triangle arrows (`⏷` to expand, `⏶` to collapse), separate from play/start iconography.
+- Each session row is collapsed by default and shows: expander button, codename (large), last-action timestamp (smaller), and a right-aligned `Enter` action.
+- Session expand/collapse affordance uses text symbols (`>` to expand, `v` to collapse), separate from the `Enter` action.
 - TUI UI layer is extracted into a reusable toolkit module under `src/ui/tui` (primitives + session wrappers), so new start-like pages can reuse consistent border rows, tab bars, bracket buttons, and session card chrome without duplicating markup.
 - Expanded session content exposes download/rename/delete actions and renders the same metrics:
   - start time,
@@ -292,14 +294,14 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Russian codename generation applies grammatical gender agreement for flower names (masculine/feminine color inflection).
 - Session management uses per-session delete with inline confirmation: delete button toggles to cancel in place, and explicit confirm appears on an adjacent button.
 - Start-screen **New session** action is non-blocking for gameplay: it creates a fresh saved session entry (and snapshot/log seed) at the top of history but does not auto-connect/start it.
-- In HexiOS start-screen header, a dedicated play button (left of Settings) resumes the most recent session.
-- Session-card Continue action uses the same play icon metaphor as start-screen resume.
+- In HexiOS start-screen header, a dedicated `Enter` action (left of `CFG`) resumes the most recent session.
+- Session-card Continue action label is also `Enter`, matching the header action semantics.
 - Start-screen typography is fully monospace, with max UI font size capped at `16px`; overflowing labels are clipped with ellipsis.
 - Start-screen visuals use a constrained retro 8-bit palette and text-symbol iconography for 1980s terminal-style UI.
 - Start-screen UI now follows terminal/TUI composition rules: single fixed text size (`16px`), grid-like row/column placement, and panel/button boundaries rendered with box-drawing symbols rather than CSS border chrome.
 - TUI session list hierarchy is flattened to avoid frame overload: section-level frames remain strong, while entries use lightweight symbolic separators.
 - Session state contrast is explicit: active session row uses inversion (light background + dark text), hover/focus remains color-accent only.
-- Collapsed session rows are two-line TUI blocks: first line = expander + name, second line = timestamp + run button.
+- Collapsed session rows are two-line TUI blocks: first line = expander + name, second line = timestamp + `Enter` button.
 - Row-prefix markers (`GL`, `CUR`, `NEW`) were removed; frame continuity is preserved by solid line/box boundaries instead of textual tags.
 - Square brackets are reserved for interactive controls only; static labels/titles are rendered without button framing.
 - Button captions use compact short labels (up to 5 symbols/letters) for terminal readability.

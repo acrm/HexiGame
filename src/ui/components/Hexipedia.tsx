@@ -9,6 +9,7 @@ import { ALL_TEMPLATES, getTemplateById } from '../../templates/templateLibrary'
 import { audioController } from '../../appLogic/audioController';
 import type { SessionLog } from '../../appLogic/sessionRepository';
 import { TuiBorderRow, TuiButton, TuiIconButton } from '../tui';
+import WindowFrame from './WindowFrame';
 import './Hexipedia/Hexipedia.css';
 
 interface SessionHistoryRecord {
@@ -208,6 +209,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
   const [showStructureTypeDropdown, setShowStructureTypeDropdown] = useState(false);
   const [localFocusSectionId, setLocalFocusSectionId] = useState<HexipediaSectionId | null>(null);
   const [deleteConfirmAll, setDeleteConfirmAll] = useState(false);
+  const [terminalCollapsed, setTerminalCollapsed] = useState(false);
   const [selectedStructureTypeId, setSelectedStructureTypeId] = useState<string>(
     gameState.activeTemplate?.templateId ?? ALL_TEMPLATES[0]?.id ?? '',
   );
@@ -449,10 +451,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
     return () => cancelAnimationFrame(animationFrameId);
   }, [activeFocusSectionId, enabledSections, focusSectionId, onFocusSectionHandled]);
 
-  const renderSectionHeader = ({
-    title,
-    isCollapsed,
-    onToggleCollapse,
+  const renderSectionActions = ({
     isPinned,
     canMoveUp,
     canMoveDown,
@@ -466,9 +465,6 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
     widgetShowTitle,
     widgetHideTitle,
   }: {
-    title: string;
-    isCollapsed: boolean;
-    onToggleCollapse: () => void;
     isPinned: boolean;
     canMoveUp: boolean;
     canMoveDown: boolean;
@@ -482,151 +478,163 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
     widgetShowTitle?: string;
     widgetHideTitle?: string;
   }) => (
-    <TuiBorderRow
-      className="hexipedia-section-header-row"
-      left={
-        <div
-          className={`hexipedia-section-header ${isCollapsed ? 'collapsed' : ''}`.trim()}
-          onClick={onToggleCollapse}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              onToggleCollapse();
-            }
-          }}
+    <div className="hexipedia-section-controls">
+      {onToggleWidget && (
+        <TuiIconButton
+          className={`hexipedia-section-move hexipedia-widget-toggle ${widgetVisible ? 'on' : 'off'}`}
+          variant={widgetVisible ? 'confirm' : 'default'}
+          onClick={onToggleWidget}
+          title={widgetVisible ? widgetHideTitle : widgetShowTitle}
+          aria-label={widgetVisible ? widgetHideTitle : widgetShowTitle}
         >
-          <span className="hexipedia-section-toggle">{isCollapsed ? '►' : '▼'}</span>
-          <span className="hexipedia-section-title">{title}</span>
-        </div>
-      }
-      right={
-        <div className="hexipedia-section-controls">
-          {onToggleWidget && (
-            <TuiIconButton
-              className={`hexipedia-section-move hexipedia-widget-toggle ${widgetVisible ? 'on' : 'off'}`}
-              variant={widgetVisible ? 'confirm' : 'default'}
-              onClick={onToggleWidget}
-              title={widgetVisible ? widgetHideTitle : widgetShowTitle}
-              aria-label={widgetVisible ? widgetHideTitle : widgetShowTitle}
-            >
-              {widgetVisible ? 'WID' : 'wid'}
-            </TuiIconButton>
-          )}
-          {isPinned && (
-            <>
-              <TuiIconButton
-                className="hexipedia-section-move"
-                onClick={onMoveUp}
-                disabled={!canMoveUp}
-                title={t('hexipedia.section.moveUp')}
-                aria-label={t('hexipedia.section.moveUp')}
-              >
-                  ▲
-              </TuiIconButton>
-              <TuiIconButton
-                className="hexipedia-section-move"
-                onClick={onMoveDown}
-                disabled={!canMoveDown}
-                title={t('hexipedia.section.moveDown')}
-                aria-label={t('hexipedia.section.moveDown')}
-              >
-                  ▼
-              </TuiIconButton>
-            </>
-          )}
+          {widgetVisible ? 'WID' : 'wid'}
+        </TuiIconButton>
+      )}
+      {isPinned && (
+        <>
           <TuiIconButton
-            className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
-            variant={isPinned ? 'confirm' : 'default'}
-            onClick={onTogglePin}
-            title={pinTitle}
-            aria-label={pinAriaLabel}
+            className="hexipedia-section-move"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            title={t('hexipedia.section.moveUp')}
+            aria-label={t('hexipedia.section.moveUp')}
           >
-            {isPinned ? 'PIN' : 'pin'}
+            ▲
           </TuiIconButton>
-        </div>
-      }
-    />
+          <TuiIconButton
+            className="hexipedia-section-move"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            title={t('hexipedia.section.moveDown')}
+            aria-label={t('hexipedia.section.moveDown')}
+          >
+            ▼
+          </TuiIconButton>
+        </>
+      )}
+      <TuiIconButton
+        className={`hexipedia-section-move hexipedia-section-pin ${isPinned ? 'pinned' : ''}`}
+        variant={isPinned ? 'confirm' : 'default'}
+        onClick={onTogglePin}
+        title={pinTitle}
+        aria-label={pinAriaLabel}
+      >
+        {isPinned ? 'PIN' : 'pin'}
+      </TuiIconButton>
+    </div>
   );
 
   return (
     <div className="hexipedia-root">
-      <div className="hexipedia-section-filter">
-        <div className="hexipedia-section-filter-shell">
-          <TuiBorderRow
-            className="hexipedia-section-filter-row"
-            left={<span className="hexipedia-section-filter-icon" aria-hidden="true">FND&gt;</span>}
-            right={(
-              <button
-                type="button"
-                className="hexipedia-section-filter-run"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={submitLauncherInput}
-              >
-                RUN
-              </button>
-            )}
-          >
-            <input
-              className="hexipedia-section-filter-input"
-              type="text"
-              value={sectionFilter}
-              onChange={(event) => setSectionFilter(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  submitLauncherInput();
-                }
-              }}
-              onFocus={() => setShowSearchDropdown(true)}
-              onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
-              placeholder={t('hexipedia.searchPlaceholder')}
-              aria-label={t('hexipedia.searchAria')}
-            />
-          </TuiBorderRow>
-
-          <div className="hexipedia-launcher-status">{launcherStatus || ' '}</div>
-
-          {showSearchDropdown && (
-            <div className="hexipedia-section-dropdown">
-              {commandSuggestions.map(({ id }) => (
-                <button
-                  key={`cmd-${id}`}
-                  className="hexipedia-section-dropdown-item is-command"
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    executeLauncherCommand(id);
-                  }}
-                >
-                  <span className="hexipedia-section-dropdown-name">{id}</span>
-                  <span className="hexipedia-section-dropdown-tag" aria-hidden="true">CMD</span>
-                </button>
-              ))}
-
-              {sectionSuggestions.map(id => (
-                <button
-                  key={id}
-                  className={`hexipedia-section-dropdown-item ${isSectionEnabled(id) ? 'is-enabled' : ''} ${isSectionPinned(id) ? 'is-pinned' : ''}`}
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    openSectionFromSearch(id);
-                  }}
-                >
-                  <span className="hexipedia-section-dropdown-name">{sectionTitles[id]}</span>
-                  {isSectionPinned(id) && <span className="hexipedia-section-dropdown-tag" aria-hidden="true">PIN</span>}
-                </button>
-              ))}
-
-              {commandSuggestions.length === 0 && sectionSuggestions.length === 0 && (
-                <div className="hexipedia-section-dropdown-empty">NO MATCH</div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="hexipedia-scrollable-content">
+        <div className="hexipedia-window-anchor">
+          <WindowFrame
+            className="hexipedia-window hexipedia-window--terminal"
+            title="Terminal"
+            isCollapsed={terminalCollapsed}
+            onToggleCollapsed={() => setTerminalCollapsed((current) => !current)}
+            actions={(
+              <>
+                <TuiIconButton
+                  className="hexipedia-section-move"
+                  onClick={() => executeLauncherCommand('help')}
+                  title="Terminal commands"
+                  aria-label="Terminal commands"
+                >
+                  HELP
+                </TuiIconButton>
+                <TuiIconButton
+                  className="hexipedia-section-move"
+                  onClick={() => executeLauncherCommand('clear')}
+                  title="Clear terminal status"
+                  aria-label="Clear terminal status"
+                >
+                  CLR
+                </TuiIconButton>
+              </>
+            )}
+            titleRowClassName="hexipedia-window-title-row"
+            separatorRowClassName="hexipedia-window-separator-row"
+            contentRowClassName="hexipedia-window-content-row"
+          >
+            {!terminalCollapsed && (
+              <div className="hexipedia-section-filter">
+                <div className="hexipedia-section-filter-shell">
+                  <TuiBorderRow
+                    className="hexipedia-section-filter-row"
+                    left={<span className="hexipedia-section-filter-icon" aria-hidden="true">FND&gt;</span>}
+                    right={(
+                      <button
+                        type="button"
+                        className="hexipedia-section-filter-run"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={submitLauncherInput}
+                      >
+                        RUN
+                      </button>
+                    )}
+                  >
+                    <input
+                      className="hexipedia-section-filter-input"
+                      type="text"
+                      value={sectionFilter}
+                      onChange={(event) => setSectionFilter(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          submitLauncherInput();
+                        }
+                      }}
+                      onFocus={() => setShowSearchDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
+                      placeholder={t('hexipedia.searchPlaceholder')}
+                      aria-label={t('hexipedia.searchAria')}
+                    />
+                  </TuiBorderRow>
+
+                  <div className="hexipedia-launcher-status">{launcherStatus || ' '}</div>
+
+                  {showSearchDropdown && (
+                    <div className="hexipedia-section-dropdown">
+                      {commandSuggestions.map(({ id }) => (
+                        <button
+                          key={`cmd-${id}`}
+                          className="hexipedia-section-dropdown-item is-command"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            executeLauncherCommand(id);
+                          }}
+                        >
+                          <span className="hexipedia-section-dropdown-name">{id}</span>
+                          <span className="hexipedia-section-dropdown-tag" aria-hidden="true">CMD</span>
+                        </button>
+                      ))}
+
+                      {sectionSuggestions.map(id => (
+                        <button
+                          key={id}
+                          className={`hexipedia-section-dropdown-item ${isSectionEnabled(id) ? 'is-enabled' : ''} ${isSectionPinned(id) ? 'is-pinned' : ''}`}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            openSectionFromSearch(id);
+                          }}
+                        >
+                          <span className="hexipedia-section-dropdown-name">{sectionTitles[id]}</span>
+                          {isSectionPinned(id) && <span className="hexipedia-section-dropdown-tag" aria-hidden="true">PIN</span>}
+                        </button>
+                      ))}
+
+                      {commandSuggestions.length === 0 && sectionSuggestions.length === 0 && (
+                        <div className="hexipedia-section-dropdown-empty">NO MATCH</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </WindowFrame>
+        </div>
+
         {sectionOrder.map(sectionId => {
           const isCollapsed = collapsedSections.has(sectionId);
           const canMoveUp = sectionOrder.indexOf(sectionId) > 0;
@@ -645,23 +653,29 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 }}
                 className="hexipedia-section-wrapper"
               >
-                {renderSectionHeader({
-                  title: t('task.tasksTitle'),
-                  isCollapsed,
-                  onToggleCollapse: () => toggleSectionCollapse('tasks'),
-                  isPinned,
-                  canMoveUp,
-                  canMoveDown,
-                  onMoveUp: () => moveSectionUp('tasks'),
-                  onMoveDown: () => moveSectionDown('tasks'),
-                  onTogglePin: () => toggleSectionPinned('tasks'),
-                  pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                  pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                  widgetVisible: showTaskWidget,
-                  onToggleWidget: onToggleTaskWidget ? () => onToggleTaskWidget(!showTaskWidget) : undefined,
-                  widgetShowTitle: t('hexipedia.widget.showTasks'),
-                  widgetHideTitle: t('hexipedia.widget.hideTasks'),
-                })}
+                <WindowFrame
+                  className="hexipedia-window hexipedia-window--section"
+                  title={t('task.tasksTitle')}
+                  isCollapsed={isCollapsed}
+                  onToggleCollapsed={() => toggleSectionCollapse('tasks')}
+                  actions={renderSectionActions({
+                    isPinned,
+                    canMoveUp,
+                    canMoveDown,
+                    onMoveUp: () => moveSectionUp('tasks'),
+                    onMoveDown: () => moveSectionDown('tasks'),
+                    onTogglePin: () => toggleSectionPinned('tasks'),
+                    pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                    pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                    widgetVisible: showTaskWidget,
+                    onToggleWidget: onToggleTaskWidget ? () => onToggleTaskWidget(!showTaskWidget) : undefined,
+                    widgetShowTitle: t('hexipedia.widget.showTasks'),
+                    widgetHideTitle: t('hexipedia.widget.hideTasks'),
+                  })}
+                  titleRowClassName="hexipedia-window-title-row"
+                  separatorRowClassName="hexipedia-window-separator-row"
+                  contentRowClassName="hexipedia-window-content-row"
+                >
 
                 {!isCollapsed && (
                   <div className="hexipedia-accordion-list">
@@ -793,6 +807,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                     })}
                   </div>
                 )}
+                </WindowFrame>
               </div>
             );
           }
@@ -806,23 +821,29 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                     }}
                     className="hexipedia-section-wrapper"
                   >
-                    {renderSectionHeader({
-                      title: t('session.title'),
-                      isCollapsed,
-                      onToggleCollapse: () => toggleSectionCollapse('session'),
-                      isPinned,
-                      canMoveUp,
-                      canMoveDown,
-                      onMoveUp: () => moveSectionUp('session'),
-                      onMoveDown: () => moveSectionDown('session'),
-                      onTogglePin: () => toggleSectionPinned('session'),
-                      pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                      pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                      widgetVisible: showSessionWidget,
-                      onToggleWidget: onToggleSessionWidget ? () => onToggleSessionWidget(!showSessionWidget) : undefined,
-                      widgetShowTitle: t('hexipedia.widget.showSession'),
-                      widgetHideTitle: t('hexipedia.widget.hideSession'),
-                    })}
+                    <WindowFrame
+                      className="hexipedia-window hexipedia-window--section"
+                      title={t('session.title')}
+                      isCollapsed={isCollapsed}
+                      onToggleCollapsed={() => toggleSectionCollapse('session')}
+                      actions={renderSectionActions({
+                        isPinned,
+                        canMoveUp,
+                        canMoveDown,
+                        onMoveUp: () => moveSectionUp('session'),
+                        onMoveDown: () => moveSectionDown('session'),
+                        onTogglePin: () => toggleSectionPinned('session'),
+                        pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                        pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                        widgetVisible: showSessionWidget,
+                        onToggleWidget: onToggleSessionWidget ? () => onToggleSessionWidget(!showSessionWidget) : undefined,
+                        widgetShowTitle: t('hexipedia.widget.showSession'),
+                        widgetHideTitle: t('hexipedia.widget.hideSession'),
+                      })}
+                      titleRowClassName="hexipedia-window-title-row"
+                      separatorRowClassName="hexipedia-window-separator-row"
+                      contentRowClassName="hexipedia-window-content-row"
+                    >
 
                     {!isCollapsed && (
                       <div className="hexipedia-stats-section">
@@ -949,6 +970,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                         </div>
                       </div>
                     )}
+                    </WindowFrame>
                   </div>
                 );
               }
@@ -961,23 +983,29 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 }}
                 className="hexipedia-section-wrapper"
               >
-                {renderSectionHeader({
-                  title: t('structures.title'),
-                  isCollapsed,
-                  onToggleCollapse: () => toggleSectionCollapse('structures'),
-                  isPinned,
-                  canMoveUp,
-                  canMoveDown,
-                  onMoveUp: () => moveSectionUp('structures'),
-                  onMoveDown: () => moveSectionDown('structures'),
-                  onTogglePin: () => toggleSectionPinned('structures'),
-                  pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                  pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                  widgetVisible: showStructureWidget,
-                  onToggleWidget: onToggleStructureWidget ? () => onToggleStructureWidget(!showStructureWidget) : undefined,
-                  widgetShowTitle: t('hexipedia.widget.showStructures'),
-                  widgetHideTitle: t('hexipedia.widget.hideStructures'),
-                })}
+                <WindowFrame
+                  className="hexipedia-window hexipedia-window--section"
+                  title={t('structures.title')}
+                  isCollapsed={isCollapsed}
+                  onToggleCollapsed={() => toggleSectionCollapse('structures')}
+                  actions={renderSectionActions({
+                    isPinned,
+                    canMoveUp,
+                    canMoveDown,
+                    onMoveUp: () => moveSectionUp('structures'),
+                    onMoveDown: () => moveSectionDown('structures'),
+                    onTogglePin: () => toggleSectionPinned('structures'),
+                    pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                    pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                    widgetVisible: showStructureWidget,
+                    onToggleWidget: onToggleStructureWidget ? () => onToggleStructureWidget(!showStructureWidget) : undefined,
+                    widgetShowTitle: t('hexipedia.widget.showStructures'),
+                    widgetHideTitle: t('hexipedia.widget.hideStructures'),
+                  })}
+                  titleRowClassName="hexipedia-window-title-row"
+                  separatorRowClassName="hexipedia-window-separator-row"
+                  contentRowClassName="hexipedia-window-content-row"
+                >
 
                 {!isCollapsed && (
                   <div className="hexipedia-templates-section">
@@ -1109,6 +1137,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                     )}
                   </div>
                 )}
+                </WindowFrame>
               </div>
             );
           }
@@ -1124,23 +1153,29 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                 }}
                 className="hexipedia-section-wrapper"
               >
-                {renderSectionHeader({
-                  title: t('colors.title'),
-                  isCollapsed,
-                  onToggleCollapse: () => toggleSectionCollapse('colors'),
-                  isPinned,
-                  canMoveUp,
-                  canMoveDown,
-                  onMoveUp: () => moveSectionUp('colors'),
-                  onMoveDown: () => moveSectionDown('colors'),
-                  onTogglePin: () => toggleSectionPinned('colors'),
-                  pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                  pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
-                  widgetVisible: showColorWidget,
-                  onToggleWidget: onToggleColorWidget ? () => onToggleColorWidget(!showColorWidget) : undefined,
-                  widgetShowTitle: t('hexipedia.widget.showColors'),
-                  widgetHideTitle: t('hexipedia.widget.hideColors'),
-                })}
+                <WindowFrame
+                  className="hexipedia-window hexipedia-window--section"
+                  title={t('colors.title')}
+                  isCollapsed={isCollapsed}
+                  onToggleCollapsed={() => toggleSectionCollapse('colors')}
+                  actions={renderSectionActions({
+                    isPinned,
+                    canMoveUp,
+                    canMoveDown,
+                    onMoveUp: () => moveSectionUp('colors'),
+                    onMoveDown: () => moveSectionDown('colors'),
+                    onTogglePin: () => toggleSectionPinned('colors'),
+                    pinTitle: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                    pinAriaLabel: isPinned ? t('hexipedia.section.unpin') : t('hexipedia.section.pin'),
+                    widgetVisible: showColorWidget,
+                    onToggleWidget: onToggleColorWidget ? () => onToggleColorWidget(!showColorWidget) : undefined,
+                    widgetShowTitle: t('hexipedia.widget.showColors'),
+                    widgetHideTitle: t('hexipedia.widget.hideColors'),
+                  })}
+                  titleRowClassName="hexipedia-window-title-row"
+                  separatorRowClassName="hexipedia-window-separator-row"
+                  contentRowClassName="hexipedia-window-content-row"
+                >
 
                 {!isCollapsed && (
                   <div className="hexipedia-colors-section">
@@ -1201,6 +1236,7 @@ export const Hexipedia: React.FC<HexipediaProps> = ({
                     </div>
                   </div>
                 )}
+                </WindowFrame>
               </div>
             );
           }

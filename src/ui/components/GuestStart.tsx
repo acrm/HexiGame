@@ -5,10 +5,10 @@ import {
   TuiBorderRow,
   TuiButton,
   TuiIconButton,
-  TuiSessionActionsRow,
   TuiSessionCardFrame,
   TuiSessionMetaRow,
 } from '../tui';
+import WindowFrame from './WindowFrame';
 import HexiStatusLine from './Game/HexiStatusLine';
 import '../tui/styles/tui.css';
 
@@ -124,74 +124,68 @@ export const GuestStart: React.FC<GuestStartProps> = ({
         <div className="gs-main-panels">
           <div className="gs-sessions-panel">
             <div className="gs-sessions-section">
-              <div className="gs-sessions-header">
-                <button
-                  type="button"
-                  className="gs-section-toggle gs-tui-border-row"
-                  onClick={() => setSessionsCollapsed((value) => !value)}
-                >
-                  <span className="gs-tui-border-left">╔══ </span>
-                  <span className="gs-panel-title" style={{ paddingRight: '1ch' }}>{t('sessions.title')}</span>
-                  <span className="gs-panel-toggle-icon">{sessionsCollapsed ? 'open' : 'OPEN'}</span>
-                  <span className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</span>
-                  <span className="gs-tui-border-right">══╗</span>
-                </button>
-              </div>
-
-              {sessionsCollapsed && sortedSessions.length > 0 && (
+              <WindowFrame
+                className="gs-window"
+                title={t('sessions.title')}
+                isCollapsed={sessionsCollapsed}
+                onToggleCollapsed={() => setSessionsCollapsed((value) => !value)}
+                collapseBehavior="icon-only"
+                actions={(
+                  <div className="gs-window-actions">
+                    <TuiButton
+                      className="gs-nav-btn"
+                      onClick={() => {
+                        onUiClick();
+                        onNewSession();
+                      }}
+                    >
+                      NEW
+                    </TuiButton>
+                    <TuiButton
+                      variant="secondary"
+                      className="gs-nav-btn gs-nav-btn--secondary"
+                      onClick={() => {
+                        onUiClick();
+                        importFileRef.current?.click();
+                      }}
+                    >
+                      LOAD
+                    </TuiButton>
+                    <input
+                      ref={importFileRef}
+                      type="file"
+                      accept="application/json"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) onImportSession(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+                )}
+                titleRowClassName="gs-window-title-row"
+                separatorRowClassName="gs-window-separator-row"
+                contentRowClassName="gs-window-content-row"
+              >
                 <div className="gs-session-body">
-                  <TuiBorderRow
-                    className="gs-tui-border-row"
-                    leftClassName="gs-tui-border-left"
-                    fillClassName="gs-tui-border-fill"
-                    rightClassName="gs-tui-border-right"
-                    left="║ "
-                    right="║"
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center' }}>
-                      {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)}
-                    </span>
-                  </TuiBorderRow>
-                </div>
-              )}
+                  {sessionsCollapsed && sortedSessions.length > 0 && (
+                    <TuiBorderRow
+                      className="gs-tui-border-row"
+                      leftClassName="gs-tui-border-left"
+                      fillClassName="gs-tui-border-fill"
+                      rightClassName="gs-tui-border-right"
+                      left="║ "
+                      right="║"
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center' }}>
+                        {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)}
+                      </span>
+                    </TuiBorderRow>
+                  )}
 
-              {!sessionsCollapsed && (
-                <div className="gs-session-body">
-                  <TuiSessionActionsRow className="gs-session-actions gs-tui-border-row">
-                    <div className="gs-session-actions-fill">
-                      <TuiButton
-                        className="gs-nav-btn"
-                        onClick={() => {
-                          onUiClick();
-                          onNewSession();
-                        }}
-                      >
-                        NEW
-                      </TuiButton>
-                      <TuiButton
-                        variant="secondary"
-                        className="gs-nav-btn gs-nav-btn--secondary"
-                        onClick={() => {
-                          onUiClick();
-                          importFileRef.current?.click();
-                        }}
-                      >
-                        LOAD
-                      </TuiButton>
-                      <input
-                        ref={importFileRef}
-                        type="file"
-                        accept="application/json"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) onImportSession(file);
-                          e.target.value = '';
-                        }}
-                      />
-                    </div>
-                  </TuiSessionActionsRow>
-
+                  {!sessionsCollapsed && (
+                    <>
                   {sortedSessions.length === 0 && (
                     <div className="gs-empty">{t('stats.history.empty')}</div>
                   )}
@@ -264,7 +258,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       }}
                                       title={t('action.loadSession')}
                                     >
-                                      <span className="gs-symbol">RUN</span>
+                                      <span className="gs-symbol">Enter</span>
                                     </button>
                                   </div>
                                 </TuiBorderRow>
@@ -413,18 +407,10 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                       })}
                     </div>
                   )}
+                    </>
+                  )}
                 </div>
-              )}
-              <TuiBorderRow
-                className="gs-tui-border-row"
-                leftClassName="gs-tui-border-left"
-                fillClassName="gs-tui-border-fill"
-                rightClassName="gs-tui-border-right"
-                left="╚═══"
-                right="═══╝"
-              >
-                ════════════════════════════════════════════════════════════════════════════════════════════════════
-              </TuiBorderRow>
+              </WindowFrame>
             </div>
           </div>
         </div>

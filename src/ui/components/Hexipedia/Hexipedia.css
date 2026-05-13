@@ -140,7 +140,6 @@
 
 .hexipedia-section-wrapper {
   background: var(--shell-panel-bg, #000000);
-  border: 1px solid var(--shell-border, #aaaaaa);
   margin: 0;
 }
 
@@ -686,6 +685,10 @@
 }
 
 .hexipedia-templates-section {
+  padding: 12px 16px;
+  border-top: 1px solid #444444;
+}
+
 /* Session playback controls */
 .hexipedia-playback-controls {
   display: flex;
@@ -714,10 +717,6 @@
 .hexipedia-seek-input:focus {
   outline: none;
   border-color: #666666;
-}
-
-  padding: 12px 16px;
-  border-top: 1px solid #444444;
 }
 
 .hexipedia-templates-list {

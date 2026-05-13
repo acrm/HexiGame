@@ -566,7 +566,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   };
 
   const handleTopRowsPrimaryAction = () => {
-    if (guestStarted) {
+    if (!guestStarted) {
       playUiClick();
       handlePlayLatestSession();
       return;
