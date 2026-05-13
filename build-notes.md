@@ -761,3 +761,5 @@
 - 0.1.0-y26w20b4 — Unify shell top rows renderer
 
 - 0.1.0-y26w20b5 — Unify windows and fix shell actions
+
+- 0.1.0-y26w20b6 — Fix shell second row single-line height

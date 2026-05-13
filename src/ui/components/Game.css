@@ -216,7 +216,7 @@ html, body {
   grid-template-columns: minmax(0, 1fr) max-content max-content;
   column-gap: 1ch;
   align-items: center;
-  height: 100%;
+  height: var(--shell-top-row-height);
   min-height: var(--shell-top-row-height);
   width: 100%;
   background: var(--shell-row-bg);
@@ -259,7 +259,7 @@ html, body {
 .game-root.mobile-forced .mobile-tab-bar--tabs {
   display: flex;
   align-items: stretch;
-  height: 100%;
+  height: var(--shell-top-row-height);
   min-height: var(--shell-top-row-height);
   width: min(100%, var(--mobile-game-width));
   background: var(--shell-row-bg);
@@ -282,6 +282,11 @@ html, body {
   line-height: 1;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tabs-container.shell-mode-strip {
+  align-items: center;
+  gap: 0.75ch;
 }
 
 .game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab {
@@ -332,6 +337,7 @@ html, body {
 }
 
 .shell-mode-strip-select {
+  display: inline-block;
   border: 0;
   outline: none;
   box-shadow: none;
@@ -340,7 +346,10 @@ html, body {
   background: transparent;
   color: var(--shell-row-fg);
   font: inherit;
+  font-size: 16px;
   line-height: 1;
+  height: 1.2em;
+  max-height: 1.2em;
   min-width: 4ch;
 }
 
