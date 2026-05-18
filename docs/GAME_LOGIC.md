@@ -219,25 +219,13 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Mobile control blocks (tab bar + widget stack) are placed in normal document flow, so they do not overlap the playable field.
 - If device height is insufficient, the game field shrinks proportionally (canvas uses available container height) to keep all controls visible without overlap.
 - Runtime gameplay UI uses the same monospace font stack and base font size as the start screen.
-- Gameplay mobile header is split into two rows: row 1 uses the HexiOS header (`HexiOS v<marketing>`) with mode-aware primary action (`Enter` in start mode, `Quit` in session mode) + `CFG`, row 2 contains either `Map/Lab/Hexipedia` tabs (session mode) or a language strip (`LANG | <EN/RU>`) in start mode.
-- The top two shell rows are rendered by one shared component (`ShellTopRows`) for both start and session states; mode-specific differences are data-only (labels/actions/content), not separate JSX branches.
-- The top two shell rows are visually contiguous (no gap between rows), and the active session tab background fills the full row height.
-- Hexipedia includes a dedicated `Terminal` window section at the top. Inside this window, terminal launcher behavior is implemented via the `FND` row (command+search) and supports `map`, `hexi`, `cfg`, `stop`, `help`, and `clear`.
-- Terminal window visibility is restricted to the Hexipedia tab; map/lab tabs do not render a terminal window.
-- Gameplay tabs row is rendered as a strict single text line (no inner/outer spacing), starts flush at the left edge, and is clamped to screen width without right overflow.
-- Gameplay tabs row includes symbolic separators between tabs to preserve readability in the one-line dense mode.
 - Mobile tab content keeps its original per-tab background color; the active tab header fills the full tab-header area using the same background color with white text and blends seamlessly into the tab content. Inactive tab headers keep the default panel background.
-- A global HexiOS status line is rendered at the bottom of both runtime and start-screen modes. The line is compact 3-segment (`mode | state | hotkeys`) to fit forced-mobile width; runtime status includes session tick/time, cursor coordinates, and notice state.
 - Debug runtime mode can force all overlay widgets visible and keep hotbar enabled, but widgets still render only on the `map` tab.
 - Session playback controls use compact horizontal spacing and auto-width action buttons to avoid merged labels on narrow mobile layouts.
 - Palette widget uses compact relative color labels (short signed integers and `+/-50`) for stable rendering without text overlap.
 - Palette widget auto-base toggle uses compact TUI states `[A]` (enabled) and `[a]` (disabled).
 - Overlay right-edge navigation buttons use a consistent `3ch` width and centered TUI arrow glyph across all widgets.
 - Overlay widgets render their outer frame with box-drawing symbols (`┌ ┐ │ └ ┘` + horizontal line fill); widget bodies no longer rely on CSS outer borders.
-- Overlay widget content is rendered as a single middle row (Hexipedia background), while top/bottom border rows use map background; widget stack has zero gaps and neighboring widgets share a common border line.
-- Widget stack border ownership uses roles (`first/middle/last/single`) so internal boundaries are rendered as separators (`├ ┤`) and only the last widget closes with bottom corners (`└ ┘`).
-- Window chrome is unified through a shared `WindowFrame` primitive across Hexipedia windows, Start screen sessions window, Settings window, and map-widget stack framing (with stack-role rendering rules for widgets).
-- Task overlay widget no longer uses pulsing glow; pending state shows symbolic marker `[·]` before the task title.
 - **Auto-move visualization**: 
   - Target cell displays frozen focus (3 mutable edges with flicker effect, opacity 0.4–1.0 over 8-tick cycle).
   - Intermediate path cells display flickering white dots (2.5px radius, opacity 0.3–1.0, offset flicker phase per cell for wave effect).
@@ -248,10 +236,8 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Off-screen point-of-interest highlighting follows a step-by-step 6-neighbor pathfinding route from the turtle to the hidden target (ignoring obstacles), finds the last visible path cell, and lights only that cell corners that coincide with the real rendered dotted-field boundary.
 - **Start screen** (shown while guest gameplay is disconnected) uses HexiPedia visual language (dark section blocks, compact header, in-panel controls) and stays inside the same forced-portrait mobile viewport container as gameplay:
   - Header contains a single-tab title: **HexiOS v<marketing-version>** (for example `v0.1.0`, sourced from `version.json` marketing metadata).
-  - The second shell row is a compact language strip (`LANG | <EN/RU>`) without an extra `START` token.
-  - Header action labels are `Enter` and `CFG`.
   - Settings are opened from a gear button in the top-right corner (same interaction model as in-game mobile tab bar).
-  - If an active resumable session exists: **Enter** in the header resumes the latest session.
+  - If an active resumable session exists: **Connect** is shown.
   - Always available: **New session**.
   - If history contains records: **Session history** opens a sub-view with per-session **Continue** actions.
   - Session panel title is **Сессии**.
@@ -267,21 +253,36 @@ These are specifics of the existing HTML5 canvas version and not required by the
   - when opened during active gameplay, **Disconnect** is shown instead of **Reset Session**;
   - when opened from the start screen, **Disconnect** is hidden.
 - Session snapshots are stored both as active session state and per-session history state (`hexigame.session.byId.<sessionId>`), enabling switching between history entries without data loss.
-- Field Lab now exposes two strictly separated visualization families: `Noise (random)` and `Fractal structures (manual)`. In manual fractal mode there is no procedural randomness: the editor builds a deterministic layered template (`+2..-2`) and lets the user paint current-layer cells with one of 6 palette colors or `empty`; active layer switching and display scaling are manual.
+- Field Lab is now dedicated to procedural noise visualization only (`plain` and `time perspective` rendering modes). The previous manual fractal editor workflow is removed from runtime behavior.
+- A dedicated standalone helper page `/hex-drawer/` is available for object-oriented hex painting and editing (caliber/pointy/grid controls, per-cell transform controls, local snapshot storage, and JSON import/export).
+- `/hex-drawer/` interaction model now uses split mouse-wheel control: `Wheel` changes caliber in half-step increments across `-6..+6` (`0.5` step), while `Shift+Wheel` changes zoom factor.
+- `/hex-drawer/` viewport controls are now slider-based inside canvas area: a full-height left vertical logarithmic zoom slider (`1..729` with half-step powers of three), and a full-width bottom caliber slider with fixed values `-6.0..6.0` (`0.5` step).
+- In `/hex-drawer/` sidebar, zoom input is displayed rounded to one decimal and additionally shows the corresponding power-of-three form (`3^0 .. 3^6`, including half-steps).
+- `/hex-drawer/` top-left overlay badge for zoom/caliber/level is removed; current values are controlled via sliders and reflected in stats/sidebar.
+- In `/hex-drawer/`, half-step caliber no longer rotates grid/content orientation: orientation depends only on `Pointy upward`, which removes 30° visual drift on nested details.
+- In `/hex-drawer/`, zoom is normalized so `x1` is the minimum root-hex fit with 10% viewport padding.
+- In `/hex-drawer/`, details of all existing hex levels are rendered independently of the current caliber; caliber now controls only the active (editable) working grid.
+- In `/hex-drawer/`, working-grid cells that exit the root working area are not outlined; their index may appear as a gray reference label and creating a new hex in such cells is blocked.
+- In `/hex-drawer/`, selecting a hex in hierarchy or on canvas draws a thick white outline for the selected cell regardless of grid/index visibility, and automatically syncs current caliber to the selected hex depth.
+- In `/hex-drawer/`, zoom slider marks and thumb stops are aligned one-to-one on logarithmic half-step powers of three (`3^0 ... 3^6`, step `0.5`).
+- In `/hex-drawer/`, primary mouse click (`LMB`) creates/selects the hovered cell, right-click (`RMB`) removes hovered cell, and right-button drag performs canvas panning.
+- `/hex-drawer/` sidebar now includes hierarchy navigation (selectable nodes with active highlight) and level metrics (cells/hexes on current level and cumulative root-to-level counts).
+- In `/hex-drawer/`, high-caliber rendering uses a safety depth cap (`active depth <= 8`) and throttled high-frequency input updates to prevent tab freezes and extreme memory spikes.
+- A dedicated standalone helper page `/devlab/` acts as a debug index and links to `/editor/`, `/field-lab/`, and `/hex-drawer/`; each of these pages has a backlink to `/devlab/`.
 
-## 3.1 Current Session UX Updates (2026-05-12)
+## 3.1 Current Session UX Updates (2026-04-08)
 
 - Mobile tabs are named `Map`, `Lab`, and `Hexipedia`.
 - Disconnect is a dedicated in-game tab-bar button and is visually aligned with Settings (same size/background).
 - In-game mobile top bar now mirrors HexiOS header composition (`TuiTabBar` layout with tab area + right action area) and uses ASCII-only labels.
 - Settings is always rendered above start-screen overlays (higher z-order), so it is visible both in gameplay and on session-selection screen.
-- Start/session shell top area is unified: both rows are rendered by a single shared top-rows component (`ShellTopRows`) mounted at the root shell level.
-- Start screen content is split into independent zones:
-  - sessions panel with its own scroll and collapse toggle (expanded by default),
-  - global bottom status line.
+- Start screen layout is split into independent zones:
+  - fixed non-scroll header (`HexiOS + Settings`),
+  - standalone language panel with its own scroll,
+  - standalone sessions panel with its own scroll and collapse toggle (expanded by default).
 - Session list is unified (no separate “current session” card) and sorted by most recent activity.
-- Each session row is collapsed by default and shows: expander button, codename (large), last-action timestamp (smaller), and a right-aligned `Enter` action.
-- Session expand/collapse affordance uses text symbols (`>` to expand, `v` to collapse), separate from the `Enter` action.
+- Each session row is collapsed by default and shows: expander button, codename (large), last-action timestamp (smaller), and a large right-aligned play/start action.
+- Session expand/collapse affordance uses double triangle arrows (`⏷` to expand, `⏶` to collapse), separate from play/start iconography.
 - TUI UI layer is extracted into a reusable toolkit module under `src/ui/tui` (primitives + session wrappers), so new start-like pages can reuse consistent border rows, tab bars, bracket buttons, and session card chrome without duplicating markup.
 - Expanded session content exposes download/rename/delete actions and renders the same metrics:
   - start time,
@@ -294,14 +295,14 @@ These are specifics of the existing HTML5 canvas version and not required by the
 - Russian codename generation applies grammatical gender agreement for flower names (masculine/feminine color inflection).
 - Session management uses per-session delete with inline confirmation: delete button toggles to cancel in place, and explicit confirm appears on an adjacent button.
 - Start-screen **New session** action is non-blocking for gameplay: it creates a fresh saved session entry (and snapshot/log seed) at the top of history but does not auto-connect/start it.
-- In HexiOS start-screen header, a dedicated `Enter` action (left of `CFG`) resumes the most recent session.
-- Session-card Continue action label is also `Enter`, matching the header action semantics.
+- In HexiOS start-screen header, a dedicated play button (left of Settings) resumes the most recent session.
+- Session-card Continue action uses the same play icon metaphor as start-screen resume.
 - Start-screen typography is fully monospace, with max UI font size capped at `16px`; overflowing labels are clipped with ellipsis.
 - Start-screen visuals use a constrained retro 8-bit palette and text-symbol iconography for 1980s terminal-style UI.
 - Start-screen UI now follows terminal/TUI composition rules: single fixed text size (`16px`), grid-like row/column placement, and panel/button boundaries rendered with box-drawing symbols rather than CSS border chrome.
 - TUI session list hierarchy is flattened to avoid frame overload: section-level frames remain strong, while entries use lightweight symbolic separators.
 - Session state contrast is explicit: active session row uses inversion (light background + dark text), hover/focus remains color-accent only.
-- Collapsed session rows are two-line TUI blocks: first line = expander + name, second line = timestamp + `Enter` button.
+- Collapsed session rows are two-line TUI blocks: first line = expander + name, second line = timestamp + run button.
 - Row-prefix markers (`GL`, `CUR`, `NEW`) were removed; frame continuity is preserved by solid line/box boundaries instead of textual tags.
 - Square brackets are reserved for interactive controls only; static labels/titles are rendered without button framing.
 - Button captions use compact short labels (up to 5 symbols/letters) for terminal readability.

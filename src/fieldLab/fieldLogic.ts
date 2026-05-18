@@ -1,5 +1,3 @@
-import { axialDirections, projectAxialBetweenLayers } from '../gameLogic/core/grid';
-
 export interface FieldMatrix {
   coeffs: Float64Array;
 }
@@ -18,48 +16,6 @@ export interface FieldParams {
   mode: 'value' | 'hash';
 }
 
-export interface FractalParams {
-  maxDepth: number;
-  layerGain: number;
-  layerFalloff: number;
-  coreWeight: number;
-  ringWeight: number;
-  antagonism: number;
-  purityExponent: number;
-  alphaGain: number;
-  alphaCutoff: number;
-  overlayStrength: number;
-}
-
-export interface FractalLayerContribution {
-  depth: number;
-  colorIndex: number;
-  rawWeight: number;
-  weightedWeight: number;
-}
-
-export interface FractalInfluenceResult {
-  dominantColor: number | null;
-  alpha: number;
-  confidence: number;
-  instability: number;
-  totalWeight: number;
-  contributions: FractalLayerContribution[];
-}
-
-export type ManualFractalLayerIndex = -2 | -1 | 0 | 1 | 2;
-
-export interface ManualFractalHex {
-  q: number;
-  r: number;
-  colorIndex: number;
-}
-
-export interface ManualLayerParseResult {
-  cells: ManualFractalHex[];
-  errors: string[];
-}
-
 export const DEFAULT_FIELD_PARAMS: FieldParams = {
   seed: 42,
   K: 6,
@@ -74,59 +30,11 @@ export const DEFAULT_FIELD_PARAMS: FieldParams = {
   mode: 'value',
 };
 
-export const DEFAULT_FRACTAL_PARAMS: FractalParams = {
-  maxDepth: 2,
-  layerGain: 0.75,
-  layerFalloff: 9,
-  coreWeight: 1,
-  ringWeight: 1 / 3,
-  antagonism: 0.6,
-  purityExponent: 1.2,
-  alphaGain: 1.6,
-  alphaCutoff: 0.01,
-  overlayStrength: 0.75,
-};
-
-export const DEFAULT_MANUAL_LAYER_TEXT: Record<ManualFractalLayerIndex, string> = {
-  '-2': [
-    '0 0 5',
-    '1 -1 4',
-    '-1 1 4',
-  ].join('\n'),
-  '-1': [
-    '0 0 2',
-    '1 0 3',
-    '0 1 1',
-    '-1 1 0',
-  ].join('\n'),
-  '0': [
-    '0 0 0',
-    '1 0 1',
-    '0 1 2',
-    '-1 1 3',
-    '-1 0 4',
-    '0 -1 5',
-  ].join('\n'),
-  '1': [
-    '0 0 1',
-    '1 0 2',
-    '0 1 2',
-    '-1 1 3',
-  ].join('\n'),
-  '2': [
-    '0 0 4',
-    '1 0 5',
-  ].join('\n'),
-};
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
 function mulberry32(seed: number): () => number {
   let t = seed >>> 0;
-  return function () {
-    t = (t + 0x6D2B79F5) >>> 0;
+
+  return () => {
+    t = (t + 0x6d2b79f5) >>> 0;
     let r = Math.imul(t ^ (t >>> 15), 1 | t);
     r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
     return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
@@ -134,17 +42,23 @@ function mulberry32(seed: number): () => number {
 }
 
 export function buildMatrix(seed: number): FieldMatrix {
-  const rng = mulberry32(seed ^ 0xDEADBEEF);
+  const rng = mulberry32(seed ^ 0xdeadbeef);
   const coeffs = new Float64Array(10);
+
   for (let i = 0; i < 10; i += 1) {
     coeffs[i] = (rng() * 2 - 1) * 1.5;
   }
+
   return { coeffs };
 }
 
 function hash6i(
-  i0: number, i1: number, i2: number,
-  i3: number, i4: number, i5: number,
+  i0: number,
+  i1: number,
+  i2: number,
+  i3: number,
+  i4: number,
+  i5: number,
   seed: number,
 ): number {
   let h = (seed ^ 0x9e3779b9) | 0;
@@ -168,19 +82,33 @@ function fade(t: number): number {
 }
 
 function valueNoise6D(
-  x0: number, x1: number, x2: number,
-  x3: number, x4: number, x5: number,
+  x0: number,
+  x1: number,
+  x2: number,
+  x3: number,
+  x4: number,
+  x5: number,
   seed: number,
 ): number {
-  const ix0 = Math.floor(x0), fx0 = x0 - ix0;
-  const ix1 = Math.floor(x1), fx1 = x1 - ix1;
-  const ix2 = Math.floor(x2), fx2 = x2 - ix2;
-  const ix3 = Math.floor(x3), fx3 = x3 - ix3;
-  const ix4 = Math.floor(x4), fx4 = x4 - ix4;
-  const ix5 = Math.floor(x5), fx5 = x5 - ix5;
+  const ix0 = Math.floor(x0);
+  const fx0 = x0 - ix0;
+  const ix1 = Math.floor(x1);
+  const fx1 = x1 - ix1;
+  const ix2 = Math.floor(x2);
+  const fx2 = x2 - ix2;
+  const ix3 = Math.floor(x3);
+  const fx3 = x3 - ix3;
+  const ix4 = Math.floor(x4);
+  const fx4 = x4 - ix4;
+  const ix5 = Math.floor(x5);
+  const fx5 = x5 - ix5;
 
-  const w0 = fade(fx0), w1 = fade(fx1), w2 = fade(fx2);
-  const w3 = fade(fx3), w4 = fade(fx4), w5 = fade(fx5);
+  const w0 = fade(fx0);
+  const w1 = fade(fx1);
+  const w2 = fade(fx2);
+  const w3 = fade(fx3);
+  const w4 = fade(fx4);
+  const w5 = fade(fx5);
 
   const c0 = [1 - w0, w0];
   const c1 = [1 - w1, w1];
@@ -197,21 +125,31 @@ function valueNoise6D(
     const b3 = (mask >> 3) & 1;
     const b4 = (mask >> 4) & 1;
     const b5 = (mask >> 5) & 1;
+
     const corner = hash6i(ix0 + b0, ix1 + b1, ix2 + b2, ix3 + b3, ix4 + b4, ix5 + b5, seed);
     const weight = c0[b0] * c1[b1] * c2[b2] * c3[b3] * c4[b4] * c5[b5];
     result += corner * weight;
   }
+
   return result;
 }
 
 function hashNoise6D(
-  x0: number, x1: number, x2: number,
-  x3: number, x4: number, x5: number,
+  x0: number,
+  x1: number,
+  x2: number,
+  x3: number,
+  x4: number,
+  x5: number,
   seed: number,
 ): number {
   return hash6i(
-    Math.floor(x0), Math.floor(x1), Math.floor(x2),
-    Math.floor(x3), Math.floor(x4), Math.floor(x5),
+    Math.floor(x0),
+    Math.floor(x1),
+    Math.floor(x2),
+    Math.floor(x3),
+    Math.floor(x4),
+    Math.floor(x5),
     seed,
   );
 }
@@ -234,17 +172,17 @@ export function evalCell(
   const c = matrix.coeffs;
 
   const t = tick / 12;
-  const X0 = t * timeScale;
-  const X1 = c[0] * q + c[1] * r;
-  const X2 = c[2] * q + c[3] * r;
-  const X3 = c[4] * q + c[5] * r;
-  const X4 = c[6] * q + c[7] * r + u1;
-  const X5 = c[8] * q + c[9] * r + u2;
+  const x0 = t * timeScale;
+  const x1 = c[0] * q + c[1] * r;
+  const x2 = c[2] * q + c[3] * r;
+  const x3 = c[4] * q + c[5] * r;
+  const x4 = c[6] * q + c[7] * r + u1;
+  const x5 = c[8] * q + c[9] * r + u2;
 
   const f = baseFreq;
   const noiseFn = mode === 'value' ? valueNoise6D : hashNoise6D;
-  const density = noiseFn(X0 * f, X1 * f, X2 * f, X3 * f, X4 * f, X5 * f, seed ^ 0x12345678);
-  const hueNoise = noiseFn((X0 + 100) * f, X1 * f, X2 * f, X3 * f, X4 * f, X5 * f, seed ^ 0x9ABCDEF0);
+  const density = noiseFn(x0 * f, x1 * f, x2 * f, x3 * f, x4 * f, x5 * f, seed ^ 0x12345678);
+  const hueNoise = noiseFn((x0 + 100) * f, x1 * f, x2 * f, x3 * f, x4 * f, x5 * f, seed ^ 0x9abcdef0);
 
   const isEmpty = density < densityThreshold;
   const colorIndex = isEmpty ? 0 : Math.min(K - 1, Math.floor(hueNoise * K));
@@ -286,7 +224,15 @@ export function evalCellPerspective(
         };
       }
     }
-    return { isEmpty: true, colorIndex: 0, echoColor: null, echoDepth: 0, decayDepth: null, blinkOn };
+
+    return {
+      isEmpty: true,
+      colorIndex: 0,
+      echoColor: null,
+      echoDepth: 0,
+      decayDepth: null,
+      blinkOn,
+    };
   }
 
   for (let k = 1; k <= P; k += 1) {
@@ -302,264 +248,13 @@ export function evalCellPerspective(
       };
     }
   }
-  return { isEmpty: false, colorIndex: base.colorIndex, echoColor: null, echoDepth: 0, decayDepth: null, blinkOn };
-}
-
-export function evalCellFractalInfluence(
-  q: number,
-  r: number,
-  currentTick: number,
-  params: FieldParams,
-  matrix: FieldMatrix,
-  fractal: FractalParams,
-): FractalInfluenceResult {
-  const maxDepth = Math.max(0, Math.floor(fractal.maxDepth));
-  if (maxDepth === 0 || fractal.layerGain <= 0) {
-    return {
-      dominantColor: null,
-      alpha: 0,
-      confidence: 0,
-      instability: 0,
-      totalWeight: 0,
-      contributions: [],
-    };
-  }
-
-  const colorWeights = new Array<number>(Math.max(0, params.K)).fill(0);
-  const contributions: FractalLayerContribution[] = [];
-  let totalWeight = 0;
-
-  for (let depth = 1; depth <= maxDepth; depth += 1) {
-    const parent = projectAxialBetweenLayers({ q, r }, 0, depth);
-    const falloffBase = Math.max(1e-6, fractal.layerFalloff);
-    const depthAttenuation = fractal.layerGain / Math.pow(falloffBase, depth);
-    if (depthAttenuation <= 0) continue;
-
-    const samplePositions = [parent, ...axialDirections.map((dir) => ({ q: parent.q + dir.q, r: parent.r + dir.r }))];
-    for (let idx = 0; idx < samplePositions.length; idx += 1) {
-      const sample = samplePositions[idx];
-      const sampleWeight = idx === 0 ? fractal.coreWeight : fractal.ringWeight;
-      if (sampleWeight <= 0) continue;
-
-      const cell = evalCell(sample.q, sample.r, currentTick, params, matrix);
-      if (cell.isEmpty) continue;
-
-      const weighted = sampleWeight * depthAttenuation;
-      if (weighted <= 0) continue;
-
-      const colorIndex = cell.colorIndex % colorWeights.length;
-      if (colorIndex < 0) continue;
-
-      colorWeights[colorIndex] += weighted;
-      totalWeight += weighted;
-      contributions.push({
-        depth,
-        colorIndex,
-        rawWeight: sampleWeight,
-        weightedWeight: weighted,
-      });
-    }
-  }
-
-  if (totalWeight <= 0 || colorWeights.length === 0) {
-    return {
-      dominantColor: null,
-      alpha: 0,
-      confidence: 0,
-      instability: 0,
-      totalWeight: 0,
-      contributions,
-    };
-  }
-
-  let dominantColor = 0;
-  let dominantWeight = -1;
-  let secondWeight = 0;
-  for (let idx = 0; idx < colorWeights.length; idx += 1) {
-    const value = colorWeights[idx];
-    if (value > dominantWeight) {
-      secondWeight = dominantWeight;
-      dominantWeight = value;
-      dominantColor = idx;
-    } else if (value > secondWeight) {
-      secondWeight = value;
-    }
-  }
-  secondWeight = Math.max(0, secondWeight);
-
-  const suppressed = Math.max(0, dominantWeight - fractal.antagonism * secondWeight);
-  if (suppressed <= 0) {
-    return {
-      dominantColor: null,
-      alpha: 0,
-      confidence: 0,
-      instability: 1,
-      totalWeight,
-      contributions,
-    };
-  }
-
-  const purity = clamp01(dominantWeight / Math.max(1e-9, totalWeight));
-  const purityFactor = Math.pow(purity, Math.max(0.01, fractal.purityExponent));
-  const baseAlpha = 1 - Math.exp(-Math.max(0, fractal.alphaGain) * suppressed);
-  const alpha = clamp01(baseAlpha * purityFactor);
-  const confidence = clamp01(suppressed / Math.max(1e-9, suppressed + secondWeight));
-  const instability = clamp01((1 - purity) * (1 - confidence));
-
-  if (alpha < fractal.alphaCutoff) {
-    return {
-      dominantColor,
-      alpha: 0,
-      confidence,
-      instability,
-      totalWeight,
-      contributions,
-    };
-  }
 
   return {
-    dominantColor,
-    alpha,
-    confidence,
-    instability,
-    totalWeight,
-    contributions,
+    isEmpty: false,
+    colorIndex: base.colorIndex,
+    echoColor: null,
+    echoDepth: 0,
+    decayDepth: null,
+    blinkOn,
   };
-}
-
-export function parseManualLayerDefinition(input: string, colorCount: number): ManualLayerParseResult {
-  const errors: string[] = [];
-  const entries = new Map<string, ManualFractalHex>();
-  const safeColorCount = Math.max(1, Math.floor(colorCount));
-
-  const lines = input
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  for (let idx = 0; idx < lines.length; idx += 1) {
-    const lineNumber = idx + 1;
-    const parts = lines[idx].split(/[\s,;]+/).filter((part) => part.length > 0);
-    if (parts.length !== 3) {
-      errors.push(`Line ${lineNumber}: expected "q r color"`);
-      continue;
-    }
-
-    const q = Number(parts[0]);
-    const r = Number(parts[1]);
-    const colorIndex = Number(parts[2]);
-    if (!Number.isFinite(q) || !Number.isFinite(r) || !Number.isFinite(colorIndex)) {
-      errors.push(`Line ${lineNumber}: values must be numeric`);
-      continue;
-    }
-
-    const qInt = Math.trunc(q);
-    const rInt = Math.trunc(r);
-    const colorInt = Math.trunc(colorIndex);
-    if (colorInt < 0 || colorInt >= safeColorCount) {
-      errors.push(`Line ${lineNumber}: color must be within [0..${safeColorCount - 1}]`);
-      continue;
-    }
-
-    entries.set(`${qInt},${rInt}`, {
-      q: qInt,
-      r: rInt,
-      colorIndex: colorInt,
-    });
-  }
-
-  return {
-    cells: Array.from(entries.values()),
-    errors,
-  };
-}
-
-export interface FractalTemplateCell {
-  q: number;
-  r: number;
-  coverage: 'full' | 'partial';
-}
-
-export type FractalTemplateByLayer = Record<ManualFractalLayerIndex, FractalTemplateCell[]>;
-export type FractalPaintStateByLayer = Record<ManualFractalLayerIndex, Record<string, number | null>>;
-
-function layerCellKey(q: number, r: number): string {
-  return `${q},${r}`;
-}
-
-function buildTopLayerCells(): FractalTemplateCell[] {
-  return [
-    { q: 0, r: 0, coverage: 'full' },
-    ...axialDirections.map((dir) => ({ q: dir.q, r: dir.r, coverage: 'full' as const })),
-  ];
-}
-
-export function createFractalEditorTemplate(): FractalTemplateByLayer {
-  const template = {
-    '-2': [],
-    '-1': [],
-    '0': [],
-    '1': [],
-    '2': buildTopLayerCells(),
-  } as FractalTemplateByLayer;
-
-  const layerMap = {
-    '-2': new Map<string, FractalTemplateCell>(),
-    '-1': new Map<string, FractalTemplateCell>(),
-    '0': new Map<string, FractalTemplateCell>(),
-    '1': new Map<string, FractalTemplateCell>(),
-    '2': new Map<string, FractalTemplateCell>(),
-  } as Record<ManualFractalLayerIndex, Map<string, FractalTemplateCell>>;
-
-  for (const cell of template[2]) {
-    layerMap[2].set(layerCellKey(cell.q, cell.r), cell);
-  }
-
-  for (let layer = 2; layer > -2; layer -= 1) {
-    const source = Array.from(layerMap[layer as ManualFractalLayerIndex].values());
-    const target = layerMap[(layer - 1) as ManualFractalLayerIndex];
-    for (const parent of source) {
-      const centerQ = parent.q * 3;
-      const centerR = parent.r * 3;
-      target.set(layerCellKey(centerQ, centerR), { q: centerQ, r: centerR, coverage: 'full' });
-      for (const dir of axialDirections) {
-        const fullQ = centerQ + dir.q;
-        const fullR = centerR + dir.r;
-        target.set(layerCellKey(fullQ, fullR), { q: fullQ, r: fullR, coverage: 'full' });
-
-        const partialQ = centerQ + dir.q * 2;
-        const partialR = centerR + dir.r * 2;
-        target.set(layerCellKey(partialQ, partialR), { q: partialQ, r: partialR, coverage: 'partial' });
-      }
-    }
-  }
-
-  template[1] = Array.from(layerMap[1].values());
-  template[0] = Array.from(layerMap[0].values());
-  template[-1] = Array.from(layerMap[-1].values());
-  template[-2] = Array.from(layerMap[-2].values());
-  return template;
-}
-
-export function createFractalEditorPaintState(template: FractalTemplateByLayer): FractalPaintStateByLayer {
-  const state = {
-    '-2': {},
-    '-1': {},
-    '0': {},
-    '1': {},
-    '2': {},
-  } as FractalPaintStateByLayer;
-  const layers: ManualFractalLayerIndex[] = [-2, -1, 0, 1, 2];
-  for (const layer of layers) {
-    const layerState: Record<string, number | null> = {};
-    for (const cell of template[layer]) {
-      layerState[layerCellKey(cell.q, cell.r)] = null;
-    }
-    state[layer] = layerState;
-  }
-  return state;
-}
-
-export function getFractalLayerCellKey(q: number, r: number): string {
-  return layerCellKey(q, r);
 }

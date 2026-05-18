@@ -191,6 +191,8 @@ export default defineConfig(({ mode }) => {
           main: path.resolve(__dirname, 'index.html'),
           editor: path.resolve(__dirname, 'editor/index.html'),
           fieldLab: path.resolve(__dirname, 'field-lab/index.html'),
+          hexDrawer: path.resolve(__dirname, 'hex-drawer/index.html'),
+          devlab: path.resolve(__dirname, 'devlab/index.html'),
         },
       },
     },

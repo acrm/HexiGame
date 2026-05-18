@@ -1,32 +1,31 @@
 import React from 'react';
-import WindowFrame, { type WindowFrameStackRole } from './WindowFrame';
+import { TuiBorderRow } from '../tui';
 import './OverlayWidget.css';
 
-export type OverlayWidgetStackRole = WindowFrameStackRole;
+const FRAME_FILL = '─'.repeat(160);
 
 interface OverlayWidgetFrameProps {
   className?: string;
   style?: React.CSSProperties;
-  stackRole?: OverlayWidgetStackRole;
   children: React.ReactNode;
 }
 
 export const OverlayWidgetFrame = React.forwardRef<HTMLDivElement, OverlayWidgetFrameProps>(
-  ({ className, style, stackRole = 'single', children }, ref) => {
+  ({ className, style, children }, ref) => {
     return (
-      <WindowFrame
-        ref={ref}
-        variant="stack"
-        stackRole={stackRole}
-        className={['overlay-widget-frame', className].filter(Boolean).join(' ')}
-        style={style}
-        topRowClassName="overlay-widget-border-row overlay-widget-border-row--top"
-        contentRowClassName="overlay-widget-border-row overlay-widget-border-row--middle"
-        separatorRowClassName="overlay-widget-border-row overlay-widget-border-row--separator"
-        bottomRowClassName="overlay-widget-border-row overlay-widget-border-row--bottom"
-      >
-        {children}
-      </WindowFrame>
+      <div ref={ref} className={['overlay-widget-frame', className].filter(Boolean).join(' ')} style={style}>
+        <TuiBorderRow className="overlay-widget-border-row overlay-widget-border-row--top" left="┌" right="┐">
+          {FRAME_FILL}
+        </TuiBorderRow>
+
+        <TuiBorderRow className="overlay-widget-border-row overlay-widget-border-row--middle" left="│" right="│">
+          {children}
+        </TuiBorderRow>
+
+        <TuiBorderRow className="overlay-widget-border-row overlay-widget-border-row--bottom" left="└" right="┘">
+          {FRAME_FILL}
+        </TuiBorderRow>
+      </div>
     );
   },
 );

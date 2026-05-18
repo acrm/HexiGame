@@ -1,6 +1,6 @@
 import React from 'react';
 import { TuiIconButton } from '../tui';
-import OverlayWidgetFrame, { type OverlayWidgetStackRole } from './OverlayWidgetFrame';
+import OverlayWidgetFrame from './OverlayWidgetFrame';
 import './ColorPaletteWidget.css';
 import './OverlayWidget.css';
 
@@ -10,10 +10,10 @@ interface ColorPaletteWidgetProps {
   relativeBaseColorIndex: number | null;
   playerBaseColorIndex: number;
   isAutoBaseColorEnabled: boolean;
+  topOffset?: number;
   onColorSelect?: (index: number) => void;
   onToggleAutoBaseColor?: () => void;
   onNavigateToPalette?: () => void;
-  stackRole?: OverlayWidgetStackRole;
 }
 
 /**
@@ -46,10 +46,10 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   relativeBaseColorIndex,
   playerBaseColorIndex,
   isAutoBaseColorEnabled,
+  topOffset = 8,
   onColorSelect,
   onToggleAutoBaseColor,
   onNavigateToPalette,
-  stackRole,
 }) => {
   const paletteSize = colorPalette.length;
   const antagonistIndex = (playerBaseColorIndex + paletteSize / 2) % paletteSize;
@@ -63,10 +63,7 @@ const ColorPaletteWidget: React.FC<ColorPaletteWidgetProps> = ({
   }
 
   return (
-    <OverlayWidgetFrame
-      className="color-palette-widget"
-      stackRole={stackRole}
-    >
+    <OverlayWidgetFrame className="color-palette-widget" style={{ top: topOffset }}>
       <div className="overlay-widget-shell">
         <div className="overlay-widget-body color-palette-widget__body">
           <TuiIconButton

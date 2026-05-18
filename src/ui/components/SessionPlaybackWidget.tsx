@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { t } from '../i18n';
 import { TuiIconButton, TuiButton } from '../tui';
-import OverlayWidgetFrame, { type OverlayWidgetStackRole } from './OverlayWidgetFrame';
+import OverlayWidgetFrame from './OverlayWidgetFrame';
 import './OverlayWidget.css';
 import './SessionPlaybackWidget.css';
 
@@ -11,7 +11,6 @@ interface SessionPlaybackWidgetProps {
   onSetPlaybackPaused?: (paused: boolean) => void;
   onSeekToTick?: (tick: number) => void;
   onNavigateToSession?: () => void;
-  stackRole?: OverlayWidgetStackRole;
 }
 
 export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
@@ -20,15 +19,11 @@ export const SessionPlaybackWidget: React.FC<SessionPlaybackWidgetProps> = ({
   onSetPlaybackPaused,
   onSeekToTick,
   onNavigateToSession,
-  stackRole,
 }) => {
   const [seekTickInput, setSeekTickInput] = useState('');
 
   return (
-    <OverlayWidgetFrame
-      className="session-playback-widget-shell"
-      stackRole={stackRole}
-    >
+    <OverlayWidgetFrame className="session-playback-widget-shell">
       <div className="overlay-widget-shell">
         <div className="overlay-widget-body session-playback-widget">
           <TuiButton

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { MobileTab } from '../../../appLogic/appShellReducer';
 import type { SessionHistoryRecord } from '../../../appLogic/sessionHistory';
+import type { Lang } from '../../i18n';
 import GuestStart from '../GuestStart';
 import Mascot from '../Mascot';
 import Settings from '../Settings';
@@ -25,12 +26,16 @@ interface GameOverlaysProps {
   sessionHistory: SessionHistoryRecord[];
   currentSessionId: string | null;
   onContinueSession: (sessionId: string) => void;
+  onPlayLatestSession: () => void;
   onNewSession: () => void;
   onDownloadSession: (sessionId: string) => void;
   onImportSession: (file: File) => void;
   onRenameSession: (sessionId: string, customName: string) => void;
   onDeleteSessions: (sessionIds: string[]) => void;
+  onOpenSettings: () => void;
   onGuestStartUiClick: () => void;
+  language: Lang;
+  onLanguageChange: (lang: Lang) => void;
   isSettingsOpen: boolean;
   settingsProps: React.ComponentProps<typeof Settings>;
   isMascotOpen: boolean;
@@ -48,6 +53,7 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   sectionOrder,
   showGuestStart,
   onContinueSession,
+  onPlayLatestSession,
   sessionHistory,
   currentSessionId,
   onNewSession,
@@ -55,69 +61,31 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
   onImportSession,
   onRenameSession,
   onDeleteSessions,
+  onOpenSettings,
   onGuestStartUiClick,
+  language,
+  onLanguageChange,
   isSettingsOpen,
   settingsProps,
   isMascotOpen,
   onCloseMascot,
 }) => {
-  const visibleSectionOrder = sectionOrder.filter((sectionId) => {
-    if (sectionId === 'tasks') return !!taskWidgetProps;
-    if (sectionId === 'colors') return !!colorPaletteWidgetProps;
-    if (sectionId === 'structures') return !!structureWidgetProps;
-    if (sectionId === 'session') return !!sessionWidgetProps;
-    return false;
-  });
-
   return (
     <>
       {isMobileLayout && mobileTab === 'map' && (
         <div className="widget-stack-overlay">
-          {visibleSectionOrder.map((sectionId, index) => {
-            const totalVisible = visibleSectionOrder.length;
-            const stackRole = totalVisible === 1
-              ? 'single'
-              : index === 0
-                ? 'first'
-                : index === totalVisible - 1
-                  ? 'last'
-                  : 'middle';
-
+          {sectionOrder.map(sectionId => {
             if (sectionId === 'tasks' && taskWidgetProps) {
-              return (
-                <TutorialProgressWidget
-                  key="tasks"
-                  {...taskWidgetProps}
-                  stackRole={stackRole}
-                />
-              );
+              return <TutorialProgressWidget key="tasks" {...taskWidgetProps} />;
             }
             if (sectionId === 'colors' && colorPaletteWidgetProps) {
-              return (
-                <ColorPaletteWidget
-                  key="colors"
-                  {...colorPaletteWidgetProps}
-                  stackRole={stackRole}
-                />
-              );
+              return <ColorPaletteWidget key="colors" {...colorPaletteWidgetProps} />;
             }
             if (sectionId === 'structures' && structureWidgetProps) {
-              return (
-                <StructureProgressWidget
-                  key="structures"
-                  {...structureWidgetProps}
-                  stackRole={stackRole}
-                />
-              );
+              return <StructureProgressWidget key="structures" {...structureWidgetProps} />;
             }
             if (sectionId === 'session' && sessionWidgetProps) {
-              return (
-                <SessionPlaybackWidget
-                  key="session"
-                  {...sessionWidgetProps}
-                  stackRole={stackRole}
-                />
-              );
+              return <SessionPlaybackWidget key="session" {...sessionWidgetProps} />;
             }
             return null;
           })}
@@ -131,12 +99,16 @@ export const GameOverlays: React.FC<GameOverlaysProps> = ({
           sessionHistory={sessionHistory}
           currentSessionId={currentSessionId}
           onContinueSession={onContinueSession}
+          onPlayLatestSession={onPlayLatestSession}
           onNewSession={onNewSession}
           onDownloadSession={onDownloadSession}
           onImportSession={onImportSession}
           onRenameSession={onRenameSession}
           onDeleteSessions={onDeleteSessions}
+          onOpenSettings={onOpenSettings}
           onUiClick={onGuestStartUiClick}
+          language={language}
+          onLanguageChange={onLanguageChange}
         />
       )}
 

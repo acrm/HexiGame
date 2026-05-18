@@ -6,8 +6,8 @@
   },
   "technical": {
     "year": 2026,
-    "week": 20,
-    "weeklyBump": 6
+    "week": 21,
+    "weeklyBump": 1
   },
-  "currentVersion": "0.1.0-y26w20b6"
+  "currentVersion": "0.1.0-y26w21b1"
 }

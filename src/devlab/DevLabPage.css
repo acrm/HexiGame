@@ -1,0 +1,140 @@
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: #e8edf9;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(71, 143, 255, 0.22), transparent 38%),
+    radial-gradient(circle at 88% 82%, rgba(255, 168, 95, 0.18), transparent 42%),
+    linear-gradient(145deg, #0f141f 0%, #0a0e17 60%, #080b13 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.devlab-page {
+  min-height: 100vh;
+  padding: 28px;
+  display: grid;
+  gap: 20px;
+}
+
+.devlab-page__hero {
+  background: rgba(12, 18, 30, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.devlab-page__kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(232, 237, 249, 0.65);
+}
+
+.devlab-page__title {
+  margin: 0 0 10px;
+  font-size: 30px;
+  line-height: 1.05;
+  color: #fef4de;
+}
+
+.devlab-page__description {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(232, 237, 249, 0.86);
+  max-width: 66ch;
+}
+
+.devlab-page__game-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #f9f0dc;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.devlab-page__game-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.devlab-page__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.devlab-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 190px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.devlab-card__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #fef4de;
+}
+
+.devlab-card__description {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(232, 237, 249, 0.85);
+}
+
+.devlab-card__link {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-decoration: none;
+  color: #f8ecda;
+  background: rgba(70, 129, 224, 0.25);
+}
+
+.devlab-card__link:hover {
+  background: rgba(70, 129, 224, 0.36);
+}
+
+@media (max-width: 1100px) {
+  .devlab-page__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .devlab-page {
+    padding: 16px;
+  }
+
+  .devlab-page__title {
+    font-size: 24px;
+  }
+
+  .devlab-page__grid {
+    grid-template-columns: 1fr;
+  }
+}

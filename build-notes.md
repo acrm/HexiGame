@@ -748,18 +748,36 @@
 
 - 0.1.0-y26w19b13 — TUI widget symbol frames and auto toggle labels
 
-- 0.1.0-y26w19b14 — Two-row gameplay header and shared TUI widget stack
+- 0.1.0-y26w19b14 — Add hex-drawer helper and simplify field-lab to noise
 
-- 0.1.0-y26w19b15 — Polish gameplay two-row header and widget stack separators
+- 0.1.0-y26w19b15 — Add devlab index and debug backlinks
 
-- 0.1.0-y26w20b1 — HexiOS status line and session terminal launcher MVP
+- 0.1.0-y26w19b16 — Hex drawer interaction overhaul with half-step caliber and hierarchy stats
 
-- 0.1.0-y26w20b2 — Polish HexiOS status line and session list compactness
+- 0.1.0-y26w19b17 — Stabilize hex drawer orientation and anti-freeze depth guardrails
 
-- 0.1.0-y26w20b3 — Rework FND as Hexipedia-only terminal launcher
+- 0.1.0-y26w20b1 — Add fixed zoom and caliber sliders on hex drawer field
 
-- 0.1.0-y26w20b4 — Unify shell top rows renderer
+- 0.1.0-y26w20b2 — Fix hex drawer slider layout and canvas viewport sizing
 
-- 0.1.0-y26w20b5 — Unify windows and fix shell actions
+- 0.1.0-y26w20b3 — Fix canvas overflow by adding overflow-hidden to layout containers
 
-- 0.1.0-y26w20b6 — Fix shell second row single-line height
+- 0.1.0-y26w20b4 — Invert zoom slider (1x at bottom, 729x at top) and add intermediate divisions at n*sqrt(3)
+
+- 0.1.0-y26w20b5 — Make zoom scale logarithmic and snap zoom values to geometric steps
+
+- 0.1.0-y26w20b6 — Make zoom scale logarithmic and snap zoom values to geometric steps
+
+- 0.1.0-y26w20b7 — Render zoom scale as logarithmic ticks and align wheel zoom with log steps
+
+- 0.1.0-y26w20b8 — Fix zoom semantics (1=max zoom-out, 729=max zoom-in) and align zoom marks beside slider
+
+- 0.1.0-y26w20b9 — Fix zoom slider orientation to match 1=max zoom-out semantics
+
+- 0.1.0-y26w20b10 — Format zoom input to one decimal, show power-of-three indicator, and fix passive wheel preventDefault warning
+
+- 0.1.0-y26w20b11 — Fix zoom UI formatting, wheel mapping, working-grid bounds, and selected-cell caliber sync
+
+- 0.1.0-y26w20b12 — Fix zoom input button stepping, align zoom slider marks/stops, and add always-on white selected-cell outline
+
+- 0.1.0-y26w21b1 — Squash local updates on top of main

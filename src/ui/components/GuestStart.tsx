@@ -1,27 +1,32 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { t } from '../i18n';
+import React, {  useMemo, useRef, useState , useEffect } from 'react';
+import { t, type Lang } from '../i18n';
 import { getSessionDisplayName, type SessionHistoryRecord } from '../../appLogic/sessionHistory';
+import version from '../../../version.json';
 import {
   TuiBorderRow,
   TuiButton,
   TuiIconButton,
+  TuiSessionActionsRow,
   TuiSessionCardFrame,
   TuiSessionMetaRow,
+  TuiTabBar,
 } from '../tui';
-import WindowFrame from './WindowFrame';
-import HexiStatusLine from './Game/HexiStatusLine';
 import '../tui/styles/tui.css';
 
 interface GuestStartProps {
   sessionHistory: SessionHistoryRecord[];
   currentSessionId: string | null;
   onContinueSession: (sessionId: string) => void;
+  onPlayLatestSession: () => void;
   onNewSession: () => void;
   onDownloadSession: (sessionId: string) => void;
   onImportSession: (file: File) => void;
   onRenameSession: (sessionId: string, customName: string) => void;
   onDeleteSessions: (sessionIds: string[]) => void;
+  onOpenSettings: () => void;
   onUiClick: () => void;
+  language: Lang;
+  onLanguageChange: (lang: Lang) => void;
 }
 
 function formatDateTime(timestamp?: number): string {
@@ -46,16 +51,70 @@ function formatTotalTime(milliseconds?: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+function glyphLength(text: string): number {
+  return Array.from(text).length;
+}
+
+function truncateToWidth(text: string, width: number): string {
+  if (width <= 0) return '';
+  const glyphs = Array.from(text);
+  if (glyphs.length <= width) return text;
+  return glyphs.slice(0, width).join('');
+}
+
+function normalizeRowSegment(text: string): string {
+  return text.replace(/\s+/g, ' ');
+}
+
+function collectFixedWidthTuiSnapshot(container: HTMLElement, totalWidth = 80): string {
+  const rows = container.querySelectorAll('.gs-tui-border-row');
+  if (rows.length === 0) {
+    return container.innerText;
+  }
+
+  return Array.from(rows)
+    .map((row) => {
+      const leftEl = row.querySelector('.gs-tui-border-left');
+      const fillEl = row.querySelector('.gs-tui-border-fill');
+      const rightEl = row.querySelector('.gs-tui-border-right');
+
+      if (!leftEl || !fillEl || !rightEl) {
+        const fallback = normalizeRowSegment((row as HTMLElement).innerText).trim();
+        return truncateToWidth(fallback, totalWidth);
+      }
+
+      const left = normalizeRowSegment((leftEl as HTMLElement).innerText);
+      const right = normalizeRowSegment((rightEl as HTMLElement).innerText);
+      const fillRaw = normalizeRowSegment((fillEl as HTMLElement).innerText).trim();
+
+      const leftLen = glyphLength(left);
+      const rightLen = glyphLength(right);
+      const fillWidth = totalWidth - leftLen - rightLen;
+
+      if (fillWidth <= 0) {
+        return truncateToWidth(left + right, totalWidth);
+      }
+
+      const fill = truncateToWidth(fillRaw, fillWidth).padEnd(fillWidth, ' ');
+      return `${left}${fill}${right}`;
+    })
+    .join('\n');
+}
+
 export const GuestStart: React.FC<GuestStartProps> = ({
   sessionHistory,
   currentSessionId,
   onContinueSession,
+  onPlayLatestSession,
   onNewSession,
   onDownloadSession,
   onImportSession,
   onRenameSession,
   onDeleteSessions,
+  onOpenSettings,
   onUiClick,
+  language,
+  onLanguageChange,
 }) => {
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const [sessionsCollapsed, setSessionsCollapsed] = useState(false);
@@ -63,6 +122,16 @@ export const GuestStart: React.FC<GuestStartProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const snapshot = collectFixedWidthTuiSnapshot(containerRef.current, 80);
+      console.log("=== TUI SNAPSHOT ===\n" + snapshot);
+    }
+  });
+
+  const marketingVersion = `v${version.marketing.major}.${version.marketing.minor}.${version.marketing.publicBuild}`;
 
   const sortedSessions = useMemo(
     () => [...sessionHistory].sort((a, b) => (b.lastActionTime ?? b.endTime) - (a.lastActionTime ?? a.endTime)),
@@ -119,73 +188,163 @@ export const GuestStart: React.FC<GuestStartProps> = ({
   };
 
   return (
-    <div className="guest-start-screen">
+    <div className="guest-start-screen" ref={containerRef}>
       <div className="guest-start-content hexipedia-style">
+        <div className="gs-fixed-header">
+          <TuiTabBar
+            className="gs-tab-bar"
+            title={(
+              <div className="gs-tabs-container">
+                <div className="gs-system-tab">HexiOS {marketingVersion}</div>
+              </div>
+            )}
+            actions={(
+              <>
+                <button
+                  type="button"
+                  className="disconnect-button"
+                  title={t('action.loadSession')}
+                  onClick={() => {
+                    onUiClick();
+                    onPlayLatestSession();
+                  }}
+                >
+                  <span className="gs-symbol">[ Run latest ]</span>
+                </button>
+                <button
+                  type="button"
+                  className="settings-button"
+                  title={t('settings.open')}
+                  onClick={() => {
+                    onUiClick();
+                    onOpenSettings();
+                  }}
+                >
+                  <span className="gs-symbol">[ SET ]</span>
+                </button>
+              </>
+            )}
+          />
+        </div>
+
         <div className="gs-main-panels">
+          <div className="gs-language-panel">
+            <TuiBorderRow
+              className="gs-tui-border-row"
+              leftClassName="gs-tui-border-left"
+              fillClassName="gs-tui-border-fill"
+              rightClassName="gs-tui-border-right"
+              left="╔═══ "
+              right="═══╗"
+            >
+              <span className="gs-tui-border-title" style={{color: '#55FFFF', fontWeight: 'bold'}}>Language</span>
+              <span> ═══════════════════════════════════════════════════════════════════════════════</span>
+            </TuiBorderRow>
+            <TuiBorderRow
+              className="gs-tui-border-row gs-language-bar"
+              leftClassName="gs-tui-border-left"
+              fillClassName="gs-tui-border-fill"
+              rightClassName="gs-tui-border-right"
+              left="║ "
+              right="║"
+            >
+              <div style={{ padding: '0 1ch' }}>
+                <select
+                  id="guest-start-language"
+                  className="gs-lang-select"
+                  value={language}
+                  onChange={(e) => {
+                    onUiClick();
+                    onLanguageChange(e.target.value as Lang);
+                  }}
+                >
+                  <option value="en">{t('language.en')}</option>
+                  <option value="ru">{t('language.ru')}</option>
+                </select>
+              </div>
+            </TuiBorderRow>
+            <TuiBorderRow
+              className="gs-tui-border-row"
+              leftClassName="gs-tui-border-left"
+              fillClassName="gs-tui-border-fill"
+              rightClassName="gs-tui-border-right"
+              left="╚═══"
+              right="═══╝"
+            >
+              ════════════════════════════════════════════════════════════════════════════════════════════════════
+            </TuiBorderRow>
+          </div>
+
           <div className="gs-sessions-panel">
             <div className="gs-sessions-section">
-              <WindowFrame
-                className="gs-window"
-                title={t('sessions.title')}
-                isCollapsed={sessionsCollapsed}
-                onToggleCollapsed={() => setSessionsCollapsed((value) => !value)}
-                collapseBehavior="icon-only"
-                actions={(
-                  <div className="gs-window-actions">
-                    <TuiButton
-                      className="gs-nav-btn"
-                      onClick={() => {
-                        onUiClick();
-                        onNewSession();
-                      }}
-                    >
-                      NEW
-                    </TuiButton>
-                    <TuiButton
-                      variant="secondary"
-                      className="gs-nav-btn gs-nav-btn--secondary"
-                      onClick={() => {
-                        onUiClick();
-                        importFileRef.current?.click();
-                      }}
-                    >
-                      LOAD
-                    </TuiButton>
-                    <input
-                      ref={importFileRef}
-                      type="file"
-                      accept="application/json"
-                      style={{ display: 'none' }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) onImportSession(file);
-                        e.target.value = '';
-                      }}
-                    />
-                  </div>
-                )}
-                titleRowClassName="gs-window-title-row"
-                separatorRowClassName="gs-window-separator-row"
-                contentRowClassName="gs-window-content-row"
-              >
-                <div className="gs-session-body">
-                  {sessionsCollapsed && sortedSessions.length > 0 && (
-                    <TuiBorderRow
-                      className="gs-tui-border-row"
-                      leftClassName="gs-tui-border-left"
-                      fillClassName="gs-tui-border-fill"
-                      rightClassName="gs-tui-border-right"
-                      left="║ "
-                      right="║"
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center' }}>
-                        {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)}
-                      </span>
-                    </TuiBorderRow>
-                  )}
+              <div className="gs-sessions-header">
+                <button
+                  type="button"
+                  className="gs-section-toggle gs-tui-border-row"
+                  onClick={() => setSessionsCollapsed((value) => !value)}
+                >
+                  <span className="gs-tui-border-left">╔══ </span>
+                  <span className="gs-panel-title" style={{ paddingRight: '1ch' }}>{t('sessions.title')}</span>
+                  <span className="gs-panel-toggle-icon">{sessionsCollapsed ? 'open' : 'OPEN'}</span>
+                  <span className="gs-tui-border-fill">════════════════════════════════════════════════════════════════════════════════════════════════════</span>
+                  <span className="gs-tui-border-right">══╗</span>
+                </button>
+              </div>
 
-                  {!sessionsCollapsed && (
-                    <>
+              {sessionsCollapsed && sortedSessions.length > 0 && (
+                <div className="gs-session-body">
+                  <TuiBorderRow
+                    className="gs-tui-border-row"
+                    leftClassName="gs-tui-border-left"
+                    fillClassName="gs-tui-border-fill"
+                    rightClassName="gs-tui-border-right"
+                    left="║ "
+                    right="║"
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center' }}>
+                      {sortedSessions.length} total, last: {formatDateTime(sortedSessions[0].lastActionTime ?? sortedSessions[0].endTime)}
+                    </span>
+                  </TuiBorderRow>
+                </div>
+              )}
+
+              {!sessionsCollapsed && (
+                <div className="gs-session-body">
+                  <TuiSessionActionsRow className="gs-session-actions gs-tui-border-row">
+                    <div className="gs-session-actions-fill">
+                      <TuiButton
+                        className="gs-nav-btn"
+                        onClick={() => {
+                          onUiClick();
+                          onNewSession();
+                        }}
+                      >
+                        NEW
+                      </TuiButton>
+                      <TuiButton
+                        variant="secondary"
+                        className="gs-nav-btn gs-nav-btn--secondary"
+                        onClick={() => {
+                          onUiClick();
+                          importFileRef.current?.click();
+                        }}
+                      >
+                        LOAD
+                      </TuiButton>
+                      <input
+                        ref={importFileRef}
+                        type="file"
+                        accept="application/json"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) onImportSession(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </div>
+                  </TuiSessionActionsRow>
+
                   {sortedSessions.length === 0 && (
                     <div className="gs-empty">{t('stats.history.empty')}</div>
                   )}
@@ -226,7 +385,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                   left="║ "
                                   right="║"
                                 >
-                                  <div className="gs-session-title-row">
+                                  <div style={{ display: 'flex', flex: '1' }}>
                                     <span className="gs-session-name">{displayName}</span>
                                     <button
                                       type="button"
@@ -235,7 +394,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       aria-label={isExpanded ? t('action.backToStart') : t('action.sessionHistory')}
                                       title={isExpanded ? 'Collapse' : 'Expand'}
                                     >
-                                      {isExpanded ? 'v' : '>'}
+                                      {isExpanded ? 'OPEN' : 'open'}
                                     </button>
                                   </div>
                                 </TuiBorderRow>
@@ -258,7 +417,7 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                                       }}
                                       title={t('action.loadSession')}
                                     >
-                                      <span className="gs-symbol">Enter</span>
+                                      <span className="gs-symbol">RUN</span>
                                     </button>
                                   </div>
                                 </TuiBorderRow>
@@ -407,21 +566,21 @@ export const GuestStart: React.FC<GuestStartProps> = ({
                       })}
                     </div>
                   )}
-                    </>
-                  )}
                 </div>
-              </WindowFrame>
+              )}
+              <TuiBorderRow
+                className="gs-tui-border-row"
+                leftClassName="gs-tui-border-left"
+                fillClassName="gs-tui-border-fill"
+                rightClassName="gs-tui-border-right"
+                left="╚═══"
+                right="═══╝"
+              >
+                ════════════════════════════════════════════════════════════════════════════════════════════════════
+              </TuiBorderRow>
             </div>
           </div>
         </div>
-
-        <HexiStatusLine
-          mode="guest"
-          notice={sortedSessions.length > 0
-            ? `${t('sessions.title')}: ${sortedSessions.length}`
-            : t('stats.history.empty')}
-          className="game-status-line--guest"
-        />
       </div>
     </div>
   );

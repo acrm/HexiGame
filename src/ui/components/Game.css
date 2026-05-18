@@ -5,13 +5,6 @@ html, body {
 
 :root {
   --mobile-game-width: 420px;
-  --shell-top-row-height: 1.8em;
-  --shell-top-rows-height: calc(var(--shell-top-row-height) * 2);
-  --shell-row-bg: #aaaaaa;
-  --shell-row-fg: #000000;
-  --shell-panel-bg: #000000;
-  --shell-border: #aaaaaa;
-  --shell-muted: #555555;
 }
 
 .game-root {
@@ -31,45 +24,6 @@ html, body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.game-status-line {
-  width: min(100%, var(--mobile-game-width));
-  display: grid;
-  grid-template-columns: max-content max-content minmax(0, 1fr) max-content minmax(0, max-content);
-  align-items: center;
-  column-gap: 0.5ch;
-  padding: 0 1ch;
-  min-height: 1.8em;
-  box-sizing: border-box;
-  background: #000000;
-  border-top: 1px solid #333333;
-  color: #55ff55;
-  flex-shrink: 0;
-}
-
-.game-status-line-segment {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.game-status-line-segment--left {
-  color: #55ffff;
-}
-
-.game-status-line-segment--hotkeys {
-  color: #aaaaaa;
-}
-
-.game-status-line-divider {
-  color: #555555;
-  user-select: none;
-}
-
-.game-status-line--guest {
-  width: 100%;
 }
 
 .game-panel {
@@ -147,25 +101,8 @@ html, body {
 
 .mobile-tab-bar {
   display: none;
-  background: var(--shell-row-bg);
+  background: #aaaaaa;
   position: relative;
-}
-
-.shell-top-rows {
-  width: min(100%, var(--mobile-game-width));
-  position: relative;
-  z-index: 2100;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.shell-top-rows .mobile-tab-bar {
-  width: 100%;
-}
-
-.shell-top-row {
-  height: var(--shell-top-row-height);
-  min-height: var(--shell-top-row-height);
 }
 
 .game-root.mobile-forced {
@@ -174,7 +111,7 @@ html, body {
   height: calc(var(--vh, 1vh) * 100);
   max-height: calc(var(--vh, 1vh) * 100);
   overflow: hidden;
-  background: var(--shell-panel-bg);
+  background: #3a3a3a;
 }
 
 .game-root.mobile-forced .game-panel {
@@ -184,7 +121,7 @@ html, body {
 .game-root.mobile-forced .mobile-tab-bar {
   display: block;
   width: min(100%, var(--mobile-game-width));
-  background: var(--shell-row-bg);
+  background: #aaaaaa;
   flex-shrink: 0;
 }
 
@@ -198,7 +135,6 @@ html, body {
 .game-root.mobile-forced .game-field-area {
   width: 100%;
   min-width: 0;
-  flex: 1;
 }
 
 .game-root.mobile-forced .widget-stack-overlay {
@@ -207,159 +143,13 @@ html, body {
   background: var(--game-bg, #370152ff);
 }
 
-.game-root.mobile-forced .mobile-tab-bar--header {
-  width: min(100%, var(--mobile-game-width));
-}
-
-.game-root.mobile-forced .game-top-header-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
-  column-gap: 1ch;
-  align-items: center;
-  height: var(--shell-top-row-height);
-  min-height: var(--shell-top-row-height);
-  width: 100%;
-  background: var(--shell-row-bg);
-  color: var(--shell-row-fg);
-  padding: 0 1ch;
-  margin: 0;
-  line-height: 1;
-  box-sizing: border-box;
-}
-
-.game-root.mobile-forced .game-top-header-title {
-  min-width: 0;
-}
-
-.game-root.mobile-forced .game-top-header-system {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
-}
-
-.game-root.mobile-forced .mobile-tab-bar--header .disconnect-button,
-.game-root.mobile-forced .mobile-tab-bar--header .settings-button {
-  width: auto;
-  min-width: 0;
-  height: auto;
-  margin: 0;
-  padding: 0;
-  font-size: 16px;
-  color: var(--shell-row-fg) !important;
-}
-
-.game-root.mobile-forced .mobile-tab-bar--header .game-mobile-action-btn {
-  align-self: center;
-  line-height: 1;
-}
-
-.game-root.mobile-forced .mobile-tab-bar--tabs {
-  display: flex;
-  align-items: stretch;
-  height: var(--shell-top-row-height);
-  min-height: var(--shell-top-row-height);
-  width: min(100%, var(--mobile-game-width));
-  background: var(--shell-row-bg);
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tabs-container {
-  display: flex;
-  gap: 0;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  margin: 0;
-  line-height: 1;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tabs-container.shell-mode-strip {
-  align-items: center;
-  gap: 0.75ch;
-}
-
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  border: 0;
-  border-radius: 0;
-  outline: none;
-  box-shadow: none;
-  color: var(--shell-row-fg);
-  font-size: 16px;
-  font-weight: 700;
-  text-decoration: none;
-  background: transparent;
-  line-height: 1;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
-  flex: 0 0 auto;
-}
-
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab-separator {
-  flex: 0 0 auto;
-  color: var(--shell-muted);
-  line-height: 1;
-  user-select: none;
-}
-
-.shell-mode-strip {
-  display: flex;
-  align-items: center;
-  gap: 1ch;
-  padding: 0 1ch;
-}
-
-.shell-mode-strip-label {
-  color: var(--shell-row-fg);
-  font-weight: 700;
-}
-
-.shell-mode-strip-language {
-  color: var(--shell-row-fg);
-}
-
-.shell-mode-strip-select {
-  display: inline-block;
-  border: 0;
-  outline: none;
-  box-shadow: none;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  color: var(--shell-row-fg);
-  font: inherit;
-  font-size: 16px;
-  line-height: 1;
-  height: 1.2em;
-  max-height: 1.2em;
-  min-width: 4ch;
-}
-
-.shell-mode-strip-select option {
-  color: #000000;
-}
-
 .game-root.mobile-forced .game-field {
   min-height: 0;
   flex: 1;
+}
+
+.game-mobile-tab-bar {
+  width: 100%;
 }
 
 .mobile-tabs-container {
@@ -367,13 +157,13 @@ html, body {
   width: 100%;
   min-width: 0;
   background: transparent;
-  gap: 0;
+  gap: 1ch;
 }
 
 .mobile-tab {
   padding: 0;
   border: none;
-  color: var(--shell-row-fg);
+  color: #000000;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -391,7 +181,7 @@ html, body {
 }
 
 .mobile-tab.active {
-  color: var(--shell-row-fg);
+  color: #000000;
   text-decoration: underline;
 }
 
@@ -516,27 +306,17 @@ html, body {
   z-index: 3000;
 }
 
-.settings-window {
+.settings-panel {
+  background: #000;
   color: #fff;
+  border: 1px solid #aaaaaa;
   min-width: 280px;
   max-width: 360px;
+  padding: 16px;
 }
 
-.settings-window .window-frame-title-text {
-  color: #aaaaaa;
-}
-
-.settings-window .window-frame-content {
-  padding: 12px 16px 16px;
-  box-sizing: border-box;
-}
-
-.settings-title-row,
-.settings-separator-row,
-.settings-content-row,
-.settings-window .window-frame-row--top,
-.settings-window .window-frame-row--bottom {
-  background: #000000;
+.settings-header {
+  margin-bottom: 12px;
   color: #aaaaaa;
 }
 
@@ -659,9 +439,9 @@ html, body {
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 4px;
   width: min(100%, var(--mobile-game-width));
-  padding: 0;
+  padding: 4px 0;
   background: transparent;
 }
 
@@ -677,8 +457,7 @@ html, body {
   justify-content: center;
   z-index: 2000;
   background: transparent;
-  padding: var(--shell-top-rows-height) 0 0;
-  box-sizing: border-box;
+  padding: 0;
 }
 
 /* TUI start screen */
@@ -687,7 +466,7 @@ html, body {
   height: 100%;
   box-sizing: border-box;
   color: #FFFFFF;
-  background: var(--shell-panel-bg);
+  background: #000000;
   font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
   font-size: 16px;
   line-height: 1;
@@ -715,33 +494,6 @@ html, body {
   width: auto;
 }
 
-.gs-window {
-  color: var(--shell-border, #aaaaaa);
-}
-
-.gs-window .window-frame-row {
-  background: var(--shell-panel-bg, #000000);
-  color: var(--shell-border, #aaaaaa);
-}
-
-.gs-window .window-frame-title-text {
-  color: #cccccc;
-}
-
-.gs-window .window-frame-content {
-  padding: 0;
-}
-
-.gs-window-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 1ch;
-}
-
-.gs-window-actions .gs-nav-btn {
-  width: auto;
-}
-
 .gs-fixed-header {
   position: sticky;
   top: 0;
@@ -765,8 +517,8 @@ html, body {
   column-gap: 1ch;
   align-items: stretch;
   height: auto;
-  background: var(--shell-row-bg);
-  color: var(--shell-row-fg);
+  background: #AAAAAA;
+  color: #000000;
   padding: 1ch;
   flex-shrink: 0;
 }
@@ -781,7 +533,7 @@ html, body {
   display: block;
   padding: 0;
   background: transparent;
-  color: var(--shell-row-fg);
+  color: #000000;
   font-weight: 700;
   flex: 1;
   overflow: hidden;
@@ -809,35 +561,6 @@ html, body {
   align-items: center;
   column-gap: 1ch;
   padding: 1ch;
-}
-
-.gs-mode-strip {
-  display: flex;
-  align-items: center;
-  gap: 1ch;
-  min-height: 1.8em;
-  background: var(--shell-row-bg);
-  color: var(--shell-row-fg);
-  padding: 0 1ch;
-  flex-shrink: 0;
-}
-
-.gs-mode-strip-label {
-  font-weight: 700;
-}
-
-.gs-mode-strip-divider {
-  color: var(--shell-muted);
-  user-select: none;
-}
-
-.gs-mode-strip-language {
-  color: var(--shell-row-fg);
-}
-
-.gs-lang-select.gs-lang-select--strip {
-  background: transparent;
-  color: var(--shell-row-fg);
 }
 
 
@@ -890,6 +613,17 @@ html, body {
   border: none;
   background: transparent;
   color: #AAAAAA;
+  display: flex;
+.gs-session-actions .gs-nav-btn {
+  min-width: 0;
+}
+
+.gs-session-actions .gs-nav-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
   display: inline-block;
   min-width: 0;
   overflow: hidden;
@@ -942,35 +676,6 @@ html, body {
 
 .gs-sessions-section.gs-tui-frame::after {
   content: '╚════════════════════════════════════════════════════════════════════════════════════════════════════╝';
-}
-
-.hexipedia-window-anchor {
-  margin: 0;
-}
-
-.hexipedia-window {
-  width: 100%;
-}
-
-.hexipedia-window .window-frame-row {
-  background: var(--shell-panel-bg, #000000);
-  color: var(--shell-border, #aaaaaa);
-}
-
-.hexipedia-window .window-frame-content {
-  padding: 0;
-}
-
-.hexipedia-window--terminal .window-frame-content {
-  overflow: visible;
-}
-
-.hexipedia-window-content-row .tui-border-fill {
-  overflow: visible;
-}
-
-.hexipedia-window-title-row .window-frame-title-text {
-  color: #cccccc;
 }
 
 .gs-nav-btn {
@@ -1108,13 +813,6 @@ html, body {
   grid-template-columns: 3ch minmax(0, 1fr);
 }
 
-.gs-session-title-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 1ch;
-}
-
 .gs-session-line--bottom {
   grid-template-columns: minmax(0, 1fr) 7ch;
 }
@@ -1126,7 +824,7 @@ html, body {
 
 
 .gs-expander-btn {
-  width: 3ch;
+  width: auto;
   height: auto;
   display: inline-flex;
   align-items: center;
@@ -1149,7 +847,6 @@ html, body {
 }
 
 .gs-session-name {
-  flex: 1;
   font-weight: 700;
   color: #FFFFFF;
   min-width: 0;
@@ -1453,27 +1150,69 @@ html, body {
 }
 
 /* Active tab header mirrors current tab content background */
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab:focus,
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab:focus-visible {
+.game-root.mobile-forced .game-mobile-tab-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  column-gap: 1ch;
+  align-items: stretch;
+  height: auto;
+  padding: 0 1ch;
+}
+
+.game-root.mobile-forced .mobile-tabs-container {
+  gap: 0;
+  align-items: stretch;
+}
+
+.game-root.mobile-forced .mobile-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  color: #000000;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  background: transparent;
+  padding: 1ch 0.75ch;
+}
+
+.game-root.mobile-forced .mobile-tab:focus,
+.game-root.mobile-forced .mobile-tab:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab.active {
+.game-root.mobile-forced .mobile-tab.active {
   color: #ffffff !important;
   text-decoration: none;
 }
 
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab--map.active {
+.game-root.mobile-forced .mobile-tab--map.active {
   background: var(--tab-map-bg, #00264C) !important;
 }
 
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab--hexipedia.active {
+.game-root.mobile-forced .mobile-tab--hexipedia.active {
   background: var(--tab-hexipedia-bg, #2f2f2f) !important;
 }
 
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab.disabled,
-.game-root.mobile-forced .mobile-tab-bar--tabs .mobile-tab:disabled {
+.game-root.mobile-forced .mobile-tab.disabled,
+.game-root.mobile-forced .mobile-tab:disabled {
   background: transparent;
   color: #555555;
+}
+
+.game-root.mobile-forced .game-mobile-tab-bar .disconnect-button,
+.game-root.mobile-forced .game-mobile-tab-bar .settings-button,
+.game-root.mobile-forced .game-mobile-tab-bar .game-mobile-action-btn {
+  align-self: center;
+  padding-top: 1ch;
+  padding-bottom: 1ch;
 }

@@ -316,6 +316,7 @@ export default function HexGridEditorPage() {
             <div className="editor-stat-pill">
               Anchor: {documentState.anchorCell === null ? 'none' : `(${documentState.anchorCell.q}, ${documentState.anchorCell.r})`}
             </div>
+            <a className="editor-back-link" href="../devlab/">DevLab index</a>
             <a className="editor-back-link" href="../">Open game</a>
           </div>
         </div>
