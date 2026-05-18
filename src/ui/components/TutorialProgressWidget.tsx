@@ -1,7 +1,7 @@
 import React from 'react';
 import { t } from '../i18n';
 import { TuiIconButton } from '../tui';
-import OverlayWidgetFrame from './OverlayWidgetFrame';
+import OverlayWidgetFrame, { type OverlayWidgetStackRole } from './OverlayWidgetFrame';
 import './OverlayWidget.css';
 import './TutorialProgressWidget.css';
 
@@ -17,6 +17,7 @@ interface TutorialProgressWidgetProps {
   onWidgetClick: () => void;
   onNavigateToTasks?: () => void;
   containerRef?: React.Ref<HTMLDivElement>;
+  stackRole?: OverlayWidgetStackRole;
 }
 
 export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
@@ -29,9 +30,14 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
   onWidgetClick,
   onNavigateToTasks,
   containerRef,
+  stackRole,
 }) => {
   return (
-    <OverlayWidgetFrame ref={containerRef} className="tutorial-progress-container">
+    <OverlayWidgetFrame
+      ref={containerRef}
+      className="tutorial-progress-container"
+      stackRole={stackRole}
+    >
       <div className="overlay-widget-shell">
         <div
           className={`overlay-widget-body tutorial-progress-widget phase-${phase}`}
@@ -43,7 +49,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
         >
           {phase === 'pending' && (
             <div className="tutorial-progress-row">
-              <span className="tutorial-task-icon" aria-hidden="true">tsk</span>
+              <span className="tutorial-task-icon" aria-hidden="true">[·]</span>
               <span className="tutorial-task-name">{taskName}</span>
             </div>
           )}
@@ -57,7 +63,7 @@ export const TutorialProgressWidget: React.FC<TutorialProgressWidgetProps> = ({
 
           {phase === 'complete' && (
             <div className="tutorial-progress-row">
-              <span className="tutorial-progress-checkbox checked" aria-hidden="true">OK</span>
+              <span className="tutorial-progress-checkbox" aria-hidden="true">[■]</span>
               <span className="tutorial-complete-text">{completeText}</span>
             </div>
           )}

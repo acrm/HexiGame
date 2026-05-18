@@ -8,9 +8,10 @@ import ControlsDesktop from './ControlsInfoDesktop';
 import PaletteCluster from './PaletteCluster';
 import GameField from './GameField/GameField';
 import Settings from './Settings';
-import GameMobileTabs from './Game/GameMobileTabs';
+import ShellTopRows from './Game/ShellTopRows';
 import GamePanels from './Game/GamePanels';
 import GameOverlays from './Game/GameOverlays';
+import HexiStatusLine from './Game/HexiStatusLine';
 import { getLanguage, setLanguage, subscribeToLanguageChange, t, type Lang } from '../i18n';
 import { getTemplateById } from '../../templates/templateLibrary';
 import { integration } from '../../appLogic/integration';
@@ -81,6 +82,7 @@ import {
   type SessionController,
 } from '../../appLogic/sessionController';
 import { mulberry32 } from '../../gameLogic/core/params';
+import version from '../../../version.json';
 
 const MASCOT_FACING_DIR_INDEX = 1;
 
@@ -89,6 +91,7 @@ const FORCE_DEBUG_UI = true;
 const DEBUG = FORCE_DEBUG_UI || (
   typeof window !== 'undefined' && window.localStorage?.getItem('DEBUG_WIDGETS') === 'true'
 );
+const MARKETING_VERSION = `v${version.marketing.major}.${version.marketing.minor}.${version.marketing.publicBuild}`;
 
 interface TaskIntroModalState {
   taskId: string;
@@ -537,7 +540,7 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
 
   // Determine background color based on active tab
   const backgroundColor = isMobileLayout 
-    ? (mobileTab === 'map' ? ColorScheme.outside.background : mobileTab === 'lab' ? ColorScheme.inside.background : '#2f2f2f')
+    ? (mobileTab === 'map' ? ColorScheme.outside.background : mobileTab === 'lab' ? ColorScheme.inside.background : '#000000')
     : '#370152ff';
 
   const paletteTopOffset = isMobileLayout && mobileTab === 'map' && activeTask ? 56 : 8;
@@ -555,6 +558,21 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
   const handleSelectHexipediaTab = () => {
     playUiClick();
     dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+  };
+
+  const handleTopRowsLanguageChange = (lang: Lang) => {
+    playUiClick();
+    handleLanguageChange(lang);
+  };
+
+  const handleTopRowsPrimaryAction = () => {
+    if (!guestStarted) {
+      playUiClick();
+      handlePlayLatestSession();
+      return;
+    }
+
+    handleDisconnect();
   };
 
   const handleLanguageChange = (lang: Lang) => {
@@ -735,6 +753,9 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       if (tab === 'map') {
         dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'map' });
       }
+      if (tab === 'hexipedia') {
+        dispatchApp({ type: 'SET_MOBILE_TAB', tab: 'hexipedia' });
+      }
       if (tab === 'colors') {
         openHexipediaSection('colors');
       }
@@ -742,6 +763,8 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         openHexipediaSection('structures');
       }
     },
+    onOpenSettings: handleOpenSettings,
+    onDisconnect: handleDisconnect,
     onActivateTemplate: (templateId: string) => {
       if (templateId === '') {
         dispatch({ type: 'DEACTIVATE_TEMPLATE' });
@@ -1045,6 +1068,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
       }
     : null;
 
+  const statusNotice = taskIntroModal
+    ? t('status.noticeTaskPending')
+    : playbackIsPaused
+      ? t('status.noticePaused')
+      : null;
+
   return (
     <div
       className="game-root mobile-forced"
@@ -1071,14 +1100,16 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         </div>
       )}
       {isMobileLayout && (
-        <GameMobileTabs
+        <ShellTopRows
+          mode={guestStarted ? 'session' : 'guest'}
+          marketingVersion={MARKETING_VERSION}
           mobileTab={mobileTab}
-          isHexiOsMode={!guestStarted}
+          language={language}
+          onPrimaryAction={handleTopRowsPrimaryAction}
+          onOpenSettings={handleOpenSettings}
           onSelectMap={handleSelectMapTab}
           onSelectHexipedia={handleSelectHexipediaTab}
-          onOpenSettings={handleOpenSettings}
-          onDisconnect={handleDisconnect}
-          onPlayLatestSession={handlePlayLatestSession}
+          onLanguageChange={handleTopRowsLanguageChange}
         />
       )}
 
@@ -1095,16 +1126,12 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         sessionHistory={sessionHistory}
         currentSessionId={currentSessionId ?? null}
         onContinueSession={handleContinueSession}
-        onPlayLatestSession={handlePlayLatestSession}
         onNewSession={handleStartNewSession}
         onDownloadSession={handleDownloadSession}
         onImportSession={handleImportSession}
         onRenameSession={handleRenameSession}
         onDeleteSessions={handleDeleteSessions}
-        onOpenSettings={handleOpenSettings}
         onGuestStartUiClick={playUiClick}
-        language={language}
-        onLanguageChange={handleLanguageChange}
         isSettingsOpen={isSettingsOpen}
         settingsProps={settingsProps}
         isMascotOpen={isMascotOpen}
@@ -1117,6 +1144,17 @@ export const Game: React.FC<{ params?: Partial<Params>; seed?: number }> = ({ pa
         hexiPediaProps={hexiPediaProps}
         gameFieldProps={gameFieldProps}
       />
+
+      {guestStarted && (
+        <HexiStatusLine
+          mode="session"
+          mobileTab={mobileTab}
+          tick={gameState.tick}
+          sessionStartTick={currentSessionStartTick}
+          cursor={gameState.focus}
+          notice={statusNotice}
+        />
+      )}
 
       {guestStarted && !startupAnimationShown && (
         <StartupAnimation

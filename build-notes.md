@@ -781,3 +781,5 @@
 - 0.1.0-y26w20b12 — Fix zoom input button stepping, align zoom slider marks/stops, and add always-on white selected-cell outline
 
 - 0.1.0-y26w21b1 — Squash local updates on top of main
+
+- 0.1.0-y26w21b2 — Restore main UI visuals, keep debug pages
